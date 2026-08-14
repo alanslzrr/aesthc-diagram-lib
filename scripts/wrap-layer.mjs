@@ -13,7 +13,9 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const file = new URL('../dist/styles.css', import.meta.url)
+const iconStylesFile = new URL('../src/icon-styles.css', import.meta.url)
 let css = readFileSync(file, 'utf8')
+const iconStyles = readFileSync(iconStylesFile, 'utf8').trim()
 
 // Drop any leading `@layer diagram-lib;` statement (we re-add it as a block).
 css = css.replace(/^@layer diagram-lib;\s*/, '')
@@ -22,8 +24,10 @@ css = css.replace(/^@layer diagram-lib;\s*/, '')
 css = css.replace(/@layer properties\{/g, '@layer diagram-lib.properties{')
 css = css.replace(/@layer utilities\{/g, '@layer diagram-lib.utilities{')
 
-// Wrap EVERYTHING (utilities included) inside the diagram-lib layer.
-css = `@layer diagram-lib {\n${css}\n}`
+// Wrap the utility output inside the diagram-lib layer. Icon visibility rules
+// are appended outside the layer because they must beat a host `svg { display:
+// block }` reset while remaining scoped to the library's own class names.
+css = `@layer diagram-lib {\n${css}\n}\n${iconStyles}\n`
 
 writeFileSync(file, css)
 console.log('dist/styles.css fully wrapped in @layer diagram-lib')

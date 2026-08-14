@@ -447,12 +447,19 @@ utilities. A Next.js consumer:
    }
    ```
 
-3. Import the compiled styles in your root CSS (next to `@import 'tailwindcss'`):
+3. Import the compiled styles **before** `@import 'tailwindcss'` in your root
+   CSS. The package utilities are wrapped in the `diagram-lib` cascade layer;
+   keeping that layer before the host layers ensures responsive host utilities
+   such as `.sm:flex` win over shared utility names such as `.hidden`:
 
    ```css
-   @import 'tailwindcss';
    @import '@aesthc/diagram-lib/styles.css';
+   @import 'tailwindcss';
    ```
+
+   The package's `.adl-icon-light` and `.adl-icon-dark` rules are deliberately
+   scoped and unlayered so they can override a host `svg { display: block }`
+   reset without introducing generic utility collisions.
 
 4. Ensure the theme variables above are defined (light + `[data-theme='dark']`).
 

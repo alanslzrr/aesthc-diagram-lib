@@ -1,0 +1,27 @@
+/*
+ * Icon dark/light switching.
+ *
+ * These rules intentionally remain unlayered in the compiled package. The
+ * diagram utility layer must stay below the host application's base and
+ * utilities layers, but the host reset includes `svg { display: block }`.
+ * Keeping these library-scoped visibility rules unlayered lets them win over
+ * that reset without reintroducing generic Tailwind classes such as `hidden`.
+ * Next/Turbopack can still fold imported rules into the surrounding layer, so
+ * the inactive states are also important to keep a host SVG reset from
+ * resurrecting the hidden mark.
+ */
+.adl-icon-light {
+  display: block;
+}
+
+.adl-icon-dark {
+  display: none !important;
+}
+
+:is([data-theme='dark'] *) .adl-icon-light {
+  display: none !important;
+}
+
+:is([data-theme='dark'] *) .adl-icon-dark {
+  display: block !important;
+}

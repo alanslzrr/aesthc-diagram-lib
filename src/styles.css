@@ -27,23 +27,3 @@
 @custom-variant dark (&:is([data-theme='dark'] *));
 
 @source './**/*.{ts,tsx}';
-
-/*
- * Icon dark/light switching. Uses library-scoped classes instead of Tailwind's
- * `hidden` / `dark:block` utilities so the compiled styles never collide with
- * a host app's responsive utilities (e.g. `.hidden` vs the host's `.sm:flex`).
- * Plain (unlayered) CSS keeps these rules authoritative for the icon elements.
- */
-.adl-icon-light {
-  display: block;
-}
-.adl-icon-dark {
-  display: none;
-}
-:is([data-theme='dark'] *) .adl-icon-light {
-  display: none;
-}
-:is([data-theme='dark'] *) .adl-icon-dark {
-  display: block;
-}
-
