@@ -525,13 +525,14 @@ diagrams (`example-band` … `example-swimlane`).
 ```bash
 pnpm install
 pnpm typecheck    # tsc --noEmit
-pnpm test         # vitest run (21 tests: registry, per-type layouts, render)
+pnpm test         # vitest run (27 tests: registry, per-type layouts, render, showcase, CSS cascade)
 pnpm build:css    # regenerate dist/styles.css after canvas class changes
 ```
 
 The test suite covers: registry lookup, every example layout inside its
 canvas, per-type invariants (levels, lifelines, ring, tables, spine, lanes),
-edge normalization, and SSR rendering of every diagram type.
+edge normalization, SSR rendering of every diagram type, the showcase page,
+and the compiled-stylesheet cascade contract.
 
 ---
 
