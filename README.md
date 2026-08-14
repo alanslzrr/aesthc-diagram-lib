@@ -31,7 +31,9 @@ case studies).
 8. [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)
 9. [Showcase](#showcase)
 10. [Development](#development)
-11. [License](#license)
+11. [Distribution model](#distribution-model)
+12. [Contributing](#contributing)
+13. [License](#license)
 
 ---
 
@@ -535,6 +537,33 @@ edge normalization, SSR rendering of every diagram type, the showcase page,
 and the compiled-stylesheet cascade contract.
 
 ---
+## Distribution model
+
+The package is published **as source**: TSX + a compiled `styles.css`. There
+is deliberately **no JS/`.d.ts` build step** yet — the primary consumer
+(Next.js) transpiles the package in place via `transpilePackages`, which keeps
+a single source of truth for types and logic and avoids a build/version
+synchronization step.
+
+Implications:
+
+- A Next.js consumer must set `transpilePackages: ['@aesthc/diagram-lib']`
+  (see [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)).
+- Other bundlers must transpile the package source (Vite `optimizeDeps.exclude`
+  + esbuild/jsx handling, webpack `transpileDependencies`), or the package
+  should be consumed through a future JS build.
+- TypeScript resolves types directly from the TS source (`main`/`types` point
+  at `src/index.ts`).
+
+A compiled JS + `.d.ts` build is a deliberate future improvement and would be
+released as a minor version; the public API and subpath layout would not
+change.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, the style-build workflow,
+how to add a diagram type or brand icon, and release steps.
+
 
 ## License
 
