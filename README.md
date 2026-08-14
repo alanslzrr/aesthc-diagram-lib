@@ -29,8 +29,9 @@ case studies).
    - [Decisions & continuations](#decisions--continuations)
 7. [Per-type specs](#per-type-specs)
 8. [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)
-9. [Development](#development)
-10. [License](#license)
+9. [Showcase](#showcase)
+10. [Development](#development)
+11. [License](#license)
 
 ---
 
@@ -210,6 +211,7 @@ function MyDiagram() {
 | `@aesthc/diagram-lib/layouts/band` | Just the band layout. |
 | `@aesthc/diagram-lib/canvas` | `DiagramCanvas`, `ArchitectureNodeIcon`, props types. |
 | `@aesthc/diagram-lib/examples` | `EXAMPLE_DIAGRAMS` + `registerExampleDiagrams()`. |
+| `@aesthc/diagram-lib/showcase` | `DiagramShowcase` — a ready-made interactive showcase page (one panel per type). |
 | `@aesthc/diagram-lib/styles.css` | Compiled canvas utilities (see theming). |
 
 ---
@@ -476,6 +478,40 @@ utilities. A Next.js consumer:
 the `exports` target; the package does not ship a JS build by design.
 
 ---
+
+## Showcase
+
+`DiagramShowcase` is a ready-made, interactive page that presents every
+supported diagram type with the library's visual chrome (hairline frames,
+mono header bars, caption + cobalt/branch legend). It is what you see if you
+want to "demo the library" — no i18n framework required.
+
+```tsx
+import { DiagramShowcase } from '@aesthc/diagram-lib/showcase'
+import { DEFAULT_SHOWCASE_ENTRIES } from '@aesthc/diagram-lib/showcase/entries'
+
+export default function DemoPage() {
+  return (
+    <DiagramShowcase
+      locale="en"                                  // 'en' | 'es'
+      heading="Seven diagram types,"
+      headingAccent="one visual language."
+      intro="A single SVG renderer and a declarative data model…"
+      entries={DEFAULT_SHOWCASE_ENTRIES}           // or your own list
+    />
+  )
+}
+```
+
+`entries` is `{ key, title, description }[]`; `key` must be a diagram
+registered in the registry (the examples are registered automatically when
+the module loads). Pass localized strings via props — defaults are English.
+
+The showcase assumes the host defines the theme variables from
+[Theming](#theming) plus `--muted-foreground` and `--font-display` (used by
+the hero/typography). `DEFAULT_SHOWCASE_ENTRIES` covers the seven example
+diagrams (`example-band` … `example-swimlane`).
+
 
 ## Development
 

@@ -10,6 +10,154 @@ import type { DiagramRegistration } from './types'
 import { registerDiagram } from './registry'
 
 export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
+
+  // ── Band ──────────────────────────────────────────────────────────────────
+  'example-band': {
+    diagram: {
+      en: {
+        type: 'band',
+        caption:
+          'a request pipeline: intake, validation, and a policy-gated outcome with an off-canvas retry',
+        legend: { main: 'request path', branch: 'sandbox · retry' },
+        bands: [
+          { title: 'Intake' },
+          { title: 'Validation' },
+          { title: 'Outcome' },
+        ],
+        nodes: [
+          {
+            id: 'ingress',
+            band: 0,
+            label: 'Ingress',
+            description: 'Authenticated API and manual uploads enter the same normalized request.',
+            kind: 'Trigger',
+            sublabel: 'api · upload',
+            weight: 'primary',
+          },
+          {
+            id: 'validate',
+            band: 1,
+            label: 'Validate',
+            description: 'Deterministic checks plus an LLM pass confirm the request is well-formed.',
+            kind: 'Engine',
+            sublabel: 'rules · llm',
+            weight: 'primary',
+          },
+          {
+            id: 'approve',
+            band: 2,
+            label: 'Approved',
+            description: 'The request passes policy and is persisted with its audit trail.',
+            kind: 'Outcome',
+            sublabel: 'persisted',
+            weight: 'primary',
+          },
+          {
+            id: 'quarantine',
+            band: 2,
+            label: 'Quarantine',
+            description: 'Low-confidence requests pause for operator review instead of failing.',
+            kind: 'Outcome',
+            sublabel: 'review',
+          },
+        ],
+        edges: [
+          { from: 'ingress', to: 'validate' },
+          { from: 'validate', to: 'approve', label: 'pass' },
+          { from: 'validate', to: 'quarantine', label: 'uncertain', variant: 'branch', dashed: true },
+        ],
+        decisions: [{ id: 'validate-pass', source: 'validate', label: 'valid?' }],
+        continuations: [
+          {
+            id: 'retry-ingress',
+            from: 'quarantine',
+            label: 'retry',
+            destination: 'ingress',
+            side: 'left',
+            anchor: 'upper',
+            labelPlacement: 'above-source',
+            variant: 'branch',
+            ariaLabel: 'operator retry returns the request to ingress',
+          },
+        ],
+      },
+      es: {
+        type: 'band',
+        caption:
+          'un pipeline de solicitudes: entrada, validación y un resultado regido por políticas con reintento fuera de lienzo',
+        legend: { main: 'ruta de solicitud', branch: 'prueba · reintento' },
+        bands: [
+          { title: 'Entrada' },
+          { title: 'Validación' },
+          { title: 'Resultado' },
+        ],
+        nodes: [
+          {
+            id: 'ingress',
+            band: 0,
+            label: 'Entrada',
+            description: 'La API autenticada y las subidas manuales entran como una misma solicitud normalizada.',
+            kind: 'Disparador',
+            sublabel: 'api · subida',
+            weight: 'primary',
+          },
+          {
+            id: 'validate',
+            band: 1,
+            label: 'Validar',
+            description: 'Comprobaciones deterministas más un pase de LLM confirman que la solicitud es válida.',
+            kind: 'Motor',
+            sublabel: 'reglas · llm',
+            weight: 'primary',
+          },
+          {
+            id: 'approve',
+            band: 2,
+            label: 'Aprobado',
+            description: 'La solicitud supera la política y se conserva con su registro de auditoría.',
+            kind: 'Resultado',
+            sublabel: 'persistido',
+            weight: 'primary',
+          },
+          {
+            id: 'quarantine',
+            band: 2,
+            label: 'Cuarentena',
+            description: 'Las solicitudes con poca confianza esperan revisión del operador en vez de fallar.',
+            kind: 'Resultado',
+            sublabel: 'revisión',
+          },
+        ],
+        edges: [
+          { from: 'ingress', to: 'validate' },
+          { from: 'validate', to: 'approve', label: 'válido' },
+          { from: 'validate', to: 'quarantine', label: 'dudoso', variant: 'branch', dashed: true },
+        ],
+        decisions: [{ id: 'validate-pass', source: 'validate', label: '¿válido?' }],
+        continuations: [
+          {
+            id: 'retry-ingress',
+            from: 'quarantine',
+            label: 'reintentar',
+            destination: 'entrada',
+            side: 'left',
+            anchor: 'upper',
+            labelPlacement: 'above-source',
+            variant: 'branch',
+            ariaLabel: 'el reintento del operador devuelve la solicitud a la entrada',
+          },
+        ],
+      },
+    },
+    visuals: {
+      ingress: { source: 'phosphor', key: 'folder-lock' },
+      validate: { source: 'phosphor', key: 'gauge' },
+      approve: { source: 'phosphor', key: 'seal-check' },
+      quarantine: { source: 'phosphor', key: 'warning' },
+    },
+  },
+
+
   // ── Flowchart ─────────────────────────────────────────────────────────────
   'example-flowchart': {
     diagram: {

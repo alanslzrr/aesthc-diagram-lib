@@ -27,7 +27,8 @@
     "./theme": "./src/theme.ts",
     "./layout": "./src/layout.ts",
     "./examples": "./src/examples.ts",
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./showcase": "./src/showcase/index.ts"
   },
   "scripts": {
     "test": "vitest run",
