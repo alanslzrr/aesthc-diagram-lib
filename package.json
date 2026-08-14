@@ -1,9 +1,9 @@
 {
   "name": "@aesthc/diagram-lib",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Reusable SVG diagram library — band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["./dist/styles.css"],
   "files": [
     "dist",
     "src"
