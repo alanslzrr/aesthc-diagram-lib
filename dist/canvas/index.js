@@ -556,6 +556,7 @@ function TooltipContent({
 // src/canvas/DiagramCanvas.tsx
 import { Fragment as Fragment2, jsx as jsx15, jsxs as jsxs11 } from "react/jsx-runtime";
 var strokeForVariant = (variant) => variant === "branch" ? "var(--color-branch)" : "var(--color-cobalt)";
+var NODE_BORDER = "var(--diagram-node-border, var(--border))";
 var nodeOpacity = (node, highlight) => !highlight || highlight.nodes.has(node.id) ? 1 : DIMMED_OPACITY;
 var edgeOpacity = (edge, highlight) => !highlight || highlight.edges.has(edge.id) ? 1 : DIMMED_OPACITY;
 var continuationOpacity = (continuation, highlight) => !highlight || highlight.nodes.has(continuation.from) ? 1 : DIMMED_OPACITY;
@@ -892,7 +893,7 @@ function DiagramCanvas({
                             height: node.h,
                             rx: CARD_R,
                             fill: node.weight === "primary" ? "color-mix(in srgb, var(--foreground) 4%, var(--background))" : "transparent",
-                            stroke: node.weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : "var(--border)",
+                            stroke: node.weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : NODE_BORDER,
                             strokeWidth: 1
                           }
                         ),
@@ -924,7 +925,7 @@ function DiagramCanvas({
                               y1: node.y + 26 + fieldIndex * 22,
                               x2: node.x + node.w,
                               y2: node.y + 26 + fieldIndex * 22,
-                              stroke: "var(--border)",
+                              stroke: NODE_BORDER,
                               strokeWidth: 0.75
                             }
                           ),
@@ -968,7 +969,7 @@ function DiagramCanvas({
                           y1: node.y + node.h,
                           x2: node.x + node.w,
                           y2: node.y + node.h,
-                          stroke: "var(--border)",
+                          stroke: NODE_BORDER,
                           strokeWidth: 1
                         }
                       ) : /* @__PURE__ */ jsx15(
@@ -980,9 +981,9 @@ function DiagramCanvas({
                           height: node.h,
                           rx: radius,
                           fill: weight === "primary" ? "color-mix(in srgb, var(--foreground) 4%, var(--background))" : "transparent",
-                          stroke: weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : "var(--border)",
+                          stroke: weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : NODE_BORDER,
                           strokeWidth: 1,
-                          className: weight === "primary" ? "opacity-100" : "opacity-70"
+                          className: weight === "primary" ? "opacity-100" : "opacity-[0.84] dark:opacity-70"
                         }
                       ),
                       !isEvent ? /* @__PURE__ */ jsx15(
@@ -1023,7 +1024,7 @@ function DiagramCanvas({
                             height: node.h - 8,
                             rx: radius - 4,
                             fill: "none",
-                            stroke: "var(--border)",
+                            stroke: NODE_BORDER,
                             strokeWidth: 1,
                             className: "pointer-events-none"
                           }
