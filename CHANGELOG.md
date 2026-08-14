@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-14
+
+### Changed
+
+- Distribution: the package is now published as **compiled ESM + `.d.ts`**
+  (built with `tsup`) instead of raw TSX source. `main`/`module`/`types` and
+  every `exports` subpath point at `dist/`.
+- Consumers no longer need `transpilePackages`; any bundler that supports ESM
+  can consume the package. (The previous TSX-source distribution required a
+  transpiling consumer and broke Turbopack's PostCSS loader on Linux CI when
+  combined with `transpilePackages`.)
+- `'use client'` is re-injected into the `canvas` and `showcase` entries so
+  Next.js still treats them as Client Components.
+- CI now builds the package (ESM + d.ts + styles) and fails if `dist/` drifts.
+
+### Fixed
+
+- PostCSS/Turbopack incompatibility when the package source was consumed via
+  `transpilePackages` (see Changed above).
+
 ## [0.1.0] - 2026-08-14
 
 ### Added
@@ -46,4 +66,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in place (Next.js: `transpilePackages`). A JS + `.d.ts` build is a
   deliberate future improvement, not a current blocker.
 
+[0.2.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.0
 [0.1.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.1.0

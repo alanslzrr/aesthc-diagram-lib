@@ -39,10 +39,10 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Build styles
-        run: pnpm build:css
+      - name: Build package (ESM + d.ts + styles)
+        run: pnpm build
 
-      - name: Verify compiled styles are in sync
+      - name: Verify dist is in sync
         run: |
           git diff --exit-code dist/
-          echo "dist/styles.css is up to date"
+          echo "dist/ is up to date (JS, d.ts and styles.css)"

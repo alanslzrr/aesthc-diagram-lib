@@ -440,14 +440,9 @@ utilities. A Next.js consumer:
 
 1. Add the dependency (local or git — see [Installation](#installation)).
 
-2. Tell Next to transpile the source:
-
-   ```js
-   // next.config.js
-   module.exports = {
-     transpilePackages: ['@aesthc/diagram-lib'],
-   }
-   ```
+2. (Optional for older setups) Tell Next to transpile the source only if
+   consuming from `src` directly; the published package is prebuilt ESM and
+   does not require it.
 
 3. Import the compiled styles **before** `@import 'tailwindcss'` in your root
    CSS. The package utilities are wrapped in the `diagram-lib` cascade layer;
@@ -539,25 +534,19 @@ and the compiled-stylesheet cascade contract.
 ---
 ## Distribution model
 
-The package is published **as source**: TSX + a compiled `styles.css`. There
-is deliberately **no JS/`.d.ts` build step** yet — the primary consumer
-(Next.js) transpiles the package in place via `transpilePackages`, which keeps
-a single source of truth for types and logic and avoids a build/version
-synchronization step.
+The package is published as **compiled ESM + `.d.ts`** (`dist/`), built with
+`tsup` on every release. Each public subpath resolves to a self-contained
+module; `main`/`module`/`types` point at `dist/index.js` / `dist/index.d.ts`.
 
 Implications:
 
-- A Next.js consumer must set `transpilePackages: ['@aesthc/diagram-lib']`
-  (see [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)).
-- Other bundlers must transpile the package source (Vite `optimizeDeps.exclude`
-  + esbuild/jsx handling, webpack `transpileDependencies`), or the package
-  should be consumed through a future JS build.
-- TypeScript resolves types directly from the TS source (`main`/`types` point
-  at `src/index.ts`).
-
-A compiled JS + `.d.ts` build is a deliberate future improvement and would be
-released as a minor version; the public API and subpath layout would not
-change.
+- Any bundler or Node runtime that supports ESM can consume the package —
+  **no `transpilePackages` needed** (a Next.js consumer only wires the
+  compiled styles, see [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)).
+- The `canvas` and `showcase` entries carry the `'use client'` directive so
+  Next.js treats them as Client Components.
+- `dist/` is generated and CI-fenced: the pipeline runs `pnpm build` and fails
+  if `dist/` drifts. `src/` remains the source of truth for development.
 
 ## Contributing
 
