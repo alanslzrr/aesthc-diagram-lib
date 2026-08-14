@@ -1,84 +1,497 @@
 # @aesthc/diagram-lib
 
-Librería reutilizable de diagramas SVG con el lenguaje visual de la sección
-work de [alansalazar.dev](https://alansalazar.dev): grid de puntos, tarjetas
-hairline, aristas cobalt/branch, pills y tooltips glass. Un solo canvas
-(`DiagramCanvas`) renderiza cualquier tipo de diagrama; el contenido es datos
-declarativos y bilingües que se registran en un registry global.
+**Reusable SVG diagram library** with a cohesive visual language: dot grid
+backgrounds, hairline cards, cobalt/branch edges, edge pills, and glass
+tooltips. One canvas renders **seven diagram types** from declarative,
+localized data — no DOM measurement, no hand-authored coordinates.
 
-## Tipos de diagrama
+Built for — and extracted from — [alansalazar.dev](https://alansalazar.dev)'s
+featured-work section (the "Validation Orchestrator" and "Quote Agent"
+case studies).
 
-| `type` | Spec | Layout |
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+---
+
+## Table of contents
+
+1. [Features](#features)
+2. [Diagram types](#diagram-types)
+3. [Installation](#installation)
+4. [Quick start](#quick-start)
+5. [API](#api)
+6. [Configuration & customization](#configuration--customization)
+   - [Theming](#theming)
+   - [Node cards](#node-cards)
+   - [Node shapes](#node-shapes)
+   - [Node icons](#node-icons)
+   - [Edges](#edges)
+   - [Decisions & continuations](#decisions--continuations)
+7. [Per-type specs](#per-type-specs)
+8. [Integrating with Next.js](#integrating-with-nextjs--tailwind-v4)
+9. [Development](#development)
+10. [License](#license)
+
+---
+
+## Features
+
+- **7 diagram types** from a single renderer: `band`, `flowchart`, `sequence`,
+  `state-machine`, `er` (data model), `timeline`, and `swimlane`.
+- **Declarative, localized specs** — content is data (`en` / `es`), topology
+  is shared across locales.
+- **Computed geometry** — layouts derive pixel coordinates and SVG paths from
+  the spec; no hand-authored `x`/`y`, no resize observers.
+- **One visual language** — dot grid, hairline cards, bezier edges with
+  longitudinal gradients, decision pills, off-canvas continuations, glass
+  tooltips.
+- **Accessible & interactive** — every node is a focusable `role="button"`
+  with a `<desc>`; hover/focus/selection highlights the full upstream +
+  downstream path.
+- **Tree-shakeable subpaths** — the core barrel has no layout engines; a
+  consumer that only renders `band` imports exactly that layout.
+- **Theme-agnostic CSS** — the canvas references the host's CSS variables, so
+  it inherits any design system.
+
+---
+
+## Diagram types
+
+| `type` | Spec keys | Layout |
 |---|---|---|
-| `band` | `bands` + `nodes` + `edges` (+ `decisions`, `continuations`) | Columnas verticales, stacks centrados, beziers entre bandas (el diseño original de Quote Agent / Orchestrator) |
-| `flowchart` | `nodes` + `edges` (+ `direction`, `level`) | Niveles top-down o left-right por orden topológico |
-| `sequence` | `participants` + `messages` | Lifelines + mensajes horizontales + barras de activación |
-| `state-machine` | `states` (+ `initial`/`final`) + `transitions` | Estados en anillo, self-loops, doble outline inicial |
-| `er` | `entities` (con `fields`) + `relations` | Tablas en grid con filas tipadas (pk/fk/unique) |
-| `timeline` | `events` | Espina central punteada, eventos alternando arriba/abajo |
-| `swimlane` | `lanes` + `nodes` (con `lane`) + `edges` | Carriles horizontales etiquetados |
+| `band` | `bands`, `nodes` (+ `band`), `edges`, `decisions?`, `continuations?` | Vertical columns, centred stacks, bezier edges between bands (the original Quote Agent / Orchestrator design) |
+| `flowchart` | `nodes`, `edges` (+ `direction`, `level`) | Top-down or left-right levels, auto-assigned by topological order |
+| `sequence` | `participants`, `messages` | Vertical lifelines, horizontal messages, activation bars |
+| `state-machine` | `states` (+ `initial`/`final`), `transitions` | States on a ring, curved transitions, self-loops, double-outline initial, hollow final |
+| `er` | `entities` (with `fields`), `relations` | Tables in a grid, typed rows (pk / fk / unique) |
+| `timeline` | `events` | Dashed central spine, events alternating above/below |
+| `swimlane` | `lanes`, `nodes` (with `lane`), `edges` | Labelled horizontal lanes |
 
-## Uso
+---
 
-```ts
-import { registerDiagram } from '@aesthc/diagram-lib'
-import { layoutBand } from '@aesthc/diagram-lib/layouts/band'
-import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
+## Installation
+
+```bash
+pnpm add @aesthc/diagram-lib
+# or
+npm install @aesthc/diagram-lib
 ```
 
-Registra contenido (spec bilingüe + visuals), lee el spec localizado con
-`getDiagram(key, locale)`, calcula la geometría con un layout y pásala al
-canvas. Ver `src/examples.ts` para seis diagramas completos y
-`tests/diagrams-library.unit.spec.ts` para el contrato.
+Peer dependencies: `react >= 18`, `react-dom >= 18`.
 
-## Exports (subpaths)
+**Using from git** (no registry publish yet):
 
-| Subpath | Contenido |
+```json
+{
+  "dependencies": {
+    "@aesthc/diagram-lib": "github:alanslzrr/aesthc-diagram-lib"
+  }
+}
+```
+
+**Local development against the source**:
+
+```json
+{
+  "dependencies": {
+    "@aesthc/diagram-lib": "file:../aesthc-diagram-lib"
+  }
+}
+```
+
+---
+
+## Quick start
+
+```tsx
+import { registerDiagram } from '@aesthc/diagram-lib'
+import { getDiagram, diagramEdges, buildAdjacency, connectedIds } from '@aesthc/diagram-lib'
+import { layoutBand } from '@aesthc/diagram-lib/layouts/band'
+import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
+
+// 1. Register content (module scope of a data file)
+registerDiagram('my-project', {
+  diagram: {
+    en: {
+      type: 'band',
+      caption: 'what the diagram tells',
+      legend: { main: 'main path', branch: 'alternative' },
+      bands: [{ title: 'Input' }, { title: 'Process' }, { title: 'Output' }],
+      nodes: [
+        { id: 'a', band: 0, label: 'Step A', description: 'What A does.', kind: 'Trigger', sublabel: 'ingest' },
+        { id: 'b', band: 1, label: 'Step B', description: 'What B does.', weight: 'primary' },
+        { id: 'c', band: 2, label: 'Step C', description: 'What C does.', weight: 'muted' },
+      ],
+      edges: [
+        { from: 'a', to: 'b', label: 'next' },
+        { from: 'b', to: 'c' },
+      ],
+      continuations: [
+        { id: 'back', from: 'c', label: 'retry', destination: 'a', side: 'left' },
+      ],
+    },
+    es: { /* same ids/topology, Spanish text */ },
+  },
+  visuals: {
+    a: { source: 'phosphor', key: 'rocket-launch' },
+    b: { source: 'svgl', key: 'openrouter' },
+  },
+})
+
+// 2. Render
+function MyDiagram() {
+  const locale = 'en'
+  const diagram = getDiagram('my-project', locale) // localized spec
+  const layout = layoutBand(diagram)               // pixel geometry + SVG paths
+  const edges = diagramEdges(diagram)              // normalized relations
+  const adjacency = buildAdjacency(edges)          // for hover/focus highlight
+  const highlight = connectedIds('b', adjacency)   // full path through b
+
+  return (
+    <DiagramCanvas
+      layout={layout}
+      highlight={highlight}
+      activeNodeId={null}
+      focusedNodeId={null}
+      selectedNodeId={null}
+      onTooltipNodeChange={() => {}}
+      onFocusNode={() => {}}
+      onSelectNode={() => {}}
+      onDismissNode={() => {}}
+      instanceId="my-project"
+      ariaLabel="My project architecture"
+      nodeVisuals={{ a: { source: 'phosphor', key: 'rocket-launch' } }}
+    />
+  )
+}
+```
+
+> Both locales must share `id`s and topology — only the text differs.
+> Registering the same key twice replaces the entry (handy in HMR).
+
+---
+
+## API
+
+### Registry — `@aesthc/diagram-lib`
+
+| Function | Description |
 |---|---|
-| `@aesthc/diagram-lib` | Core: `types`, `theme`, `layout` (común), `registry` — sin layouts |
-| `@aesthc/diagram-lib/layouts` | Dispatcher `layoutByType` + `layoutDiagram` + los 7 layouts |
-| `@aesthc/diagram-lib/layouts/band` | Solo el layout de bandas (import mínimo) |
-| `@aesthc/diagram-lib/canvas` | `DiagramCanvas`, `ArchitectureNodeIcon`, `DiagramCanvasProps` |
-| `@aesthc/diagram-lib/examples` | `EXAMPLE_DIAGRAMS` + `registerExampleDiagrams()` |
+| `registerDiagram(key, { diagram: { en, es }, visuals? })` | Registers a localized diagram + optional node icons. |
+| `registerDiagrams(entries)` | Registers several at once. |
+| `getDiagram(key, locale)` | Returns the localized spec (`es` for `es*`, `en` otherwise). Throws on unknown key. |
+| `getDiagramVisuals(key)` | Returns the node icon map. |
+| `hasDiagram(key)` / `getDiagramKeys()` | Registry introspection. |
 
-El core no importa los layouts, así que un consumidor que solo renderiza
-`band` (como el portfolio) no arrastra los otros motores de layout.
+### Geometry — `@aesthc/diagram-lib`
 
-## Diseño
+| Function | Description |
+|---|---|
+| `layoutDiagram(spec)` / `layoutByType(spec)` | Dispatches any spec to its layout. |
+| `layoutBand(spec)` | Band layout only (lightweight import). |
+| `diagramEdges(spec)` | Normalizes `messages` / `transitions` / `relations` / `edges` into plain edges. |
+| `buildAdjacency(edges)` / `connectedIds(id, adj)` | Graph traversal for highlight. |
+| `nodePorts(node, edges, continuations)` | Real connection points of a placed node. |
 
-- **`DiagramLayout`** normaliza cualquier spec: nodos colocados (`PlacedNode`),
-  edges con paths + gradientes, y opcionalmente `containers` (swimlane),
-  `lifelines` (sequence) y shapes (`card`, `state`, `table`, `event`,
-  `terminal`, `bar`).
-- **Tokens** (`theme.ts`): geometría y constantes de render centralizadas.
-- **Registry** (`registry.ts`): `registerDiagram(key, { diagram: {en, es}, visuals })`.
-- **Estilos**: el canvas usa clases Tailwind (arbitrarias y utilitarias) que el
-  consumidor debe escanear (ver "Integración con Tailwind").
+### Canvas — `@aesthc/diagram-lib/canvas`
 
-## Desarrollo
+| Export | Description |
+|---|---|
+| `DiagramCanvas` | The SVG renderer. Props: `layout`, `highlight`, `activeNodeId`, `focusedNodeId`, `selectedNodeId`, `onTooltipNodeChange`, `onFocusNode`, `onSelectNode`, `onDismissNode`, `instanceId`, `ariaLabel`, `nodeVisuals`. |
+| `ArchitectureNodeIcon` | Renders an SVGL brand mark or a Phosphor icon. |
+| `DiagramCanvasProps` | Prop types. |
+
+### Subpaths
+
+| Subpath | Contents |
+|---|---|
+| `@aesthc/diagram-lib` | Core: `types`, `theme`, `layout` (common), `registry`. No layout engines. |
+| `@aesthc/diagram-lib/layouts` | Dispatcher `layoutByType` + `layoutDiagram` + all 7 layouts. |
+| `@aesthc/diagram-lib/layouts/band` | Just the band layout. |
+| `@aesthc/diagram-lib/canvas` | `DiagramCanvas`, `ArchitectureNodeIcon`, props types. |
+| `@aesthc/diagram-lib/examples` | `EXAMPLE_DIAGRAMS` + `registerExampleDiagrams()`. |
+| `@aesthc/diagram-lib/styles.css` | Compiled canvas utilities (see theming). |
+
+---
+
+## Configuration & customization
+
+### Theming
+
+The canvas is **theme-agnostic**: it reads CSS variables from the host. Define
+these anywhere in your app (light + dark):
+
+```css
+:root {
+  --foreground: #171717;
+  --background: #f4f7fb;
+  --border: #d8e0eb;
+  --card: #f9fbff;
+  --cobalt: #0fa8ff;   /* main edges, ports, focus ring */
+  --branch: #d6a55e;   /* branch edges, continuations */
+}
+[data-theme='dark'] {
+  --foreground: #f2f2ee;
+  --background: #070707;
+  --border: #242424;
+  --card: #101010;
+  --cobalt: #14a8ff;
+  --branch: #d6a55e;
+}
+```
+
+The package ships a compiled `styles.css` with the canvas utilities
+(utilities-only, no preflight) that references these variables, so the
+diagram inherits your palette and dark mode automatically.
+
+**Regenerate the compiled CSS** after changing canvas classes:
+
+```bash
+pnpm build:css   # tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify
+```
+
+### Node cards
+
+| Field | Type | Effect |
+|---|---|---|
+| `id` | `string` | Stable identifier used by edges/visuals. |
+| `label` | `string` | Main title. |
+| `description` | `string` | Tooltip + `<desc>` (accessibility). Required. |
+| `kind` | `string` | Mono micro-label above the title (e.g. `Trigger`, `Engine`, `Gate`). |
+| `sublabel` | `string` | Mono secondary line; makes the card taller (`CARD_H_FULL`). |
+| `weight` | `'primary' \| 'secondary' \| 'muted'` | `primary` = visible border + elevated fill; `secondary` = hairline, transparent; `muted` = no card, just text over a bottom rule. |
+| `nudge` | `number` | Vertical fine-tune after layout centres the node. |
+| `shape` | see below | Draw the node as something other than a card. |
+| `fields` | `TableField[]` | Rows for `shape: 'table'` (ER). |
+
+### Node shapes
+
+| Shape | Used by | Rendering |
+|---|---|---|
+| `card` | all | Default hairline card. |
+| `state` | state-machine | Rounded pill; `initial` adds a double outline, `final` a hollow centre dot. |
+| `table` | er | Header band + typed field rows with pk/fk/unique badges. |
+| `event` | timeline | Dot on the spine + label above/below. |
+| `terminal` | flowchart | Rounded start/end capsule. |
+| `bar` | sequence | Thin activation bar (non-interactive, no tooltip). |
+
+### Node icons
+
+`visuals` map node ids to icons. Two sources:
+
+```ts
+type DiagramNodeVisual =
+  | { source: 'svgl'; key: SvglNodeIconKey }      // brand marks
+  | { source: 'phosphor'; key: SemanticNodeIconKey } // abstract operations
+```
+
+- **SVGL brand marks**: `express`, `google-cloud`, `mcp`, `nextjs`, `openai`,
+  `openrouter`, `pdf`, `postgresql` (dark/light aware).
+- **Phosphor operations**: `arrows-split`, `brackets-curly`, `folder-lock`,
+  `gauge`, `graph`, `handshake`, `list-checks`, `list-magnifying-glass`,
+  `monitor`, `receipt`, `rocket-launch`, `scales`, `seal-check`, `user-check`,
+  `user-focus`, `warning`.
+
+To add a brand mark, drop the SVG component in `src/svgs/`, extend
+`SvglNodeIconKey` in `src/types.ts`, and map it in
+`src/canvas/ArchitectureNodeIcon.tsx`.
+
+### Edges
+
+| Field | Type | Effect |
+|---|---|---|
+| `from` / `to` | `string` | Node ids. |
+| `label` | `string` | Pill rendered near the edge. |
+| `variant` | `'main' \| 'branch'` | Cobalt (`main`) vs amber (`branch`). |
+| `dashed` | `boolean` | Dashed stroke (alternative paths). |
+| `labelPlacement` | `'above-target' \| 'below-target' \| 'left-of-edge' \| 'right-of-edge'` | Move the pill into whitespace. |
+| `route` | `{ lane: 'above' \| 'below', clearance? }` | Route a cross-band edge around intervening bands on an outer lane. |
+
+### Decisions & continuations
+
+```ts
+// A compact question in the open run after a branching node.
+decisions: [{ id: 'health', source: 'verdict', label: 'healthy?' }]
+
+// An off-canvas return stub — preserves feedback semantics without a long
+// edge or an enclosing rail. Rendered as a 44u stub with a chevron.
+continuations: [{
+  id: 'realtime-console',
+  from: 'store',
+  label: 'realtime',
+  destination: 'console',          // only used in the aria label
+  side: 'left' | 'right',
+  anchor: 'upper' | 'center' | 'lower',  // escape hatch off a muted node's rule
+  labelPlacement: 'above-source' | 'below-source',
+  variant: 'branch',
+  ariaLabel: '…',                  // spoken return semantics
+}]
+```
+
+---
+
+## Per-type specs
+
+All types share `caption` and `legend: { main, branch }`. Beyond that:
+
+### Band
+
+```ts
+{
+  type: 'band',
+  bands: [{ title: 'Intake' }],
+  nodes: [{ id: 'crm', band: 0, label: 'CRM / ERP event', … }],
+  edges: [{ from: 'crm', to: 'case' }],
+  decisions?: […], continuations?: […],
+}
+```
+
+### Flowchart
+
+```ts
+{
+  type: 'flowchart',
+  direction?: 'top-down' | 'left-right',   // default top-down
+  level?: number,                          // pin a column; default = topological pass
+  nodes: […], edges: […],
+}
+```
+
+### Sequence
+
+```ts
+{
+  type: 'sequence',
+  participants: [{ id: 'api', label: 'API', kind: 'Next.js' }],
+  messages: [{
+    id: 'intent', from: 'api', to: 'pay',
+    label: 'create intent', variant?: 'main' | 'branch',
+    dashed?: boolean, activation?: boolean,
+  }],
+}
+```
+
+### State machine
+
+```ts
+{
+  type: 'state-machine',
+  states: [{
+    id: 'paid', label: 'Paid', kind: 'Confirmed',
+    weight?: NodeWeight, initial?: boolean, final?: boolean,
+    description?: string,
+  }],
+  transitions: [{ from: 'created', to: 'payment', label: 'checkout', variant?, dashed? }],
+}
+```
+
+### ER / data model
+
+```ts
+{
+  type: 'er',
+  entities: [{
+    id: 'products', label: 'products', kind: 'table',
+    weight?: NodeWeight,
+    fields: [
+      { name: 'id', type: 'uuid', key: 'pk' },
+      { name: 'product_id', type: 'uuid', key: 'fk' },
+      { name: 'slug', type: 'varchar(120)', key: 'unique' },
+    ],
+  }],
+  relations: [{ from: 'products', to: 'variants', label: '1—N', variant? }],
+}
+```
+
+### Timeline
+
+```ts
+{
+  type: 'timeline',
+  events: [{
+    id: 'public', label: 'Public launch', kind: 'launch',
+    sublabel?: string, description: string,
+    variant?: 'main' | 'branch', weight?: NodeWeight,
+  }],
+}
+```
+
+### Swimlane
+
+```ts
+{
+  type: 'swimlane',
+  lanes: [{ id: 'eng', label: 'Engineering', kind: 'Product' }],
+  nodes: [{ id: 'debug', lane: 'eng', label: 'Debug & fix', … }],
+  edges: [{ from: 'escalate', to: 'debug' }],
+}
+```
+
+---
+
+## Integrating with Next.js + Tailwind v4
+
+The package ships **TSX source + a compiled CSS file** with the canvas
+utilities. A Next.js consumer:
+
+1. Add the dependency (local or git — see [Installation](#installation)).
+
+2. Tell Next to transpile the source:
+
+   ```js
+   // next.config.js
+   module.exports = {
+     transpilePackages: ['@aesthc/diagram-lib'],
+   }
+   ```
+
+3. Import the compiled styles in your root CSS (next to `@import 'tailwindcss'`):
+
+   ```css
+   @import 'tailwindcss';
+   @import '@aesthc/diagram-lib/styles.css';
+   ```
+
+4. Ensure the theme variables above are defined (light + `[data-theme='dark']`).
+
+5. Optional — editor paths:
+
+   ```json
+   {
+     "compilerOptions": {
+       "paths": {
+         "@aesthc/diagram-lib": ["../aesthc-diagram-lib/src/index.ts"],
+         "@aesthc/diagram-lib/*": ["../aesthc-diagram-lib/src/*"]
+       }
+     }
+   }
+   ```
+
+> **Vercel / CI**: a `file:` dependency won't resolve on a clean deploy. Use
+> the `github:` dependency (and grant the private repo access to the deploy
+> platform).
+
+**Other bundlers (Vite, webpack)**: transpile the package source
+(`optimizeDeps.exclude` / `transpileDependencies`) or point your bundler at
+the `exports` target; the package does not ship a JS build by design.
+
+---
+
+## Development
 
 ```bash
 pnpm install
-pnpm typecheck
-pnpm test
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest run (21 tests: registry, per-type layouts, render)
+pnpm build:css    # regenerate dist/styles.css after canvas class changes
 ```
 
-## Integración con un consumidor Next.js + Tailwind v4
+The test suite covers: registry lookup, every example layout inside its
+canvas, per-type invariants (levels, lifelines, ring, tables, spine, lanes),
+edge normalization, and SSR rendering of every diagram type.
 
-El paquete se distribuye como fuente TSX **más un CSS compilado** con las
-utilidades que usa el canvas (generado con `pnpm build:css`). El consumidor:
+---
 
-1. Dependencia local o vía git:
-   `"@aesthc/diagram-lib": "file:../aesthc-diagram-lib"` (o
-   `github:alanslzrr/aesthc-diagram-lib`).
-2. `next.config.js` → `transpilePackages: ['@aesthc/diagram-lib']`.
-3. Importar el CSS del paquete en el CSS raíz (junto a `@import 'tailwindcss'`):
-   `@import '@aesthc/diagram-lib/styles.css';`
-   El CSS es utilities-only (sin preflight), referencia las variables del tema
-   del host (`--foreground`, `--background`, `--border`, `--card`, `--cobalt`,
-   `--branch`) y usa el mismo `dark` variant
-   (`&:is([data-theme='dark'] *)`), así el aspecto coincide con el tema del
-   consumidor en claro y oscuro.
-4. Si el consumidor cambia clases del canvas (retoque visual), recompilar:
-   `pnpm --dir ../aesthc-diagram-lib build:css`.
-5. Opcional: `paths` en tsconfig apuntando a la fuente para el editor.
+## License
+
+[MIT](./LICENSE) © 2026 Alan Salazar

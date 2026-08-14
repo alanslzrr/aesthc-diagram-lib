@@ -1,7 +1,7 @@
 {
   "name": "@aesthc/diagram-lib",
   "version": "0.1.0",
-  "description": "Reusable SVG diagram library: band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with the alansalazar.dev work-section visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
+  "description": "Reusable SVG diagram library \u2014 band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -10,9 +10,18 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./canvas": "./src/canvas/index.ts",
-    "./layouts": "./src/layouts/index.ts",
-    "./layouts/band": "./src/layouts/band.ts",
+    "./canvas": {
+      "types": "./src/canvas/index.ts",
+      "default": "./src/canvas/index.ts"
+    },
+    "./layouts": {
+      "types": "./src/layouts/index.ts",
+      "default": "./src/layouts/index.ts"
+    },
+    "./layouts/band": {
+      "types": "./src/layouts/band.ts",
+      "default": "./src/layouts/band.ts"
+    },
     "./registry": "./src/registry.ts",
     "./types": "./src/types.ts",
     "./theme": "./src/theme.ts",
@@ -56,5 +65,20 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.0",
     "vitest": "^4.0.0"
+  },
+  "author": "Alan Salazar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alanslzrr/aesthc-diagram-lib.git"
+  },
+  "homepage": "https://github.com/alanslazarr/aesthc-diagram-lib#readme",
+  "bugs": {
+    "url": "https://github.com/alanslzrr/aesthc-diagram-lib/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
