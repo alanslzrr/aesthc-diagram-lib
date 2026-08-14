@@ -1,0 +1,26 @@
+/*
+ * Compiled utilities for the diagram canvas.
+ *
+ * Consumed by the host app via `@import '@aesthc/diagram-lib/styles';`.
+ * Utilities-only (no preflight) so it never overrides the consumer's global
+ * reset; the dark variant matches alansalazar.dev's `[data-theme='dark']`.
+ *
+ * The `@theme inline` block maps the colors the canvas uses onto the host's
+ * CSS variables (--foreground, --background, --border, --card, --cobalt,
+ * --branch), so classes like `fill-foreground/45` compile to color-mix()
+ * against the host theme at runtime.
+ */
+@import 'tailwindcss/utilities';
+
+@theme inline {
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-cobalt: var(--cobalt);
+  --color-branch: var(--branch);
+}
+
+@custom-variant dark (&:is([data-theme='dark'] *));
+
+@source './**/*.{ts,tsx}';

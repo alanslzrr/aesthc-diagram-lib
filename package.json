@@ -1,0 +1,60 @@
+{
+  "name": "@aesthc/diagram-lib",
+  "version": "0.1.0",
+  "description": "Reusable SVG diagram library: band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with the alansalazar.dev work-section visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "dist"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./canvas": "./src/canvas/index.ts",
+    "./layouts": "./src/layouts/index.ts",
+    "./layouts/band": "./src/layouts/band.ts",
+    "./registry": "./src/registry.ts",
+    "./types": "./src/types.ts",
+    "./theme": "./src/theme.ts",
+    "./layout": "./src/layout.ts",
+    "./examples": "./src/examples.ts",
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify"
+  },
+  "keywords": [
+    "diagram",
+    "svg",
+    "flowchart",
+    "sequence",
+    "state-machine",
+    "er",
+    "timeline",
+    "swimlane"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@radix-ui/react-tooltip": "^1.2.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.0"
+  }
+}
