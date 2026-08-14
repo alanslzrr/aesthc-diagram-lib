@@ -454,6 +454,8 @@ utilities. A Next.js consumer:
    @import 'tailwindcss';
    ```
 
+   The package metadata marks `dist/styles.css` as a side effect so production bundlers retain this import even when no JavaScript export is consumed from the stylesheet entry.
+
    The package's `.adl-icon-light` and `.adl-icon-dark` rules are deliberately
    scoped and unlayered so they can override a host `svg { display: block }`
    reset without introducing generic utility collisions.

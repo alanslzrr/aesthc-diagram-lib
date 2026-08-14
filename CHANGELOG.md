@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-14
+
+### Fixed
+
+- Marked `dist/styles.css` as a package side effect so production bundlers
+  retain the imported diagram canvas stylesheet.
+
 ## [0.2.0] - 2026-08-14
 
 ### Changed
@@ -66,5 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in place (Next.js: `transpilePackages`). A JS + `.d.ts` build is a
   deliberate future improvement, not a current blocker.
 
+[0.2.1]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.1
 [0.2.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.0
 [0.1.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.1.0
