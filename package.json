@@ -33,7 +33,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify"
+    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs"
   },
   "keywords": [
     "diagram",

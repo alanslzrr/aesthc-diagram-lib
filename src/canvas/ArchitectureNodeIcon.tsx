@@ -87,8 +87,8 @@ export function ArchitectureNodeIcon({ size, visual, x, y }: ArchitectureNodeIco
     case 'express':
       return (
         <>
-          <Expressjs {...position} className="dark:hidden" />
-          <ExpressjsDark {...position} className="hidden dark:block" />
+          <Expressjs {...position} className="adl-icon-light" />
+          <ExpressjsDark {...position} className="adl-icon-dark" />
         </>
       )
     case 'google-cloud':
@@ -96,8 +96,8 @@ export function ArchitectureNodeIcon({ size, visual, x, y }: ArchitectureNodeIco
     case 'mcp':
       return (
         <>
-          <ModelContextProtocolLight {...position} className="dark:hidden" />
-          <ModelContextProtocolDark {...position} className="hidden dark:block" />
+          <ModelContextProtocolLight {...position} className="adl-icon-light" />
+          <ModelContextProtocolDark {...position} className="adl-icon-dark" />
         </>
       )
     case 'nextjs':
@@ -105,15 +105,15 @@ export function ArchitectureNodeIcon({ size, visual, x, y }: ArchitectureNodeIco
     case 'openai':
       return (
         <>
-          <Openai {...position} className="dark:hidden" />
-          <OpenaiDark {...position} className="hidden dark:block" />
+          <Openai {...position} className="adl-icon-light" />
+          <OpenaiDark {...position} className="adl-icon-dark" />
         </>
       )
     case 'openrouter':
       return (
         <>
-          <OpenrouterLight {...position} className="dark:hidden" />
-          <OpenrouterDark {...position} className="hidden dark:block" />
+          <OpenrouterLight {...position} className="adl-icon-light" />
+          <OpenrouterDark {...position} className="adl-icon-dark" />
         </>
       )
     case 'pdf':
