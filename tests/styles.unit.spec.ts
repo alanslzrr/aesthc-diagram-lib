@@ -2,12 +2,19 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8')
+const packageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { sideEffects?: unknown }
 const iconMarker = 'Icon dark/light switching.'
 
 describe('compiled stylesheet cascade contract', () => {
   it('keeps utility output inside the library layer', () => {
     expect(css.startsWith('@layer diagram-lib {')).toBe(true)
     expect(css).toContain('.hidden')
+  })
+
+  it('preserves the compiled stylesheet as a package side effect', () => {
+    expect(packageJson.sideEffects).toEqual(['./dist/styles.css'])
   })
 
   it('keeps icon visibility rules outside the utility layer', () => {
