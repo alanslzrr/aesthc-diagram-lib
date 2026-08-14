@@ -7,7 +7,8 @@
  *
  * The `@theme inline` block maps the colors the canvas uses onto the host's
  * CSS variables (--foreground, --background, --border, --card, --cobalt,
- * --branch), so classes like `fill-foreground/45` compile to color-mix()
+ * --branch), plus the optional --diagram-node-border token for node outlines,
+ * so classes like `fill-foreground/45` compile to color-mix()
  * against the host theme at runtime.
  */
 @import 'tailwindcss/utilities';

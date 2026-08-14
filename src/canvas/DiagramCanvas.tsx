@@ -44,6 +44,8 @@ export interface DiagramCanvasProps {
 const strokeForVariant = (variant: EdgeVariant) =>
   variant === 'branch' ? 'var(--color-branch)' : 'var(--color-cobalt)'
 
+const NODE_BORDER = 'var(--diagram-node-border, var(--border))'
+
 const nodeOpacity = (node: PlacedNode, highlight: Highlight | null) =>
   !highlight || highlight.nodes.has(node.id) ? 1 : DIMMED_OPACITY
 
@@ -417,7 +419,7 @@ export function DiagramCanvas({
                           stroke={
                             node.weight === 'primary'
                               ? 'color-mix(in srgb, var(--foreground) 28%, var(--border))'
-                              : 'var(--border)'
+                              : NODE_BORDER
                           }
                           strokeWidth={1}
                         />
@@ -447,7 +449,7 @@ export function DiagramCanvas({
                               y1={node.y + 26 + fieldIndex * 22}
                               x2={node.x + node.w}
                               y2={node.y + 26 + fieldIndex * 22}
-                              stroke="var(--border)"
+                              stroke={NODE_BORDER}
                               strokeWidth={0.75}
                             />
                             <text
@@ -487,7 +489,7 @@ export function DiagramCanvas({
                         y1={node.y + node.h}
                         x2={node.x + node.w}
                         y2={node.y + node.h}
-                        stroke="var(--border)"
+                        stroke={NODE_BORDER}
                         strokeWidth={1}
                       />
                     ) : (
@@ -505,10 +507,12 @@ export function DiagramCanvas({
                         stroke={
                           weight === 'primary'
                             ? 'color-mix(in srgb, var(--foreground) 28%, var(--border))'
-                            : 'var(--border)'
+                            : NODE_BORDER
                         }
                         strokeWidth={1}
-                        className={weight === 'primary' ? 'opacity-100' : 'opacity-70'}
+                        className={
+                          weight === 'primary' ? 'opacity-100' : 'opacity-[0.84] dark:opacity-70'
+                        }
                       />
                     )}
 
@@ -548,7 +552,7 @@ export function DiagramCanvas({
                             height={node.h - 8}
                             rx={radius - 4}
                             fill="none"
-                            stroke="var(--border)"
+                            stroke={NODE_BORDER}
                             strokeWidth={1}
                             className="pointer-events-none"
                           />
