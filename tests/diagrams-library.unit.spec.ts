@@ -160,6 +160,12 @@ describe('DiagramCanvas renders every type', () => {
       }),
     )
 
+  it('uses the host node-border token for secondary outlines', () => {
+    const markup = render(EXAMPLE_DIAGRAMS['example-flowchart'].diagram.en)
+    expect(markup).toContain('stroke="var(--diagram-node-border, var(--border))"')
+    expect(markup).toContain('opacity-[0.84] dark:opacity-70')
+  })
+
   it('flowchart renders terminal shapes and edge pills', () => {
     const markup = render(EXAMPLE_DIAGRAMS['example-flowchart'].diagram.en)
     expect(markup).toContain('data-node-id="start"')
