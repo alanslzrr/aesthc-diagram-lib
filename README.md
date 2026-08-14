@@ -230,6 +230,7 @@ these anywhere in your app (light + dark):
   --foreground: #171717;
   --background: #f4f7fb;
   --border: #d8e0eb;
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));
   --card: #f9fbff;
   --cobalt: #0fa8ff;   /* main edges, ports, focus ring */
   --branch: #d6a55e;   /* branch edges, continuations */
@@ -238,6 +239,7 @@ these anywhere in your app (light + dark):
   --foreground: #f2f2ee;
   --background: #070707;
   --border: #242424;
+  --diagram-node-border: var(--border);
   --card: #101010;
   --cobalt: #14a8ff;
   --branch: #d6a55e;
@@ -247,6 +249,10 @@ these anywhere in your app (light + dark):
 The package ships a compiled `styles.css` with the canvas utilities
 (utilities-only, no preflight) that references these variables, so the
 diagram inherits your palette and dark mode automatically.
+
+`--diagram-node-border` is optional. If omitted, node outlines fall back to
+`--border`; define it per theme when the canvas needs a different outline
+contrast without changing borders across the rest of the host application.
 
 **Regenerate the compiled CSS** after changing canvas classes:
 
