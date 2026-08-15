@@ -11,7 +11,11 @@
  * so classes like `fill-foreground/45` compile to color-mix()
  * against the host theme at runtime.
  */
-@import 'tailwindcss/utilities';
+/* source(none): the compiled package stylesheet must contain the canvas
+   utilities only — without it, Tailwind's automatic source detection scans
+   the whole repo (including site/) and dist/styles.css stops being
+   deterministic. */
+@import 'tailwindcss/utilities' source(none);
 
 @theme inline {
   --color-foreground: var(--foreground);
