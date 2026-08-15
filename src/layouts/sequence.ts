@@ -25,7 +25,18 @@ const END_TRIM = 5
 
 export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
   const count = Math.max(1, spec.participants.length)
-  const width = 2 * (MARGIN_X + HEADER_W / 2) + PARTICIPANT_PITCH * (count - 1)
+  // Self-message labels hang to the right of their lifeline; make sure the
+  // canvas is wide enough for one on the last participant.
+  const selfLabelExtent = Math.max(
+    0,
+    ...spec.messages
+      .filter((message) => message.from === message.to && message.label)
+      .map((message) => 104 + labelPillWidth(message.label as string) + 16),
+  )
+  const width =
+    2 * (MARGIN_X + HEADER_W / 2) +
+    PARTICIPANT_PITCH * (count - 1) +
+    Math.max(0, selfLabelExtent - (MARGIN_X + HEADER_W / 2))
   const headerBottom = HEADER_TOP + HEADER_H
   const messageTop = headerBottom + 48
   const y1 = messageTop + spec.messages.length * MESSAGE_PITCH

@@ -121,6 +121,10 @@ export const STRINGS = {
   },
   install: { en: 'install', es: 'instalar' },
   viewOnGitHub: { en: 'view on github', es: 'ver en github' },
+  themeTooltip: { en: 'theme', es: 'tema' },
+  localeTooltip: { en: 'language', es: 'idioma' },
+  hexAria: { en: 'hex value', es: 'valor hex' },
+  pickerAria: { en: 'color picker', es: 'selector de color' },
   readme: { en: 'readme', es: 'readme' },
   license: { en: 'MIT license', es: 'licencia MIT' },
   footerNote: {

@@ -152,7 +152,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
                   setPreset('custom')
                   setActiveTokens((tokens) => ({ ...tokens, [field.token]: event.target.value }))
                 }}
-                aria-label={`${field.cssVar} hex value`}
+                aria-label={`${field.cssVar} — ${STRINGS.hexAria[locale]}`}
                 className="w-[86px] border border-border bg-transparent px-2 py-1 font-mono text-[10.5px] text-foreground/80 outline-none focus:border-foreground/35"
               />
               <input
@@ -162,7 +162,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
                   setPreset('custom')
                   setActiveTokens((tokens) => ({ ...tokens, [field.token]: event.target.value }))
                 }}
-                aria-label={`${field.cssVar} colour picker`}
+                aria-label={`${field.cssVar} — ${STRINGS.pickerAria[locale]}`}
                 className="h-7 w-9 cursor-pointer border border-border bg-transparent p-0.5"
               />
             </span>

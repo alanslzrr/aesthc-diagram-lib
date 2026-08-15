@@ -34,10 +34,10 @@ export function TopBar({
           >
             github ↗
           </a>
-          <MonoButton onClick={onTheme} title="theme">
+          <MonoButton onClick={onTheme} title={STRINGS.themeTooltip[locale]}>
             {theme}
           </MonoButton>
-          <MonoButton onClick={onLocale} title="language">
+          <MonoButton onClick={onLocale} title={STRINGS.localeTooltip[locale]}>
             {locale}
           </MonoButton>
         </nav>

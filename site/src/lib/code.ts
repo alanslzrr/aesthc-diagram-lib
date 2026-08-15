@@ -5,7 +5,12 @@
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 
 const quote = (value: string): string =>
-  `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`
+  `'${value
+    .replaceAll('\\', '\\\\')
+    .replaceAll("'", "\\'")
+    .replaceAll('\n', '\\n')
+    .replaceAll('\r', '\\r')
+    .replaceAll('\t', '\\t')}'`
 
 export function printValue(value: unknown, indent = 0): string {
   const pad = '  '.repeat(indent)
@@ -97,17 +102,19 @@ export interface ThemeTokens {
 }
 
 export function themeCss(light: ThemeTokens, dark: ThemeTokens): string {
-  const block = (tokens: ThemeTokens): string =>
+  // The node-border formula is per-theme by design: light themes mix extra
+  // foreground into the outline for contrast, dark themes use the border.
+  const block = (tokens: ThemeTokens, nodeBorder: string): string =>
     [
       `  --background: ${tokens.background};`,
       `  --foreground: ${tokens.foreground};`,
       `  --card: ${tokens.card};`,
       `  --border: ${tokens.border};`,
       `  --muted-foreground: ${tokens.mutedForeground};`,
-      `  --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));`,
+      `  --diagram-node-border: ${nodeBorder};`,
       `  --cobalt: ${tokens.cobalt};`,
       `  --branch: ${tokens.branch};`,
     ].join('\n')
 
-  return `:root {\n${block(light)}\n}\n\n[data-theme='dark'] {\n${block(dark)}\n}\n`
+  return `:root {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))')}\n}\n\n[data-theme='dark'] {\n${block(dark, 'var(--border)')}\n}\n`
 }

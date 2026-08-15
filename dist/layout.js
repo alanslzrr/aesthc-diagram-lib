@@ -75,22 +75,23 @@ function buildAdjacency(edges) {
   return { out, in: incoming };
 }
 function diagramEdges(spec) {
-  if (!("type" in spec)) return spec.edges;
+  const list = (candidate) => Array.isArray(candidate) ? candidate : [];
+  if (!("type" in spec)) return list(spec.edges);
   switch (spec.type) {
     case "sequence":
-      return spec.messages;
+      return list(spec.messages);
     case "state-machine":
-      return spec.transitions;
+      return list(spec.transitions);
     case "er":
-      return spec.relations;
+      return list(spec.relations);
     case "timeline":
       return [];
     case "band":
     case "flowchart":
     case "swimlane":
-      return spec.edges;
+      return list(spec.edges);
     default:
-      return spec.edges;
+      return list(spec.edges);
   }
 }
 function connectedIds(nodeId, adjacency) {

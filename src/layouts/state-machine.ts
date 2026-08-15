@@ -86,13 +86,14 @@ export function layoutStateMachine(spec: StateMachineDiagramSpec): DiagramLayout
     const labelWidth = transition.label ? labelPillWidth(transition.label) : 0
 
     if (transition.from === transition.to) {
-      // Self-loop arc above the state.
+      // Self-loop arc above the state. The id stays `a::a` so highlight
+      // traversal (which speaks from::to) still finds it.
       const startX = from.x + from.w * 0.35
       const endX = from.x + from.w * 0.65
       const loopY = from.y - 36
       edges.push({
         ...transition,
-        id: `${transition.from}::self::${from.id}`,
+        id: edgeId(transition),
         variant,
         d: `M ${startX} ${from.y} C ${startX} ${loopY - 14}, ${endX} ${loopY - 14}, ${endX} ${from.y}`,
         labelX: from.cx,
@@ -123,8 +124,14 @@ export function layoutStateMachine(spec: StateMachineDiagramSpec): DiagramLayout
     const outY = midY - centreY
     const outLen = Math.hypot(outX, outY) || 1
     const bow = isNeighbour ? 72 : -Math.min(64, outLen * 0.22)
-    const controlX = midX + (outX / outLen) * bow
-    const controlY = midY + (outY / outLen) * bow
+    // Perpendicular component (rotated chord): a→b and b→a bow to opposite
+    // sides of the chord, so opposite transitions never overlap.
+    const chordX = to.cx - from.cx
+    const chordY = to.cy - from.cy
+    const chordLen = Math.hypot(chordX, chordY) || 1
+    const sideOffset = isNeighbour ? 18 : 30
+    const controlX = midX + (outX / outLen) * bow + (-chordY / chordLen) * sideOffset
+    const controlY = midY + (outY / outLen) * bow + (chordX / chordLen) * sideOffset
 
     const [startX, startY] = borderPoint(from, controlX, controlY)
     const [endX, endY] = borderPoint(to, controlX, controlY)

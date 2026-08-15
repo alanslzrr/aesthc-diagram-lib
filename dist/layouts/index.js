@@ -502,10 +502,10 @@ function placeFlowEdges(spec, nodes, nodeById, levelOf, back, lanes) {
     let placed;
     if (isBack) {
       const laneOffset = nearLaneUsed++ * -26;
-      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.nearLaneX + laneOffset, "near") : outerLaneVertical(from, to, lanes.nearLaneX + laneOffset, "near");
+      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.nearLaneX + laneOffset, "near", nodes) : outerLaneVertical(from, to, lanes.nearLaneX + laneOffset, "near", nodes);
     } else if (Math.abs(levelDelta) > 1) {
       const laneOffset = farLaneUsed++ * 26;
-      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.farLaneX + laneOffset, "far") : outerLaneVertical(from, to, lanes.farLaneX + laneOffset, "far");
+      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.farLaneX + laneOffset, "far", nodes) : outerLaneVertical(from, to, lanes.farLaneX + laneOffset, "far", nodes);
     } else if (levelDelta === 0) {
       const rightward = to.cx > from.cx || !lanes.horizontal && to.cy > from.cy;
       if (lanes.horizontal) {
@@ -582,39 +582,110 @@ function placeFlowEdges(spec, nodes, nodeById, levelOf, back, lanes) {
   }
   return edges;
 }
-function outerLaneVertical(from, to, laneX, side) {
-  const left = side === "near";
-  const startX = left ? from.x : from.x + from.w;
-  const endX = left ? to.x : to.x + to.w;
-  const startY = connectY(from, left ? "left" : "right");
-  const endY = connectY(to, left ? "left" : "right");
-  return laneShape(
-    [
-      [startX, startY],
-      [laneX, startY],
-      [laneX, endY],
-      [endX, endY]
-    ],
-    left ? "left" : "right",
-    left ? "left" : "right",
-    laneX,
-    (startY + endY) / 2
+var JOG = 28;
+function rowBlocked(node, nodes, x1, x2) {
+  const [lo, hi] = x1 < x2 ? [x1, x2] : [x2, x1];
+  return nodes.some(
+    (other) => other.id !== node.id && Math.abs(other.cy - node.cy) < (other.h + node.h) / 2 && other.x + other.w > lo && other.x < hi
   );
 }
-function outerLaneHorizontal(from, to, laneY, side) {
-  const top = side === "near";
-  const startY = top ? from.y : from.y + from.h;
-  const endY = top ? to.y : to.y + to.h;
+function columnBlocked(node, nodes, y1, y2) {
+  const [lo, hi] = y1 < y2 ? [y1, y2] : [y2, y1];
+  return nodes.some(
+    (other) => other.id !== node.id && Math.abs(other.cx - node.cx) < (other.w + node.w) / 2 && other.y + other.h > lo && other.y < hi
+  );
+}
+function outerLaneVertical(from, to, laneX, side, nodes) {
+  const left = side === "near";
+  const movingUp = to.cy < from.cy;
+  const sideOf = left ? "left" : "right";
+  const exitX = left ? from.x : from.x + from.w;
+  const exitY = connectY(from, sideOf);
+  let head;
+  let fromSide = sideOf;
+  if (rowBlocked(from, nodes, exitX, laneX)) {
+    const jogY = movingUp ? from.y - JOG : from.y + from.h + JOG;
+    head = [
+      [from.cx, movingUp ? from.y : from.y + from.h],
+      [from.cx, jogY],
+      [laneX, jogY]
+    ];
+    fromSide = movingUp ? "top" : "bottom";
+  } else {
+    head = [
+      [exitX, exitY],
+      [laneX, exitY]
+    ];
+  }
+  const entryX = left ? to.x : to.x + to.w;
+  const entryY = connectY(to, sideOf);
+  let tail;
+  let toSide = sideOf;
+  if (rowBlocked(to, nodes, laneX, entryX)) {
+    const jogY = movingUp ? to.y + to.h + JOG : to.y - JOG;
+    tail = [
+      [laneX, jogY],
+      [to.cx, jogY],
+      [to.cx, movingUp ? to.y + to.h : to.y]
+    ];
+    toSide = movingUp ? "bottom" : "top";
+  } else {
+    tail = [
+      [laneX, entryY],
+      [entryX, entryY]
+    ];
+  }
   return laneShape(
-    [
-      [from.cx, startY],
-      [from.cx, laneY],
+    [...head, ...tail],
+    fromSide,
+    toSide,
+    laneX,
+    (head[head.length - 1][1] + tail[0][1]) / 2
+  );
+}
+function outerLaneHorizontal(from, to, laneY, side, nodes) {
+  const top = side === "near";
+  const movingLeft = to.cx < from.cx;
+  const sideOf = top ? "top" : "bottom";
+  const exitY = top ? from.y : from.y + from.h;
+  let head;
+  let fromSide = sideOf;
+  if (columnBlocked(from, nodes, exitY, laneY)) {
+    const jogX = movingLeft ? from.x - JOG : from.x + from.w + JOG;
+    head = [
+      [movingLeft ? from.x : from.x + from.w, from.cy],
+      [jogX, from.cy],
+      [jogX, laneY]
+    ];
+    fromSide = movingLeft ? "left" : "right";
+  } else {
+    head = [
+      [from.cx, exitY],
+      [from.cx, laneY]
+    ];
+  }
+  const entryY = top ? to.y : to.y + to.h;
+  let tail;
+  let toSide = sideOf;
+  if (columnBlocked(to, nodes, laneY, entryY)) {
+    const jogX = movingLeft ? to.x + to.w + JOG : to.x - JOG;
+    tail = [
+      [jogX, laneY],
+      [jogX, to.cy],
+      [movingLeft ? to.x + to.w : to.x, to.cy]
+    ];
+    toSide = movingLeft ? "right" : "left";
+  } else {
+    tail = [
       [to.cx, laneY],
-      [to.cx, endY]
-    ],
-    top ? "top" : "bottom",
-    top ? "top" : "bottom",
-    (from.cx + to.cx) / 2,
+      [to.cx, entryY]
+    ];
+  }
+  return laneShape(
+    [...head, ...tail],
+    fromSide,
+    toSide,
+    (head[head.length - 1][0] + tail[0][0]) / 2,
     laneY
   );
 }
@@ -646,7 +717,11 @@ var ACTIVATION_W = 8;
 var END_TRIM = 5;
 function layoutSequence(spec) {
   const count = Math.max(1, spec.participants.length);
-  const width = 2 * (MARGIN_X2 + HEADER_W / 2) + PARTICIPANT_PITCH * (count - 1);
+  const selfLabelExtent = Math.max(
+    0,
+    ...spec.messages.filter((message) => message.from === message.to && message.label).map((message) => 104 + labelPillWidth(message.label) + 16)
+  );
+  const width = 2 * (MARGIN_X2 + HEADER_W / 2) + PARTICIPANT_PITCH * (count - 1) + Math.max(0, selfLabelExtent - (MARGIN_X2 + HEADER_W / 2));
   const headerBottom = HEADER_TOP + HEADER_H;
   const messageTop = headerBottom + 48;
   const y1 = messageTop + spec.messages.length * MESSAGE_PITCH;
@@ -823,7 +898,7 @@ function layoutStateMachine(spec) {
       const loopY = from.y - 36;
       edges.push({
         ...transition,
-        id: `${transition.from}::self::${from.id}`,
+        id: edgeId(transition),
         variant,
         d: `M ${startX2} ${from.y} C ${startX2} ${loopY - 14}, ${endX2} ${loopY - 14}, ${endX2} ${from.y}`,
         labelX: from.cx,
@@ -850,8 +925,12 @@ function layoutStateMachine(spec) {
     const outY = midY - centreY;
     const outLen = Math.hypot(outX, outY) || 1;
     const bow = isNeighbour ? 72 : -Math.min(64, outLen * 0.22);
-    const controlX = midX + outX / outLen * bow;
-    const controlY = midY + outY / outLen * bow;
+    const chordX = to.cx - from.cx;
+    const chordY = to.cy - from.cy;
+    const chordLen = Math.hypot(chordX, chordY) || 1;
+    const sideOffset = isNeighbour ? 18 : 30;
+    const controlX = midX + outX / outLen * bow + -chordY / chordLen * sideOffset;
+    const controlY = midY + outY / outLen * bow + chordX / chordLen * sideOffset;
     const [startX, startY] = borderPoint(from, controlX, controlY);
     const [endX, endY] = borderPoint(to, controlX, controlY);
     const labelX = 0.25 * startX + 0.5 * controlX + 0.25 * endX;
@@ -993,7 +1072,7 @@ function layoutEr(spec) {
       labelY = corridorY;
       fromSide = rightward ? "right" : "left";
       toSide = rightward ? "left" : "right";
-    } else if (fromCol === toCol) {
+    } else if (fromCol === toCol && Math.abs(fromRow - toRow) === 1) {
       const movingDown = toRow > fromRow;
       startX = from.cx;
       endX = to.cx;
@@ -1006,26 +1085,43 @@ function layoutEr(spec) {
       fromSide = movingDown ? "bottom" : "top";
       toSide = movingDown ? "top" : "bottom";
     } else {
-      const movingDown = toRow > fromRow;
-      const rightward = toCol > fromCol;
-      startX = from.cx;
-      startY = movingDown ? from.y + from.h : from.y;
-      endX = rightward ? to.x : to.x + to.w;
+      const colDelta = toCol - fromCol;
+      startY = anchorY(from);
       endY = anchorY(to);
-      const corridorRow = movingDown ? fromRow : toRow;
-      const corridorY = rowTops[corridorRow] + rowHeights[corridorRow] + GRID_GAP_Y / 2;
-      routePoints = [
-        [startX, startY],
-        [startX, corridorY],
-        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, corridorY],
-        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, endY],
-        [endX, endY]
-      ];
+      if (Math.abs(colDelta) <= 1) {
+        const gapX = colDelta === 0 ? fromCol < usedCols - 1 ? xFor(fromCol) + TABLE_W + GRID_GAP_X / 2 : xFor(fromCol) - GRID_GAP_X / 2 : Math.max(xFor(fromCol), xFor(toCol)) - GRID_GAP_X / 2;
+        startX = gapX > from.cx ? from.x + from.w : from.x;
+        endX = gapX > to.cx ? to.x + to.w : to.x;
+        routePoints = [
+          [startX, startY],
+          [gapX, startY],
+          [gapX, endY],
+          [endX, endY]
+        ];
+        labelX = gapX;
+        labelY = (startY + endY) / 2;
+      } else {
+        const rightward = colDelta > 0;
+        const gapA = rightward ? xFor(fromCol) + TABLE_W + GRID_GAP_X / 2 : xFor(fromCol) - GRID_GAP_X / 2;
+        const gapB = rightward ? xFor(toCol) - GRID_GAP_X / 2 : xFor(toCol) + TABLE_W + GRID_GAP_X / 2;
+        const corridorRow = Math.min(fromRow, toRow);
+        const corridorY = rowTops[corridorRow] + rowHeights[corridorRow] + GRID_GAP_Y / 2;
+        startX = rightward ? from.x + from.w : from.x;
+        endX = rightward ? to.x : to.x + to.w;
+        routePoints = [
+          [startX, startY],
+          [gapA, startY],
+          [gapA, corridorY],
+          [gapB, corridorY],
+          [gapB, endY],
+          [endX, endY]
+        ];
+        labelX = (gapA + gapB) / 2;
+        labelY = corridorY;
+      }
       d = roundedPolyline(routePoints, LANE_R);
-      labelX = (startX + routePoints[2][0]) / 2;
-      labelY = corridorY;
-      fromSide = movingDown ? "bottom" : "top";
-      toSide = rightward ? "left" : "right";
+      fromSide = startX > from.cx ? "right" : "left";
+      toSide = endX > to.cx ? "right" : "left";
     }
     edges.push({
       ...relation,
