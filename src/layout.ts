@@ -59,6 +59,10 @@ export interface PlacedEdge extends DiagramEdge {
   fromSide: PortSide
   toSide: PortSide
   routePoints?: Array<[number, number]>
+  /** Draw a chevron arrowhead at the path end (sequence messages, transitions…). */
+  arrowEnd?: boolean
+  /** Per-edge stroke override; defaults to EDGE_STROKE_WIDTH. */
+  strokeWidth?: number
 }
 
 export interface PlacedDecision extends DiagramDecision {
@@ -173,6 +177,43 @@ export function roundedPolyline(pts: Array<[number, number]>, r = LANE_R): strin
   const last = pts[pts.length - 1]
   d += ` L ${last[0]} ${last[1]}`
   return d
+}
+
+/**
+ * Splits an edge list into forward edges and back edges (cycle closers),
+ * detected with a DFS in authored order. Levelled layouts (flowchart,
+ * swimlane) keep the topology acyclic for placement and route the back
+ * edges around the content as feedback lanes.
+ */
+export function splitBackEdges(
+  nodes: Array<{ id: string }>,
+  edges: DiagramEdge[],
+): { forward: DiagramEdge[]; back: DiagramEdge[] } {
+  const out = new Map<string, DiagramEdge[]>()
+  for (const node of nodes) out.set(node.id, [])
+  for (const edge of edges) out.get(edge.from)?.push(edge)
+
+  const state = new Map<string, 0 | 1 | 2>()
+  const back = new Set<DiagramEdge>()
+
+  const visit = (id: string) => {
+    state.set(id, 1)
+    for (const edge of out.get(id) ?? []) {
+      const targetState = state.get(edge.to) ?? 0
+      if (targetState === 1) back.add(edge)
+      else if (targetState === 0 && out.has(edge.to)) visit(edge.to)
+    }
+    state.set(id, 2)
+  }
+
+  for (const node of nodes) {
+    if ((state.get(node.id) ?? 0) === 0) visit(node.id)
+  }
+
+  return {
+    forward: edges.filter((edge) => !back.has(edge)),
+    back: edges.filter((edge) => back.has(edge)),
+  }
 }
 
 export function buildAdjacency(edges: DiagramEdge[]): Adjacency {

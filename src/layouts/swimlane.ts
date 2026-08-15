@@ -1,30 +1,46 @@
-// Swimlane layout: horizontal labelled lanes containing card nodes, with
-// curved edges that may cross lanes. Lane rows are emitted as containers so
-// the canvas can draw them behind the nodes.
+// Swimlane layout: horizontal labelled lanes whose nodes advance through
+// global columns assigned by topological order, so the flow reads left to
+// right across every lane and cross-lane handoffs are short S-curves instead
+// of long backward sweeps. Lane rows are emitted as containers so the canvas
+// can draw them behind the nodes.
 
 import type { SwimlaneDiagramSpec } from '../types'
-import { CANVAS_W, CARD_W, SWIMLANE_HEADER_W, SWIMLANE_PAD, SWIMLANE_ROW_PAD } from '../theme'
+import { CARD_W, SWIMLANE_HEADER_W, SWIMLANE_PAD, SWIMLANE_ROW_PAD } from '../theme'
 import {
   edgeId,
   labelPillWidth,
   nodeHeight,
+  splitBackEdges,
   type DiagramLayout,
   type PlacedContainer,
   type PlacedEdge,
   type PlacedNode,
 } from '../layout'
+import { topologicalLevels } from './flowchart'
 
 const TOP_PAD = 56
 const BOTTOM_PAD = 56
-const NODE_GAP = 48
+const NODE_GAP = 96
+/** Vertical spacing between stacked nodes that share a lane and a column. */
+const STACK_GAP = 24
 
 export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
   const laneIds = spec.lanes.map((lane) => lane.id)
-  const membersByLane = new Map<string, PlacedNode[]>()
+  const { forward } = splitBackEdges(spec.nodes, spec.edges)
+  const columnOf = topologicalLevels(spec.nodes, forward)
+  const maxColumn = Math.max(0, ...columnOf.values())
 
+  const xForColumn = (column: number): number =>
+    SWIMLANE_HEADER_W + SWIMLANE_PAD + column * (CARD_W + NODE_GAP)
+  const width = xForColumn(maxColumn) + CARD_W + SWIMLANE_PAD * 2
+
+  // Group nodes by lane, then by column, so stacked cells grow the lane.
+  const byLane = new Map<string, Map<number, PlacedNode[]>>()
   for (const node of spec.nodes) {
-    const members = membersByLane.get(node.lane) ?? []
-    members.push({
+    const column = columnOf.get(node.id) ?? 0
+    const laneColumns = byLane.get(node.lane) ?? new Map<number, PlacedNode[]>()
+    const cell = laneColumns.get(column) ?? []
+    cell.push({
       ...node,
       band: 0,
       w: CARD_W,
@@ -34,22 +50,29 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
       cx: 0,
       cy: 0,
     })
-    membersByLane.set(node.lane, members)
+    laneColumns.set(column, cell)
+    byLane.set(node.lane, laneColumns)
   }
 
   const laneHeights = laneIds.map((id) => {
-    const members = membersByLane.get(id) ?? []
-    const maxCardH = Math.max(0, ...members.map((member) => member.h))
-    return Math.max(88, maxCardH + SWIMLANE_ROW_PAD)
+    const laneColumns = byLane.get(id)
+    if (!laneColumns) return 88
+    let tallest = 0
+    for (const cell of laneColumns.values()) {
+      const stackH =
+        cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
+      tallest = Math.max(tallest, stackH)
+    }
+    return Math.max(88, tallest + SWIMLANE_ROW_PAD)
   })
 
-  let y = TOP_PAD
+  let cursorY = TOP_PAD
   const laneTop = new Map<string, number>()
   laneIds.forEach((id, index) => {
-    laneTop.set(id, y)
-    y += laneHeights[index]
+    laneTop.set(id, cursorY)
+    cursorY += laneHeights[index]
   })
-  const height = y + BOTTOM_PAD
+  const height = cursorY + BOTTOM_PAD
 
   const containers: PlacedContainer[] = []
   spec.lanes.forEach((lane, index) => {
@@ -59,7 +82,7 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
       kind: lane.kind,
       x: 0,
       y: laneTop.get(lane.id) ?? 0,
-      w: CANVAS_W,
+      w: width,
       h: laneHeights[index],
     })
   })
@@ -68,26 +91,31 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
   const nodeById: Record<string, PlacedNode> = {}
 
   laneIds.forEach((laneId, laneIndex) => {
-    const members = membersByLane.get(laneId) ?? []
+    const laneColumns = byLane.get(laneId)
+    if (!laneColumns) return
     const top = laneTop.get(laneId) ?? 0
-    const laneH = laneHeights[laneIds.indexOf(laneId)]
-    let cursor = SWIMLANE_HEADER_W + SWIMLANE_PAD
+    const laneH = laneHeights[laneIndex]
 
-    members.forEach((member) => {
-      const x = cursor
-      const cy = top + laneH / 2
-      const placed: PlacedNode = {
-        ...member,
-        band: laneIndex,
-        x,
-        y: cy - member.h / 2,
-        cx: x + member.w / 2,
-        cy,
+    for (const [column, cell] of laneColumns) {
+      const x = xForColumn(column)
+      const stackH =
+        cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
+      let memberY = top + (laneH - stackH) / 2
+      for (const member of cell) {
+        const cy = memberY + member.h / 2 + (member.nudge ?? 0)
+        const placed: PlacedNode = {
+          ...member,
+          band: laneIndex,
+          x,
+          y: cy - member.h / 2,
+          cx: x + member.w / 2,
+          cy,
+        }
+        nodes.push(placed)
+        nodeById[placed.id] = placed
+        memberY += member.h + STACK_GAP
       }
-      nodes.push(placed)
-      nodeById[placed.id] = placed
-      cursor += member.w + NODE_GAP
-    })
+    }
   })
 
   const edges: PlacedEdge[] = []
@@ -98,30 +126,40 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
 
     const variant = edge.variant ?? 'main'
     const labelWidth = edge.label ? labelPillWidth(edge.label) : 0
-    const fromLane = from.y
-    const toLane = to.y
+    const sameLane = from.band === to.band
+    const sameColumn = (columnOf.get(edge.from) ?? 0) === (columnOf.get(edge.to) ?? 0)
+    const crossesLane = !sameLane
 
     let d: string
     let startX: number
     let startY: number
     let endX: number
     let endY: number
+    let fromSide: PlacedEdge['fromSide']
+    let toSide: PlacedEdge['toSide']
 
-    if (fromLane === toLane) {
-      startX = from.x + from.w
-      startY = from.cy
-      endX = to.x
-      endY = to.cy
-      d = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`
-    } else {
-      const movingDown = to.y > from.y
-      const exitY = movingDown ? from.y + from.h : from.y
-      const entryY = movingDown ? to.y : to.y + to.h
+    if (sameColumn && crossesLane) {
+      // Straight handoff down (or up) the same column.
+      const movingDown = to.cy > from.cy
       startX = from.cx
-      startY = exitY
+      startY = movingDown ? from.y + from.h : from.y
       endX = to.cx
-      endY = entryY
-      d = `M ${startX} ${exitY} C ${startX} ${(exitY + entryY) / 2}, ${endX} ${(exitY + entryY) / 2}, ${endX} ${entryY}`
+      endY = movingDown ? to.y : to.y + to.h
+      const controlY = (startY + endY) / 2
+      d = `M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`
+      fromSide = movingDown ? 'bottom' : 'top'
+      toSide = movingDown ? 'top' : 'bottom'
+    } else {
+      // Side-to-side S-curve — flat inside a lane, diagonal across lanes.
+      const rightward = to.cx > from.cx
+      startX = rightward ? from.x + from.w : from.x
+      startY = from.cy
+      endX = rightward ? to.x : to.x + to.w
+      endY = to.cy
+      const controlX = (startX + endX) / 2
+      d = `M ${startX} ${startY} C ${controlX} ${startY}, ${controlX} ${endY}, ${endX} ${endY}`
+      fromSide = rightward ? 'right' : 'left'
+      toSide = rightward ? 'left' : 'right'
     }
 
     edges.push({
@@ -136,13 +174,14 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
       startY,
       endX,
       endY,
-      fromSide: endX > startX ? 'right' : 'left',
-      toSide: endX > startX ? 'left' : 'right',
+      fromSide,
+      toSide,
+      arrowEnd: crossesLane ? true : undefined,
     })
   }
 
   return {
-    width: CANVAS_W,
+    width,
     height,
     nodes,
     edges,

@@ -14,7 +14,6 @@ import {
   BAND_PITCH,
   BAND_X0,
   CANVAS_BOTTOM_PAD,
-  CANVAS_W,
   CARD_H_FULL,
   CARD_W,
   CONTENT_TOP,
@@ -376,8 +375,19 @@ export function layoutBand(spec: BandSpecInput, _locale?: 'en' | 'es'): DiagramL
   const decisions = placeBandDecisions(spec, nodes)
   const continuations = placeBandContinuations(spec, nodes)
 
+  // Honest canvas width: the band grid plus whatever a rightward continuation
+  // label needs. (Left-side stubs may still clip at x=0 — they are off-canvas
+  // returns by design.)
+  const gridWidth = BAND_X0 * 2 + (bands.length - 1) * BAND_PITCH + CARD_W
+  const continuationExtent = Math.max(
+    0,
+    ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),
+    ...continuations.map((continuation) => continuation.endX + 12),
+  )
+  const width = Math.max(gridWidth, continuationExtent)
+
   return {
-    width: CANVAS_W,
+    width,
     height,
     nodes,
     edges,
