@@ -88,8 +88,13 @@ export function DiagramCanvas({
       preserveAspectRatio="xMidYMid meet"
       role="group"
       aria-label={ariaLabel}
-      className="block h-auto w-full"
-      style={{ minWidth: CANVAS_MIN_WIDTH }}
+      className="mx-auto block h-auto w-full"
+      style={{
+        // Never upscale past 1 unit = 1px (typography stays true to the band
+        // reference), and keep the legibility floor for wide artboards.
+        minWidth: Math.min(CANVAS_MIN_WIDTH, layout.width),
+        maxWidth: layout.width,
+      }}
     >
       <defs>
         <pattern id={dotsId} width="22" height="22" patternUnits="userSpaceOnUse">
@@ -98,7 +103,7 @@ export function DiagramCanvas({
         <linearGradient id={fadeId} x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="var(--foreground)" stopOpacity="1" />
           <stop offset="55%" stopColor="var(--foreground)" stopOpacity="0.78" />
-          <stop offset="100%" stopColor="var(--foreground)" stopOpacity="0" />
+          <stop offset="100%" stopColor="var(--foreground)" stopOpacity="0.26" />
         </linearGradient>
         <mask id={maskId} style={{ maskType: 'alpha' }}>
           <rect width={layout.width} height={layout.height} fill={`url(#${fadeId})`} />
@@ -132,6 +137,8 @@ export function DiagramCanvas({
           const color = strokeForVariant(edge.variant)
           const centreOpacity = edge.variant === 'main' ? 1 : 0.74
           const edgeOpacityValue = edge.variant === 'main' ? 0.24 : 0.12
+          // An arrowhead needs a solid line under it — only fade the start.
+          const endOpacity = edge.arrowEnd ? centreOpacity : edgeOpacityValue
 
           return (
             <linearGradient
@@ -146,7 +153,7 @@ export function DiagramCanvas({
               <stop offset="0%" stopColor={color} stopOpacity={edgeOpacityValue} />
               <stop offset="24%" stopColor={color} stopOpacity={centreOpacity} />
               <stop offset="76%" stopColor={color} stopOpacity={centreOpacity} />
-              <stop offset="100%" stopColor={color} stopOpacity={edgeOpacityValue} />
+              <stop offset="100%" stopColor={color} stopOpacity={endOpacity} />
             </linearGradient>
           )
         })}
@@ -219,8 +226,15 @@ export function DiagramCanvas({
             data-edge-to={edge.to}
             d={edge.d}
             stroke={`url(#${edgeGradientId(edge.id)})`}
-            strokeWidth={EDGE_STROKE_WIDTH}
+            strokeWidth={edge.strokeWidth ?? EDGE_STROKE_WIDTH}
             strokeDasharray={edge.dashed ? '2 7' : undefined}
+            markerEnd={
+              edge.arrowEnd
+                ? `url(#${
+                    edge.variant === 'main' ? mainContinuationMarkerId : branchContinuationMarkerId
+                  })`
+                : undefined
+            }
             opacity={edgeOpacity(edge, highlight)}
             className={[
               'transition-opacity duration-150',
@@ -343,66 +357,87 @@ export function DiagramCanvas({
                     <desc id={descriptionId}>{node.description}</desc>
 
                     {isEvent ? (
-                      <>
-                        <line
-                          x1={node.cx}
-                          y1={node.cy}
-                          x2={node.cx}
-                          y2={node.y}
-                          stroke={strokeForVariant(node.weight === 'primary' ? 'main' : 'branch')}
-                          strokeWidth={EDGE_STROKE_WIDTH}
-                          strokeDasharray="2 4"
-                        />
-                        <circle
-                          cx={node.cx}
-                          cy={node.cy}
-                          r={DOT_R}
-                          fill="var(--background)"
-                          stroke={strokeForVariant(node.weight === 'primary' ? 'main' : 'branch')}
-                          strokeWidth={1.2}
-                        />
-                        <circle cx={node.cx} cy={node.cy} r={DOT_R / 2.6} fill={strokeForVariant(node.weight === 'primary' ? 'main' : 'branch')} />
-                        {node.kind ? (
-                          <text
-                            x={node.cx}
-                            y={node.y - 24}
-                            textAnchor="middle"
-                            letterSpacing="1.4"
-                            className="fill-foreground/45 font-mono text-[10px] uppercase"
-                          >
-                            {node.kind}
-                          </text>
-                        ) : null}
-                        <text
-                          x={node.cx}
-                          y={node.y}
-                          textAnchor="middle"
-                          className={
-                            node.weight === 'primary'
-                              ? 'fill-foreground text-[13.5px]'
-                              : 'fill-foreground/82 text-[13.5px]'
-                          }
-                        >
-                          {node.label}
-                        </text>
-                        {node.sublabel ? (
-                          <text
-                            x={node.cx}
-                            y={node.y + 18}
-                            textAnchor="middle"
-                            className="fill-foreground/55 font-mono text-[10.5px]"
-                          >
-                            {node.sublabel}
-                          </text>
-                        ) : null}
-                        <circle
-                          data-node-hit-area="true"
-                          cx={node.cx}
-                          cy={node.cy}
-                          r={18}
-                          fill="transparent"
-                        />
-                      </>
+                      (() => {
+                        // Below-spine events mirror the text stack so the kind
+                        // micro-label stays on top and the connector never
+                        // crosses a line of text.
+                        const below = (node.nudge ?? 0) > 0
+                        const eventStroke = strokeForVariant(
+                          node.weight === 'primary' ? 'main' : 'branch',
+                        )
+                        const connectorEnd = below
+                          ? node.y - 38
+                          : node.y + (node.sublabel ? 26 : 10)
+
+                        return (
+                          <>
+                            <line
+                              x1={node.cx}
+                              y1={node.cy}
+                              x2={node.cx}
+                              y2={connectorEnd}
+                              stroke={eventStroke}
+                              strokeWidth={EDGE_STROKE_WIDTH}
+                              strokeDasharray="2 4"
+                            />
+                            <circle
+                              cx={node.cx}
+                              cy={node.cy}
+                              r={DOT_R}
+                              fill="var(--background)"
+                              stroke={eventStroke}
+                              strokeWidth={1.2}
+                            />
+                            <circle
+                              cx={node.cx}
+                              cy={node.cy}
+                              r={DOT_R / 2.6}
+                              fill={eventStroke}
+                            />
+                            {node.kind ? (
+                              <text
+                                x={node.cx}
+                                y={node.y - 24}
+                                textAnchor="middle"
+                                letterSpacing="1.4"
+                                className="fill-foreground/45 font-mono text-[10px] uppercase"
+                              >
+                                {node.kind}
+                              </text>
+                            ) : null}
+                            <text
+                              x={node.cx}
+                              y={node.y}
+                              textAnchor="middle"
+                              className={
+                                node.weight === 'primary'
+                                  ? 'fill-foreground text-[13.5px]'
+                                  : 'fill-foreground/82 text-[13.5px]'
+                              }
+                            >
+                              {node.label}
+                            </text>
+                            {node.sublabel ? (
+                              <text
+                                x={node.cx}
+                                y={node.y + 18}
+                                textAnchor="middle"
+                                className="fill-foreground/55 font-mono text-[10.5px]"
+                              >
+                                {node.sublabel}
+                              </text>
+                            ) : null}
+                            <rect
+                              data-node-hit-area="true"
+                              x={node.x}
+                              y={below ? node.cy - 12 : node.y - 36}
+                              width={node.w}
+                              height={below ? node.y + 30 - (node.cy - 12) : node.cy + 12 - (node.y - 36)}
+                              fill="transparent"
+                            />
+                          </>
+                        )
+                      })()
                     ) : isTable ? (
                       <>
                         <rect
@@ -423,12 +458,8 @@ export function DiagramCanvas({
                           }
                           strokeWidth={1}
                         />
-                        <rect
-                          x={node.x}
-                          y={node.y}
-                          width={node.w}
-                          height={26}
-                          rx={CARD_R}
+                        <path
+                          d={`M ${node.x} ${node.y + 26} L ${node.x} ${node.y + CARD_R} Q ${node.x} ${node.y} ${node.x + CARD_R} ${node.y} L ${node.x + node.w - CARD_R} ${node.y} Q ${node.x + node.w} ${node.y} ${node.x + node.w} ${node.y + CARD_R} L ${node.x + node.w} ${node.y + 26} Z`}
                           fill="color-mix(in srgb, var(--foreground) 6%, transparent)"
                         />
                         <text
@@ -452,12 +483,25 @@ export function DiagramCanvas({
                               stroke={NODE_BORDER}
                               strokeWidth={0.75}
                             />
+                            {field.key === 'pk' || field.key === 'fk' ? (
+                              <text
+                                x={node.x + 14}
+                                y={node.y + 26 + fieldIndex * 22 + 14.5}
+                                letterSpacing="0.6"
+                                className={
+                                  field.key === 'pk'
+                                    ? 'fill-[var(--color-cobalt)] font-mono text-[8.5px] uppercase'
+                                    : 'fill-[var(--color-branch)] font-mono text-[8.5px] uppercase'
+                                }
+                              >
+                                {field.key}
+                              </text>
+                            ) : null}
                             <text
-                              x={node.x + 14}
+                              x={node.x + (field.key === 'pk' || field.key === 'fk' ? 34 : 14)}
                               y={node.y + 26 + fieldIndex * 22 + 14.5}
                               className="fill-foreground/80 font-mono text-[11px]"
                             >
-                              {field.key === 'pk' ? '🔑 ' : field.key === 'fk' ? '↗ ' : ''}
                               {field.name}
                             </text>
                             {field.type ? (
@@ -694,6 +738,7 @@ export function DiagramCanvas({
           return (
             <g
               key={`${edge.id}-label`}
+              data-edge-label={edge.id}
               opacity={edgeOpacity(edge, highlight)}
               className="transition-opacity duration-150"
             >
