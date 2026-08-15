@@ -9,6 +9,8 @@ import { defineConfig } from 'vite'
 const libSrc = fileURLToPath(new URL('../src', import.meta.url))
 
 export default defineConfig({
+  // GitHub Pages serves the site under /<repo>/ — CI sets SITE_BASE.
+  base: process.env.SITE_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     dedupe: ['react', 'react-dom'],

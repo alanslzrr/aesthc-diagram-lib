@@ -63,12 +63,16 @@ case studies).
 | `type` | Spec keys | Layout |
 |---|---|---|
 | `band` | `bands`, `nodes` (+ `band`), `edges`, `decisions?`, `continuations?` | Vertical columns, centred stacks, bezier edges between bands (the original Quote Agent / Orchestrator design) |
-| `flowchart` | `nodes`, `edges` (+ `direction`, `level`) | Top-down or left-right levels, auto-assigned by topological order |
-| `sequence` | `participants`, `messages` | Vertical lifelines, horizontal messages, activation bars |
-| `state-machine` | `states` (+ `initial`/`final`), `transitions` | States on a ring, curved transitions, self-loops, double-outline initial, hollow final |
-| `er` | `entities` (with `fields`), `relations` | Tables in a grid, typed rows (pk / fk / unique) |
-| `timeline` | `events` | Dashed central spine, events alternating above/below |
-| `swimlane` | `lanes`, `nodes` (with `lane`), `edges` | Labelled horizontal lanes |
+| `flowchart` | `nodes`, `edges` (+ `direction`, `level`) | Topological levels as rows (`top-down`) or columns (`left-right`); back edges route around the content on an outer feedback lane, level-skipping edges take a side lane |
+| `sequence` | `participants`, `messages` | Vertical lifelines, arrowed horizontal messages, activation bars spanning request → reply |
+| `state-machine` | `states` (+ `initial`/`final`), `transitions` | States on a compact ellipse, arcs trimmed at the pill borders, self-loops, double-outline initial, hollow final |
+| `er` | `entities` (with `fields`), `relations` | Tables in a grid sized by content, relations routed orthogonally through the corridors, typed rows (pk / fk / unique) |
+| `timeline` | `events` | Dashed central spine with a direction arrow, events alternating above/below |
+| `swimlane` | `lanes`, `nodes` (with `lane`), `edges` | Labelled horizontal lanes with shared topological columns, arrowed cross-lane handoffs |
+
+Every layout reports an honest canvas width; the canvas renders at most
+1 unit = 1px and centres itself, so small diagrams stay crisp instead of
+stretching into a fixed frame.
 
 ---
 
@@ -493,10 +497,36 @@ the `exports` target; the package does not ship a JS build by design.
 
 ## Showcase
 
-`DiagramShowcase` is a ready-made, interactive page that presents every
-supported diagram type with the library's visual chrome (hairline frames,
-mono header bars, caption + cobalt/branch legend). It is what you see if you
-want to "demo the library" — no i18n framework required.
+### The site (`site/`)
+
+The repository ships an interactive showcase site — the project's main page —
+built with the library itself (Vite + Tailwind v4, deployed to GitHub Pages
+from `main`). Every diagram type gets a live panel with:
+
+- **Preview / Code tabs** — the code view is a live, TS-flavoured spec
+  editor: edit it and the diagram re-lays out as you type, with inline
+  parse errors and a one-click reset.
+- **Copy + export** — copy the spec or a complete `usage.tsx` snippet, copy
+  the rendered SVG, or download it as a standalone file with every style
+  inlined (no CSS variables or Tailwind required to open it).
+- **Per-type knobs** — e.g. flowchart `top-down` ⇄ `left-right`.
+- **Theme studio** — tune the host tokens (`--cobalt`, `--branch`, surfaces)
+  with live preview across the whole page, pick a preset, and copy the
+  resulting CSS block straight into your app.
+- **Bilingual copy** — the locale toggle switches the page chrome and the
+  diagram specs through the library's own `en`/`es` model.
+
+```bash
+pnpm install
+pnpm --dir site dev   # http://localhost:5173
+```
+
+### The embeddable component
+
+`DiagramShowcase` is a ready-made, interactive page component that presents
+every supported diagram type with the library's visual chrome (hairline
+frames, mono header bars, caption + cobalt/branch legend) — for embedding a
+demo inside your own app. No i18n framework required.
 
 ```tsx
 import { DiagramShowcase } from '@aesthc/diagram-lib/showcase'
