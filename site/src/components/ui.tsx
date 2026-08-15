@@ -3,6 +3,11 @@
 
 import { Component, useState, type ReactNode } from 'react'
 
+/**
+ * Control button in the host design system's own language: Sora, xs/medium,
+ * normal case, hairline border, quiet muted hover — mono stays reserved for
+ * technical micro-labels (keys, captions, code), never for controls.
+ */
 export function MonoButton({
   onClick,
   active,
@@ -22,10 +27,10 @@ export function MonoButton({
       aria-pressed={active}
       onClick={onClick}
       className={[
-        'inline-flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-cobalt)]',
+        'inline-flex h-7 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
         active
-          ? 'border-foreground/45 bg-foreground/8 text-foreground'
-          : 'border-border bg-transparent text-foreground/55 hover:border-foreground/30 hover:text-foreground/85',
+          ? 'border-foreground/40 bg-muted text-foreground'
+          : 'border-border bg-transparent text-foreground/60 hover:bg-muted hover:text-foreground',
       ].join(' ')}
     >
       {children}
@@ -86,15 +91,15 @@ export class PanelBoundary extends Component<
     if (this.state.error !== null) {
       return (
         <div className="mt-6 border border-border px-5 py-14 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--branch-ink)]">
-            panel crashed — {this.state.error}
+          <p className="text-xs font-medium text-[var(--branch-ink)]">
+            The panel crashed — {this.state.error}
           </p>
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="mt-4 border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/55 hover:text-foreground/85"
+            className="mt-4 inline-flex h-7 items-center border border-border px-3 text-xs font-medium text-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
           >
-            retry
+            Retry
           </button>
         </div>
       )
