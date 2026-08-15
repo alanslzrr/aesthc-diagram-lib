@@ -157,7 +157,7 @@ export function DiagramPanel({
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-cobalt shadow-[0_0_8px_color-mix(in_srgb,var(--color-cobalt)_55%,transparent)]" />
           {entry.type} / {entry.key}
           {edited ? (
-            <span className="border border-branch/50 px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-[var(--branch-ink)]">
+            <span className="border border-branch/50 px-1.5 py-0.5 font-sans text-[10px] font-medium normal-case tracking-normal text-[var(--branch-ink)]">
               {STRINGS.edited[locale]}
             </span>
           ) : null}
@@ -261,6 +261,10 @@ export function DiagramPanel({
         <span className="max-w-[68ch] leading-relaxed">
           {'// '}
           {caption}
+          <span className="mt-1 block text-[9.5px] text-foreground/35">
+            {'// '}
+            {STRINGS.hoverHint[locale]}
+          </span>
         </span>
         <span className="inline-flex items-center gap-5">
           <span className="inline-flex items-center gap-2">
@@ -383,7 +387,7 @@ function CodeView({
         </span>
         <span className="inline-flex items-center gap-3">
           {codeTab === 'spec' ? (
-            <span className="hidden font-mono text-[9.5px] tracking-wide text-foreground/40 sm:inline">
+            <span className="hidden text-xs text-foreground/45 sm:inline">
               {STRINGS.editorHint[locale]}
             </span>
           ) : null}

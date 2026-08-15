@@ -30,15 +30,15 @@ export function TopBar({
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/55 transition-colors hover:border-foreground/30 hover:text-foreground/85"
+            className="inline-flex h-7 items-center gap-1.5 border border-border px-2.5 text-xs font-medium text-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
           >
-            github ↗
+            GitHub ↗
           </a>
           <MonoButton onClick={onTheme} title={STRINGS.themeTooltip[locale]}>
-            {theme}
+            {theme === 'dark' ? 'Dark' : 'Light'}
           </MonoButton>
           <MonoButton onClick={onLocale} title={STRINGS.localeTooltip[locale]}>
-            {locale}
+            {locale === 'en' ? 'EN' : 'ES'}
           </MonoButton>
         </nav>
       </div>
@@ -74,7 +74,7 @@ export function Hero({ locale }: { locale: Locale }) {
         />
       </div>
 
-      <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/45">
+      <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/55">
         {['MIT', 'ESM', 'React ≥ 18', 'TypeScript', '7 layouts', 'en · es'].map((badge) => (
           <li key={badge} className="inline-flex items-center gap-2">
             <i aria-hidden="true" className="inline-block h-1 w-1 rounded-full bg-foreground/30" />
@@ -86,10 +86,8 @@ export function Hero({ locale }: { locale: Locale }) {
       <dl className="mt-12 grid gap-x-8 gap-y-6 border-t border-foreground/16 pt-8 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((feature) => (
           <div key={feature.label.en}>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/60">
-              {feature.label[locale]}
-            </dt>
-            <dd className="mt-1.5 text-[13px] leading-relaxed text-foreground/55">
+            <dt className="text-xs font-medium text-foreground/80">{feature.label[locale]}</dt>
+            <dd className="mt-1 text-[13px] leading-relaxed text-foreground/55">
               {feature.detail[locale]}
             </dd>
           </div>
@@ -132,14 +130,14 @@ export function QuickStart({ locale, index }: { locale: Locale; index: number })
 export function Footer({ locale }: { locale: Locale }) {
   return (
     <footer className="border-t border-foreground/20">
-      <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-4 px-4 py-10 font-mono text-[10.5px] uppercase tracking-[0.16em] text-foreground/45 sm:px-8">
+      <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-4 px-4 py-10 text-xs text-foreground/50 sm:px-8">
         <span>© 2026 Alan Salazar · {STRINGS.footerNote[locale]}</span>
-        <span className="inline-flex flex-wrap items-center gap-5">
-          <a className="transition-colors hover:text-foreground/80" href={GITHUB_URL} target="_blank" rel="noreferrer">
-            github ↗
+        <span className="inline-flex flex-wrap items-center gap-5 font-medium">
+          <a className="transition-colors hover:text-foreground" href={GITHUB_URL} target="_blank" rel="noreferrer">
+            GitHub ↗
           </a>
           <a
-            className="transition-colors hover:text-foreground/80"
+            className="transition-colors hover:text-foreground"
             href={`${GITHUB_URL}#readme`}
             target="_blank"
             rel="noreferrer"
@@ -147,7 +145,7 @@ export function Footer({ locale }: { locale: Locale }) {
             {STRINGS.readme[locale]} ↗
           </a>
           <a
-            className="transition-colors hover:text-foreground/80"
+            className="transition-colors hover:text-foreground"
             href={`${GITHUB_URL}/blob/main/LICENSE`}
             target="_blank"
             rel="noreferrer"

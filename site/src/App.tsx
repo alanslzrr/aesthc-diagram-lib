@@ -77,9 +77,6 @@ export default function App() {
             <p className="mt-3 max-w-[64ch] text-base leading-relaxed text-foreground/74">
               {entry.description[locale]}
             </p>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">
-              {STRINGS.hoverHint[locale]}
-            </p>
 
             <PanelBoundary>
               {hydrated ? (

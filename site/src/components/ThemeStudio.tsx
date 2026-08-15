@@ -110,9 +110,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
           {STRINGS.themeMode[locale]} / {theme}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 font-mono text-[9.5px] uppercase tracking-[0.16em] text-foreground/40">
-            {STRINGS.presets[locale]}
-          </span>
+          <span className="mr-1 text-xs text-foreground/45">{STRINGS.presets[locale]}</span>
           {PRESETS.map((candidate) => (
             <MonoButton
               key={candidate.name}
@@ -138,9 +136,9 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
       <div className="grid gap-x-8 gap-y-5 px-5 py-8 sm:grid-cols-2 sm:px-7 lg:grid-cols-3">
         {FIELDS.map((field) => (
           <label key={field.token} className="flex items-center justify-between gap-4">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-foreground/55">
+            <span className="text-xs font-medium text-foreground/80">
               {field.label}
-              <span className="mt-0.5 block text-[9.5px] normal-case tracking-normal text-foreground/35">
+              <span className="mt-0.5 block font-mono text-[10px] font-normal text-foreground/40">
                 {field.cssVar}
               </span>
             </span>
