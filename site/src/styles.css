@@ -59,6 +59,27 @@
   --color-ring: var(--ring);
 }
 
+/* The library tooltip's glass surface — the site implements the host side
+   of the contract exactly as an external consumer would. */
+.liquid-glass {
+  --glass-current-blur: var(--glass-blur, 20px);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  box-shadow:
+    0 18px 48px -24px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 color-mix(in srgb, white 9%, transparent);
+}
+
+/* Functional amber text (errors, edited badge) needs more ink on the light
+   surface than the decorative --branch accent provides. */
+:root {
+  --branch-ink: #8a6425;
+}
+
+[data-theme='dark'] {
+  --branch-ink: var(--branch);
+}
+
 @layer base {
   h1,
   h2,
@@ -77,6 +98,16 @@
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  article[id] {
+    scroll-margin-top: 72px;
   }
 
   body {

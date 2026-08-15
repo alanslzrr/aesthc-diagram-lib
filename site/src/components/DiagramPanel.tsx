@@ -97,7 +97,7 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-cobalt shadow-[0_0_8px_color-mix(in_srgb,var(--color-cobalt)_55%,transparent)]" />
           {entry.type} / {entry.key}
           {edited ? (
-            <span className="border border-branch/50 px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-branch">
+            <span className="border border-branch/50 px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-[var(--branch-ink)]">
               {STRINGS.edited[locale]}
             </span>
           ) : null}
@@ -126,22 +126,26 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
           {edited ? (
             <MonoButton onClick={() => setDraft(baseSpec)}>{STRINGS.reset[locale]}</MonoButton>
           ) : null}
-          <CopyButton
-            label={STRINGS.copySvg[locale]}
-            copiedLabel={STRINGS.copied[locale]}
-            getText={() => {
-              const svg = findSvg()
-              return svg ? serializeDiagramSvg(svg) : ''
-            }}
-          />
-          <MonoButton
-            onClick={() => {
-              const svg = findSvg()
-              if (svg) downloadDiagramSvg(svg, `${entry.key}.svg`)
-            }}
-          >
-            ↓ {STRINGS.downloadSvg[locale]}
-          </MonoButton>
+          {tab === 'preview' && layoutResult.layout ? (
+            <>
+              <CopyButton
+                label={STRINGS.copySvg[locale]}
+                copiedLabel={STRINGS.copied[locale]}
+                getText={() => {
+                  const svg = findSvg()
+                  return svg ? serializeDiagramSvg(svg) : ''
+                }}
+              />
+              <MonoButton
+                onClick={() => {
+                  const svg = findSvg()
+                  if (svg) downloadDiagramSvg(svg, `${entry.key}.svg`)
+                }}
+              >
+                ↓ {STRINGS.downloadSvg[locale]}
+              </MonoButton>
+            </>
+          ) : null}
         </span>
         <span
           aria-hidden="true"
@@ -175,7 +179,7 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
               nodeVisuals={getDiagramVisuals(entry.key)}
             />
           ) : (
-            <p className="py-16 text-center font-mono text-[11px] text-branch">
+            <p className="py-16 text-center font-mono text-[11px] text-[var(--branch-ink)]">
               {layoutResult.error}
             </p>
           )}
@@ -229,6 +233,10 @@ function CodeView({
     setText(specSource(draft))
     setError(null)
   }, [draft])
+
+  // A pending parse must not fire into an unmounted editor (tab switch) or
+  // over a freshly reset draft.
+  useEffect(() => () => window.clearTimeout(debounceRef.current), [])
 
   const usage = useMemo(
     () => usageSnippet(entry.key, entry.type, draft),
@@ -284,16 +292,17 @@ function CodeView({
             value={text}
             onChange={(event) => handleEdit(event.target.value)}
             spellCheck={false}
-            aria-label={`${entry.key} spec source`}
+            aria-label={`${entry.key} — ${STRINGS.spec[locale]}`}
             className={[
               'block h-[430px] w-full resize-y border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[11.5px] leading-[1.7] text-foreground/85 outline-none transition-colors',
               error ? 'border-branch/60' : 'border-border focus:border-foreground/35',
             ].join(' ')}
           />
           <p
+            aria-live="polite"
             className={[
               'mt-2 min-h-[1rem] font-mono text-[10px]',
-              error ? 'text-branch' : 'text-transparent',
+              error ? 'text-[var(--branch-ink)]' : 'text-transparent',
             ].join(' ')}
           >
             {error ?? '·'}

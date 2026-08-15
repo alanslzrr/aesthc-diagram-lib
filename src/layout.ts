@@ -239,22 +239,28 @@ export function buildAdjacency(edges: DiagramEdge[]): Adjacency {
  * state-machine uses `transitions`, er uses `relations`, timeline has none.
  */
 export function diagramEdges(spec: DiagramSpec | LegacyBandSpec): DiagramEdge[] {
-  if (!('type' in spec)) return spec.edges
+  // Tolerate hand-authored specs (e.g. a live editor) where the relation
+  // list is missing entirely — treat it as empty rather than crashing the
+  // adjacency build downstream.
+  const list = (candidate: DiagramEdge[] | undefined): DiagramEdge[] =>
+    Array.isArray(candidate) ? candidate : []
+
+  if (!('type' in spec)) return list(spec.edges)
   switch (spec.type) {
     case 'sequence':
-      return spec.messages
+      return list(spec.messages)
     case 'state-machine':
-      return spec.transitions
+      return list(spec.transitions)
     case 'er':
-      return spec.relations
+      return list(spec.relations)
     case 'timeline':
       return []
     case 'band':
     case 'flowchart':
     case 'swimlane':
-      return spec.edges
+      return list(spec.edges)
     default:
-      return (spec as LegacyBandSpec).edges
+      return list((spec as LegacyBandSpec).edges)
   }
 }
 

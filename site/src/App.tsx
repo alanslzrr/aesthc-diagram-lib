@@ -5,20 +5,29 @@ import { registerExampleDiagrams } from '@aesthc/diagram-lib/examples'
 import { Footer, Hero, QuickStart, TopBar } from './components/chrome'
 import { DiagramPanel } from './components/DiagramPanel'
 import { ThemeStudio } from './components/ThemeStudio'
-import { SectionHeader } from './components/ui'
+import { PanelBoundary, SectionHeader } from './components/ui'
 import { SECTIONS, STRINGS, type Locale } from './content'
 
 registerExampleDiagrams()
 
 type ThemeName = 'light' | 'dark'
 
+/** The boot script in index.html already stamped the pre-paint theme. */
+const initialTheme = (): ThemeName =>
+  document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+
 export default function App() {
-  const [theme, setTheme] = useState<ThemeName>('dark')
+  const [theme, setTheme] = useState<ThemeName>(initialTheme)
   const [locale, setLocale] = useState<Locale>('en')
   const sections = useDebugSections()
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    try {
+      localStorage.setItem('adl-theme', theme)
+    } catch {
+      /* private mode */
+    }
   }, [theme])
 
   useEffect(() => {
@@ -54,7 +63,9 @@ export default function App() {
               {STRINGS.hoverHint[locale]}
             </p>
 
-            <DiagramPanel entry={entry} locale={locale} />
+            <PanelBoundary>
+              <DiagramPanel entry={entry} locale={locale} />
+            </PanelBoundary>
           </article>
         ))}
 

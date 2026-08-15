@@ -243,13 +243,13 @@ function placeFlowEdges(
     if (isBack) {
       const laneOffset = nearLaneUsed++ * -26
       placed = lanes.horizontal
-        ? outerLaneHorizontal(from, to, lanes.nearLaneX + laneOffset, 'near')
-        : outerLaneVertical(from, to, lanes.nearLaneX + laneOffset, 'near')
+        ? outerLaneHorizontal(from, to, lanes.nearLaneX + laneOffset, 'near', nodes)
+        : outerLaneVertical(from, to, lanes.nearLaneX + laneOffset, 'near', nodes)
     } else if (Math.abs(levelDelta) > 1) {
       const laneOffset = farLaneUsed++ * 26
       placed = lanes.horizontal
-        ? outerLaneHorizontal(from, to, lanes.farLaneX + laneOffset, 'far')
-        : outerLaneVertical(from, to, lanes.farLaneX + laneOffset, 'far')
+        ? outerLaneHorizontal(from, to, lanes.farLaneX + laneOffset, 'far', nodes)
+        : outerLaneVertical(from, to, lanes.farLaneX + laneOffset, 'far', nodes)
     } else if (levelDelta === 0) {
       // Same level: short bezier between facing sides.
       const rightward = to.cx > from.cx || (!lanes.horizontal && to.cy > from.cy)
@@ -332,52 +332,148 @@ function placeFlowEdges(
   return edges
 }
 
-/** Top-down outer lane: exit the side of the source, travel a vertical lane, enter the side of the target. */
+const JOG = 28
+
+/** Does any other node in `node`'s row sit horizontally between x1 and x2? */
+function rowBlocked(node: PlacedNode, nodes: PlacedNode[], x1: number, x2: number): boolean {
+  const [lo, hi] = x1 < x2 ? [x1, x2] : [x2, x1]
+  return nodes.some(
+    (other) =>
+      other.id !== node.id &&
+      Math.abs(other.cy - node.cy) < (other.h + node.h) / 2 &&
+      other.x + other.w > lo &&
+      other.x < hi,
+  )
+}
+
+/** Does any other node in `node`'s column sit vertically between y1 and y2? */
+function columnBlocked(node: PlacedNode, nodes: PlacedNode[], y1: number, y2: number): boolean {
+  const [lo, hi] = y1 < y2 ? [y1, y2] : [y2, y1]
+  return nodes.some(
+    (other) =>
+      other.id !== node.id &&
+      Math.abs(other.cx - node.cx) < (other.w + node.w) / 2 &&
+      other.y + other.h > lo &&
+      other.y < hi,
+  )
+}
+
+/**
+ * Top-down outer lane: exit the source toward a vertical lane, travel it,
+ * enter the target. When a same-row sibling blocks the straight exit or
+ * entry, the path jogs through the clear corridor above/below the row first.
+ */
 function outerLaneVertical(
   from: PlacedNode,
   to: PlacedNode,
   laneX: number,
   side: 'near' | 'far',
+  nodes: PlacedNode[],
 ): ReturnType<typeof laneShape> {
   const left = side === 'near'
-  const startX = left ? from.x : from.x + from.w
-  const endX = left ? to.x : to.x + to.w
-  const startY = connectY(from, left ? 'left' : 'right')
-  const endY = connectY(to, left ? 'left' : 'right')
+  const movingUp = to.cy < from.cy
+  const sideOf = left ? 'left' : ('right' as const)
+
+  const exitX = left ? from.x : from.x + from.w
+  const exitY = connectY(from, sideOf)
+  let head: Array<[number, number]>
+  let fromSide: PlacedEdge['fromSide'] = sideOf
+  if (rowBlocked(from, nodes, exitX, laneX)) {
+    const jogY = movingUp ? from.y - JOG : from.y + from.h + JOG
+    head = [
+      [from.cx, movingUp ? from.y : from.y + from.h],
+      [from.cx, jogY],
+      [laneX, jogY],
+    ]
+    fromSide = movingUp ? 'top' : 'bottom'
+  } else {
+    head = [
+      [exitX, exitY],
+      [laneX, exitY],
+    ]
+  }
+
+  const entryX = left ? to.x : to.x + to.w
+  const entryY = connectY(to, sideOf)
+  let tail: Array<[number, number]>
+  let toSide: PlacedEdge['toSide'] = sideOf
+  if (rowBlocked(to, nodes, laneX, entryX)) {
+    const jogY = movingUp ? to.y + to.h + JOG : to.y - JOG
+    tail = [
+      [laneX, jogY],
+      [to.cx, jogY],
+      [to.cx, movingUp ? to.y + to.h : to.y],
+    ]
+    toSide = movingUp ? 'bottom' : 'top'
+  } else {
+    tail = [
+      [laneX, entryY],
+      [entryX, entryY],
+    ]
+  }
+
   return laneShape(
-    [
-      [startX, startY],
-      [laneX, startY],
-      [laneX, endY],
-      [endX, endY],
-    ],
-    left ? 'left' : 'right',
-    left ? 'left' : 'right',
+    [...head, ...tail],
+    fromSide,
+    toSide,
     laneX,
-    (startY + endY) / 2,
+    (head[head.length - 1][1] + tail[0][1]) / 2,
   )
 }
 
-/** Left-right outer lane: exit top/bottom, travel a horizontal lane, enter top/bottom. */
+/** Left-right outer lane: the transposed twin of outerLaneVertical. */
 function outerLaneHorizontal(
   from: PlacedNode,
   to: PlacedNode,
   laneY: number,
   side: 'near' | 'far',
+  nodes: PlacedNode[],
 ): ReturnType<typeof laneShape> {
   const top = side === 'near'
-  const startY = top ? from.y : from.y + from.h
-  const endY = top ? to.y : to.y + to.h
-  return laneShape(
-    [
-      [from.cx, startY],
+  const movingLeft = to.cx < from.cx
+  const sideOf = top ? 'top' : ('bottom' as const)
+
+  const exitY = top ? from.y : from.y + from.h
+  let head: Array<[number, number]>
+  let fromSide: PlacedEdge['fromSide'] = sideOf
+  if (columnBlocked(from, nodes, exitY, laneY)) {
+    const jogX = movingLeft ? from.x - JOG : from.x + from.w + JOG
+    head = [
+      [movingLeft ? from.x : from.x + from.w, from.cy],
+      [jogX, from.cy],
+      [jogX, laneY],
+    ]
+    fromSide = movingLeft ? 'left' : 'right'
+  } else {
+    head = [
+      [from.cx, exitY],
       [from.cx, laneY],
+    ]
+  }
+
+  const entryY = top ? to.y : to.y + to.h
+  let tail: Array<[number, number]>
+  let toSide: PlacedEdge['toSide'] = sideOf
+  if (columnBlocked(to, nodes, laneY, entryY)) {
+    const jogX = movingLeft ? to.x + to.w + JOG : to.x - JOG
+    tail = [
+      [jogX, laneY],
+      [jogX, to.cy],
+      [movingLeft ? to.x + to.w : to.x, to.cy],
+    ]
+    toSide = movingLeft ? 'right' : 'left'
+  } else {
+    tail = [
       [to.cx, laneY],
-      [to.cx, endY],
-    ],
-    top ? 'top' : 'bottom',
-    top ? 'top' : 'bottom',
-    (from.cx + to.cx) / 2,
+      [to.cx, entryY],
+    ]
+  }
+
+  return laneShape(
+    [...head, ...tail],
+    fromSide,
+    toSide,
+    (head[head.length - 1][0] + tail[0][0]) / 2,
     laneY,
   )
 }

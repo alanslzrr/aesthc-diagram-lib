@@ -2,7 +2,7 @@
 // presentation of every element, so the file opens with the page's exact
 // palette anywhere — no Tailwind classes, no CSS variables required.
 
-const PRESENTATION_PROPS = [
+const PRESENTATION_ATTRS = [
   'fill',
   'fill-opacity',
   'stroke',
@@ -17,9 +17,10 @@ const PRESENTATION_PROPS = [
   'font-weight',
   'letter-spacing',
   'text-anchor',
-  'text-transform',
-  'display',
 ] as const
+
+/** Properties that only work from a style attribute (not presentation attrs). */
+const STYLE_PROPS = ['text-transform', 'filter'] as const
 
 export function serializeDiagramSvg(svg: SVGSVGElement): string {
   const clone = svg.cloneNode(true) as SVGSVGElement
@@ -31,28 +32,51 @@ export function serializeDiagramSvg(svg: SVGSVGElement): string {
     if (!target) return
     if (source instanceof SVGDefsElement || source.closest('defs')) return
     const computed = window.getComputedStyle(source)
-    for (const property of PRESENTATION_PROPS) {
+
+    // Theme-variant icons (adl-icon-light/dark) rely on display:none — keep
+    // hidden branches hidden in the export.
+    if (computed.display === 'none') {
+      target.setAttribute('display', 'none')
+      target.removeAttribute('class')
+      return
+    }
+
+    for (const property of PRESENTATION_ATTRS) {
       const value = computed.getPropertyValue(property)
-      if (!value || value === 'none' || value === 'normal' || value === 'auto') {
-        if (property === 'fill' || property === 'stroke') {
-          if (value === 'none') target.setAttribute(property, 'none')
-        }
-        continue
-      }
+      if (!value || value === 'normal' || value === 'auto') continue
+      if (value === 'none' && property !== 'fill' && property !== 'stroke') continue
       target.setAttribute(property, value)
     }
+
+    const styleParts: string[] = []
+    for (const property of STYLE_PROPS) {
+      const value = computed.getPropertyValue(property)
+      if (value && value !== 'none' && value !== 'normal') {
+        styleParts.push(`${property}: ${value}`)
+      }
+    }
+    if (styleParts.length > 0) target.setAttribute('style', styleParts.join('; '))
+    else target.removeAttribute('style')
+
     target.removeAttribute('class')
   })
 
   // Resolve the CSS variables that defs (gradients, patterns, markers) use.
   const styles = window.getComputedStyle(svg)
-  const resolveVars = (markup: string): string =>
-    markup.replaceAll(/var\((--[a-z-]+)(?:,\s*var\((--[a-z-]+)\))?\)/g, (match, name, fallbackName) => {
-      const value =
-        styles.getPropertyValue(name).trim() ||
-        (fallbackName ? styles.getPropertyValue(fallbackName).trim() : '')
-      return value || match
-    })
+  const resolveVars = (markup: string): string => {
+    const resolveOne = (expression: string): string =>
+      expression.replaceAll(
+        /var\((--[\w-]+)\s*(?:,\s*([^()]*|[^()]*\([^()]*\)[^()]*))?\)/g,
+        (match, name: string, fallback?: string) => {
+          const value = styles.getPropertyValue(name).trim()
+          if (value) return value
+          if (fallback) return resolveOne(fallback.trim())
+          return match
+        },
+      )
+    // Two passes cover nested var() fallbacks.
+    return resolveOne(resolveOne(markup))
+  }
 
   clone.removeAttribute('class')
   clone.removeAttribute('style')
@@ -68,7 +92,8 @@ export function serializeDiagramSvg(svg: SVGSVGElement): string {
   background.setAttribute('fill', window.getComputedStyle(document.body).backgroundColor)
   clone.insertBefore(background, clone.firstChild)
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n${resolveVars(clone.outerHTML)}`
+  const markup = new XMLSerializer().serializeToString(clone)
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${resolveVars(markup)}`
 }
 
 export function downloadDiagramSvg(svg: SVGSVGElement, filename: string): void {
@@ -79,5 +104,5 @@ export function downloadDiagramSvg(svg: SVGSVGElement, filename: string): void {
   link.href = url
   link.download = filename
   link.click()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000)
 }

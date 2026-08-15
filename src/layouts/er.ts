@@ -145,8 +145,8 @@ export function layoutEr(spec: ErDiagramSpec): DiagramLayout {
       labelY = corridorY
       fromSide = rightward ? 'right' : 'left'
       toSide = rightward ? 'left' : 'right'
-    } else if (fromCol === toCol) {
-      // Same column: vertical bezier between facing table edges.
+    } else if (fromCol === toCol && Math.abs(fromRow - toRow) === 1) {
+      // Neighbouring rows, same column: vertical bezier between facing edges.
       const movingDown = toRow > fromRow
       startX = from.cx
       endX = to.cx
@@ -161,27 +161,57 @@ export function layoutEr(spec: ErDiagramSpec): DiagramLayout {
       fromSide = movingDown ? 'bottom' : 'top'
       toSide = movingDown ? 'top' : 'bottom'
     } else {
-      // Different row and column: bottom exit, row corridor, side entry.
-      const movingDown = toRow > fromRow
-      const rightward = toCol > fromCol
-      startX = from.cx
-      startY = movingDown ? from.y + from.h : from.y
-      endX = rightward ? to.x : to.x + to.w
+      // Any other pair routes through the corridors, which are clear by
+      // construction: the shared column gap when the columns are neighbours
+      // (or equal), otherwise gap → row corridor → gap.
+      const colDelta = toCol - fromCol
+      startY = anchorY(from)
       endY = anchorY(to)
-      const corridorRow = movingDown ? fromRow : toRow
-      const corridorY = rowTops[corridorRow] + rowHeights[corridorRow] + GRID_GAP_Y / 2
-      routePoints = [
-        [startX, startY],
-        [startX, corridorY],
-        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, corridorY],
-        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, endY],
-        [endX, endY],
-      ]
+
+      if (Math.abs(colDelta) <= 1) {
+        const gapX =
+          colDelta === 0
+            ? fromCol < usedCols - 1
+              ? xFor(fromCol) + TABLE_W + GRID_GAP_X / 2
+              : xFor(fromCol) - GRID_GAP_X / 2
+            : Math.max(xFor(fromCol), xFor(toCol)) - GRID_GAP_X / 2
+        startX = gapX > from.cx ? from.x + from.w : from.x
+        endX = gapX > to.cx ? to.x + to.w : to.x
+        routePoints = [
+          [startX, startY],
+          [gapX, startY],
+          [gapX, endY],
+          [endX, endY],
+        ]
+        labelX = gapX
+        labelY = (startY + endY) / 2
+      } else {
+        const rightward = colDelta > 0
+        const gapA = rightward
+          ? xFor(fromCol) + TABLE_W + GRID_GAP_X / 2
+          : xFor(fromCol) - GRID_GAP_X / 2
+        const gapB = rightward
+          ? xFor(toCol) - GRID_GAP_X / 2
+          : xFor(toCol) + TABLE_W + GRID_GAP_X / 2
+        const corridorRow = Math.min(fromRow, toRow)
+        const corridorY = rowTops[corridorRow] + rowHeights[corridorRow] + GRID_GAP_Y / 2
+        startX = rightward ? from.x + from.w : from.x
+        endX = rightward ? to.x : to.x + to.w
+        routePoints = [
+          [startX, startY],
+          [gapA, startY],
+          [gapA, corridorY],
+          [gapB, corridorY],
+          [gapB, endY],
+          [endX, endY],
+        ]
+        labelX = (gapA + gapB) / 2
+        labelY = corridorY
+      }
+
       d = roundedPolyline(routePoints, LANE_R)
-      labelX = (startX + routePoints[2][0]) / 2
-      labelY = corridorY
-      fromSide = movingDown ? 'bottom' : 'top'
-      toSide = rightward ? 'left' : 'right'
+      fromSide = startX > from.cx ? 'right' : 'left'
+      toSide = endX > to.cx ? 'right' : 'left'
     }
 
     edges.push({
