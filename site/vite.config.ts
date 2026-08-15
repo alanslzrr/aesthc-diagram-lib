@@ -22,9 +22,9 @@ function galleryWriter(): Plugin {
     configureServer(server) {
       server.middlewares.use('/__gallery', (req, res) => {
         const name = (req.url ?? '').replace(/^\//, '')
-        if (req.method !== 'POST' || !/^[a-z0-9-]+\.svg$/.test(name)) {
+        if (req.method !== 'POST' || !/^[a-z0-9-]+\.(svg|png)$/.test(name)) {
           res.statusCode = 400
-          res.end('expected POST /__gallery/<kebab-name>.svg')
+          res.end('expected POST /__gallery/<kebab-name>.(svg|png)')
           return
         }
         let body = ''
@@ -34,7 +34,13 @@ function galleryWriter(): Plugin {
         })
         req.on('end', () => {
           mkdirSync(galleryDir, { recursive: true })
-          writeFileSync(`${galleryDir}/${name}`, body)
+          if (name.endsWith('.png')) {
+            // PNGs arrive as a base64 data URL from canvas.toDataURL().
+            const base64 = body.replace(/^data:image\/png;base64,/, '')
+            writeFileSync(`${galleryDir}/${name}`, Buffer.from(base64, 'base64'))
+          } else {
+            writeFileSync(`${galleryDir}/${name}`, body)
+          }
           res.end(`saved ${name} (${body.length} bytes)`)
         })
       })

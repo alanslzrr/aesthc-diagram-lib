@@ -23,6 +23,22 @@ const PRESENTATION_ATTRS = [
 const STYLE_PROPS = ['text-transform', 'filter'] as const
 
 export function serializeDiagramSvg(svg: SVGSVGElement): string {
+  // The reveal-on-scroll phases drive node/edge opacity to 0 (pending) or
+  // mid-animation values (shown); pin the panel to 'done' while computed
+  // styles are read so exports always capture the settled diagram.
+  const revealHost = svg.closest<HTMLElement>('[data-reveal]')
+  const revealPhase = revealHost?.getAttribute('data-reveal')
+  if (revealHost && revealPhase !== 'done') revealHost.setAttribute('data-reveal', 'done')
+  try {
+    return serializeSettled(svg)
+  } finally {
+    if (revealHost && revealPhase && revealPhase !== 'done') {
+      revealHost.setAttribute('data-reveal', revealPhase)
+    }
+  }
+}
+
+function serializeSettled(svg: SVGSVGElement): string {
   const clone = svg.cloneNode(true) as SVGSVGElement
   const sourceNodes = svg.querySelectorAll<SVGElement>('*')
   const cloneNodes = clone.querySelectorAll<SVGElement>('*')
