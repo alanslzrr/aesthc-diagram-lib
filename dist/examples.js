@@ -58,8 +58,15 @@ var EXAMPLE_DIAGRAMS = {
         ],
         edges: [
           { from: "ingress", to: "validate" },
-          { from: "validate", to: "approve", label: "pass" },
-          { from: "validate", to: "quarantine", label: "uncertain", variant: "branch", dashed: true }
+          { from: "validate", to: "approve", label: "pass", labelPlacement: "above-target" },
+          {
+            from: "validate",
+            to: "quarantine",
+            label: "uncertain",
+            variant: "branch",
+            dashed: true,
+            labelPlacement: "below-target"
+          }
         ],
         decisions: [{ id: "validate-pass", source: "validate", label: "valid?" }],
         continuations: [
@@ -69,8 +76,8 @@ var EXAMPLE_DIAGRAMS = {
             label: "retry",
             destination: "ingress",
             side: "left",
-            anchor: "upper",
-            labelPlacement: "above-source",
+            anchor: "lower",
+            labelPlacement: "below-source",
             variant: "branch",
             ariaLabel: "operator retry returns the request to ingress"
           }
@@ -124,8 +131,15 @@ var EXAMPLE_DIAGRAMS = {
         ],
         edges: [
           { from: "ingress", to: "validate" },
-          { from: "validate", to: "approve", label: "v\xE1lido" },
-          { from: "validate", to: "quarantine", label: "dudoso", variant: "branch", dashed: true }
+          { from: "validate", to: "approve", label: "v\xE1lido", labelPlacement: "above-target" },
+          {
+            from: "validate",
+            to: "quarantine",
+            label: "dudoso",
+            variant: "branch",
+            dashed: true,
+            labelPlacement: "below-target"
+          }
         ],
         decisions: [{ id: "validate-pass", source: "validate", label: "\xBFv\xE1lido?" }],
         continuations: [
@@ -135,8 +149,8 @@ var EXAMPLE_DIAGRAMS = {
             label: "reintentar",
             destination: "entrada",
             side: "left",
-            anchor: "upper",
-            labelPlacement: "above-source",
+            anchor: "lower",
+            labelPlacement: "below-source",
             variant: "branch",
             ariaLabel: "el reintento del operador devuelve la solicitud a la entrada"
           }

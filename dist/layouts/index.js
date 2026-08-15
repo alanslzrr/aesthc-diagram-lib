@@ -7,7 +7,6 @@ var BAND_PITCH = 338;
 var SLOT_PITCH = 132;
 var CONTENT_TOP = 56;
 var CANVAS_BOTTOM_PAD = 56;
-var CANVAS_W = 1680;
 var SIDE_LANE_GAP = 10;
 var LANE_R = 6;
 var CONTINUATION_LENGTH = 44;
@@ -21,7 +20,6 @@ var FLOW_GAP_X = 96;
 var FLOW_GAP_Y = 72;
 var TIMELINE_EVENT_GAP = 180;
 var TIMELINE_ALT_OFFSET = 96;
-var LIFELINE_TOP = 48;
 var MESSAGE_PITCH = 56;
 var SWIMLANE_HEADER_W = 140;
 var SWIMLANE_PAD = 24;
@@ -58,6 +56,29 @@ function roundedPolyline(pts, r = LANE_R) {
   const last = pts[pts.length - 1];
   d += ` L ${last[0]} ${last[1]}`;
   return d;
+}
+function splitBackEdges(nodes, edges) {
+  const out = /* @__PURE__ */ new Map();
+  for (const node of nodes) out.set(node.id, []);
+  for (const edge of edges) out.get(edge.from)?.push(edge);
+  const state = /* @__PURE__ */ new Map();
+  const back = /* @__PURE__ */ new Set();
+  const visit = (id) => {
+    state.set(id, 1);
+    for (const edge of out.get(id) ?? []) {
+      const targetState = state.get(edge.to) ?? 0;
+      if (targetState === 1) back.add(edge);
+      else if (targetState === 0 && out.has(edge.to)) visit(edge.to);
+    }
+    state.set(id, 2);
+  };
+  for (const node of nodes) {
+    if ((state.get(node.id) ?? 0) === 0) visit(node.id);
+  }
+  return {
+    forward: edges.filter((edge) => !back.has(edge)),
+    back: edges.filter((edge) => back.has(edge))
+  };
 }
 
 // src/layouts/band.ts
@@ -306,8 +327,15 @@ function layoutBand(spec, _locale) {
   const edges = placeBandEdges(spec, nodes);
   const decisions = placeBandDecisions(spec, nodes);
   const continuations = placeBandContinuations(spec, nodes);
+  const gridWidth = BAND_X0 * 2 + (bands.length - 1) * BAND_PITCH + CARD_W;
+  const continuationExtent = Math.max(
+    0,
+    ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),
+    ...continuations.map((continuation) => continuation.endX + 12)
+  );
+  const width = Math.max(gridWidth, continuationExtent);
   return {
-    width: CANVAS_W,
+    width,
     height,
     nodes,
     edges,
@@ -318,8 +346,10 @@ function layoutBand(spec, _locale) {
 }
 
 // src/layouts/flowchart.ts
-var MARGIN = 80;
+var MARGIN_X = 72;
 var BOTTOM_PAD = 64;
+var OUTER_LANE_GAP = 56;
+var OUTER_LANE_STEP = 26;
 function topologicalLevels(nodes, edges) {
   const indegree = /* @__PURE__ */ new Map();
   const out = /* @__PURE__ */ new Map();
@@ -360,13 +390,14 @@ function topologicalLevels(nodes, edges) {
   return level;
 }
 function layoutFlowchart(spec) {
-  const levelOf = spec.level !== void 0 ? new Map(spec.nodes.map((node) => [node.id, spec.level])) : topologicalLevels(spec.nodes, spec.edges);
+  const { forward, back } = splitBackEdges(spec.nodes, spec.edges);
+  const levelOf = spec.level !== void 0 ? new Map(spec.nodes.map((node) => [node.id, spec.level])) : topologicalLevels(spec.nodes, forward);
   const direction = spec.direction ?? "top-down";
   const horizontal = direction === "left-right";
-  const columns = /* @__PURE__ */ new Map();
+  const levels = /* @__PURE__ */ new Map();
   for (const node of spec.nodes) {
     const level = levelOf.get(node.id) ?? 0;
-    const members = columns.get(level) ?? [];
+    const members = levels.get(level) ?? [];
     members.push({
       ...node,
       band: level,
@@ -377,113 +408,257 @@ function layoutFlowchart(spec) {
       cx: 0,
       cy: 0
     });
-    columns.set(level, members);
+    levels.set(level, members);
   }
-  const columnCount = Math.max(1, ...columns.keys()) + 1;
-  const rowsPerColumn = (index) => columns.get(index)?.length ?? 0;
-  const maxRow = Math.max(1, ...[...columns.keys()].map(rowsPerColumn));
-  const mainSpan = columnCount * (CARD_W + FLOW_GAP_X);
-  const crossSpan = maxRow * (CARD_W + FLOW_GAP_Y);
-  const width = horizontal ? crossSpan + FLOW_GAP_X + MARGIN * 2 : Math.max(CANVAS_W, mainSpan + MARGIN * 2);
-  const height = horizontal ? Math.max(CANVAS_W * 0.55, mainSpan + BOTTOM_PAD + CONTENT_TOP) : crossSpan + FLOW_GAP_Y + BOTTOM_PAD + CONTENT_TOP;
+  const levelIndices = [...levels.keys()].sort((a, b) => a - b);
+  const skipEdges = forward.filter(
+    (edge) => Math.abs((levelOf.get(edge.to) ?? 0) - (levelOf.get(edge.from) ?? 0)) > 1
+  );
+  const nearLaneSpan = back.length > 0 ? OUTER_LANE_GAP + (back.length - 1) * OUTER_LANE_STEP : 0;
+  const farLaneSpan = skipEdges.length > 0 ? OUTER_LANE_GAP + (skipEdges.length - 1) * OUTER_LANE_STEP : 0;
   const nodes = [];
-  for (const [level, members] of columns) {
-    members.forEach((node, index) => {
-      const origin = horizontal ? level * (CARD_W + FLOW_GAP_Y) : level * (CARD_W + FLOW_GAP_X);
-      const cross = horizontal ? index * (CARD_W + FLOW_GAP_X) : index * (CARD_W + FLOW_GAP_Y);
-      const crossCentre = horizontal ? MARGIN + (crossSpan - CARD_W) / 2 : CONTENT_TOP + (crossSpan - CARD_W) / 2;
-      const x = horizontal ? crossCentre + cross - CARD_W / 2 : MARGIN + origin;
-      const y = horizontal ? MARGIN + origin - node.h / 2 : crossCentre + cross - node.h / 2;
-      const cx = x + CARD_W / 2;
-      const cy = y + node.h / 2;
-      nodes.push({ ...node, x, y, cx, cy });
-    });
-  }
   const nodeById = {};
-  for (const node of nodes) nodeById[node.id] = node;
+  if (!horizontal) {
+    const rowWidth = (members) => members.length * CARD_W + (members.length - 1) * FLOW_GAP_X;
+    const contentW = Math.max(...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])));
+    const originX = MARGIN_X + nearLaneSpan;
+    const width2 = originX + contentW + farLaneSpan + MARGIN_X;
+    let y = CONTENT_TOP;
+    for (const index of levelIndices) {
+      const members = levels.get(index) ?? [];
+      const rowH = Math.max(...members.map((member) => member.h));
+      const totalW = rowWidth(members);
+      members.forEach((member, position) => {
+        const x2 = originX + (contentW - totalW) / 2 + position * (CARD_W + FLOW_GAP_X);
+        const cy = y + rowH / 2 + (member.nudge ?? 0);
+        const placed = {
+          ...member,
+          x: x2,
+          y: cy - member.h / 2,
+          cx: x2 + CARD_W / 2,
+          cy
+        };
+        nodes.push(placed);
+        nodeById[placed.id] = placed;
+      });
+      y += rowH + FLOW_GAP_Y;
+    }
+    const height2 = y - FLOW_GAP_Y + BOTTOM_PAD;
+    const edges2 = placeFlowEdges(spec, nodes, nodeById, levelOf, back, {
+      horizontal: false,
+      nearLaneX: originX - OUTER_LANE_GAP,
+      farLaneX: originX + contentW + OUTER_LANE_GAP
+    });
+    return { width: width2, height: height2, nodes, edges: edges2, decisions: [], continuations: [], nodeById };
+  }
+  const columnHeight = (members) => members.reduce((sum, member) => sum + member.h, 0) + (members.length - 1) * FLOW_GAP_Y;
+  const contentH = Math.max(...levelIndices.map((index) => columnHeight(levels.get(index) ?? [])));
+  const originY = CONTENT_TOP + nearLaneSpan;
+  const height = originY + contentH + farLaneSpan + BOTTOM_PAD;
+  let x = MARGIN_X;
+  for (const index of levelIndices) {
+    const members = levels.get(index) ?? [];
+    const totalH = columnHeight(members);
+    let memberY = originY + (contentH - totalH) / 2;
+    for (const member of members) {
+      const cy = memberY + member.h / 2 + (member.nudge ?? 0);
+      const placed = {
+        ...member,
+        x,
+        y: cy - member.h / 2,
+        cx: x + CARD_W / 2,
+        cy
+      };
+      nodes.push(placed);
+      nodeById[placed.id] = placed;
+      memberY += member.h + FLOW_GAP_Y;
+    }
+    x += CARD_W + FLOW_GAP_X;
+  }
+  const width = x - FLOW_GAP_X + MARGIN_X;
+  const edges = placeFlowEdges(spec, nodes, nodeById, levelOf, back, {
+    horizontal: true,
+    nearLaneX: originY - OUTER_LANE_GAP,
+    farLaneX: originY + contentH + OUTER_LANE_GAP
+  });
+  return { width, height, nodes, edges, decisions: [], continuations: [], nodeById };
+}
+function placeFlowEdges(spec, nodes, nodeById, levelOf, back, lanes) {
+  const backSet = new Set(back);
   const edges = [];
+  let nearLaneUsed = 0;
+  let farLaneUsed = 0;
   for (const edge of spec.edges) {
     const from = nodeById[edge.from];
     const to = nodeById[edge.to];
     if (!from || !to) continue;
     const variant = edge.variant ?? "main";
     const labelWidth = edge.label ? labelPillWidth(edge.label) : 0;
-    let d;
-    let startX;
-    let startY;
-    let endX;
-    let endY;
-    if ((levelOf.get(from.id) ?? 0) === (levelOf.get(to.id) ?? 0)) {
-      const rightward = to.x > from.x;
-      startX = rightward ? from.x + from.w : from.x;
-      startY = from.cy;
-      endX = rightward ? to.x : to.x + to.w;
-      endY = to.cy;
-      const lane = rightward ? Math.max(from.x + from.w, to.x) + FLOW_GAP_X / 2 : Math.min(from.x, to.x + to.w) - FLOW_GAP_X / 2;
-      d = `M ${startX} ${startY} Q ${lane} ${startY}, ${lane} ${endY} T ${endX} ${endY}`;
-    } else {
-      const moving = to.x > from.x;
-      if (horizontal) {
-        startX = moving ? from.x + from.w : from.x;
-        startY = from.cy;
-        endX = moving ? to.x : to.x + to.w;
-        endY = to.cy;
-        const controlX = (startX + endX) / 2;
-        d = `M ${startX} ${startY} C ${controlX} ${startY}, ${controlX} ${endY}, ${endX} ${endY}`;
+    const levelDelta = (levelOf.get(to.id) ?? 0) - (levelOf.get(from.id) ?? 0);
+    const isBack = backSet.has(edge);
+    let placed;
+    if (isBack) {
+      const laneOffset = nearLaneUsed++ * -26;
+      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.nearLaneX + laneOffset, "near") : outerLaneVertical(from, to, lanes.nearLaneX + laneOffset, "near");
+    } else if (Math.abs(levelDelta) > 1) {
+      const laneOffset = farLaneUsed++ * 26;
+      placed = lanes.horizontal ? outerLaneHorizontal(from, to, lanes.farLaneX + laneOffset, "far") : outerLaneVertical(from, to, lanes.farLaneX + laneOffset, "far");
+    } else if (levelDelta === 0) {
+      const rightward = to.cx > from.cx || !lanes.horizontal && to.cy > from.cy;
+      if (lanes.horizontal) {
+        const movingDown = to.cy > from.cy;
+        const startY = movingDown ? from.y + from.h : from.y;
+        const endY = movingDown ? to.y : to.y + to.h;
+        const controlY = (startY + endY) / 2;
+        placed = {
+          d: `M ${from.cx} ${startY} C ${from.cx} ${controlY}, ${to.cx} ${controlY}, ${to.cx} ${endY}`,
+          labelX: (from.cx + to.cx) / 2,
+          labelY: (startY + endY) / 2,
+          startX: from.cx,
+          startY,
+          endX: to.cx,
+          endY,
+          fromSide: movingDown ? "bottom" : "top",
+          toSide: movingDown ? "top" : "bottom"
+        };
       } else {
-        const movingDown = to.y > from.y;
-        startX = from.cx;
-        startY = movingDown ? from.y + from.h : from.y;
-        endX = to.cx;
-        endY = movingDown ? to.y : to.y + to.h;
-        const controlY = Math.abs(endY - startY) * 0.5;
-        d = `M ${startX} ${startY} C ${startX} ${startY + controlY}, ${endX} ${endY - controlY}, ${endX} ${endY}`;
+        const startX = rightward ? from.x + from.w : from.x;
+        const endX = rightward ? to.x : to.x + to.w;
+        const controlX = (startX + endX) / 2;
+        placed = {
+          d: `M ${startX} ${from.cy} C ${controlX} ${from.cy}, ${controlX} ${to.cy}, ${endX} ${to.cy}`,
+          labelX: (startX + endX) / 2,
+          labelY: (from.cy + to.cy) / 2,
+          startX,
+          startY: from.cy,
+          endX,
+          endY: to.cy,
+          fromSide: rightward ? "right" : "left",
+          toSide: rightward ? "left" : "right"
+        };
       }
+    } else if (lanes.horizontal) {
+      const startX = from.x + from.w;
+      const endX = to.x;
+      const controlX = (startX + endX) / 2;
+      placed = {
+        d: `M ${startX} ${from.cy} C ${controlX} ${from.cy}, ${controlX} ${to.cy}, ${endX} ${to.cy}`,
+        labelX: (startX + endX) / 2,
+        labelY: (from.cy + to.cy) / 2,
+        startX,
+        startY: from.cy,
+        endX,
+        endY: to.cy,
+        fromSide: "right",
+        toSide: "left"
+      };
+    } else {
+      const startY = from.y + from.h;
+      const endY = to.y;
+      const controlY = Math.abs(endY - startY) * 0.5;
+      placed = {
+        d: `M ${from.cx} ${startY} C ${from.cx} ${startY + controlY}, ${to.cx} ${endY - controlY}, ${to.cx} ${endY}`,
+        labelX: (from.cx + to.cx) / 2,
+        labelY: (startY + endY) / 2,
+        startX: from.cx,
+        startY,
+        endX: to.cx,
+        endY,
+        fromSide: "bottom",
+        toSide: "top"
+      };
     }
     edges.push({
       ...edge,
       id: edgeId(edge),
       variant,
-      d,
-      labelX: (startX + endX) / 2,
-      labelY: (startY + endY) / 2,
       labelWidth,
-      startX,
-      startY,
-      endX,
-      endY,
-      fromSide: horizontal ? endX > startX ? "right" : "left" : endY > startY ? "bottom" : "top",
-      toSide: horizontal ? endX > startX ? "left" : "right" : endY > startY ? "top" : "bottom"
+      arrowEnd: isBack || Math.abs(levelDelta) > 1 ? true : void 0,
+      ...placed
     });
   }
-  return { width, height, nodes, edges, decisions: [], continuations: [], nodeById };
+  return edges;
+}
+function outerLaneVertical(from, to, laneX, side) {
+  const left = side === "near";
+  const startX = left ? from.x : from.x + from.w;
+  const endX = left ? to.x : to.x + to.w;
+  const startY = connectY(from, left ? "left" : "right");
+  const endY = connectY(to, left ? "left" : "right");
+  return laneShape(
+    [
+      [startX, startY],
+      [laneX, startY],
+      [laneX, endY],
+      [endX, endY]
+    ],
+    left ? "left" : "right",
+    left ? "left" : "right",
+    laneX,
+    (startY + endY) / 2
+  );
+}
+function outerLaneHorizontal(from, to, laneY, side) {
+  const top = side === "near";
+  const startY = top ? from.y : from.y + from.h;
+  const endY = top ? to.y : to.y + to.h;
+  return laneShape(
+    [
+      [from.cx, startY],
+      [from.cx, laneY],
+      [to.cx, laneY],
+      [to.cx, endY]
+    ],
+    top ? "top" : "bottom",
+    top ? "top" : "bottom",
+    (from.cx + to.cx) / 2,
+    laneY
+  );
+}
+function laneShape(points, fromSide, toSide, labelX, labelY) {
+  const [startX, startY] = points[0];
+  const [endX, endY] = points[points.length - 1];
+  return {
+    d: roundedPolyline(points, LANE_R),
+    labelX,
+    labelY,
+    startX,
+    startY,
+    endX,
+    endY,
+    fromSide,
+    toSide,
+    routePoints: points
+  };
 }
 
 // src/layouts/sequence.ts
-var PARTICIPANT_PITCH = 280;
+var PARTICIPANT_PITCH = 300;
 var HEADER_W = 200;
-var HEADER_H = 44;
+var HEADER_H = CARD_H_SLIM;
 var HEADER_TOP = 8;
-var MESSAGE_TOP = 64;
-var BOTTOM_PAD2 = 56;
+var MARGIN_X2 = 72;
+var BOTTOM_PAD2 = 48;
 var ACTIVATION_W = 8;
+var END_TRIM = 5;
 function layoutSequence(spec) {
   const count = Math.max(1, spec.participants.length);
-  const pitch = Math.max(PARTICIPANT_PITCH, (CANVAS_W - 160) / count);
-  const width = Math.max(CANVAS_W, count * pitch + 160);
-  const y1 = MESSAGE_TOP + spec.messages.length * MESSAGE_PITCH;
+  const width = 2 * (MARGIN_X2 + HEADER_W / 2) + PARTICIPANT_PITCH * (count - 1);
+  const headerBottom = HEADER_TOP + HEADER_H;
+  const messageTop = headerBottom + 48;
+  const y1 = messageTop + spec.messages.length * MESSAGE_PITCH;
   const height = y1 + BOTTOM_PAD2;
   const lifelines = [];
   const nodes = [];
   const nodeById = {};
   spec.participants.forEach((participant, index) => {
-    const cx = 80 + pitch * index + pitch / 2;
+    const cx = MARGIN_X2 + HEADER_W / 2 + PARTICIPANT_PITCH * index;
     lifelines.push({
       id: participant.id,
       label: participant.label,
       kind: participant.kind,
       x: cx,
-      y0: LIFELINE_TOP,
+      y0: headerBottom,
       y1
     });
     const header = {
@@ -503,76 +678,115 @@ function layoutSequence(spec) {
     nodes.push(header);
     nodeById[header.id] = header;
   });
+  const messageY = (index) => messageTop + index * MESSAGE_PITCH + MESSAGE_PITCH / 2;
   const edges = [];
   spec.messages.forEach((message, index) => {
     const from = nodeById[message.from];
     const to = nodeById[message.to];
     if (!from || !to) return;
-    const y = MESSAGE_TOP + index * MESSAGE_PITCH + MESSAGE_PITCH / 2;
-    const startX = message.from === message.to ? from.cx + 40 : from.cx;
-    const endX = message.from === message.to ? to.cx + 120 : to.cx;
+    const y = messageY(index);
     const variant = message.variant ?? "main";
     const labelWidth = message.label ? labelPillWidth(message.label) : 0;
-    const labelX = (startX + endX) / 2;
-    const labelY = y - 10;
+    if (message.from === message.to) {
+      const startX2 = from.cx + END_TRIM;
+      const endX2 = from.cx + END_TRIM;
+      edges.push({
+        ...message,
+        id: edgeId(message),
+        variant,
+        d: `M ${startX2} ${y - 10} C ${startX2 + 84} ${y - 12}, ${startX2 + 84} ${y + 12}, ${endX2} ${y + 10}`,
+        labelX: from.cx + 104 + labelWidth / 2,
+        labelY: y,
+        labelWidth,
+        startX: startX2,
+        startY: y,
+        endX: endX2,
+        endY: y,
+        fromSide: "right",
+        toSide: "right",
+        arrowEnd: true
+      });
+      return;
+    }
+    const rightward = to.cx > from.cx;
+    const startX = from.cx + (rightward ? END_TRIM : -END_TRIM);
+    const endX = to.cx - (rightward ? END_TRIM : -END_TRIM);
     edges.push({
       ...message,
       id: edgeId(message),
       variant,
-      d: message.from === message.to ? `M ${from.cx + 30} ${y} Q ${startX + 60} ${y - 18}, ${endX} ${y}` : `M ${startX} ${y} L ${endX} ${y}`,
-      labelX,
-      labelY,
+      d: `M ${startX} ${y} L ${endX} ${y}`,
+      labelX: (startX + endX) / 2,
+      labelY: y - 14,
       labelWidth,
       startX,
       startY: y,
       endX,
       endY: y,
-      fromSide: message.from === message.to ? "right" : endX > startX ? "right" : "left",
-      toSide: message.from === message.to ? "right" : endX > startX ? "left" : "right"
+      fromSide: rightward ? "right" : "left",
+      toSide: rightward ? "left" : "right",
+      arrowEnd: true
     });
-    if (message.activation && to) {
-      const bar = {
-        id: `activation-${message.id}`,
-        label: "",
-        description: "",
-        band: 0,
-        w: ACTIVATION_W,
-        h: MESSAGE_PITCH,
-        x: to.cx - ACTIVATION_W / 2,
-        y: y - MESSAGE_PITCH / 2 + 8,
-        cx: to.cx,
-        cy: y,
-        shape: "bar",
-        weight: variant === "branch" ? "secondary" : "primary"
-      };
-      nodes.push(bar);
-      nodeById[bar.id] = bar;
-    }
+  });
+  spec.messages.forEach((message, index) => {
+    if (!message.activation) return;
+    const receiver = nodeById[message.to];
+    if (!receiver) return;
+    const opensAt = messageY(index);
+    const reply = spec.messages.findIndex(
+      (candidate, candidateIndex) => candidateIndex > index && candidate.from === message.to
+    );
+    const closesAt = reply >= 0 ? messageY(reply) : opensAt + MESSAGE_PITCH * 0.72;
+    const bar = {
+      id: `activation-${message.id}`,
+      label: "",
+      description: "",
+      band: 0,
+      w: ACTIVATION_W,
+      h: closesAt - opensAt + 8,
+      x: receiver.cx - ACTIVATION_W / 2,
+      y: opensAt - 4,
+      cx: receiver.cx,
+      cy: (opensAt + closesAt) / 2,
+      shape: "bar",
+      weight: (message.variant ?? "main") === "branch" ? "secondary" : "primary"
+    };
+    nodes.push(bar);
+    nodeById[bar.id] = bar;
   });
   return { width, height, nodes, edges, decisions: [], continuations: [], lifelines, nodeById };
 }
 
 // src/layouts/state-machine.ts
 var STATE_W = 220;
-var RING_MARGIN = 200;
-var TOP_PAD = 48;
-var BOTTOM_PAD3 = 48;
+var MARGIN_X3 = 96;
+var MARGIN_Y = 64;
+var TRIM_GAP = 6;
+function borderPoint(node, tx, ty) {
+  const dx = tx - node.cx;
+  const dy = ty - node.cy;
+  if (dx === 0 && dy === 0) return [node.cx, node.cy];
+  const scale = 1 / Math.max(Math.abs(dx) / (node.w / 2 + TRIM_GAP), Math.abs(dy) / (node.h / 2 + TRIM_GAP));
+  return [node.cx + dx * scale, node.cy + dy * scale];
+}
 function layoutStateMachine(spec) {
   const states = spec.states.map((state) => ({ ...state }));
   const n = Math.max(1, states.length);
-  const width = Math.max(720, n * 240 + RING_MARGIN * 2);
-  const height = Math.max(520, n * 200 + TOP_PAD + BOTTOM_PAD3);
-  const cx = width / 2;
-  const cy = height / 2 + 12;
-  const radius = Math.min(width, height) / 2 - RING_MARGIN / 2;
+  const ringRadius = n * (STATE_W + 64) / (2 * Math.PI);
+  const rx = Math.max(340, ringRadius * 1.7);
+  const ry = Math.max(180, ringRadius * 0.88);
+  const width = 2 * (rx + STATE_W / 2 + MARGIN_X3);
+  const height = 2 * (ry + 44 + MARGIN_Y);
+  const centreX = width / 2;
+  const centreY = height / 2;
   const nodes = [];
   const nodeById = {};
   states.forEach((state, index) => {
     const angle = index / n * Math.PI * 2 - Math.PI / 2;
     const h = nodeHeight(state);
     const w = state.sublabel ? CARD_W : STATE_W;
-    const x = cx + Math.cos(angle) * radius - w / 2;
-    const y = cy + Math.sin(angle) * radius - h / 2;
+    const x = centreX + Math.cos(angle) * rx - w / 2;
+    const y = centreY + Math.sin(angle) * ry - h / 2;
     const placed = {
       ...state,
       description: state.description ?? `${state.kind ? `${state.kind}: ` : ""}${state.label}`,
@@ -588,6 +802,11 @@ function layoutStateMachine(spec) {
     nodes.push(placed);
     nodeById[placed.id] = placed;
   });
+  const angleOf = /* @__PURE__ */ new Map();
+  states.forEach((state, index) => {
+    angleOf.set(state.id, index / n * Math.PI * 2 - Math.PI / 2);
+  });
+  const ringStep = Math.PI * 2 / n;
   const edges = [];
   for (const transition of spec.transitions) {
     const from = nodeById[transition.from];
@@ -596,43 +815,59 @@ function layoutStateMachine(spec) {
     const variant = transition.variant ?? "main";
     const labelWidth = transition.label ? labelPillWidth(transition.label) : 0;
     if (transition.from === transition.to) {
-      const startX = from.x + from.w * 0.35;
-      const endX = from.x + from.w * 0.65;
+      const startX2 = from.x + from.w * 0.35;
+      const endX2 = from.x + from.w * 0.65;
       const loopY = from.y - 36;
       edges.push({
         ...transition,
         id: `${transition.from}::self::${from.id}`,
         variant,
-        d: `M ${startX} ${from.y} C ${startX} ${loopY - 14}, ${endX} ${loopY - 14}, ${endX} ${from.y}`,
+        d: `M ${startX2} ${from.y} C ${startX2} ${loopY - 14}, ${endX2} ${loopY - 14}, ${endX2} ${from.y}`,
         labelX: from.cx,
         labelY: loopY - 24,
         labelWidth,
-        startX,
+        startX: startX2,
         startY: from.y,
-        endX,
+        endX: endX2,
         endY: from.y,
         fromSide: "top",
-        toSide: "top"
+        toSide: "top",
+        arrowEnd: true
       });
       continue;
     }
+    const a = angleOf.get(from.id) ?? 0;
+    const b = angleOf.get(to.id) ?? 0;
+    let delta = Math.abs(b - a);
+    if (delta > Math.PI) delta = Math.PI * 2 - delta;
+    const isNeighbour = delta <= ringStep * 1.05;
     const midX = (from.cx + to.cx) / 2;
     const midY = (from.cy + to.cy) / 2;
-    const bulge = 28;
+    const outX = midX - centreX;
+    const outY = midY - centreY;
+    const outLen = Math.hypot(outX, outY) || 1;
+    const bow = isNeighbour ? 72 : -Math.min(64, outLen * 0.22);
+    const controlX = midX + outX / outLen * bow;
+    const controlY = midY + outY / outLen * bow;
+    const [startX, startY] = borderPoint(from, controlX, controlY);
+    const [endX, endY] = borderPoint(to, controlX, controlY);
+    const labelX = 0.25 * startX + 0.5 * controlX + 0.25 * endX;
+    const labelY = 0.25 * startY + 0.5 * controlY + 0.25 * endY;
     edges.push({
       ...transition,
       id: edgeId(transition),
       variant,
-      d: `M ${from.cx} ${from.cy} Q ${midX + bulge} ${midY - bulge}, ${to.cx} ${to.cy}`,
-      labelX: midX,
-      labelY: midY,
+      d: `M ${startX} ${startY} Q ${controlX} ${controlY}, ${endX} ${endY}`,
+      labelX,
+      labelY,
       labelWidth,
-      startX: from.cx,
-      startY: from.cy,
-      endX: to.cx,
-      endY: to.cy,
-      fromSide: "right",
-      toSide: "left"
+      startX,
+      startY,
+      endX,
+      endY,
+      fromSide: Math.abs(endX - startX) >= Math.abs(endY - startY) ? endX > startX ? "right" : "left" : endY > startY ? "bottom" : "top",
+      toSide: Math.abs(endX - startX) >= Math.abs(endY - startY) ? endX > startX ? "left" : "right" : endY > startY ? "top" : "bottom",
+      arrowEnd: true
     });
   }
   return { width, height, nodes, edges, decisions: [], continuations: [], nodeById };
@@ -640,32 +875,46 @@ function layoutStateMachine(spec) {
 
 // src/layouts/er.ts
 var TABLE_W = 240;
-var HEADER_H2 = 30;
+var HEADER_H2 = 26;
 var ROW_H = 22;
-var GRID_GAP_X = 72;
-var GRID_GAP_Y = 48;
-var MARGIN2 = 80;
-var BOTTOM_PAD4 = 56;
+var FOOT_PAD = 10;
+var GRID_GAP_X = 112;
+var GRID_GAP_Y = 88;
+var MARGIN_X4 = 72;
+var MARGIN_TOP = 64;
+var BOTTOM_PAD3 = 64;
 var COLS = 3;
-var tableHeight = (fields) => HEADER_H2 + fields.length * ROW_H + 8;
+var tableHeight = (fields) => HEADER_H2 + fields.length * ROW_H + FOOT_PAD;
 function layoutEr(spec) {
   const cols = Math.min(COLS, Math.max(1, spec.entities.length));
   const rows = Math.ceil(spec.entities.length / cols);
-  let width = CANVAS_W;
-  const height = MARGIN2 + rows * (CARD_W + GRID_GAP_Y) + BOTTOM_PAD4;
-  const xFor = (col) => MARGIN2 + col * (TABLE_W + GRID_GAP_X);
-  const yFor = (row) => MARGIN2 + row * (CARD_W + GRID_GAP_Y);
-  const lastCol = Math.min(cols - 1, spec.entities.length - 1);
-  const rightEdge = xFor(lastCol) + TABLE_W;
-  width = Math.max(width, rightEdge + MARGIN2);
+  const rowHeights = [];
+  for (let row = 0; row < rows; row += 1) {
+    const members = spec.entities.slice(row * cols, row * cols + cols);
+    rowHeights.push(Math.max(...members.map((entity) => tableHeight(entity.fields))));
+  }
+  const rowTops = [];
+  let cursorY = MARGIN_TOP;
+  for (let row = 0; row < rows; row += 1) {
+    rowTops.push(cursorY);
+    cursorY += rowHeights[row] + GRID_GAP_Y;
+  }
+  const height = cursorY - GRID_GAP_Y + BOTTOM_PAD3;
+  const usedCols = Math.min(cols, spec.entities.length);
+  const width = MARGIN_X4 * 2 + usedCols * TABLE_W + (usedCols - 1) * GRID_GAP_X;
+  const xFor = (col) => MARGIN_X4 + col * (TABLE_W + GRID_GAP_X);
   const nodes = [];
   const nodeById = {};
+  const colOf = /* @__PURE__ */ new Map();
+  const rowOf = /* @__PURE__ */ new Map();
   spec.entities.forEach((entity, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
     const h = tableHeight(entity.fields);
     const x = xFor(col);
-    const y = yFor(row);
+    const y = rowTops[row];
+    colOf.set(entity.id, col);
+    rowOf.set(entity.id, row);
     const placed = {
       id: entity.id,
       label: entity.label,
@@ -685,6 +934,7 @@ function layoutEr(spec) {
     nodes.push(placed);
     nodeById[placed.id] = placed;
   });
+  const anchorY = (node) => node.y + HEADER_H2 / 2;
   const edges = [];
   for (const relation of spec.relations) {
     const from = nodeById[relation.from];
@@ -692,44 +942,125 @@ function layoutEr(spec) {
     if (!from || !to) continue;
     const variant = relation.variant ?? "main";
     const labelWidth = relation.label ? labelPillWidth(relation.label) : 0;
-    const startX = from.x + from.w;
-    const startY = from.y + HEADER_H2;
-    const endX = to.x;
-    const endY = to.y + HEADER_H2;
+    const fromCol = colOf.get(relation.from) ?? 0;
+    const toCol = colOf.get(relation.to) ?? 0;
+    const fromRow = rowOf.get(relation.from) ?? 0;
+    const toRow = rowOf.get(relation.to) ?? 0;
+    let d;
+    let labelX;
+    let labelY;
+    let startX;
+    let startY;
+    let endX;
+    let endY;
+    let fromSide;
+    let toSide;
+    let routePoints;
+    if (fromRow === toRow && Math.abs(fromCol - toCol) === 1) {
+      const rightward = toCol > fromCol;
+      startX = rightward ? from.x + from.w : from.x;
+      endX = rightward ? to.x : to.x + to.w;
+      startY = anchorY(from);
+      endY = anchorY(to);
+      const controlX = (startX + endX) / 2;
+      d = `M ${startX} ${startY} C ${controlX} ${startY}, ${controlX} ${endY}, ${endX} ${endY}`;
+      labelX = (startX + endX) / 2;
+      labelY = (startY + endY) / 2;
+      fromSide = rightward ? "right" : "left";
+      toSide = rightward ? "left" : "right";
+    } else if (fromRow === toRow) {
+      const rightward = toCol > fromCol;
+      startX = rightward ? from.x + from.w : from.x;
+      endX = rightward ? to.x : to.x + to.w;
+      startY = anchorY(from);
+      endY = anchorY(to);
+      const corridorY = rowTops[fromRow] + rowHeights[fromRow] + GRID_GAP_Y / 2;
+      const gapA = rightward ? from.x + from.w + GRID_GAP_X / 2 : from.x - GRID_GAP_X / 2;
+      const gapB = rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2;
+      routePoints = [
+        [startX, startY],
+        [gapA, startY],
+        [gapA, corridorY],
+        [gapB, corridorY],
+        [gapB, endY],
+        [endX, endY]
+      ];
+      d = roundedPolyline(routePoints, LANE_R);
+      labelX = (gapA + gapB) / 2;
+      labelY = corridorY;
+      fromSide = rightward ? "right" : "left";
+      toSide = rightward ? "left" : "right";
+    } else if (fromCol === toCol) {
+      const movingDown = toRow > fromRow;
+      startX = from.cx;
+      endX = to.cx;
+      startY = movingDown ? from.y + from.h : from.y;
+      endY = movingDown ? to.y : to.y + to.h;
+      const controlY = Math.abs(endY - startY) * 0.5;
+      d = movingDown ? `M ${startX} ${startY} C ${startX} ${startY + controlY}, ${endX} ${endY - controlY}, ${endX} ${endY}` : `M ${startX} ${startY} C ${startX} ${startY - controlY}, ${endX} ${endY + controlY}, ${endX} ${endY}`;
+      labelX = (startX + endX) / 2;
+      labelY = (startY + endY) / 2;
+      fromSide = movingDown ? "bottom" : "top";
+      toSide = movingDown ? "top" : "bottom";
+    } else {
+      const movingDown = toRow > fromRow;
+      const rightward = toCol > fromCol;
+      startX = from.cx;
+      startY = movingDown ? from.y + from.h : from.y;
+      endX = rightward ? to.x : to.x + to.w;
+      endY = anchorY(to);
+      const corridorRow = movingDown ? fromRow : toRow;
+      const corridorY = rowTops[corridorRow] + rowHeights[corridorRow] + GRID_GAP_Y / 2;
+      routePoints = [
+        [startX, startY],
+        [startX, corridorY],
+        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, corridorY],
+        [rightward ? to.x - GRID_GAP_X / 2 : to.x + to.w + GRID_GAP_X / 2, endY],
+        [endX, endY]
+      ];
+      d = roundedPolyline(routePoints, LANE_R);
+      labelX = (startX + routePoints[2][0]) / 2;
+      labelY = corridorY;
+      fromSide = movingDown ? "bottom" : "top";
+      toSide = rightward ? "left" : "right";
+    }
     edges.push({
       ...relation,
       id: edgeId(relation),
       variant,
-      d: `M ${startX} ${startY} L ${endX} ${endY}`,
-      labelX: (startX + endX) / 2,
-      labelY: (startY + endY) / 2,
+      d,
+      labelX,
+      labelY,
       labelWidth,
       startX,
       startY,
       endX,
       endY,
-      fromSide: "right",
-      toSide: "left"
+      fromSide,
+      toSide,
+      routePoints
     });
   }
   return { width, height, nodes, edges, decisions: [], continuations: [], nodeById };
 }
 
 // src/layouts/timeline.ts
-var MARGIN3 = 100;
-var TOP_PAD2 = 64;
-var BOTTOM_PAD5 = 72;
+var MARGIN_X5 = 96;
+var TOP_PAD = 56;
+var BOTTOM_PAD4 = 64;
 var EVENT_W = 240;
+var SPINE_OVERHANG = 72;
 function layoutTimeline(spec) {
   const n = Math.max(1, spec.events.length);
-  const width = Math.max(CANVAS_W, n * TIMELINE_EVENT_GAP + MARGIN3 * 2);
-  const spineY = TOP_PAD2 + TIMELINE_ALT_OFFSET + 56;
-  const height = spineY + TIMELINE_ALT_OFFSET + BOTTOM_PAD5 + 56;
+  const edgePad = MARGIN_X5 + EVENT_W / 2;
+  const width = edgePad * 2 + TIMELINE_EVENT_GAP * (n - 1);
+  const spineY = TOP_PAD + TIMELINE_ALT_OFFSET + 40;
+  const height = spineY + TIMELINE_ALT_OFFSET + 40 + BOTTOM_PAD4;
   const nodes = [];
   const nodeById = {};
   spec.events.forEach((event, index) => {
     const above = index % 2 === 0;
-    const x = MARGIN3 + TIMELINE_EVENT_GAP * index + TIMELINE_EVENT_GAP / 2;
+    const x = edgePad + TIMELINE_EVENT_GAP * index;
     const labelY = above ? spineY - TIMELINE_ALT_OFFSET - 8 : spineY + TIMELINE_ALT_OFFSET + 8;
     const placed = {
       id: event.id,
@@ -752,6 +1083,8 @@ function layoutTimeline(spec) {
     nodes.push(placed);
     nodeById[placed.id] = placed;
   });
+  const firstX = edgePad - SPINE_OVERHANG;
+  const lastX = edgePad + TIMELINE_EVENT_GAP * (n - 1) + SPINE_OVERHANG;
   const edges = [];
   const spine = {
     id: "timeline-spine",
@@ -759,31 +1092,41 @@ function layoutTimeline(spec) {
     to: "",
     variant: "main",
     dashed: true,
-    d: `M ${MARGIN3} ${spineY} L ${width - MARGIN3} ${spineY}`,
+    d: `M ${firstX} ${spineY} L ${lastX} ${spineY}`,
     labelX: 0,
     labelY: 0,
     labelWidth: 0,
-    startX: MARGIN3,
+    startX: firstX,
     startY: spineY,
-    endX: width - MARGIN3,
+    endX: lastX,
     endY: spineY,
     fromSide: "left",
-    toSide: "right"
+    toSide: "right",
+    arrowEnd: true,
+    strokeWidth: 1.1
   };
   edges.push(spine);
   return { width, height, nodes, edges, decisions: [], continuations: [], nodeById };
 }
 
 // src/layouts/swimlane.ts
-var TOP_PAD3 = 56;
-var BOTTOM_PAD6 = 56;
-var NODE_GAP = 48;
+var TOP_PAD2 = 56;
+var BOTTOM_PAD5 = 56;
+var NODE_GAP = 96;
+var STACK_GAP = 24;
 function layoutSwimlane(spec) {
   const laneIds = spec.lanes.map((lane) => lane.id);
-  const membersByLane = /* @__PURE__ */ new Map();
+  const { forward } = splitBackEdges(spec.nodes, spec.edges);
+  const columnOf = topologicalLevels(spec.nodes, forward);
+  const maxColumn = Math.max(0, ...columnOf.values());
+  const xForColumn = (column) => SWIMLANE_HEADER_W + SWIMLANE_PAD + column * (CARD_W + NODE_GAP);
+  const width = xForColumn(maxColumn) + CARD_W + SWIMLANE_PAD * 2;
+  const byLane = /* @__PURE__ */ new Map();
   for (const node of spec.nodes) {
-    const members = membersByLane.get(node.lane) ?? [];
-    members.push({
+    const column = columnOf.get(node.id) ?? 0;
+    const laneColumns = byLane.get(node.lane) ?? /* @__PURE__ */ new Map();
+    const cell = laneColumns.get(column) ?? [];
+    cell.push({
       ...node,
       band: 0,
       w: CARD_W,
@@ -793,20 +1136,26 @@ function layoutSwimlane(spec) {
       cx: 0,
       cy: 0
     });
-    membersByLane.set(node.lane, members);
+    laneColumns.set(column, cell);
+    byLane.set(node.lane, laneColumns);
   }
   const laneHeights = laneIds.map((id) => {
-    const members = membersByLane.get(id) ?? [];
-    const maxCardH = Math.max(0, ...members.map((member) => member.h));
-    return Math.max(88, maxCardH + SWIMLANE_ROW_PAD);
+    const laneColumns = byLane.get(id);
+    if (!laneColumns) return 88;
+    let tallest = 0;
+    for (const cell of laneColumns.values()) {
+      const stackH = cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP;
+      tallest = Math.max(tallest, stackH);
+    }
+    return Math.max(88, tallest + SWIMLANE_ROW_PAD);
   });
-  let y = TOP_PAD3;
+  let cursorY = TOP_PAD2;
   const laneTop = /* @__PURE__ */ new Map();
   laneIds.forEach((id, index) => {
-    laneTop.set(id, y);
-    y += laneHeights[index];
+    laneTop.set(id, cursorY);
+    cursorY += laneHeights[index];
   });
-  const height = y + BOTTOM_PAD6;
+  const height = cursorY + BOTTOM_PAD5;
   const containers = [];
   spec.lanes.forEach((lane, index) => {
     containers.push({
@@ -815,32 +1164,36 @@ function layoutSwimlane(spec) {
       kind: lane.kind,
       x: 0,
       y: laneTop.get(lane.id) ?? 0,
-      w: CANVAS_W,
+      w: width,
       h: laneHeights[index]
     });
   });
   const nodes = [];
   const nodeById = {};
   laneIds.forEach((laneId, laneIndex) => {
-    const members = membersByLane.get(laneId) ?? [];
+    const laneColumns = byLane.get(laneId);
+    if (!laneColumns) return;
     const top = laneTop.get(laneId) ?? 0;
-    const laneH = laneHeights[laneIds.indexOf(laneId)];
-    let cursor = SWIMLANE_HEADER_W + SWIMLANE_PAD;
-    members.forEach((member) => {
-      const x = cursor;
-      const cy = top + laneH / 2;
-      const placed = {
-        ...member,
-        band: laneIndex,
-        x,
-        y: cy - member.h / 2,
-        cx: x + member.w / 2,
-        cy
-      };
-      nodes.push(placed);
-      nodeById[placed.id] = placed;
-      cursor += member.w + NODE_GAP;
-    });
+    const laneH = laneHeights[laneIndex];
+    for (const [column, cell] of laneColumns) {
+      const x = xForColumn(column);
+      const stackH = cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP;
+      let memberY = top + (laneH - stackH) / 2;
+      for (const member of cell) {
+        const cy = memberY + member.h / 2 + (member.nudge ?? 0);
+        const placed = {
+          ...member,
+          band: laneIndex,
+          x,
+          y: cy - member.h / 2,
+          cx: x + member.w / 2,
+          cy
+        };
+        nodes.push(placed);
+        nodeById[placed.id] = placed;
+        memberY += member.h + STACK_GAP;
+      }
+    }
   });
   const edges = [];
   for (const edge of spec.edges) {
@@ -849,28 +1202,36 @@ function layoutSwimlane(spec) {
     if (!from || !to) continue;
     const variant = edge.variant ?? "main";
     const labelWidth = edge.label ? labelPillWidth(edge.label) : 0;
-    const fromLane = from.y;
-    const toLane = to.y;
+    const sameLane = from.band === to.band;
+    const sameColumn = (columnOf.get(edge.from) ?? 0) === (columnOf.get(edge.to) ?? 0);
+    const crossesLane = !sameLane;
     let d;
     let startX;
     let startY;
     let endX;
     let endY;
-    if (fromLane === toLane) {
-      startX = from.x + from.w;
-      startY = from.cy;
-      endX = to.x;
-      endY = to.cy;
-      d = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
-    } else {
-      const movingDown = to.y > from.y;
-      const exitY = movingDown ? from.y + from.h : from.y;
-      const entryY = movingDown ? to.y : to.y + to.h;
+    let fromSide;
+    let toSide;
+    if (sameColumn && crossesLane) {
+      const movingDown = to.cy > from.cy;
       startX = from.cx;
-      startY = exitY;
+      startY = movingDown ? from.y + from.h : from.y;
       endX = to.cx;
-      endY = entryY;
-      d = `M ${startX} ${exitY} C ${startX} ${(exitY + entryY) / 2}, ${endX} ${(exitY + entryY) / 2}, ${endX} ${entryY}`;
+      endY = movingDown ? to.y : to.y + to.h;
+      const controlY = (startY + endY) / 2;
+      d = `M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`;
+      fromSide = movingDown ? "bottom" : "top";
+      toSide = movingDown ? "top" : "bottom";
+    } else {
+      const rightward = to.cx > from.cx;
+      startX = rightward ? from.x + from.w : from.x;
+      startY = from.cy;
+      endX = rightward ? to.x : to.x + to.w;
+      endY = to.cy;
+      const controlX = (startX + endX) / 2;
+      d = `M ${startX} ${startY} C ${controlX} ${startY}, ${controlX} ${endY}, ${endX} ${endY}`;
+      fromSide = rightward ? "right" : "left";
+      toSide = rightward ? "left" : "right";
     }
     edges.push({
       ...edge,
@@ -884,12 +1245,13 @@ function layoutSwimlane(spec) {
       startY,
       endX,
       endY,
-      fromSide: endX > startX ? "right" : "left",
-      toSide: endX > startX ? "left" : "right"
+      fromSide,
+      toSide,
+      arrowEnd: crossesLane ? true : void 0
     });
   }
   return {
-    width: CANVAS_W,
+    width,
     height,
     nodes,
     edges,

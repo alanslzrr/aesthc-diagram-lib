@@ -33,6 +33,10 @@ interface PlacedEdge extends DiagramEdge {
     fromSide: PortSide;
     toSide: PortSide;
     routePoints?: Array<[number, number]>;
+    /** Draw a chevron arrowhead at the path end (sequence messages, transitions…). */
+    arrowEnd?: boolean;
+    /** Per-edge stroke override; defaults to EDGE_STROKE_WIDTH. */
+    strokeWidth?: number;
 }
 interface PlacedDecision extends DiagramDecision {
     x: number;
@@ -106,6 +110,18 @@ declare const isMutedNode: (node: Pick<PlacedNode, "weight">) => boolean;
 declare const connectY: (node: PlacedNode, side: PortSide) => number;
 /** Orthogonal polyline through waypoints with rounded corners. */
 declare function roundedPolyline(pts: Array<[number, number]>, r?: number): string;
+/**
+ * Splits an edge list into forward edges and back edges (cycle closers),
+ * detected with a DFS in authored order. Levelled layouts (flowchart,
+ * swimlane) keep the topology acyclic for placement and route the back
+ * edges around the content as feedback lanes.
+ */
+declare function splitBackEdges(nodes: Array<{
+    id: string;
+}>, edges: DiagramEdge[]): {
+    forward: DiagramEdge[];
+    back: DiagramEdge[];
+};
 declare function buildAdjacency(edges: DiagramEdge[]): Adjacency;
 /**
  * Normalizes the authored relation list of any spec type into plain edges.
@@ -118,4 +134,4 @@ declare function connectedIds(nodeId: string, adjacency: Adjacency): Highlight;
 /** Returns only real connection points; unused/hollow ports are intentionally absent. */
 declare function nodePorts(node: PlacedNode, edges: PlacedEdge[], continuations?: PlacedContinuation[]): NodePort[];
 
-export { type Adjacency, type DiagramLayout, type Highlight, type NodePort, type PlacedContainer, type PlacedContinuation, type PlacedDecision, type PlacedEdge, type PlacedLifeline, type PlacedNode, buildAdjacency, connectY, connectedIds, diagramEdges, edgeId, isMutedNode, labelPillWidth, nodeHeight, nodePorts, roundedPolyline };
+export { type Adjacency, type DiagramLayout, type Highlight, type NodePort, type PlacedContainer, type PlacedContinuation, type PlacedDecision, type PlacedEdge, type PlacedLifeline, type PlacedNode, buildAdjacency, connectY, connectedIds, diagramEdges, edgeId, isMutedNode, labelPillWidth, nodeHeight, nodePorts, roundedPolyline, splitBackEdges };

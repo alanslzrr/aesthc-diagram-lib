@@ -38,6 +38,29 @@ function roundedPolyline(pts, r = LANE_R) {
   d += ` L ${last[0]} ${last[1]}`;
   return d;
 }
+function splitBackEdges(nodes, edges) {
+  const out = /* @__PURE__ */ new Map();
+  for (const node of nodes) out.set(node.id, []);
+  for (const edge of edges) out.get(edge.from)?.push(edge);
+  const state = /* @__PURE__ */ new Map();
+  const back = /* @__PURE__ */ new Set();
+  const visit = (id) => {
+    state.set(id, 1);
+    for (const edge of out.get(id) ?? []) {
+      const targetState = state.get(edge.to) ?? 0;
+      if (targetState === 1) back.add(edge);
+      else if (targetState === 0 && out.has(edge.to)) visit(edge.to);
+    }
+    state.set(id, 2);
+  };
+  for (const node of nodes) {
+    if ((state.get(node.id) ?? 0) === 0) visit(node.id);
+  }
+  return {
+    forward: edges.filter((edge) => !back.has(edge)),
+    back: edges.filter((edge) => back.has(edge))
+  };
+}
 function buildAdjacency(edges) {
   const out = /* @__PURE__ */ new Map();
   const incoming = /* @__PURE__ */ new Map();
@@ -135,5 +158,6 @@ export {
   labelPillWidth,
   nodeHeight,
   nodePorts,
-  roundedPolyline
+  roundedPolyline,
+  splitBackEdges
 };
