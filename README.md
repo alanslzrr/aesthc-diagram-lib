@@ -10,6 +10,25 @@ featured-work section (the "Validation Orchestrator" and "Quote Agent"
 case studies).
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![ESM only](https://img.shields.io/badge/module-ESM-blue.svg)
+![React ≥ 18](https://img.shields.io/badge/react-%E2%89%A5%2018-blue.svg)
+
+> **[Live playground →](https://alanslzrr.github.io/aesthc-diagram-lib/)**
+> Every diagram below is interactive there: edit the spec live, restyle the
+> theme, and export SVG/PNG or a share link.
+
+<p align="center">
+  <img src="docs/diagrams/state-machine.svg" alt="State machine diagram — an order lifecycle on a compact ring" width="100%" />
+</p>
+
+| | |
+|:---:|:---:|
+| <img src="docs/diagrams/band.svg" alt="Band diagram — a request pipeline across three bands" /> | <img src="docs/diagrams/flowchart.svg" alt="Flowchart — a deploy pipeline with a rollback feedback lane" /> |
+| <img src="docs/diagrams/sequence.svg" alt="Sequence diagram — a checkout flow with activation bars" /> | <img src="docs/diagrams/er.svg" alt="ER diagram — a catalog schema with orthogonally routed relations" /> |
+| <img src="docs/diagrams/timeline.svg" alt="Timeline — a launch week on a dashed spine" /> | <img src="docs/diagrams/swimlane.svg" alt="Swimlane — incident response across three teams" /> |
+
+*Every image above is a real export from the playground's "↓ svg" button —
+standalone files with the fonts embedded, no CSS required.*
 
 ---
 
@@ -63,12 +82,16 @@ case studies).
 | `type` | Spec keys | Layout |
 |---|---|---|
 | `band` | `bands`, `nodes` (+ `band`), `edges`, `decisions?`, `continuations?` | Vertical columns, centred stacks, bezier edges between bands (the original Quote Agent / Orchestrator design) |
-| `flowchart` | `nodes`, `edges` (+ `direction`, `level`) | Top-down or left-right levels, auto-assigned by topological order |
-| `sequence` | `participants`, `messages` | Vertical lifelines, horizontal messages, activation bars |
-| `state-machine` | `states` (+ `initial`/`final`), `transitions` | States on a ring, curved transitions, self-loops, double-outline initial, hollow final |
-| `er` | `entities` (with `fields`), `relations` | Tables in a grid, typed rows (pk / fk / unique) |
-| `timeline` | `events` | Dashed central spine, events alternating above/below |
-| `swimlane` | `lanes`, `nodes` (with `lane`), `edges` | Labelled horizontal lanes |
+| `flowchart` | `nodes`, `edges` (+ `direction`, `level`) | Topological levels as rows (`top-down`) or columns (`left-right`); back edges route around the content on an outer feedback lane, level-skipping edges take a side lane |
+| `sequence` | `participants`, `messages` | Vertical lifelines, arrowed horizontal messages, activation bars spanning request → reply |
+| `state-machine` | `states` (+ `initial`/`final`), `transitions` | States on a compact ellipse, arcs trimmed at the pill borders, self-loops, double-outline initial, hollow final |
+| `er` | `entities` (with `fields`), `relations` | Tables in a grid sized by content, relations routed orthogonally through the corridors, typed rows (pk / fk / unique) |
+| `timeline` | `events` | Dashed central spine with a direction arrow, events alternating above/below |
+| `swimlane` | `lanes`, `nodes` (with `lane`), `edges` | Labelled horizontal lanes with shared topological columns, arrowed cross-lane handoffs |
+
+Every layout reports an honest canvas width; the canvas renders at most
+1 unit = 1px and centres itself, so small diagrams stay crisp instead of
+stretching into a fixed frame.
 
 ---
 
@@ -493,10 +516,42 @@ the `exports` target; the package does not ship a JS build by design.
 
 ## Showcase
 
-`DiagramShowcase` is a ready-made, interactive page that presents every
-supported diagram type with the library's visual chrome (hairline frames,
-mono header bars, caption + cobalt/branch legend). It is what you see if you
-want to "demo the library" — no i18n framework required.
+### The site (`site/`)
+
+The repository ships an interactive showcase site — the project's main page —
+built with the library itself (Vite + Tailwind v4, deployed to GitHub Pages
+from `main`). Every diagram type gets a live panel with:
+
+- **Preview / Code tabs** — the code view is a live, TS-flavoured spec
+  editor: edit it and the diagram re-lays out as you type, with inline
+  parse errors and a one-click reset.
+- **Copy + export** — copy the spec or a complete `usage.tsx` snippet, copy
+  the rendered SVG, or download **SVG / PNG (2×)** as standalone files with
+  styles *and fonts* inlined (nothing external required to open them).
+- **Share links** — the edited spec travels deflate-compressed in the URL
+  hash; opening a shared link hydrates the exact diagram.
+- **Per-type knobs** — e.g. flowchart `top-down` ⇄ `left-right`.
+- **Theme studio** — tune the host tokens (`--cobalt`, `--branch`, surfaces)
+  with live preview across the whole page, pick a preset, and copy the
+  resulting CSS block straight into your app.
+- **Bilingual copy** — the locale toggle switches the page chrome and the
+  diagram specs through the library's own `en`/`es` model.
+- **Accessible motion** — diagrams reveal on scroll (edges first, nodes
+  with a stagger) and stay perfectly static under `prefers-reduced-motion`.
+- **Self-hosted fonts** — no external requests at all; the site works
+  offline and the exporter inlines the same files.
+
+```bash
+pnpm install
+pnpm --dir site dev   # http://localhost:5173
+```
+
+### The embeddable component
+
+`DiagramShowcase` is a ready-made, interactive page component that presents
+every supported diagram type with the library's visual chrome (hairline
+frames, mono header bars, caption + cobalt/branch legend) — for embedding a
+demo inside your own app. No i18n framework required.
 
 ```tsx
 import { DiagramShowcase } from '@aesthc/diagram-lib/showcase'
@@ -555,6 +610,17 @@ Implications:
   Next.js treats them as Client Components.
 - `dist/` is generated and CI-fenced: the pipeline runs `pnpm build` and fails
   if `dist/` drifts. `src/` remains the source of truth for development.
+
+## When *not* to use this
+
+- You need auto-layout for arbitrary huge graphs (hundreds of nodes) —
+  these layouts are editorial, designed for curated diagrams that fit on
+  a page. Reach for a force/ELK-based tool instead.
+- You want Markdown-first authoring — this is a React library with typed
+  specs, not a text-to-diagram language.
+- A list or a sentence would say it better. If a reader wouldn't learn
+  more from the diagram than from a well-written paragraph, write the
+  paragraph.
 
 ## Contributing
 

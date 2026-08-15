@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Site round 2 (inspired by editorial diagram tooling): **PNG export (2×)**
+  rasterized from the standalone SVG, **share links** (spec
+  deflate-compressed into the URL hash, hydrating the exact diagram on
+  open), **reveal-on-scroll motion** (edges fade, nodes rise with a
+  stagger; fully static under `prefers-reduced-motion`), a feature grid in
+  the hero, and **self-hosted latin fonts** (no external requests; the SVG
+  exporter inlines them so downloads open with the real typography
+  anywhere). A dev-only Vite endpoint regenerates the README gallery
+  (`docs/diagrams/*.svg`) from real playground exports.
+- State machine: the `final` marker is a concentric ring on the pill's
+  right edge instead of a dot over the label text.
+
+- `site/`: an interactive open-source showcase page (Vite + Tailwind v4,
+  deployed to GitHub Pages) with a live TS-flavoured spec editor per diagram,
+  per-type knobs, standalone SVG export (copy + download), a theme studio
+  with presets that restyles every canvas in real time, and bilingual
+  (en/es) page copy driven by the library's own localization model.
+- `PlacedEdge.arrowEnd` / `PlacedEdge.strokeWidth`: layouts can now request a
+  chevron arrowhead (rendered with the continuation markers) and a per-edge
+  stroke width. Sequence messages, state transitions, swimlane handoffs, the
+  timeline spine and flowchart feedback/skip lanes use arrowheads.
+
+### Changed
+
+- Every layout now reports an **honest canvas width** derived from its
+  content, and the canvas caps its rendered size at 1 unit = 1px (centred in
+  the panel) instead of stretching small artboards to a fixed 1680u frame.
+- **Flowchart**: `top-down` renders levels as stacked rows (the previous
+  implementation inverted the axes and degenerated into one long strip),
+  back edges detected by a DFS are excluded from levelling and routed on an
+  outer feedback lane, and level-skipping edges travel a side lane instead of
+  crossing intermediate cards.
+- **State machine**: states sit on a compact ellipse (roughly half the old
+  ring's canvas), transitions are trimmed at the pill borders — outward arcs
+  between ring neighbours, gentle inward chords across — and labels sit at
+  the true curve midpoint.
+- **ER**: grid rows size to the tallest table in the row (previously a fixed
+  240u pitch), and relations route orthogonally through the grid corridors
+  with rounded corners instead of drawing straight lines across tables.
+- **Sequence**: participant headers use the slim card height (labels no
+  longer overflow the card), messages carry arrowheads, and activation bars
+  span from the opening message to the participant's next reply.
+- **Swimlane**: nodes advance through global topological columns so the flow
+  reads left-to-right across lanes; cells that stack grow their lane.
+- **Timeline**: the canvas hugs the content, the spine overhangs the first
+  and last events with a direction arrow, and below-spine event text keeps
+  the connector clear of every line.
+- The dot-grid fade keeps a subtle floor at the canvas bottom instead of
+  fading to nothing, and ER key badges are typographic (`pk`/`fk`) rather
+  than emoji.
+
 ## [0.2.2] - 2026-08-14
 
 ### Changed

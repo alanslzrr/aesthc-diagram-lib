@@ -59,6 +59,10 @@ export interface PlacedEdge extends DiagramEdge {
   fromSide: PortSide
   toSide: PortSide
   routePoints?: Array<[number, number]>
+  /** Draw a chevron arrowhead at the path end (sequence messages, transitions…). */
+  arrowEnd?: boolean
+  /** Per-edge stroke override; defaults to EDGE_STROKE_WIDTH. */
+  strokeWidth?: number
 }
 
 export interface PlacedDecision extends DiagramDecision {
@@ -175,6 +179,43 @@ export function roundedPolyline(pts: Array<[number, number]>, r = LANE_R): strin
   return d
 }
 
+/**
+ * Splits an edge list into forward edges and back edges (cycle closers),
+ * detected with a DFS in authored order. Levelled layouts (flowchart,
+ * swimlane) keep the topology acyclic for placement and route the back
+ * edges around the content as feedback lanes.
+ */
+export function splitBackEdges(
+  nodes: Array<{ id: string }>,
+  edges: DiagramEdge[],
+): { forward: DiagramEdge[]; back: DiagramEdge[] } {
+  const out = new Map<string, DiagramEdge[]>()
+  for (const node of nodes) out.set(node.id, [])
+  for (const edge of edges) out.get(edge.from)?.push(edge)
+
+  const state = new Map<string, 0 | 1 | 2>()
+  const back = new Set<DiagramEdge>()
+
+  const visit = (id: string) => {
+    state.set(id, 1)
+    for (const edge of out.get(id) ?? []) {
+      const targetState = state.get(edge.to) ?? 0
+      if (targetState === 1) back.add(edge)
+      else if (targetState === 0 && out.has(edge.to)) visit(edge.to)
+    }
+    state.set(id, 2)
+  }
+
+  for (const node of nodes) {
+    if ((state.get(node.id) ?? 0) === 0) visit(node.id)
+  }
+
+  return {
+    forward: edges.filter((edge) => !back.has(edge)),
+    back: edges.filter((edge) => back.has(edge)),
+  }
+}
+
 export function buildAdjacency(edges: DiagramEdge[]): Adjacency {
   const out = new Map<string, string[]>()
   const incoming = new Map<string, string[]>()
@@ -198,22 +239,28 @@ export function buildAdjacency(edges: DiagramEdge[]): Adjacency {
  * state-machine uses `transitions`, er uses `relations`, timeline has none.
  */
 export function diagramEdges(spec: DiagramSpec | LegacyBandSpec): DiagramEdge[] {
-  if (!('type' in spec)) return spec.edges
+  // Tolerate hand-authored specs (e.g. a live editor) where the relation
+  // list is missing entirely — treat it as empty rather than crashing the
+  // adjacency build downstream.
+  const list = (candidate: DiagramEdge[] | undefined): DiagramEdge[] =>
+    Array.isArray(candidate) ? candidate : []
+
+  if (!('type' in spec)) return list(spec.edges)
   switch (spec.type) {
     case 'sequence':
-      return spec.messages
+      return list(spec.messages)
     case 'state-machine':
-      return spec.transitions
+      return list(spec.transitions)
     case 'er':
-      return spec.relations
+      return list(spec.relations)
     case 'timeline':
       return []
     case 'band':
     case 'flowchart':
     case 'swimlane':
-      return spec.edges
+      return list(spec.edges)
     default:
-      return (spec as LegacyBandSpec).edges
+      return list((spec as LegacyBandSpec).edges)
   }
 }
 

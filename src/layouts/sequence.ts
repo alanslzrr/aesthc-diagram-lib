@@ -1,8 +1,9 @@
 // Sequence layout: participants as vertical lifelines with header cards,
-// horizontal messages with arrow markers, and optional activation bars.
+// horizontal arrowed messages, and activation bars that span from the
+// message that opens them to the next message the participant sends.
 
 import type { SequenceDiagramSpec } from '../types'
-import { CANVAS_W, LIFELINE_TOP, MESSAGE_PITCH, PILL_H } from '../theme'
+import { CARD_H_SLIM, MESSAGE_PITCH, PILL_H } from '../theme'
 import {
   edgeId,
   labelPillWidth,
@@ -12,19 +13,33 @@ import {
   type PlacedNode,
 } from '../layout'
 
-const PARTICIPANT_PITCH = 280
+const PARTICIPANT_PITCH = 300
 const HEADER_W = 200
-const HEADER_H = 44
+const HEADER_H = CARD_H_SLIM
 const HEADER_TOP = 8
-const MESSAGE_TOP = 64
-const BOTTOM_PAD = 56
+const MARGIN_X = 72
+const BOTTOM_PAD = 48
 const ACTIVATION_W = 8
+/** Pull message endpoints off the lifeline so arrowheads read clearly. */
+const END_TRIM = 5
 
 export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
   const count = Math.max(1, spec.participants.length)
-  const pitch = Math.max(PARTICIPANT_PITCH, (CANVAS_W - 160) / count)
-  const width = Math.max(CANVAS_W, count * pitch + 160)
-  const y1 = MESSAGE_TOP + spec.messages.length * MESSAGE_PITCH
+  // Self-message labels hang to the right of their lifeline; make sure the
+  // canvas is wide enough for one on the last participant.
+  const selfLabelExtent = Math.max(
+    0,
+    ...spec.messages
+      .filter((message) => message.from === message.to && message.label)
+      .map((message) => 104 + labelPillWidth(message.label as string) + 16),
+  )
+  const width =
+    2 * (MARGIN_X + HEADER_W / 2) +
+    PARTICIPANT_PITCH * (count - 1) +
+    Math.max(0, selfLabelExtent - (MARGIN_X + HEADER_W / 2))
+  const headerBottom = HEADER_TOP + HEADER_H
+  const messageTop = headerBottom + 48
+  const y1 = messageTop + spec.messages.length * MESSAGE_PITCH
   const height = y1 + BOTTOM_PAD
 
   const lifelines: PlacedLifeline[] = []
@@ -32,20 +47,22 @@ export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
   const nodeById: Record<string, PlacedNode> = {}
 
   spec.participants.forEach((participant, index) => {
-    const cx = 80 + pitch * index + pitch / 2
+    const cx = MARGIN_X + HEADER_W / 2 + PARTICIPANT_PITCH * index
     lifelines.push({
       id: participant.id,
       label: participant.label,
       kind: participant.kind,
       x: cx,
-      y0: LIFELINE_TOP,
+      y0: headerBottom,
       y1,
     })
 
     const header: PlacedNode = {
       id: participant.id,
       label: participant.label,
-      description: participant.kind ? `${participant.kind}: ${participant.label}` : participant.label,
+      description: participant.kind
+        ? `${participant.kind}: ${participant.label}`
+        : participant.label,
       kind: participant.kind,
       band: 0,
       w: HEADER_W,
@@ -60,57 +77,93 @@ export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
     nodeById[header.id] = header
   })
 
+  const messageY = (index: number): number =>
+    messageTop + index * MESSAGE_PITCH + MESSAGE_PITCH / 2
+
   const edges: PlacedEdge[] = []
   spec.messages.forEach((message, index) => {
     const from = nodeById[message.from]
     const to = nodeById[message.to]
     if (!from || !to) return
 
-    const y = MESSAGE_TOP + index * MESSAGE_PITCH + MESSAGE_PITCH / 2
-    const startX = message.from === message.to ? from.cx + 40 : from.cx
-    const endX = message.from === message.to ? to.cx + 120 : to.cx
+    const y = messageY(index)
     const variant = message.variant ?? 'main'
     const labelWidth = message.label ? labelPillWidth(message.label) : 0
-    const labelX = (startX + endX) / 2
-    const labelY = y - 10
+
+    if (message.from === message.to) {
+      // Self-message: a small loop to the right of the lifeline.
+      const startX = from.cx + END_TRIM
+      const endX = from.cx + END_TRIM
+      edges.push({
+        ...message,
+        id: edgeId(message),
+        variant,
+        d: `M ${startX} ${y - 10} C ${startX + 84} ${y - 12}, ${startX + 84} ${y + 12}, ${endX} ${y + 10}`,
+        labelX: from.cx + 104 + labelWidth / 2,
+        labelY: y,
+        labelWidth,
+        startX,
+        startY: y,
+        endX,
+        endY: y,
+        fromSide: 'right',
+        toSide: 'right',
+        arrowEnd: true,
+      })
+      return
+    }
+
+    const rightward = to.cx > from.cx
+    const startX = from.cx + (rightward ? END_TRIM : -END_TRIM)
+    const endX = to.cx - (rightward ? END_TRIM : -END_TRIM)
 
     edges.push({
       ...message,
       id: edgeId(message),
       variant,
-      d:
-        message.from === message.to
-          ? `M ${from.cx + 30} ${y} Q ${startX + 60} ${y - 18}, ${endX} ${y}`
-          : `M ${startX} ${y} L ${endX} ${y}`,
-      labelX,
-      labelY,
+      d: `M ${startX} ${y} L ${endX} ${y}`,
+      labelX: (startX + endX) / 2,
+      labelY: y - 14,
       labelWidth,
       startX,
       startY: y,
       endX,
       endY: y,
-      fromSide: message.from === message.to ? 'right' : endX > startX ? 'right' : 'left',
-      toSide: message.from === message.to ? 'right' : endX > startX ? 'left' : 'right',
+      fromSide: rightward ? 'right' : 'left',
+      toSide: rightward ? 'left' : 'right',
+      arrowEnd: true,
     })
+  })
 
-    if (message.activation && to) {
-      const bar: PlacedNode = {
-        id: `activation-${message.id}`,
-        label: '',
-        description: '',
-        band: 0,
-        w: ACTIVATION_W,
-        h: MESSAGE_PITCH,
-        x: to.cx - ACTIVATION_W / 2,
-        y: y - MESSAGE_PITCH / 2 + 8,
-        cx: to.cx,
-        cy: y,
-        shape: 'bar',
-        weight: variant === 'branch' ? 'secondary' : 'primary',
-      }
-      nodes.push(bar)
-      nodeById[bar.id] = bar
+  // Activation bars: open at the arrival of an `activation` message, close at
+  // the next message the receiving participant sends (or shortly after).
+  spec.messages.forEach((message, index) => {
+    if (!message.activation) return
+    const receiver = nodeById[message.to]
+    if (!receiver) return
+
+    const opensAt = messageY(index)
+    const reply = spec.messages.findIndex(
+      (candidate, candidateIndex) => candidateIndex > index && candidate.from === message.to,
+    )
+    const closesAt = reply >= 0 ? messageY(reply) : opensAt + MESSAGE_PITCH * 0.72
+
+    const bar: PlacedNode = {
+      id: `activation-${message.id}`,
+      label: '',
+      description: '',
+      band: 0,
+      w: ACTIVATION_W,
+      h: closesAt - opensAt + 8,
+      x: receiver.cx - ACTIVATION_W / 2,
+      y: opensAt - 4,
+      cx: receiver.cx,
+      cy: (opensAt + closesAt) / 2,
+      shape: 'bar',
+      weight: (message.variant ?? 'main') === 'branch' ? 'secondary' : 'primary',
     }
+    nodes.push(bar)
+    nodeById[bar.id] = bar
   })
 
   return { width, height, nodes, edges, decisions: [], continuations: [], lifelines, nodeById }

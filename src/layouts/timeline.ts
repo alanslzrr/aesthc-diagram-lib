@@ -1,28 +1,31 @@
 // Timeline layout: a central horizontal spine with events alternating above
-// and below it. Each event is a dot on the spine plus a label card offset
-// into the open band.
+// and below it. Each event is a dot on the spine plus a label block offset
+// into the open band; the spine carries a direction arrow at its end.
 
 import type { TimelineDiagramSpec } from '../types'
-import { CANVAS_W, TIMELINE_ALT_OFFSET, TIMELINE_EVENT_GAP } from '../theme'
+import { TIMELINE_ALT_OFFSET, TIMELINE_EVENT_GAP } from '../theme'
 import type { DiagramLayout, PlacedEdge, PlacedNode } from '../layout'
 
-const MARGIN = 100
-const TOP_PAD = 64
-const BOTTOM_PAD = 72
+const MARGIN_X = 96
+const TOP_PAD = 56
+const BOTTOM_PAD = 64
 const EVENT_W = 240
+/** How far the spine extends past the first and last event dots. */
+const SPINE_OVERHANG = 72
 
 export function layoutTimeline(spec: TimelineDiagramSpec): DiagramLayout {
   const n = Math.max(1, spec.events.length)
-  const width = Math.max(CANVAS_W, n * TIMELINE_EVENT_GAP + MARGIN * 2)
-  const spineY = TOP_PAD + TIMELINE_ALT_OFFSET + 56
-  const height = spineY + TIMELINE_ALT_OFFSET + BOTTOM_PAD + 56
+  const edgePad = MARGIN_X + EVENT_W / 2
+  const width = edgePad * 2 + TIMELINE_EVENT_GAP * (n - 1)
+  const spineY = TOP_PAD + TIMELINE_ALT_OFFSET + 40
+  const height = spineY + TIMELINE_ALT_OFFSET + 40 + BOTTOM_PAD
 
   const nodes: PlacedNode[] = []
   const nodeById: Record<string, PlacedNode> = {}
 
   spec.events.forEach((event, index) => {
     const above = index % 2 === 0
-    const x = MARGIN + TIMELINE_EVENT_GAP * index + TIMELINE_EVENT_GAP / 2
+    const x = edgePad + TIMELINE_EVENT_GAP * index
     const labelY = above ? spineY - TIMELINE_ALT_OFFSET - 8 : spineY + TIMELINE_ALT_OFFSET + 8
     const placed: PlacedNode = {
       id: event.id,
@@ -46,6 +49,9 @@ export function layoutTimeline(spec: TimelineDiagramSpec): DiagramLayout {
     nodeById[placed.id] = placed
   })
 
+  const firstX = edgePad - SPINE_OVERHANG
+  const lastX = edgePad + TIMELINE_EVENT_GAP * (n - 1) + SPINE_OVERHANG
+
   const edges: PlacedEdge[] = []
   const spine: PlacedEdge = {
     id: 'timeline-spine',
@@ -53,16 +59,18 @@ export function layoutTimeline(spec: TimelineDiagramSpec): DiagramLayout {
     to: '',
     variant: 'main',
     dashed: true,
-    d: `M ${MARGIN} ${spineY} L ${width - MARGIN} ${spineY}`,
+    d: `M ${firstX} ${spineY} L ${lastX} ${spineY}`,
     labelX: 0,
     labelY: 0,
     labelWidth: 0,
-    startX: MARGIN,
+    startX: firstX,
     startY: spineY,
-    endX: width - MARGIN,
+    endX: lastX,
     endY: spineY,
     fromSide: 'left',
     toSide: 'right',
+    arrowEnd: true,
+    strokeWidth: 1.1,
   }
   edges.push(spine)
 

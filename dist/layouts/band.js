@@ -7,7 +7,6 @@ var BAND_PITCH = 338;
 var SLOT_PITCH = 132;
 var CONTENT_TOP = 56;
 var CANVAS_BOTTOM_PAD = 56;
-var CANVAS_W = 1680;
 var SIDE_LANE_GAP = 10;
 var LANE_R = 6;
 var CONTINUATION_LENGTH = 44;
@@ -298,8 +297,15 @@ function layoutBand(spec, _locale) {
   const edges = placeBandEdges(spec, nodes);
   const decisions = placeBandDecisions(spec, nodes);
   const continuations = placeBandContinuations(spec, nodes);
+  const gridWidth = BAND_X0 * 2 + Math.max(0, bands.length - 1) * BAND_PITCH + CARD_W;
+  const continuationExtent = Math.max(
+    0,
+    ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),
+    ...continuations.map((continuation) => continuation.endX + 12)
+  );
+  const width = Math.max(gridWidth, continuationExtent);
   return {
-    width: CANVAS_W,
+    width,
     height,
     nodes,
     edges,

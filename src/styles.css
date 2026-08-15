@@ -11,7 +11,11 @@
  * so classes like `fill-foreground/45` compile to color-mix()
  * against the host theme at runtime.
  */
-@import 'tailwindcss/utilities';
+/* source(none): the compiled package stylesheet must contain the canvas
+   utilities only — without it, Tailwind's automatic source detection scans
+   the whole repo (including site/) and dist/styles.css stops being
+   deterministic. */
+@import 'tailwindcss/utilities' source(none);
 
 @theme inline {
   --color-foreground: var(--foreground);
@@ -28,3 +32,23 @@
 @custom-variant dark (&:is([data-theme='dark'] *));
 
 @source './**/*.{ts,tsx}';
+
+/*
+ * Glass tooltip surface. The compiled output is wrapped in the `diagram-lib`
+ * cascade layer, so a host that defines its own `.liquid-glass` (or the
+ * `--glass-*` tokens on :root) always wins — these are working defaults for
+ * hosts that don't.
+ */
+:root {
+  --glass-blur: 20px;
+  --glass-radius-panel: 1rem;
+}
+
+.liquid-glass {
+  --glass-current-blur: var(--glass-blur, 20px);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  box-shadow:
+    0 18px 48px -24px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 color-mix(in srgb, white 9%, transparent);
+}
