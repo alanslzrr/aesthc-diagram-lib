@@ -10,7 +10,13 @@ const iconMarker = 'Icon dark/light switching.'
 describe('compiled stylesheet cascade contract', () => {
   it('keeps utility output inside the library layer', () => {
     expect(css.startsWith('@layer diagram-lib {')).toBe(true)
-    expect(css).toContain('.hidden')
+    // Generic utility names the canvas shares with any Tailwind host must
+    // live inside the layer so the host always wins on conflicts. (`.hidden`
+    // left the compiled output when icon switching moved to `.adl-icon-*` —
+    // the stylesheet now compiles with source(none) so only real library
+    // classes ship.)
+    expect(css).toContain('.block')
+    expect(css).toContain('.absolute')
   })
 
   it('preserves the compiled stylesheet as a package side effect', () => {
