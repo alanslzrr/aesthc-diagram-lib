@@ -97,6 +97,9 @@ export const STRINGS = {
   copied: { en: 'copied', es: 'copiado' },
   copySvg: { en: 'copy svg', es: 'copiar svg' },
   downloadSvg: { en: 'svg', es: 'svg' },
+  downloadPng: { en: 'png', es: 'png' },
+  share: { en: 'share', es: 'compartir' },
+  shareCopied: { en: 'link copied', es: 'link copiado' },
   reset: { en: 'reset', es: 'restaurar' },
   edited: { en: 'edited', es: 'editado' },
   direction: { en: 'direction', es: 'dirección' },
@@ -135,6 +138,56 @@ export const STRINGS = {
 
 export const GITHUB_URL = 'https://github.com/alanslzrr/aesthc-diagram-lib'
 export const INSTALL_COMMAND = 'pnpm add @aesthc/diagram-lib'
+
+export interface Feature {
+  label: Localized
+  detail: Localized
+}
+
+export const FEATURES: Feature[] = [
+  {
+    label: { en: 'declarative specs', es: 'specs declarativos' },
+    detail: {
+      en: 'content is data — layouts compute every coordinate and SVG path',
+      es: 'el contenido es data — los layouts computan cada coordenada y path SVG',
+    },
+  },
+  {
+    label: { en: 'localized', es: 'localizado' },
+    detail: {
+      en: 'en/es specs share ids and topology; only the text differs',
+      es: 'los specs en/es comparten ids y topología; solo cambia el texto',
+    },
+  },
+  {
+    label: { en: 'theme-agnostic', es: 'agnóstico al tema' },
+    detail: {
+      en: 'the canvas reads host CSS variables and inherits any design system',
+      es: 'el canvas lee variables CSS del host y hereda cualquier design system',
+    },
+  },
+  {
+    label: { en: 'tree-shakeable', es: 'tree-shakeable' },
+    detail: {
+      en: 'subpath exports — a band-only consumer ships exactly one layout',
+      es: 'exports por subpath — un consumidor de band embarca un solo layout',
+    },
+  },
+  {
+    label: { en: 'accessible', es: 'accesible' },
+    detail: {
+      en: 'keyboard-focusable nodes with descriptions; motion respects your OS',
+      es: 'nodos enfocables por teclado con descripciones; el motion respeta tu OS',
+    },
+  },
+  {
+    label: { en: 'ssr-safe', es: 'ssr-safe' },
+    detail: {
+      en: 'no DOM measurement — every type renders on the server',
+      es: 'sin medir el DOM — todos los tipos renderizan en el servidor',
+    },
+  },
+]
 
 export const QUICK_START = `import { registerDiagram, getDiagram } from '@aesthc/diagram-lib'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'

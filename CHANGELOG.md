@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Site round 2 (inspired by editorial diagram tooling): **PNG export (2×)**
+  rasterized from the standalone SVG, **share links** (spec
+  deflate-compressed into the URL hash, hydrating the exact diagram on
+  open), **reveal-on-scroll motion** (edges fade, nodes rise with a
+  stagger; fully static under `prefers-reduced-motion`), a feature grid in
+  the hero, and **self-hosted latin fonts** (no external requests; the SVG
+  exporter inlines them so downloads open with the real typography
+  anywhere). A dev-only Vite endpoint regenerates the README gallery
+  (`docs/diagrams/*.svg`) from real playground exports.
+- State machine: the `final` marker is a concentric ring on the pill's
+  right edge instead of a dot over the label text.
+
 - `site/`: an interactive open-source showcase page (Vite + Tailwind v4,
   deployed to GitHub Pages) with a live TS-flavoured spec editor per diagram,
   per-type knobs, standalone SVG export (copy + download), a theme studio

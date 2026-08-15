@@ -18,19 +18,41 @@ import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'
 import type { Locale, SectionEntry } from '../content'
 import { STRINGS } from '../content'
 import { parseSpecSource, specSource, usageSnippet } from '../lib/code'
-import { downloadDiagramSvg, serializeDiagramSvg } from '../lib/svg-export'
+import { encodeShareHash } from '../lib/share'
+import {
+  downloadDiagramPng,
+  downloadDiagramSvg,
+  serializeDiagramSvg,
+} from '../lib/svg-export'
 import { CopyButton, MonoButton } from './ui'
 
 type PanelTab = 'preview' | 'code'
 type CodeTab = 'spec' | 'usage'
+type RevealPhase = 'pending' | 'shown' | 'done'
 
-export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: Locale }) {
+export function DiagramPanel({
+  entry,
+  locale,
+  sharedSpec,
+}: {
+  entry: SectionEntry
+  locale: Locale
+  /** Spec hydrated from a share link — wins over the example on first render. */
+  sharedSpec?: DiagramSpec
+}) {
   const baseSpec = EXAMPLE_DIAGRAMS[entry.key].diagram[locale]
-  const [draft, setDraft] = useState<DiagramSpec>(baseSpec)
+  const [draft, setDraft] = useState<DiagramSpec>(() => sharedSpec ?? baseSpec)
   const [tab, setTab] = useState<PanelTab>('preview')
   const edited = draft !== baseSpec
 
+  // Reset the draft when the key/locale actually changes — comparing the
+  // pair (not a mount flag) keeps StrictMode's double-effect from clobbering
+  // a spec hydrated from a share link.
+  const specSourceRef = useRef(`${entry.key}:${locale}`)
   useEffect(() => {
+    const source = `${entry.key}:${locale}`
+    if (specSourceRef.current === source) return
+    specSourceRef.current = source
     setDraft(EXAMPLE_DIAGRAMS[entry.key].diagram[locale])
   }, [entry.key, locale])
 
@@ -62,6 +84,42 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
   const svgHostRef = useRef<HTMLDivElement>(null)
   const findSvg = () => svgHostRef.current?.querySelector('svg') ?? null
 
+  // Reveal-on-scroll: edges fade, nodes rise with a small stagger. Disabled
+  // wholesale under prefers-reduced-motion; interactive opacity control
+  // returns once the phase reaches 'done'.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [reveal, setReveal] = useState<RevealPhase>('pending')
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setReveal('done')
+      return
+    }
+    panel
+      .querySelectorAll<SVGGElement>('svg g[data-node-id]')
+      .forEach((node, index) => {
+        node.style.setProperty('--reveal-delay', `${Math.min(index * 55, 660)}ms`)
+      })
+    let doneTimer: number | undefined
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((observed) => observed.isIntersecting)) {
+          setReveal('shown')
+          doneTimer = window.setTimeout(() => setReveal('done'), 1500)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px' },
+    )
+    observer.observe(panel)
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(doneTimer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const caption = 'caption' in draft ? draft.caption : ''
   const legend = 'legend' in draft ? draft.legend : { main: '', branch: '' }
   const direction =
@@ -69,7 +127,9 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
 
   return (
     <div
+      ref={panelRef}
       data-diagram-panel={entry.key}
+      data-reveal={reveal}
       className="relative mt-6 bg-background transition-colors duration-200 [--diagram-frame-opacity:0.2] hover:[--diagram-frame-opacity:0.32]"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -126,6 +186,7 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
           {edited ? (
             <MonoButton onClick={() => setDraft(baseSpec)}>{STRINGS.reset[locale]}</MonoButton>
           ) : null}
+          <ShareButton entry={entry} draft={draft} locale={locale} />
           {tab === 'preview' && layoutResult.layout ? (
             <>
               <CopyButton
@@ -139,10 +200,18 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
               <MonoButton
                 onClick={() => {
                   const svg = findSvg()
-                  if (svg) downloadDiagramSvg(svg, `${entry.key}.svg`)
+                  if (svg) void downloadDiagramSvg(svg, `${entry.key}.svg`)
                 }}
               >
                 ↓ {STRINGS.downloadSvg[locale]}
+              </MonoButton>
+              <MonoButton
+                onClick={() => {
+                  const svg = findSvg()
+                  if (svg) void downloadDiagramPng(svg, `${entry.key}.png`)
+                }}
+              >
+                ↓ {STRINGS.downloadPng[locale]}
               </MonoButton>
             </>
           ) : null}
@@ -205,6 +274,46 @@ export function DiagramPanel({ entry, locale }: { entry: SectionEntry; locale: L
         </span>
       </div>
     </div>
+  )
+}
+
+function ShareButton({
+  entry,
+  draft,
+  locale,
+}: {
+  entry: SectionEntry
+  draft: DiagramSpec
+  locale: Locale
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <MonoButton
+      onClick={() => {
+        void encodeShareHash(entry.key, draft)
+          .then((hash) => {
+            const url = `${window.location.origin}${window.location.pathname}#${hash}`
+            window.history.replaceState(null, '', `#${hash}`)
+            return navigator.clipboard.writeText(url)
+          })
+          .then(() => {
+            setCopied(true)
+            window.setTimeout(() => setCopied(false), 1800)
+          })
+          .catch(() => {
+            /* clipboard denied */
+          })
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className={[
+          'inline-block h-[6px] w-[6px] rounded-full transition-colors duration-150',
+          copied ? 'bg-cobalt' : 'bg-foreground/30',
+        ].join(' ')}
+      />
+      {copied ? STRINGS.shareCopied[locale] : STRINGS.share[locale]}
+    </MonoButton>
   )
 }
 

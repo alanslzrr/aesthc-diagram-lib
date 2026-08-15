@@ -96,13 +96,106 @@ export function serializeDiagramSvg(svg: SVGSVGElement): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n${resolveVars(markup)}`
 }
 
-export function downloadDiagramSvg(svg: SVGSVGElement, filename: string): void {
+// ── Font embedding ───────────────────────────────────────────────────────────
+// An exported SVG opened outside this page (or rasterized through <img>)
+// cannot reach webfonts, so downloads inline the latin Sora + Geist Mono
+// faces as data: URIs. Fetched once per session.
+
+let fontCssPromise: Promise<string> | null = null
+
+function embeddedFontCss(): Promise<string> {
+  if (!fontCssPromise) {
+    fontCssPromise = (async () => {
+      // The fonts are self-hosted (same origin), declared via @font-face in
+      // the page stylesheets — read the rules the browser already parsed.
+      const faces: Array<{ css: string; url: string }> = []
+      for (const sheet of document.styleSheets) {
+        let rules: CSSRuleList
+        try {
+          rules = sheet.cssRules
+        } catch {
+          continue
+        }
+        for (const rule of rules) {
+          if (!(rule instanceof CSSFontFaceRule)) continue
+          const family = rule.style.getPropertyValue('font-family')
+          if (!/Sora|Geist Mono/.test(family)) continue
+          const source = rule.style.getPropertyValue('src')
+          const match = source.match(/url\("?([^")]+\.woff2)"?\)/)
+          if (!match) continue
+          faces.push({
+            css: rule.cssText,
+            url: new URL(match[1], sheet.href ?? window.location.href).href,
+          })
+        }
+      }
+
+      const embedded: string[] = []
+      for (const face of faces) {
+        const buffer = await (await fetch(face.url)).arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        let binary = ''
+        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
+        embedded.push(
+          face.css.replace(
+            /url\("?[^")]+\.woff2"?\)/,
+            `url(data:font/woff2;base64,${btoa(binary)})`,
+          ),
+        )
+      }
+      return embedded.join('\n')
+    })().catch(() => '')
+  }
+  return fontCssPromise
+}
+
+/** Serialized markup with the page fonts inlined — fully standalone. */
+export async function serializeDiagramSvgStandalone(svg: SVGSVGElement): Promise<string> {
   const markup = serializeDiagramSvg(svg)
-  const blob = new Blob([markup], { type: 'image/svg+xml;charset=utf-8' })
+  const fontCss = await embeddedFontCss()
+  if (!fontCss) return markup
+  return markup.replace(/(<svg[^>]*>)/, `$1<style>${fontCss}</style>`)
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = filename
   link.click()
   window.setTimeout(() => URL.revokeObjectURL(url), 4000)
+}
+
+export async function downloadDiagramSvg(svg: SVGSVGElement, filename: string): Promise<void> {
+  const markup = await serializeDiagramSvgStandalone(svg)
+  triggerDownload(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }), filename)
+}
+
+/** Rasterizes the standalone SVG through an offscreen canvas. */
+export async function downloadDiagramPng(
+  svg: SVGSVGElement,
+  filename: string,
+  scale = 2,
+): Promise<void> {
+  const markup = await serializeDiagramSvgStandalone(svg)
+  const svgUrl = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }))
+  try {
+    const image = new Image()
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('svg rasterization failed'))
+      image.src = svgUrl
+    })
+    const viewBox = svg.viewBox.baseVal
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(viewBox.width * scale)
+    canvas.height = Math.round(viewBox.height * scale)
+    const context = canvas.getContext('2d')
+    if (!context) return
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (png) triggerDownload(png, filename)
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(svgUrl), 4000)
+  }
 }

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 
+import type { DiagramSpec } from '@aesthc/diagram-lib'
 import { registerExampleDiagrams } from '@aesthc/diagram-lib/examples'
+
+import { decodeShareHash } from './lib/share'
 
 import { Footer, Hero, QuickStart, TopBar } from './components/chrome'
 import { DiagramPanel } from './components/DiagramPanel'
@@ -20,6 +23,21 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeName>(initialTheme)
   const [locale, setLocale] = useState<Locale>('en')
   const sections = useDebugSections()
+  const [shared, setShared] = useState<{ key: string; spec: DiagramSpec } | null>(null)
+  const [hydrated, setHydrated] = useState(!window.location.hash.includes('s='))
+
+  useEffect(() => {
+    if (hydrated) return
+    void decodeShareHash(window.location.hash).then((decoded) => {
+      if (decoded) {
+        setShared({ key: decoded.key, spec: decoded.spec as DiagramSpec })
+        window.setTimeout(() => {
+          document.getElementById(decoded.key)?.scrollIntoView({ block: 'start' })
+        }, 60)
+      }
+      setHydrated(true)
+    })
+  }, [hydrated])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -64,7 +82,13 @@ export default function App() {
             </p>
 
             <PanelBoundary>
-              <DiagramPanel entry={entry} locale={locale} />
+              {hydrated ? (
+                <DiagramPanel
+                  entry={entry}
+                  locale={locale}
+                  sharedSpec={shared?.key === entry.key ? shared.spec : undefined}
+                />
+              ) : null}
             </PanelBoundary>
           </article>
         ))}

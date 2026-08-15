@@ -2997,7 +2997,7 @@ function DiagramCanvas({
             strokeDasharray: "2 6"
           }
         ) }, lifeline.id)),
-        /* @__PURE__ */ jsx15("g", { fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: layout.edges.map((edge) => /* @__PURE__ */ jsx15(
+        /* @__PURE__ */ jsx15("g", { "data-layer": "edges", fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: layout.edges.map((edge) => /* @__PURE__ */ jsx15(
           "path",
           {
             "data-edge-id": edge.id,
@@ -3016,7 +3016,7 @@ function DiagramCanvas({
           },
           edge.id
         )) }),
-        /* @__PURE__ */ jsx15("g", { fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: layout.continuations?.map((continuation) => /* @__PURE__ */ jsx15(
+        /* @__PURE__ */ jsx15("g", { "data-layer": "continuations", fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: layout.continuations?.map((continuation) => /* @__PURE__ */ jsx15(
           "path",
           {
             "data-continuation-id": continuation.id,
@@ -3335,17 +3335,33 @@ function DiagramCanvas({
                             className: "pointer-events-none"
                           }
                         ) : null,
-                        node.final ? /* @__PURE__ */ jsx15(
-                          "circle",
-                          {
-                            cx: node.cx,
-                            cy: node.cy,
-                            r: 7,
-                            fill: "var(--background)",
-                            stroke: "var(--foreground)",
-                            strokeWidth: 1.2,
-                            className: "pointer-events-none"
-                          }
+                        node.final ? (
+                          // Terminal marker on the right edge of the pill —
+                          // never over the label text.
+                          /* @__PURE__ */ jsxs11("g", { className: "pointer-events-none", children: [
+                            /* @__PURE__ */ jsx15(
+                              "circle",
+                              {
+                                cx: node.x + node.w - 20,
+                                cy: node.cy,
+                                r: 6.5,
+                                fill: "none",
+                                stroke: "var(--foreground)",
+                                strokeOpacity: 0.55,
+                                strokeWidth: 1
+                              }
+                            ),
+                            /* @__PURE__ */ jsx15(
+                              "circle",
+                              {
+                                cx: node.x + node.w - 20,
+                                cy: node.cy,
+                                r: 2.6,
+                                fill: "var(--foreground)",
+                                fillOpacity: 0.7
+                              }
+                            )
+                          ] })
                         ) : null
                       ] }) : null,
                       !isEvent && visual ? /* @__PURE__ */ jsx15(

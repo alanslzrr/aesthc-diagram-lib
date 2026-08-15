@@ -1,7 +1,7 @@
 // Page chrome: fixed top bar, hero, quick start and footer.
 
 import type { Locale } from '../content'
-import { GITHUB_URL, INSTALL_COMMAND, QUICK_START, STRINGS } from '../content'
+import { FEATURES, GITHUB_URL, INSTALL_COMMAND, QUICK_START, STRINGS } from '../content'
 import { CopyButton, MonoButton, SectionHeader } from './ui'
 
 export function TopBar({
@@ -82,6 +82,19 @@ export function Hero({ locale }: { locale: Locale }) {
           </li>
         ))}
       </ul>
+
+      <dl className="mt-12 grid gap-x-8 gap-y-6 border-t border-foreground/16 pt-8 sm:grid-cols-2 lg:grid-cols-3">
+        {FEATURES.map((feature) => (
+          <div key={feature.label.en}>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/60">
+              {feature.label[locale]}
+            </dt>
+            <dd className="mt-1.5 text-[13px] leading-relaxed text-foreground/55">
+              {feature.detail[locale]}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }
