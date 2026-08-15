@@ -378,7 +378,7 @@ export function layoutBand(spec: BandSpecInput, _locale?: 'en' | 'es'): DiagramL
   // Honest canvas width: the band grid plus whatever a rightward continuation
   // label needs. (Left-side stubs may still clip at x=0 — they are off-canvas
   // returns by design.)
-  const gridWidth = BAND_X0 * 2 + (bands.length - 1) * BAND_PITCH + CARD_W
+  const gridWidth = BAND_X0 * 2 + Math.max(0, bands.length - 1) * BAND_PITCH + CARD_W
   const continuationExtent = Math.max(
     0,
     ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),

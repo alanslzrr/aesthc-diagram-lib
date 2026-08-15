@@ -1231,7 +1231,7 @@ function layoutBand(spec, _locale) {
   const edges = placeBandEdges(spec, nodes);
   const decisions = placeBandDecisions(spec, nodes);
   const continuations = placeBandContinuations(spec, nodes);
-  const gridWidth = BAND_X0 * 2 + (bands.length - 1) * BAND_PITCH + CARD_W;
+  const gridWidth = BAND_X0 * 2 + Math.max(0, bands.length - 1) * BAND_PITCH + CARD_W;
   const continuationExtent = Math.max(
     0,
     ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),
@@ -1324,7 +1324,7 @@ function layoutFlowchart(spec) {
   const nodeById = {};
   if (!horizontal) {
     const rowWidth = (members) => members.length * CARD_W + (members.length - 1) * FLOW_GAP_X;
-    const contentW = Math.max(...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])));
+    const contentW = Math.max(CARD_W, ...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])));
     const originX = MARGIN_X + nearLaneSpan;
     const width2 = originX + contentW + farLaneSpan + MARGIN_X;
     let y = CONTENT_TOP;
@@ -1356,7 +1356,10 @@ function layoutFlowchart(spec) {
     return { width: width2, height: height2, nodes, edges: edges2, decisions: [], continuations: [], nodeById };
   }
   const columnHeight = (members) => members.reduce((sum, member) => sum + member.h, 0) + (members.length - 1) * FLOW_GAP_Y;
-  const contentH = Math.max(...levelIndices.map((index) => columnHeight(levels.get(index) ?? [])));
+  const contentH = Math.max(
+    CARD_W / 2,
+    ...levelIndices.map((index) => columnHeight(levels.get(index) ?? []))
+  );
   const originY = CONTENT_TOP + nearLaneSpan;
   const height = originY + contentH + farLaneSpan + BOTTOM_PAD;
   let x = MARGIN_X;
@@ -1679,8 +1682,8 @@ function layoutStateMachine(spec) {
   const ringRadius = n * (STATE_W + 64) / (2 * Math.PI);
   const rx = Math.max(340, ringRadius * 1.7);
   const ry = Math.max(180, ringRadius * 0.88);
-  const width = 2 * (rx + STATE_W / 2 + MARGIN_X3);
-  const height = 2 * (ry + 44 + MARGIN_Y);
+  const width = Math.round(2 * (rx + STATE_W / 2 + MARGIN_X3));
+  const height = Math.round(2 * (ry + 44 + MARGIN_Y));
   const centreX = width / 2;
   const centreY = height / 2;
   const nodes = [];
