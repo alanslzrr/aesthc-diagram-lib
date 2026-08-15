@@ -40,8 +40,8 @@ export function layoutStateMachine(spec: StateMachineDiagramSpec): DiagramLayout
   const rx = Math.max(340, ringRadius * 1.7)
   const ry = Math.max(180, ringRadius * 0.88)
 
-  const width = 2 * (rx + STATE_W / 2 + MARGIN_X)
-  const height = 2 * (ry + 44 + MARGIN_Y)
+  const width = Math.round(2 * (rx + STATE_W / 2 + MARGIN_X))
+  const height = Math.round(2 * (ry + 44 + MARGIN_Y))
   const centreX = width / 2
   const centreY = height / 2
 

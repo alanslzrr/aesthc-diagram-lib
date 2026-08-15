@@ -297,7 +297,7 @@ function layoutBand(spec, _locale) {
   const edges = placeBandEdges(spec, nodes);
   const decisions = placeBandDecisions(spec, nodes);
   const continuations = placeBandContinuations(spec, nodes);
-  const gridWidth = BAND_X0 * 2 + (bands.length - 1) * BAND_PITCH + CARD_W;
+  const gridWidth = BAND_X0 * 2 + Math.max(0, bands.length - 1) * BAND_PITCH + CARD_W;
   const continuationExtent = Math.max(
     0,
     ...continuations.map((continuation) => continuation.labelX + continuation.labelWidth / 2 + 24),

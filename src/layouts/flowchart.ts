@@ -130,7 +130,7 @@ export function layoutFlowchart(spec: FlowchartDiagramSpec): DiagramLayout {
     // ── Top-down: levels are rows ────────────────────────────────────────────
     const rowWidth = (members: PlacedNode[]) =>
       members.length * CARD_W + (members.length - 1) * FLOW_GAP_X
-    const contentW = Math.max(...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])))
+    const contentW = Math.max(CARD_W, ...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])))
     const originX = MARGIN_X + nearLaneSpan
     const width = originX + contentW + farLaneSpan + MARGIN_X
 
@@ -167,7 +167,10 @@ export function layoutFlowchart(spec: FlowchartDiagramSpec): DiagramLayout {
   // ── Left-right: levels are columns ─────────────────────────────────────────
   const columnHeight = (members: PlacedNode[]) =>
     members.reduce((sum, member) => sum + member.h, 0) + (members.length - 1) * FLOW_GAP_Y
-  const contentH = Math.max(...levelIndices.map((index) => columnHeight(levels.get(index) ?? [])))
+  const contentH = Math.max(
+    CARD_W / 2,
+    ...levelIndices.map((index) => columnHeight(levels.get(index) ?? [])),
+  )
   const originY = CONTENT_TOP + nearLaneSpan
   const height = originY + contentH + farLaneSpan + BOTTOM_PAD
 
