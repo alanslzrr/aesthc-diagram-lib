@@ -217,7 +217,7 @@ export function DiagramCanvas({
         </g>
       ))}
 
-      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <g data-layer="edges" fill="none" strokeLinecap="round" strokeLinejoin="round">
         {layout.edges.map((edge) => (
           <path
             key={edge.id}
@@ -246,7 +246,7 @@ export function DiagramCanvas({
         ))}
       </g>
 
-      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <g data-layer="continuations" fill="none" strokeLinecap="round" strokeLinejoin="round">
         {layout.continuations?.map((continuation) => (
           <path
             key={continuation.id}
@@ -602,15 +602,26 @@ export function DiagramCanvas({
                           />
                         ) : null}
                         {node.final ? (
-                          <circle
-                            cx={node.cx}
-                            cy={node.cy}
-                            r={7}
-                            fill="var(--background)"
-                            stroke="var(--foreground)"
-                            strokeWidth={1.2}
-                            className="pointer-events-none"
-                          />
+                          // Terminal marker on the right edge of the pill —
+                          // never over the label text.
+                          <g className="pointer-events-none">
+                            <circle
+                              cx={node.x + node.w - 20}
+                              cy={node.cy}
+                              r={6.5}
+                              fill="none"
+                              stroke="var(--foreground)"
+                              strokeOpacity={0.55}
+                              strokeWidth={1}
+                            />
+                            <circle
+                              cx={node.x + node.w - 20}
+                              cy={node.cy}
+                              r={2.6}
+                              fill="var(--foreground)"
+                              fillOpacity={0.7}
+                            />
+                          </g>
                         ) : null}
                       </>
                     ) : null}
