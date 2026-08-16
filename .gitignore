@@ -4,3 +4,6 @@ node_modules
 
 # site build output
 site/dist
+
+# local agent tooling
+.claude/
