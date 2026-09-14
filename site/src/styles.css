@@ -211,3 +211,23 @@ a {
 [data-theme='dark'] {
   --cobalt-ink: #49b9ff;
 }
+
+/* Controls borrow the nodes’ soft corners; monospace is reserved for code. */
+button,
+input:not([type='color']),
+select {
+  border-radius: 12px;
+  font-family: var(--font-sans);
+}
+[data-diagram-panel] {
+  border-radius: 22px;
+  overflow: hidden;
+}
+[data-diagram-panel] > span[aria-hidden='true'] {
+  border-radius: inherit;
+}
+pre,
+textarea,
+code.inline-flex {
+  border-radius: 16px;
+}
