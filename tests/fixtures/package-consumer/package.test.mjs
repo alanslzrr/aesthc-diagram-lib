@@ -103,3 +103,75 @@ test('interactive public entrypoints retain their client directives', () => {
     assert.match(code, /^['"]use client['"]/)
   }
 })
+
+test('package CSS resolves bundled Geist assets and preserves host font tokens', () => {
+  const css = readFileSync(resolve(packageRoot, 'dist/styles.css'), 'utf8')
+  for (const name of ['geist-sans.woff2', 'geist-mono.woff2']) {
+    assert.ok(css.includes(`fonts/${name}`))
+    const bytes = readFileSync(resolve(packageRoot, 'dist/fonts', name))
+    assert.equal(bytes.subarray(0, 4).toString(), 'wOF2')
+    assert.ok(bytes.length > 1000)
+  }
+  for (const token of ['--diagram-font-sans', '--diagram-font-display', '--diagram-font-mono'])
+    assert.ok(css.includes(token))
+  assert.ok(!css.includes('fonts.googleapis.com'))
+})
+
+test('selected brand entrypoint and cloud examples render from the installed tarball', async () => {
+  const { BrandIcon } = await import('@aesthc/diagram-lib/icons')
+  const { CLOUD_ARCHITECTURE_SPEC, CLOUD_ARCHITECTURE_VISUALS } =
+    await import('@aesthc/diagram-lib/examples')
+  const { DiagramCanvas } = await import('@aesthc/diagram-lib/canvas')
+  const { layoutDiagram } = await import('@aesthc/diagram-lib/layouts')
+  const html = renderToStaticMarkup(createElement(BrandIcon, { name: 'yarn' }))
+  assert.ok(html.includes('#2c8ebb'))
+  assert.ok(!html.includes('<style'))
+  const canvas = renderToStaticMarkup(
+    createElement(DiagramCanvas, {
+      layout: layoutDiagram(CLOUD_ARCHITECTURE_SPEC),
+      highlight: null,
+      activeNodeId: null,
+      instanceId: 'consumer-cloud',
+      ariaLabel: CLOUD_ARCHITECTURE_SPEC.caption,
+      nodeVisuals: CLOUD_ARCHITECTURE_VISUALS,
+      onTooltipNodeChange() {},
+      onFocusNode() {},
+      onSelectNode() {},
+      onDismissNode() {},
+    }),
+  )
+  assert.ok(canvas.includes('Google Cloud'))
+  assert.ok(canvas.includes('Microsoft Azure'))
+  assert.ok(canvas.includes('fill="#'))
+})
+
+test('installed architecture examples render localized service flows through public exports', async () => {
+  const { ARCHITECTURE_EXAMPLES } = await import('@aesthc/diagram-lib/examples')
+  const { layoutDiagram } = await import('@aesthc/diagram-lib/layouts')
+  const { DiagramCanvas } = await import('@aesthc/diagram-lib/canvas')
+  const { validateDiagramSpec } = await import('@aesthc/diagram-lib/validation')
+  assert.deepEqual(Object.keys(ARCHITECTURE_EXAMPLES), ['documents', 'orders', 'delivery'])
+  for (const [key, example] of Object.entries(ARCHITECTURE_EXAMPLES)) {
+    for (const locale of ['en', 'es']) {
+      const spec = example.diagram[locale]
+      assert.equal(validateDiagramSpec(spec).success, true)
+      const markup = renderToStaticMarkup(
+        createElement(DiagramCanvas, {
+          layout: layoutDiagram(spec),
+          highlight: null,
+          activeNodeId: null,
+          instanceId: `consumer-${key}-${locale}`,
+          ariaLabel: spec.caption,
+          nodeVisuals: example.visuals,
+          onTooltipNodeChange() {},
+          onFocusNode() {},
+          onSelectNode() {},
+          onDismissNode() {},
+        }),
+      )
+      assert.ok(markup.includes(spec.nodes[0].label))
+      assert.ok(markup.includes(spec.nodes[0].sublabel))
+      assert.ok(example.sources.length > 0)
+    }
+  }
+})
