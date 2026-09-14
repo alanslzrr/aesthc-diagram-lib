@@ -8,6 +8,7 @@ import type { StateMachineDiagramSpec } from '../types'
 import { CARD_W } from '../theme'
 import {
   edgeId,
+  identifyEdges,
   labelPillWidth,
   nodeHeight,
   type DiagramLayout,
@@ -26,7 +27,8 @@ function borderPoint(node: PlacedNode, tx: number, ty: number): [number, number]
   const dx = tx - node.cx
   const dy = ty - node.cy
   if (dx === 0 && dy === 0) return [node.cx, node.cy]
-  const scale = 1 / Math.max(Math.abs(dx) / (node.w / 2 + TRIM_GAP), Math.abs(dy) / (node.h / 2 + TRIM_GAP))
+  const scale =
+    1 / Math.max(Math.abs(dx) / (node.w / 2 + TRIM_GAP), Math.abs(dy) / (node.h / 2 + TRIM_GAP))
   return [node.cx + dx * scale, node.cy + dy * scale]
 }
 
@@ -77,7 +79,7 @@ export function layoutStateMachine(spec: StateMachineDiagramSpec): DiagramLayout
   const ringStep = (Math.PI * 2) / n
 
   const edges: PlacedEdge[] = []
-  for (const transition of spec.transitions) {
+  for (const transition of identifyEdges(spec.transitions)) {
     const from = nodeById[transition.from]
     const to = nodeById[transition.to]
     if (!from || !to) continue
@@ -152,8 +154,22 @@ export function layoutStateMachine(spec: StateMachineDiagramSpec): DiagramLayout
       startY,
       endX,
       endY,
-      fromSide: Math.abs(endX - startX) >= Math.abs(endY - startY) ? (endX > startX ? 'right' : 'left') : endY > startY ? 'bottom' : 'top',
-      toSide: Math.abs(endX - startX) >= Math.abs(endY - startY) ? (endX > startX ? 'left' : 'right') : endY > startY ? 'top' : 'bottom',
+      fromSide:
+        Math.abs(endX - startX) >= Math.abs(endY - startY)
+          ? endX > startX
+            ? 'right'
+            : 'left'
+          : endY > startY
+            ? 'bottom'
+            : 'top',
+      toSide:
+        Math.abs(endX - startX) >= Math.abs(endY - startY)
+          ? endX > startX
+            ? 'left'
+            : 'right'
+          : endY > startY
+            ? 'top'
+            : 'bottom',
       arrowEnd: true,
     })
   }
