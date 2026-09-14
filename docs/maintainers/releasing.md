@@ -143,3 +143,13 @@ UPDATE_PRESENTATION_ASSETS=1 pnpm exec playwright test tests/e2e/presentation-as
 Review the images before committing. This command is opt-in and is skipped in
 ordinary CI; CI must never silently accept newly generated screenshot baselines.
 Font and icon notices remain preserved, including historical font licenses.
+
+Visual references are platform-specific under `tests/e2e/visual/{darwin,linux}`.
+CI and release verification use Ubuntu 24.04 with the lockfile's Playwright
+Chromium; macOS Chrome references are supplementary local checks, not Linux
+references. CI uses `updateSnapshots: none`: missing or changed references fail.
+Inspect actual/diff attachments from the failed run before deliberately committing
+new Linux references. Rerun comparisons without any update flag afterward. Never
+copy macOS references over Linux references or increase tolerances to hide font
+rasterization differences. Hero tests also require the self-hosted Geist faces to
+be loaded before capture.

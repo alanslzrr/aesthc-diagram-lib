@@ -47,12 +47,24 @@ test('landing presentation preserves both locales and themes at narrow and deskt
         )
         await page.reload()
         await page.evaluate(() => document.fonts.ready)
+        const fonts = await page.evaluate(() =>
+          Array.from(document.fonts, (face) => ({
+            family: face.family.replaceAll('\"', '').replaceAll("'", ''),
+            status: face.status,
+          })),
+        )
+        for (const family of ['Geist', 'Geist Mono'])
+          expect(fonts.some((face) => face.family === family && face.status === 'loaded')).toBe(
+            true,
+          )
         await page.addStyleTag({ content: 'header.fixed { visibility: hidden }' })
         await expect(page.locator('.site-hero img')).toBeVisible()
-        await expect(page.locator('.site-hero')).toHaveScreenshot(
-          `hero-${width}-${locale}-${theme}.png`,
-          { animations: 'disabled', maxDiffPixelRatio: 0.001 },
-        )
+        await expect
+          .soft(page.locator('.site-hero'))
+          .toHaveScreenshot(`hero-${width}-${locale}-${theme}.png`, {
+            animations: 'disabled',
+            maxDiffPixelRatio: 0.001,
+          })
       }
     }
   }
