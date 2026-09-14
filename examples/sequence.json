@@ -1,0 +1,32 @@
+{
+  "type": "sequence",
+  "caption": "Request and response",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "participants": [
+    {
+      "id": "a",
+      "label": "Client"
+    },
+    {
+      "id": "b",
+      "label": "Server"
+    }
+  ],
+  "messages": [
+    {
+      "id": "request",
+      "from": "a",
+      "to": "b",
+      "label": "GET /"
+    },
+    {
+      "id": "response",
+      "from": "b",
+      "to": "a",
+      "label": "200 OK"
+    }
+  ]
+}

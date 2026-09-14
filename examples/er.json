@@ -1,0 +1,40 @@
+{
+  "type": "er",
+  "caption": "Users and orders",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "entities": [
+    {
+      "id": "a",
+      "label": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "label": "Order",
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "key": "fk"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "orders",
+      "from": "a",
+      "to": "b",
+      "label": "places"
+    }
+  ]
+}
