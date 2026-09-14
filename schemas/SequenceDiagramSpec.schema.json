@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/SequenceDiagramSpec",
+  "definitions": {
+    "SequenceDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "sequence"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SequenceParticipant"
+          }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SequenceMessage"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "participants",
+        "messages"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceParticipant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "activation": {
+          "type": "boolean",
+          "description": "Draw a thin activation bar on the target lifeline for this message."
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "EdgeVariant": {
+      "type": "string",
+      "enum": [
+        "main",
+        "branch"
+      ],
+      "description": "Edge flavour: cobalt main path vs amber branch path."
+    }
+  }
+}
