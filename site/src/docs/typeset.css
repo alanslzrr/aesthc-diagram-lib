@@ -1,0 +1,130 @@
+/* Owned reading rhythm: size, leading, flow. Demos deliberately opt out. */
+@layer components {
+  .typeset {
+    --typeset-font-body: var(--font-geist, Geist, system-ui, sans-serif);
+    --typeset-font-heading: var(--font-geist, Geist, system-ui, sans-serif);
+    --typeset-font-mono: var(--font-geist-mono, 'Geist Mono', ui-monospace, monospace);
+    --typeset-size: 1em;
+    --typeset-leading: 1.75;
+    --typeset-flow: 1.25em;
+    font-family: var(--typeset-font-body);
+    font-size: var(--typeset-size);
+    line-height: var(--typeset-leading);
+  }
+  .typeset-docs {
+    --typeset-size: 15px;
+    --typeset-leading: 1.75;
+    --typeset-flow: 1.25em;
+  }
+  .typeset
+    :where(p, ul, ol, blockquote, table, pre, hr, h1, h2, h3, h4, figure):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    margin: 0;
+    margin-block-start: var(--typeset-flow);
+  }
+  .typeset
+    :where(p, li, td):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    color: var(--muted-foreground);
+  }
+  .typeset
+    :where(h1, h2, h3, h4):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    color: var(--foreground);
+    font-family: var(--typeset-font-heading);
+    font-weight: var(--ui-weight-heading);
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    scroll-margin-top: 110px;
+    text-wrap: balance;
+  }
+  .typeset
+    :where(h1):not(:where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+    font-size: var(--ui-text-title);
+    margin-block-start: 0;
+    line-height: 1.2;
+  }
+  .typeset
+    :where(h2):not(:where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+    font-size: var(--ui-text-section);
+    margin-block-start: calc(var(--typeset-flow) * 2);
+  }
+  .typeset
+    :where(h3):not(:where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+    font-size: 20px;
+    margin-block-start: calc(var(--typeset-flow) * 1.5);
+  }
+  .typeset
+    :where(ul, ol):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    padding-inline-start: 1.5em;
+  }
+  .typeset
+    :where(li + li):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    margin-block-start: 0.4em;
+  }
+  .typeset
+    :where(strong):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    font-weight: var(--ui-weight-heading);
+    color: var(--foreground);
+  }
+  .typeset
+    :where(a):not(:where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+    color: var(--cobalt-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .typeset
+    :where(code):not(
+      :where(pre *, .not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    font-family: var(--typeset-font-mono);
+    font-size: 0.8667em;
+    background: var(--muted);
+    border-radius: 4px;
+    padding: 0.12em 0.3em;
+    overflow-wrap: anywhere;
+  }
+  .typeset
+    :where(blockquote):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1em;
+  }
+  .typeset
+    :where(hr):not(:where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)) {
+    border: 0;
+    border-block-start: 1px solid var(--border);
+  }
+  .typeset
+    :where(img):not(
+      :where(.not-typeset, .not-typeset *, [data-not-typeset], [data-not-typeset] *)
+    ) {
+    max-width: 100%;
+    height: auto;
+  }
+}
+@media (max-width: 760px) {
+  .typeset-docs {
+    --typeset-size: 16px;
+  }
+  .typeset-docs :where(h1):not(:where(.not-typeset, .not-typeset *)) {
+    font-size: var(--ui-text-title);
+  }
+  .typeset-docs :where(h2):not(:where(.not-typeset, .not-typeset *)) {
+    font-size: var(--ui-text-section);
+  }
+  .typeset-docs :where(h3):not(:where(.not-typeset, .not-typeset *)) {
+    font-size: 20px;
+  }
+}
