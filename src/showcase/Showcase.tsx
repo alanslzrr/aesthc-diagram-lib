@@ -38,7 +38,8 @@ export interface DiagramShowcaseProps {
 
 const defaultStrings = {
   label: 'reusable library',
-  hoverHint: 'hover a node, focus it with the keyboard, or tap it to explore its role and trace its path',
+  hoverHint:
+    'hover a node, focus it with the keyboard, or tap it to explore its role and trace its path',
   heading: 'Seven diagram types,',
   headingAccent: 'one visual language.',
   intro:
@@ -84,7 +85,10 @@ function ShowcasePanel({
   const legend = 'legend' in diagram ? diagram.legend : { main: '', branch: '' }
   const continuations = 'continuations' in diagram ? (diagram.continuations ?? []) : []
   const continuationDescription = continuations
-    .map((continuation) => continuation.ariaLabel ?? `${continuation.label} · ${continuation.destination}`)
+    .map(
+      (continuation) =>
+        continuation.ariaLabel ?? `${continuation.label} · ${continuation.destination}`,
+    )
     .join('; ')
   const ariaLabel = [
     caption ? `${label}: ${caption}` : label,
@@ -131,12 +135,12 @@ function ShowcasePanel({
         className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,var(--foreground),transparent)] opacity-[var(--diagram-frame-opacity)]"
       />
 
-      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 py-4 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/55">
+      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 py-4 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/75">
         <span className="inline-flex shrink-0 items-center gap-3">
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-cobalt shadow-[0_0_8px_color-mix(in_srgb,var(--color-cobalt)_55%,transparent)]" />
           {label} / {diagramKey}
         </span>
-        <span className="w-full text-[9.5px] leading-relaxed text-foreground/40 sm:w-auto sm:text-right sm:text-[10.5px]">
+        <span className="w-full text-[9.5px] leading-relaxed text-foreground/75 sm:w-auto sm:text-right sm:text-[10.5px]">
           {hoverHint}
         </span>
         <span
@@ -170,7 +174,7 @@ function ShowcasePanel({
         />
       </div>
 
-      <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-mono text-[10.5px] text-foreground/55">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-mono text-[10.5px] text-foreground/75">
         <span className="max-w-[68ch] leading-relaxed">
           {'// '}
           {caption}
@@ -222,11 +226,11 @@ export function DiagramShowcase({
             className="border-t border-foreground/20 py-16 first:border-t-0 first:pt-0 last:pb-4"
           >
             <div className="mb-6 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/55">
+              <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/75">
                 {String(index + 1).padStart(2, '0')} — {entry.title}
               </span>
               <span className="h-px flex-1 bg-foreground/16" />
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/45">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/75">
                 {entry.key}
               </span>
             </div>
