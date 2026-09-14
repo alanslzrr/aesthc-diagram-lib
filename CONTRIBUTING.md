@@ -6,10 +6,17 @@ SVG diagram library; keep changes scoped and documented.
 ## Setup
 
 ```bash
+git clone https://github.com/alanslzrr/aesthc-diagram-lib.git
+cd aesthc-diagram-lib
 pnpm install --frozen-lockfile
+pnpm build
+pnpm --dir site dev
 ```
 
 Requires `pnpm` 10 (see `packageManager` in `package.json`) and Node 22.14+ for development (see `.node-version`). The published package declares Node 20.19+.
+
+The site consumes the published export map from **dist**, not source aliases.
+After library edits, run `pnpm build` again; site-only edits hot-reload normally.
 
 ## Scripts
 
@@ -65,9 +72,11 @@ must include the regenerated stylesheet.
 
 ## Adding a brand icon
 
-1. Drop the SVG component in `src/svgs/`.
-2. Extend `SvglNodeIconKey` in `src/types.ts`.
-3. Map it in `src/canvas/ArchitectureNodeIcon.tsx`.
+1. Review the pinned TheSVG revision in `licenses/TheSVG-NOTICES.md`, the asset metadata, licensing and brand guidelines. Do not assume the collection license covers every mark.
+2. Add sanitized local geometry to `src/brand-icons/data.ts`; retain viewBox, colors and matching light/dark variants. Reject scripts, handlers, remote references, styles and foreignObject. Flatten fill-only styles into attributes.
+3. Extend `BrandIconName` in `src/brand-icons/index.tsx`. For diagram visuals, extend `ThesvgNodeIconKey` in `src/types.ts` and the explicit mapping in `src/canvas/ArchitectureNodeIcon.tsx`; do not repurpose legacy `svgl` keys.
+4. Record revision, source, attribution and per-asset guidelines in `licenses/TheSVG-NOTICES.md`; update `THIRD_PARTY_NOTICES.md` if needed. Preserve existing notices.
+5. Add both-theme rendering/security tests in `tests/brand-icons.unit.spec.ts`, run schema/documentation generation, full build and `pnpm check`.
 
 ## Commit conventions
 
@@ -104,3 +113,17 @@ Follow [the release runbook](docs/maintainers/releasing.md). Do not publish just
 because a local build passes: verify the reviewed commit, tag/version, tarball,
 public authorization, npm authentication, CI matrix and matching documentation.
 Never move an existing tag or overwrite an npm version.
+
+## Sources and generated outputs
+
+| Edit this source | Generated outputs / command |
+|---|---|
+| `src/types.ts`, semantic validation | `schemas/*`, `src/validation/structural.js` — `pnpm schemas:generate` |
+| `examples/specs.ts`, `site/src/lib/code.ts` | JSON/TSX examples and diagram field pages — `pnpm docs:generate` |
+| `scripts/generate-docs.ts` (README/getting-started templates), `package.json` (`diagramRelease`) | README, getting-started and quick-start metadata — `pnpm docs:generate` |
+| `docs/api/index.md` | Export inventory — `pnpm docs:generate`; checked against TypeScript exports |
+| `src/*` | Tracked `dist/*` — `pnpm build` (include chunk additions/removals) |
+| Live docs Markdown, docs renderer and styles | Static docs — `pnpm site:build` |
+
+Do not edit generated output to bypass a drift check. Release availability metadata
+is changed only after anonymous registry verification; a tag or passing build is not publication evidence.
