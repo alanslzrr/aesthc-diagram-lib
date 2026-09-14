@@ -1,14 +1,14 @@
 :root {
   color-scheme: light;
-  --background: #e9eef4;
-  --foreground: #202b38;
-  --card: #f9fbfd;
-  --border: #aebdcd;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --border: var(--palette-border);
   --muted: #dde5ee;
-  --muted-foreground: #536273;
-  --cobalt: #087cbd;
+  --muted-foreground: var(--palette-muted-foreground);
+  --cobalt: var(--palette-cobalt);
   --cobalt-ink: #086a9d;
-  --branch: #a66b21;
+  --branch: var(--palette-branch);
   --color-cobalt: var(--cobalt);
   --color-branch: var(--branch);
   --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));
@@ -22,16 +22,20 @@
   --radius: 6px;
 }
 [data-theme='dark'] {
+  /* Reading-specific contrast overrides, documented in DESIGN_SYSTEM.md. */
+  --palette-border: #323232;
+  --palette-muted-foreground: #b0b0aa;
+  --palette-cobalt: #49b9ff;
   color-scheme: dark;
-  --background: #070707;
-  --foreground: #f2f2ee;
-  --card: #101010;
-  --border: #323232;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --border: var(--palette-border);
   --muted: #191919;
-  --muted-foreground: #b0b0aa;
-  --cobalt: #49b9ff;
+  --muted-foreground: var(--palette-muted-foreground);
+  --cobalt: var(--palette-cobalt);
   --cobalt-ink: #85c8e8;
-  --branch: #d6a55e;
+  --branch: var(--palette-branch);
   --diagram-node-border: var(--border);
   --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
   --diagram-secondary-fill: var(--card);
