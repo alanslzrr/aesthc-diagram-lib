@@ -19,18 +19,7 @@ import {
   type Icon,
 } from '@phosphor-icons/react'
 
-import { Expressjs } from '../svgs/expressjs'
-import { ExpressjsDark } from '../svgs/expressjsDark'
-import { GoogleCloud } from '../svgs/googleCloud'
-import { ModelContextProtocolDark } from '../svgs/modelContextProtocolDark'
-import { ModelContextProtocolLight } from '../svgs/modelContextProtocolLight'
-import { NextjsIconDark } from '../svgs/nextjsIconDark'
-import { Openai } from '../svgs/openai'
-import { OpenaiDark } from '../svgs/openaiDark'
-import { OpenrouterDark } from '../svgs/openrouterDark'
-import { OpenrouterLight } from '../svgs/openrouterLight'
-import { Pdf } from '../svgs/pdf'
-import { Postgresql } from '../svgs/postgresql'
+import { BrandIcon } from '../brand-icons'
 import type { DiagramNodeVisual, SemanticNodeIconKey } from '../types'
 
 interface ArchitectureNodeIconProps {
@@ -83,42 +72,7 @@ export function ArchitectureNodeIcon({ size, visual, x, y }: ArchitectureNodeIco
     )
   }
 
-  switch (visual.key) {
-    case 'express':
-      return (
-        <>
-          <Expressjs {...position} className="adl-icon-light" />
-          <ExpressjsDark {...position} className="adl-icon-dark" />
-        </>
-      )
-    case 'google-cloud':
-      return <GoogleCloud {...position} />
-    case 'mcp':
-      return (
-        <>
-          <ModelContextProtocolLight {...position} className="adl-icon-light" />
-          <ModelContextProtocolDark {...position} className="adl-icon-dark" />
-        </>
-      )
-    case 'nextjs':
-      return <NextjsIconDark {...position} className="dark:invert" />
-    case 'openai':
-      return (
-        <>
-          <Openai {...position} className="adl-icon-light" />
-          <OpenaiDark {...position} className="adl-icon-dark" />
-        </>
-      )
-    case 'openrouter':
-      return (
-        <>
-          <OpenrouterLight {...position} className="adl-icon-light" />
-          <OpenrouterDark {...position} className="adl-icon-dark" />
-        </>
-      )
-    case 'pdf':
-      return <Pdf {...position} />
-    case 'postgresql':
-      return <Postgresql {...position} />
-  }
+  return (
+    <BrandIcon {...position} name={visual.key === 'mcp' ? 'model-context-protocol' : visual.key} />
+  )
 }

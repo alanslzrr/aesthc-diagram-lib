@@ -41,8 +41,12 @@ export type SemanticNodeIconKey =
   | 'user-focus'
   | 'warning'
 
+export type ThesvgNodeIconKey = SvglNodeIconKey | 'azure'
+
 export type DiagramNodeVisual =
-  { source: 'svgl'; key: SvglNodeIconKey } | { source: 'phosphor'; key: SemanticNodeIconKey }
+  | { source: 'thesvg'; key: ThesvgNodeIconKey }
+  | { source: 'svgl'; key: SvglNodeIconKey }
+  | { source: 'phosphor'; key: SemanticNodeIconKey }
 
 /** A single row in an ER table node. */
 export interface TableField {
