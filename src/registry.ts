@@ -11,12 +11,7 @@
 //     visuals: { nodeId: { source: 'phosphor', key: 'gauge' } },
 //   })
 
-import type {
-  DiagramNodeVisual,
-  DiagramRegistration,
-  DiagramSpec,
-  LocalizedDiagram,
-} from './types'
+import type { DiagramNodeVisual, DiagramRegistration, DiagramSpec, LocalizedDiagram } from './types'
 
 export interface RegistryEntry<T extends DiagramSpec = DiagramSpec> {
   diagram: LocalizedDiagram<T>

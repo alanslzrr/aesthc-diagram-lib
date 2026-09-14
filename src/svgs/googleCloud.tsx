@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react'
 
 const GoogleCloud = (props: SVGProps<SVGSVGElement>) => (
   <svg {...props} preserveAspectRatio="xMidYMid" viewBox="0 -25 256 256">
@@ -19,6 +19,6 @@ const GoogleCloud = (props: SVGProps<SVGSVGElement>) => (
       d="M71.87 61.425C31.94 61.664-.237 94.228.001 134.159a72.301 72.301 0 0 0 28.222 56.88l32.248-32.246c-13.99-6.322-20.208-22.786-13.887-36.776 6.32-13.99 22.786-20.208 36.775-13.888a27.796 27.796 0 0 1 13.887 13.888l32.248-32.248A72.224 72.224 0 0 0 71.87 61.425"
     />
   </svg>
-);
+)
 
-export { GoogleCloud };
+export { GoogleCloud }
