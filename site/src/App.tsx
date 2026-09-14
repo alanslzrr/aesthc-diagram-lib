@@ -68,13 +68,7 @@ export default function App() {
       </a>
       <TopBar
         locale={locale}
-        onLocale={() => {
-          if (
-            !document.querySelector('textarea[aria-invalid="true"]') ||
-            window.confirm(MESSAGES.discardInvalid[locale])
-          )
-            setLocale((current) => (current === 'en' ? 'es' : 'en'))
-        }}
+        onLocale={() => setLocale((current) => (current === 'en' ? 'es' : 'en'))}
       />
 
       <Hero locale={locale} />

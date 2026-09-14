@@ -28,3 +28,18 @@ secrets or personal/customer data into examples you intend to share.
 Clipboard and download errors must be visible rather than reported as successful.
 The target application remains part of compatibility testing, especially for SVG
 fonts, filters, color handling and transparency.
+
+## Playground limits and local recovery
+
+Editing/importing and sharing use the same playground ceilings: 1,000 items in
+node collections, 2,000 relations and 256 KiB expanded data. Shared URLs also have
+a 64 KiB encoded ceiling. These are browser-tool protections, not restrictions
+on the package's typed layout API or claims of mobile performance at the limit.
+Invalid/oversized input retains the last valid preview.
+
+Draft recovery is opt-in per diagram in this browser. Saved raw text is local,
+not encrypted or secure storage; do not include secrets. Restore/discard is
+explicit and restoring runs validation before rendering. Locale changes retain
+raw edits in memory. Clearing resets the current locale's draft and example;
+storage failures fall back to an unsaved-exit warning. Shared links do not
+silently overwrite a saved draft.
