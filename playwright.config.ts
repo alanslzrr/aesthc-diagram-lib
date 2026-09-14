@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
+  updateSnapshots: process.env.CI ? 'none' : 'missing',
   testDir: './tests/e2e',
   testMatch: '**/*.e2e.ts',
   timeout: 45_000,
-  snapshotPathTemplate: '{testDir}/visual/{projectName}/{arg}{ext}',
+  snapshotPathTemplate: `{testDir}/visual/${process.platform}/{projectName}/{arg}{ext}`,
   expect: { timeout: 8000 },
   fullyParallel: false,
   workers: 2,

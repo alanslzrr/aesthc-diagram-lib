@@ -15,7 +15,7 @@ jobs:
     needs: minimum-consumer
     if: always()
     name: Contracts and package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Require a successful minimum consumer
         if: needs.minimum-consumer.result != 'success'
@@ -54,7 +54,7 @@ jobs:
           retention-days: 7
   minimum-consumer:
     name: Node 20.19 / React 18.3.1 consumer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
