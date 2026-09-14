@@ -76,7 +76,7 @@ export function ArchitectureNodeIcon({ size, visual, x, y }: ArchitectureNodeIco
     return (
       <SemanticIcon
         {...position}
-        className="text-foreground/55"
+        className="text-foreground/75"
         color="currentColor"
         weight="regular"
       />

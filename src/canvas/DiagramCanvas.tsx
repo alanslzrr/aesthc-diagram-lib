@@ -80,7 +80,7 @@ export function DiagramCanvas({
   const mainContinuationMarkerId = `arch-continuation-main-${instanceId}`
   const branchContinuationMarkerId = `arch-continuation-branch-${instanceId}`
   const edgeGradientId = (edgeId: string) =>
-    `arch-edge-${instanceId}-${edgeId.replaceAll(/[^a-zA-Z0-9_-]/g, '-')}`
+    `arch-edge-${instanceId}-${Array.from(edgeId, (character) => character.codePointAt(0)!.toString(16)).join('-')}`
 
   return (
     <svg
@@ -136,7 +136,10 @@ export function DiagramCanvas({
         {layout.edges.map((edge) => {
           const color = strokeForVariant(edge.variant)
           const centreOpacity = edge.variant === 'main' ? 1 : 0.74
-          const edgeOpacityValue = edge.variant === 'main' ? 0.24 : 0.12
+          const edgeOpacityValue =
+            edge.variant === 'main'
+              ? 'var(--diagram-main-tail-opacity, 0.24)'
+              : 'var(--diagram-branch-tail-opacity, 0.12)'
           // An arrowhead needs a solid line under it — only fade the start.
           const endOpacity = edge.arrowEnd ? centreOpacity : edgeOpacityValue
 
@@ -164,7 +167,7 @@ export function DiagramCanvas({
         height={layout.height}
         fill={`url(#${dotsId})`}
         mask={`url(#${maskId})`}
-        className="opacity-[0.075] dark:opacity-[0.12]"
+        className="opacity-[var(--diagram-grid-opacity,0.075)] dark:opacity-[var(--diagram-grid-opacity,0.12)]"
       />
 
       {/* Swimlane / group containers sit behind everything else. */}
@@ -185,17 +188,13 @@ export function DiagramCanvas({
               x={18}
               y={container.y + 26}
               letterSpacing="1.6"
-              className="fill-foreground/60 font-mono text-[11.25px] uppercase"
+              className="fill-foreground/75 font-mono text-[11.25px] uppercase"
             >
               {container.label}
             </text>
           ) : null}
           {container.kind ? (
-            <text
-              x={18}
-              y={container.y + 44}
-              className="fill-foreground/40 font-mono text-[10px]"
-            >
+            <text x={18} y={container.y + 44} className="fill-foreground/75 font-mono text-[10px]">
               {container.kind}
             </text>
           ) : null}
@@ -310,8 +309,7 @@ export function DiagramCanvas({
             const isTable = node.shape === 'table'
             const isState = node.shape === 'state'
             const isTerminal = node.shape === 'terminal'
-            const radius =
-              isState || isTerminal ? Math.min(CARD_R * 2.4, node.h / 2) : CARD_R
+            const radius = isState || isTerminal ? Math.min(CARD_R * 2.4, node.h / 2) : CARD_R
 
             return (
               <Tooltip
@@ -388,19 +386,14 @@ export function DiagramCanvas({
                               stroke={eventStroke}
                               strokeWidth={1.2}
                             />
-                            <circle
-                              cx={node.cx}
-                              cy={node.cy}
-                              r={DOT_R / 2.6}
-                              fill={eventStroke}
-                            />
+                            <circle cx={node.cx} cy={node.cy} r={DOT_R / 2.6} fill={eventStroke} />
                             {node.kind ? (
                               <text
                                 x={node.cx}
                                 y={node.y - 24}
                                 textAnchor="middle"
                                 letterSpacing="1.4"
-                                className="fill-foreground/45 font-mono text-[10px] uppercase"
+                                className="fill-foreground/75 font-mono text-[10px] uppercase"
                               >
                                 {node.kind}
                               </text>
@@ -422,7 +415,7 @@ export function DiagramCanvas({
                                 x={node.cx}
                                 y={node.y + 18}
                                 textAnchor="middle"
-                                className="fill-foreground/55 font-mono text-[10.5px]"
+                                className="fill-foreground/75 font-mono text-[10.5px]"
                               >
                                 {node.sublabel}
                               </text>
@@ -432,7 +425,9 @@ export function DiagramCanvas({
                               x={node.x}
                               y={below ? node.cy - 12 : node.y - 36}
                               width={node.w}
-                              height={below ? node.y + 30 - (node.cy - 12) : node.cy + 12 - (node.y - 36)}
+                              height={
+                                below ? node.y + 30 - (node.cy - 12) : node.cy + 12 - (node.y - 36)
+                              }
                               fill="transparent"
                             />
                           </>
@@ -448,8 +443,8 @@ export function DiagramCanvas({
                           rx={CARD_R}
                           fill={
                             node.weight === 'primary'
-                              ? 'color-mix(in srgb, var(--foreground) 4%, var(--background))'
-                              : 'transparent'
+                              ? 'var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))'
+                              : 'var(--diagram-secondary-fill, transparent)'
                           }
                           stroke={
                             node.weight === 'primary'
@@ -509,7 +504,7 @@ export function DiagramCanvas({
                                 x={node.x + node.w - 14}
                                 y={node.y + 26 + fieldIndex * 22 + 14.5}
                                 textAnchor="end"
-                                className="fill-foreground/45 font-mono text-[10px]"
+                                className="fill-foreground/75 font-mono text-[10px]"
                               >
                                 {field.type}
                               </text>
@@ -519,7 +514,7 @@ export function DiagramCanvas({
                                 x={node.x + node.w - (field.type ? 80 : 14)}
                                 y={node.y + 26 + fieldIndex * 22 + 14.5}
                                 textAnchor="end"
-                                className="fill-foreground/40 font-mono text-[9.5px]"
+                                className="fill-foreground/75 font-mono text-[9.5px]"
                               >
                                 unique
                               </text>
@@ -545,8 +540,8 @@ export function DiagramCanvas({
                         rx={radius}
                         fill={
                           weight === 'primary'
-                            ? 'color-mix(in srgb, var(--foreground) 4%, var(--background))'
-                            : 'transparent'
+                            ? 'var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))'
+                            : 'var(--diagram-secondary-fill, transparent)'
                         }
                         stroke={
                           weight === 'primary'
@@ -640,7 +635,7 @@ export function DiagramCanvas({
                         x={node.x + CARD_TEXT_X}
                         y={node.y + 24}
                         letterSpacing="1.6"
-                        className="fill-foreground/45 font-mono text-[11.25px] uppercase"
+                        className="fill-foreground/75 font-mono text-[11.25px] uppercase"
                       >
                         {node.kind}
                       </text>
@@ -664,7 +659,7 @@ export function DiagramCanvas({
                       <text
                         x={node.x + CARD_TEXT_X}
                         y={node.y + 70}
-                        className="fill-foreground/55 font-mono text-[11.25px]"
+                        className="fill-foreground/75 font-mono text-[11.25px]"
                       >
                         {node.sublabel}
                       </text>
@@ -690,7 +685,7 @@ export function DiagramCanvas({
                   }}
                   className="block max-w-[min(19rem,calc(100vw-2rem))] px-4 py-3.5 text-left"
                 >
-                  <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/45">
+                  <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/75">
                     {node.kind ?? node.label}
                   </span>
                   {node.kind ? (
@@ -699,7 +694,7 @@ export function DiagramCanvas({
                     </span>
                   ) : null}
                   {node.sublabel ? (
-                    <span className="mt-1 block font-mono text-[10px] leading-relaxed text-foreground/55">
+                    <span className="mt-1 block font-mono text-[10px] leading-relaxed text-foreground/75">
                       {node.sublabel}
                     </span>
                   ) : null}
