@@ -1,9 +1,10 @@
+import { InstallCommand } from './InstallCommand'
 // Page chrome: fixed top bar, hero, quick start and footer.
 
 import { PACKAGE_VERSION } from '../generated/quick-start'
 import type { Locale } from '../content'
-import { FEATURES, GITHUB_URL, INSTALL_COMMAND, QUICK_START, STRINGS } from '../content'
-import { CopyButton, MonoButton, SectionHeader } from './ui'
+import { FEATURES, GITHUB_URL, QUICK_START, STRINGS } from '../content'
+import { CopyButton, ControlButton, SectionHeader } from './ui'
 
 export function TopBar({
   locale,
@@ -21,7 +22,7 @@ export function TopBar({
       <div className="mx-auto flex w-full max-w-[1180px] flex-wrap gap-3 items-center justify-between px-4 py-3 sm:px-8">
         <a
           href="#top"
-          className="inline-flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-3 font-sans text-[13px] tracking-[-0.02em] text-foreground/80 transition-colors hover:text-foreground"
         >
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-cobalt shadow-[0_0_8px_color-mix(in_srgb,var(--color-cobalt)_55%,transparent)]" />
           @aesthc/diagram-lib
@@ -29,7 +30,7 @@ export function TopBar({
         <nav aria-label="Main navigation" className="inline-flex flex-wrap items-center gap-2">
           <a
             className="text-xs underline underline-offset-4"
-            href={`${import.meta.env.BASE_URL}docs/getting-started/`}
+            href={`${import.meta.env.BASE_URL}docs/`}
           >
             Docs
           </a>
@@ -43,16 +44,16 @@ export function TopBar({
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 border border-border px-2.5 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex rounded-xl h-9 items-center gap-1.5 border border-border px-2.5 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
           >
             GitHub ↗
           </a>
-          <MonoButton onClick={onTheme} title={STRINGS.themeTooltip[locale]}>
+          <ControlButton onClick={onTheme} title={STRINGS.themeTooltip[locale]}>
             {theme === 'dark' ? 'Dark' : 'Light'}
-          </MonoButton>
-          <MonoButton onClick={onLocale} title={STRINGS.localeTooltip[locale]}>
+          </ControlButton>
+          <ControlButton onClick={onLocale} title={STRINGS.localeTooltip[locale]}>
             {locale === 'en' ? 'EN' : 'ES'}
-          </MonoButton>
+          </ControlButton>
         </nav>
       </div>
     </header>
@@ -62,9 +63,7 @@ export function TopBar({
 export function Hero({ locale }: { locale: Locale }) {
   return (
     <div className="mx-auto w-full max-w-[720px] px-4 pt-32 sm:px-8" id="top">
-      <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-        {STRINGS.label[locale]}
-      </p>
+      <p className="text-xs tracking-normal text-muted-foreground">{STRINGS.label[locale]}</p>
       <h1 className="mt-4 font-display text-[clamp(2.5rem,4.5vw,4rem)] leading-[0.98] tracking-[-0.04em]">
         {STRINGS.heading[locale]}{' '}
         <span className="italic text-[var(--cobalt-ink)]">{STRINGS.headingAccent[locale]}</span>
@@ -73,19 +72,7 @@ export function Hero({ locale }: { locale: Locale }) {
         {STRINGS.intro[locale]}
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        <code className="inline-flex items-center gap-3 border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] px-4 py-2.5 font-mono text-[12.5px] text-foreground/85">
-          <span aria-hidden="true" className="select-none text-foreground/75">
-            $
-          </span>
-          {INSTALL_COMMAND}
-        </code>
-        <CopyButton
-          label={STRINGS.copy[locale]}
-          copiedLabel={STRINGS.copied[locale]}
-          getText={() => INSTALL_COMMAND}
-        />
-      </div>
+      <InstallCommand locale={locale} />
 
       <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/75">
         {['MIT', 'ESM', 'React ≥ 18', 'TypeScript', '7 layouts', 'en · es'].map((badge) => (
@@ -129,9 +116,9 @@ export function QuickStart({ locale, index }: { locale: Locale; index: number })
         {STRINGS.quickStartIntro[locale]}
       </p>
 
-      <div className="relative mt-6 border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))]">
+      <div className="relative mt-6 overflow-hidden rounded-2xl border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))]">
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/75">
+          <span className="font-sans text-xs tracking-normal text-foreground/75">
             quick-start.tsx
           </span>
           <CopyButton
