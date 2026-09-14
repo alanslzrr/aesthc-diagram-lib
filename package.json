@@ -1,7 +1,7 @@
 {
   "name": "@aesthc/diagram-lib",
   "version": "0.3.0",
-  "description": "Reusable SVG diagram library \u2014 band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
+  "description": "Reusable SVG diagram library — band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
   "type": "module",
   "sideEffects": [
     "./dist/styles.css"
@@ -23,7 +23,8 @@
     "docs/diagrams/*.md",
     "docs/maintainers",
     "CODE_OF_CONDUCT.md",
-    "CONTRIBUTING.md"
+    "CONTRIBUTING.md",
+    "docs/index.md"
   ],
   "exports": {
     ".": {
@@ -82,17 +83,17 @@
     "schemas:check": "node scripts/generate-schemas.mjs --check",
     "docs:generate": "tsx scripts/generate-docs.ts",
     "docs:check": "tsx scripts/generate-docs.ts --check",
-    "docs:build": "node scripts/build-docs.mjs",
+    "docs:build": "tsx scripts/render-doc-previews.tsx && node scripts/build-docs.mjs",
     "site:build": "pnpm --dir site build && pnpm docs:build",
     "test:e2e": "playwright test",
-    "format:check": "prettier --check src scripts tests site/src *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml",
+    "format:check": "prettier --check src scripts tests site/src site/docs *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml",
     "check": "pnpm lint && pnpm format:check && pnpm schemas:check && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:package && pnpm --dir site exec tsc --noEmit && pnpm site:build && pnpm check:budgets",
     "release:check": "pnpm check && pnpm test:e2e",
     "test:frameworks": "pnpm build && node scripts/test-frameworks.mjs",
     "prepack": "pnpm schemas:check && pnpm docs:check && pnpm build",
     "test:visual": "VISUAL_REGRESSION=1 playwright test --project=chromium",
     "check:budgets": "node scripts/check-budgets.mjs",
-    "lint": "eslint src site/src scripts tests"
+    "lint": "eslint src site/src site/docs scripts tests"
   },
   "keywords": [
     "diagram",
@@ -125,6 +126,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "ajv": "^8.20.0",
     "eslint": "^9.39.5",
+    "highlight.js": "^11.12.0",
     "marked": "^18.0.13",
     "prettier": "^3.9.6",
     "react": "^19.2.0",

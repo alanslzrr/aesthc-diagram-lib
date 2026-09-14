@@ -19,7 +19,8 @@ export default [
     files: [
       'src/**/*.{ts,tsx}',
       'site/src/**/*.{ts,tsx}',
-      'scripts/*.{ts,mjs}',
+      'scripts/**/*.{ts,tsx,mjs}',
+      'site/docs/*.js',
       'tests/**/*.{ts,mjs,tsx}',
     ],
     languageOptions: { parser: tseslint.parser, ecmaVersion: 2022, sourceType: 'module' },
