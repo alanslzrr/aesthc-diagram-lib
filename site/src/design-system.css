@@ -1,0 +1,251 @@
+/* Web UI tokens. Diagram geometry and package typography remain independent. */
+:root {
+  --font-geist: Geist, system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono', ui-monospace, monospace;
+  --ui-text-caption: 12px;
+  --ui-text-control: 13px;
+  --ui-text-body: 15px;
+  --ui-text-code: 13px;
+  --ui-text-section: 24px;
+  --ui-text-title: 32px;
+  --ui-text-hero: clamp(32px, 3.2vw, 40px);
+  --ui-leading-body: 1.65;
+  --ui-leading-heading: 1.15;
+  --ui-weight-heading: 550;
+  --ui-tracking-heading: -0.025em;
+  --ui-icon: 16px;
+  --ui-icon-brand: 18px;
+  --ui-control: 36px;
+  --ui-target-touch: 44px;
+  --ui-radius-control: 6px;
+  --ui-radius-panel: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --layout-site: 1180px;
+  --layout-docs: 1280px;
+  --layout-article: 704px;
+  --layout-hero: 640px;
+  --layout-install: 560px;
+}
+.site-hero {
+  width: 100%;
+  max-width: var(--layout-hero);
+  margin-inline: auto;
+  padding: 104px var(--space-4) 0;
+}
+.hero-heading {
+  max-width: 560px;
+  margin-block-start: var(--space-4);
+  font: var(--ui-weight-heading) var(--ui-text-hero) / var(--ui-leading-heading) var(--font-geist);
+  letter-spacing: var(--ui-tracking-heading);
+  text-wrap: balance;
+}
+.hero-heading span {
+  display: block;
+}
+.hero-intro {
+  max-width: 54ch;
+  margin-block-start: var(--space-4);
+  font-size: var(--ui-text-body);
+  line-height: var(--ui-leading-body);
+  color: var(--muted-foreground);
+}
+.site-hero .install-snippet {
+  max-width: var(--layout-install);
+}
+.section-title {
+  font: var(--ui-weight-heading) var(--ui-text-section) / 1.25 var(--font-geist);
+  letter-spacing: var(--ui-tracking-heading);
+}
+.section-copy {
+  font-size: var(--ui-text-body);
+  line-height: var(--ui-leading-body);
+}
+.site-header-inner {
+  min-height: 64px;
+}
+.site-brand {
+  font: 550 15px var(--font-geist);
+  letter-spacing: var(--ui-tracking-heading);
+}
+.ui-control {
+  font-size: var(--ui-text-control);
+  height: var(--ui-control);
+}
+.brand-short {
+  display: none;
+}
+.header-nav {
+  font-size: var(--ui-text-control);
+}
+:where(button, a, summary) > svg:not(.diagram-canvas) {
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  flex-shrink: 0;
+}
+.github-link > svg {
+  width: var(--ui-icon-brand);
+  height: var(--ui-icon-brand);
+}
+@media (min-width: 640px) {
+  .site-hero {
+    padding-inline: var(--space-8);
+  }
+}
+@media (max-width: 640px) {
+  :root {
+    --ui-text-title: 28px;
+  }
+  .brand-short {
+    display: inline;
+  }
+  .brand-full,
+  .playground-link {
+    display: none;
+  }
+}
+
+/* Diagram actions: bounded glyphs, one consolidated output disclosure. */
+.icon-control {
+  inline-size: var(--ui-control);
+  min-inline-size: var(--ui-control);
+  block-size: var(--ui-control);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.export-control {
+  display: inline-flex;
+}
+.export-menu {
+  position: relative;
+}
+.export-trigger {
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-control);
+  cursor: pointer;
+  color: var(--muted-foreground);
+  list-style: none;
+}
+.export-trigger::-webkit-details-marker {
+  display: none;
+}
+.export-trigger:hover,
+.export-menu[open] .export-trigger {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.export-trigger:focus-visible,
+.export-options button:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 2px;
+}
+.export-options {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 176px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius-panel);
+  background: var(--card);
+  box-shadow: 0 6px 20px #0002;
+  display: flex;
+  flex-direction: column;
+}
+.export-options button {
+  min-height: var(--ui-control);
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 4px;
+  text-align: start;
+  font: 400 var(--ui-text-control) var(--font-geist);
+  color: var(--foreground);
+  background: transparent;
+  cursor: pointer;
+}
+.export-options button:hover,
+.export-options button:focus-visible {
+  background: var(--muted);
+}
+.export-options button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.preview-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ui-control);
+}
+@media (pointer: coarse) {
+  .icon-control {
+    min-inline-size: var(--ui-target-touch);
+    inline-size: var(--ui-target-touch);
+    block-size: var(--ui-target-touch);
+  }
+  .export-options button,
+  .preview-tabs button {
+    min-height: var(--ui-target-touch);
+  }
+}
+.architecture-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.architecture-tabs button {
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-control);
+  background: transparent;
+  color: var(--muted-foreground);
+  min-height: var(--ui-control);
+  padding: 8px 12px;
+  font: 500 var(--ui-text-control) var(--font-geist);
+  cursor: pointer;
+}
+.architecture-tabs button[data-state='on'],
+.architecture-tabs button:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.architecture-tabs button:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 2px;
+}
+.architecture-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-inline-start: 16px;
+  max-width: 88ch;
+  font-size: var(--ui-text-caption);
+  line-height: 1.65;
+  color: var(--muted-foreground);
+  list-style: disc;
+}
+.architecture-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: var(--ui-text-caption);
+  color: var(--muted-foreground);
+}
+.architecture-sources a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (pointer: coarse) {
+  .architecture-tabs button {
+    min-height: var(--ui-target-touch);
+  }
+}

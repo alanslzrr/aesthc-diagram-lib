@@ -32,7 +32,12 @@ function galleryWriter(): Plugin {
         req.setEncoding('utf8')
         req.on('data', (chunk: string) => {
           if (rejected) return
-          if (Buffer.byteLength(body) + Buffer.byteLength(chunk) > 2 * 1024 * 1024) { rejected = true; res.statusCode = 413; res.end('Gallery payload exceeds 2 MiB'); return }
+          if (Buffer.byteLength(body) + Buffer.byteLength(chunk) > 2 * 1024 * 1024) {
+            rejected = true
+            res.statusCode = 413
+            res.end('Gallery payload exceeds 2 MiB')
+            return
+          }
           body += chunk
         })
         req.on('end', () => {
@@ -56,6 +61,15 @@ export default defineConfig({
   // GitHub Pages serves the site under /<repo>/ — CI sets SITE_BASE.
   base: process.env.SITE_BASE ?? '/',
   plugins: [react(), tailwindcss(), galleryWriter()],
+  build: {
+    manifest: true,
+    rollupOptions: {
+      input: {
+        playground: fileURLToPath(new URL('./index.html', import.meta.url)),
+        docs: fileURLToPath(new URL('./docs.html', import.meta.url)),
+      },
+    },
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
   },

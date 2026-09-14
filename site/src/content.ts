@@ -82,8 +82,8 @@ export const STRINGS = {
   heading: { en: 'Seven diagram types,', es: 'Siete tipos de diagrama,' },
   headingAccent: { en: 'one visual language.', es: 'un solo lenguaje visual.' },
   intro: {
-    en: 'A single SVG renderer and a declarative, localized data model — band, flowchart, sequence, state machine, ER, timeline and swimlane diagrams that share the same dot-grid, hairline-card and cobalt/branch aesthetic. No DOM measurement, no hand-authored coordinates.',
-    es: 'Un único renderer SVG y un modelo de datos declarativo y localizado — diagramas band, flowchart, sequence, máquina de estados, ER, timeline y swimlane que comparten la misma estética de dot-grid, tarjetas hairline y cobalt/branch. Sin medir el DOM, sin coordenadas a mano.',
+    en: 'Build architecture and data diagrams from declarative specs. React components, accessible interactions and SVG exports — without hand-positioned nodes.',
+    es: 'Crea diagramas de arquitectura y datos con specs declarativos. Componentes React, interacciones accesibles y exportación SVG, sin posicionar nodos a mano.',
   },
   hoverHint: {
     en: 'hover a node, focus it with the keyboard, or tap it to explore its role and trace its path',

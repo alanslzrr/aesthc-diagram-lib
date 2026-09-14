@@ -27,13 +27,14 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
   expect(light.grid).toBe('0.18')
   expect(light.tail).toBe('0.62')
 
-  await page.getByRole('button', { name: 'Light', exact: true }).click()
+  await page.getByRole('radio', { name: 'Dark', exact: true }).click()
   await expect.poll(detail).toMatchObject({ background: '#070707', grid: '0.12', tail: '0.24' })
-  await page.getByRole('button', { name: 'Dark', exact: true }).click()
+  await page.getByRole('radio', { name: 'Light', exact: true }).click()
   await expect.poll(detail).toEqual(light)
 
   const pending = page.waitForEvent('download')
-  await panel.getByRole('button', { name: '↓ SVG', exact: true }).click()
+  await panel.locator('summary.export-trigger').click()
+  await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
   const download = await pending
   const markup = await readFile((await download.path())!, 'utf8')
   expect(markup).toContain('stop-opacity="0.62"')

@@ -21,7 +21,7 @@ test('docs navigation, real previews, downloads and heading anchors are complete
   }
   for (const type of layouts) {
     await page.goto(`/docs/diagrams/${type}/`)
-    await expect(page.locator('.preview svg')).toBeVisible()
+    await expect(page.locator('.preview svg.diagram-canvas')).toBeVisible()
     await expect(page.locator('.preview [role="button"]')).toHaveCount(0)
     await expect(page.locator('.sidebar [aria-current="page"]')).toHaveCount(1)
     await page.locator('.complete-example summary').click()
@@ -95,11 +95,12 @@ test('package manager preference is shared with playground and survives invalid 
   )
   await page.goto('/')
   const radii = await page
-    .locator('header button, header a[href^="https://github"]')
+    .locator('header button:not(.theme-option), header a[href^="https://github"]')
     .evaluateAll((controls) =>
       controls.map((control) => parseFloat(getComputedStyle(control).borderTopLeftRadius)),
     )
-  for (const radius of radii) expect(radius).toBeGreaterThanOrEqual(8)
+  for (const radius of radii) expect(radius).toBeGreaterThanOrEqual(4)
+  for (const radius of radii) expect(radius).toBeLessThanOrEqual(8)
   const hero = page.getByRole('region', { name: 'Install package', exact: true })
   await expect(hero.locator('code')).toHaveText('pnpm add @aesthc/diagram-lib@0.3.0')
   await hero.getByRole('button', { name: 'bun', exact: true }).click()
@@ -124,20 +125,20 @@ test('copy uses the selected command and provides real clipboard feedback', asyn
   const install = page.locator('[data-package-command]').first()
   await install.getByRole('button', { name: 'yarn', exact: true }).click()
   await install.locator('[data-copy-code]').click()
-  await expect(install.locator('[data-copy-code]')).toHaveText('Copied')
+  await expect(install.locator('[data-copy-code]')).toContainText('Copied')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     'yarn add @aesthc/diagram-lib@0.3.0',
   )
   await page.goto('/agents/')
   await page.locator('[data-copy-agent]').click()
-  await expect(page.locator('[data-copy-agent]')).toHaveText('Copied')
+  await expect(page.locator('[data-copy-agent]')).toContainText('Copied')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
     'Read https://alanslzrr.github.io/aesthc-diagram-lib/agents/',
   )
 })
 
 for (const theme of ['light', 'dark']) {
-  test(`${theme} docs have soft Sora controls, accessible contrast and no page overflow`, async ({
+  test(`${theme} docs have restrained Geist controls, accessible contrast and no page overflow`, async ({
     page,
     isMobile,
   }) => {
@@ -147,18 +148,21 @@ for (const theme of ['light', 'dark']) {
     await page.addStyleTag({
       content: '* { transition: none !important; animation: none !important; }',
     })
-    const controls = await page.locator('button').evaluateAll((buttons) =>
-      buttons
-        .filter((button) => button.getClientRects().length)
-        .map((button) => {
-          const style = getComputedStyle(button)
-          return { radius: parseFloat(style.borderTopLeftRadius), font: style.fontFamily }
-        }),
-    )
+    const controls = await page
+      .locator('button:not([role="tab"]):not(.theme-option)')
+      .evaluateAll((buttons) =>
+        buttons
+          .filter((button) => button.getClientRects().length)
+          .map((button) => {
+            const style = getComputedStyle(button)
+            return { radius: parseFloat(style.borderTopLeftRadius), font: style.fontFamily }
+          }),
+      )
     expect(controls.length).toBeGreaterThan(3)
     for (const control of controls) {
-      expect(control.radius).toBeGreaterThanOrEqual(8)
-      expect(control.font).toContain('Sora')
+      expect(control.radius).toBeGreaterThanOrEqual(4)
+      expect(control.radius).toBeLessThanOrEqual(8)
+      expect(control.font).toContain('Geist')
     }
     if (isMobile) {
       await page.locator('.mobile-nav summary').click()
@@ -170,7 +174,7 @@ for (const theme of ['light', 'dark']) {
       await page.locator('.mobile-nav summary').click()
       expect(
         await page
-          .locator('.preview svg')
+          .locator('.preview svg.diagram-canvas')
           .evaluate((svg) => svg.getBoundingClientRect().width <= svg.parentElement!.clientWidth),
       ).toBe(true)
     } else await expect(page.getByRole('navigation', { name: 'On this page' })).toBeVisible()
@@ -238,3 +242,96 @@ test('mobile disclosure uses a rounded chevron, keyboard states and works withou
   await expect(staticPage.getByRole('heading', { level: 1 })).toHaveText('Styles and theming')
   await context.close()
 })
+
+for (const theme of ['light', 'dark']) {
+  test(`${theme} layout previews preserve geometry, center plain labels and mask the grid under nodes`, async ({
+    page,
+    isMobile,
+    browserName,
+  }) => {
+    await page.addInitScript((theme) => localStorage.setItem('adl-theme', theme), theme)
+    for (const type of layouts) {
+      await page.goto(`/docs/diagrams/${type}/`)
+      await page.evaluate(() => document.fonts.ready)
+      const pane = page.locator('[data-preview-panel="canvas"]')
+      const svg = pane.locator('svg')
+      const geometry = await svg.evaluate((svg) => {
+        const box = svg.getBoundingClientRect()
+        const view = (svg as SVGSVGElement).viewBox.baseVal
+        return {
+          ratio: box.width / box.height,
+          expected: view.width / view.height,
+          labelFont: Array.from(svg.querySelectorAll('[data-node-label]')).map(
+            (label) => (parseFloat(getComputedStyle(label).fontSize) * box.width) / view.width,
+          ),
+          grid: getComputedStyle(svg.querySelector('rect[mask]')!).opacity,
+          innerGrid: getComputedStyle(svg.querySelector('rect[mask]')!).display,
+          outerGrid: getComputedStyle(svg.parentElement!).backgroundImage,
+          surfaces: Array.from(svg.querySelectorAll('[data-node-surface]')).map((surface) => ({
+            fill: getComputedStyle(surface).fill,
+            opacity: getComputedStyle(surface).opacity,
+          })),
+          labels: Array.from(svg.querySelectorAll('[data-node-label]'))
+            .filter((label) => label.getAttribute('text-anchor') === 'middle')
+            .map((label) => {
+              const surface = label.parentElement!.querySelector('[data-node-surface]')!
+              return {
+                x: Number(label.getAttribute('x')),
+                cx: Number(surface.getAttribute('x')) + Number(surface.getAttribute('width')) / 2,
+                y: Number(label.getAttribute('y')),
+                cy: Number(surface.getAttribute('y')) + Number(surface.getAttribute('height')) / 2,
+                baseline: label.getAttribute('dominant-baseline'),
+              }
+            }),
+        }
+      })
+      expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
+      for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
+      expect(geometry.grid).toBe(theme === 'light' ? '0.18' : '0.12')
+      expect(geometry.innerGrid).toBe('none')
+      expect(geometry.outerGrid).toContain('radial-gradient')
+      for (const surface of geometry.surfaces) {
+        expect(surface.opacity).toBe('1')
+        expect(surface.fill).not.toBe('none')
+        expect(surface.fill).not.toBe('transparent')
+        const alpha = surface.fill.startsWith('rgba(')
+          ? Number(surface.fill.split(',').at(-1)!.replace(')', ''))
+          : Number(/\/\s*([\d.]+)/.exec(surface.fill)?.[1] ?? 1)
+        expect(alpha).toBe(1)
+      }
+      for (const label of geometry.labels) {
+        expect(label.x).toBe(label.cx)
+        expect(label.y).toBe(label.cy)
+        expect(label.baseline).toBe('central')
+      }
+      await pane.screenshot({ path: `/tmp/aesthc-preview-${type}-${theme}.png` })
+      if (process.env.VISUAL_REGRESSION && !isMobile && browserName === 'chromium')
+        await expect.soft(pane).toHaveScreenshot(`docs-${type}-${theme}.png`)
+      const code = page.locator('.preview').getByRole('tab', { name: 'Code', exact: true })
+      await code.click()
+      await expect(pane).not.toBeVisible()
+      await expect(page.locator('[data-preview-panel="code"]')).toBeVisible()
+      await expect(page.locator('[data-preview-panel="code"] code')).toContainText('DiagramCanvas')
+      await code.press('Home')
+      await expect(
+        page.locator('.preview').getByRole('tab', { name: 'Preview', exact: true }),
+      ).toBeFocused()
+      await expect(pane).toBeVisible()
+    }
+    await page.goto('/agents/')
+    const callout = page.locator('blockquote')
+    const edges = await callout.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return [
+        style.borderLeftWidth,
+        style.borderRightWidth,
+        style.borderLeftColor,
+        style.borderRightColor,
+      ]
+    })
+    expect(edges[0]).toBe(edges[1])
+    expect(edges[2]).toBe(edges[3])
+    await expect(page.locator('.version-label')).toHaveCSS('border-radius', '0px')
+    await expect(page.locator('.pagination a').first()).toHaveCSS('border-width', '0px')
+  })
+}

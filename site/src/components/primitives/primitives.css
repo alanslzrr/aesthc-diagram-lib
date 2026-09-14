@@ -1,0 +1,241 @@
+.theme-selector {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  flex-shrink: 0;
+}
+.theme-option {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.theme-option svg {
+  width: var(--ui-icon, 16px);
+  height: var(--ui-icon, 16px);
+}
+.theme-option:hover {
+  color: var(--foreground);
+}
+.theme-option[data-state='on'] {
+  color: var(--foreground);
+  background: var(--muted);
+}
+.scroll-area {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.scroll-viewport {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+.scroll-bar {
+  display: flex;
+  touch-action: none;
+  user-select: none;
+  padding: 2px;
+  background: transparent;
+}
+.scroll-bar[data-orientation='vertical'] {
+  width: 10px;
+}
+.scroll-bar[data-orientation='horizontal'] {
+  flex-direction: column;
+  height: 10px;
+}
+.scroll-thumb {
+  position: relative;
+  flex: 1;
+  background: color-mix(in srgb, var(--muted-foreground) 38%, transparent);
+  border-radius: 5px;
+}
+.scroll-thumb:hover {
+  background: var(--muted-foreground);
+}
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  list-style: none;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: Geist, system-ui, sans-serif;
+}
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure > summary::marker {
+  content: '';
+}
+.disclosure-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 180ms ease-out;
+}
+.disclosure[open] > summary .disclosure-icon {
+  transform: rotate(180deg);
+}
+[data-disclosure-content] {
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .disclosure-icon {
+    transition: none;
+  }
+}
+
+html:not([data-enhanced]) .scroll-viewport {
+  overflow: auto !important;
+}
+
+@media (pointer: coarse) {
+  .theme-option {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Package installation follows the reference: a flat tab strip above the command. */
+.install-snippet {
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card) 75%, var(--muted));
+}
+.install-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+.install-managers {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+}
+.install-manager {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--ui-target-touch, 44px);
+  padding: 0 12px;
+  border: 0;
+  position: relative;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font:
+    500 var(--ui-text-control, 13px) Geist,
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.install-manager[aria-pressed='true'] {
+  color: var(--foreground);
+}
+.install-manager:hover {
+  color: var(--foreground);
+}
+.package-icon {
+  flex-shrink: 0;
+  width: var(--ui-icon, 16px);
+  height: var(--ui-icon, 16px);
+}
+.install-copy {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.install-copy:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.install-copy > svg {
+  width: var(--ui-icon, 16px);
+  height: var(--ui-icon, 16px);
+}
+.install-command {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 20px;
+  white-space: pre;
+  font:
+    var(--ui-text-code, 13px)/1.65 'Geist Mono',
+    ui-monospace,
+    monospace;
+  color: var(--foreground);
+}
+.install-command code {
+  font: inherit;
+}
+.install-prompt {
+  color: var(--muted-foreground);
+  user-select: none;
+}
+.install-snippet .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+html:not([data-enhanced]) .install-toolbar {
+  display: none;
+}
+@media (max-width: 480px) {
+  .install-toolbar {
+    padding-inline: 8px;
+  }
+  .install-manager {
+    padding-inline: 8px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .install-manager .package-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .install-command {
+    padding: 16px;
+    gap: 10px;
+  }
+}
+
+.install-manager[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  inset-inline: 0;
+  bottom: 0;
+  background: var(--foreground);
+}

@@ -1,11 +1,12 @@
 'use client'
 import {
   registerExampleDiagrams
-} from "../chunk-PDZ6L65O.js";
+} from "../chunk-LALSN5FV.js";
 import "../chunk-IDNRW7UP.js";
 import {
   DiagramCanvas
-} from "../chunk-2CGWWC44.js";
+} from "../chunk-LAUQCK2F.js";
+import "../chunk-NGWEEVZP.js";
 import {
   layoutDiagram
 } from "../chunk-VUW7SRON.js";
@@ -15,12 +16,12 @@ import {
   connectedIds,
   diagramEdges
 } from "../chunk-QVERY2JP.js";
+import "../chunk-TVEV5XLW.js";
 import {
   getDiagram,
   getDiagramVisuals
 } from "../chunk-UNV5K3AO.js";
 import "../chunk-6F4PWJZI.js";
-import "../chunk-TVEV5XLW.js";
 
 // src/showcase/Showcase.tsx
 import { useEffect, useId, useMemo, useState } from "react";
@@ -179,7 +180,7 @@ function DiagramShowcase({
   intro = defaultStrings.intro,
   entries
 }) {
-  return /* @__PURE__ */ jsxs("div", { className: "pb-24 pt-16", children: [
+  return /* @__PURE__ */ jsxs("div", { className: "font-sans pb-24 pt-16", children: [
     /* @__PURE__ */ jsxs("div", { className: "mx-auto w-full max-w-[720px] px-4 sm:px-8", children: [
       /* @__PURE__ */ jsx("p", { className: "text-xs uppercase tracking-[0.35em] text-muted-foreground", children: label }),
       /* @__PURE__ */ jsxs("h1", { className: "mt-3 font-display text-[clamp(2.5rem,4vw,4rem)] leading-[0.95] tracking-[-0.05em]", children: [

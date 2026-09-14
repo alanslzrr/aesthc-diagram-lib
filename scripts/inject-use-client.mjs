@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const targets = [
+  new URL('../dist/icons/index.js', import.meta.url),
   new URL('../dist/canvas/index.js', import.meta.url),
   new URL('../dist/showcase/index.js', import.meta.url),
 ]

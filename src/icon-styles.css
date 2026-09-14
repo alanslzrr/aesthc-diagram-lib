@@ -25,3 +25,7 @@
 :is([data-theme='dark'] *) .adl-icon-dark {
   display: block !important;
 }
+
+:is([data-theme='dark'] *) .adl-brand-monochrome {
+  filter: invert(1);
+}

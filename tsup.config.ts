@@ -5,6 +5,7 @@ export default defineConfig({
   // per package installation. Standalone bundles would duplicate its Map.
   entry: {
     index: 'src/index.ts',
+    'icons/index': 'src/brand-icons/index.tsx',
     'canvas/index': 'src/canvas/index.ts',
     'layouts/index': 'src/layouts/index.ts',
     'layouts/band': 'src/layouts/band.ts',

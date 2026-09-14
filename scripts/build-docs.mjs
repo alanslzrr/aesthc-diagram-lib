@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, relative, resolve, sep } from 'node:path'
+import { renderDocument } from './docs/render.tsx'
 import { renderPage, label } from './docs/page.mjs'
 const out = resolve('site/dist')
 if (!existsSync(out)) throw new Error('Build the site before building documentation')
@@ -32,11 +33,12 @@ function write(path, contents) {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, contents)
 }
-mkdirSync(`${out}/docs-assets`, { recursive: true })
-for (const font of ['sora-latin.woff2', 'bodoni-moda-latin.woff2', 'geist-mono-latin.woff2'])
+mkdirSync(`${out}/docs-assets/fonts`, { recursive: true })
+for (const font of ['geist-sans.woff2', 'geist-mono.woff2'])
   cpSync(`site/src/assets/fonts/${font}`, `${out}/docs-assets/${font}`)
+for (const font of ['geist-sans.woff2', 'geist-mono.woff2'])
+  cpSync(`site/src/assets/fonts/${font}`, `${out}/docs-assets/fonts/${font}`)
 cpSync('site/docs/docs.css', `${out}/docs-assets/docs.css`)
-cpSync('site/docs/docs.js', `${out}/docs-assets/docs.js`)
 cpSync('site/docs/theme.js', `${out}/docs-assets/theme.js`)
 cpSync('dist/styles.css', `${out}/docs-assets/canvas.css`)
 const relativeRoutes = new Map(sources.map((file) => [file, route(file)]))
@@ -54,7 +56,7 @@ for (const file of sources) {
     if (!existsSync(absolute)) throw new Error(`Broken documentation link in ${file}: ${href}`)
     return `](https://github.com/alanslzrr/aesthc-diagram-lib/blob/main/${relative(resolve('.'), absolute).split(sep).join('/')})`
   })
-  const html = renderPage({
+  const { html, data } = renderPage({
     file,
     markdown: linked,
     destination,
@@ -65,6 +67,7 @@ for (const file of sources) {
     stable: process.env.DOCS_CHANNEL === 'stable',
   })
   write(`${out}/${destination}index.html`, html)
+  write(`${out}/${destination}page.json`, JSON.stringify(data))
   write(`${out}/${destination}index.md`, linked)
   const frozen = existsSync(`site/public/versions/${version}`)
   const versioned = (content) => {
@@ -85,7 +88,17 @@ for (const file of sources) {
       : canonical
   }
   if (!frozen) {
-    write(`${out}/versions/${version}/${destination}index.html`, versioned(html))
+    const versionData = JSON.parse(JSON.stringify(data), (key, value) => {
+      if (typeof value === 'string' && ['url', 'href'].includes(key) && value.startsWith(base)) {
+        const path = value.slice(base.length)
+        if ([...routes.values()].some((destination) => path.startsWith(destination)))
+          return `${base}versions/${version}/${path}`
+      }
+      return value
+    })
+    versionData.destination = `versions/${version}/${destination}`
+    write(`${out}/versions/${version}/${destination}index.html`, renderDocument(versionData))
+    write(`${out}/versions/${version}/${destination}page.json`, JSON.stringify(versionData))
     write(`${out}/versions/${version}/${destination}index.md`, versioned(linked))
   }
   index.push({ file, title, destination, markdown: linked })
@@ -104,10 +117,19 @@ write(
   `${out}/sitemap.xml`,
   `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin}</loc></url>${index.map(({ destination }) => `<url><loc>${origin}${destination}</loc></url>`).join('')}</urlset>`,
 )
-write(
-  `${out}/404.html`,
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found · aesthc diagrams</title><link rel="stylesheet" href="${base}docs-assets/docs.css"></head><body><main class="article" style="max-width:720px;margin:10vh auto;padding:24px"><p>404 · aesthc / diagrams</p><h1>Page not found</h1><p>This address does not match a documentation page. Start with the guides or return to the playground.</p><div class="page-meta"><a class="control" href="${base}docs/">Read documentation</a><a class="control" href="${base}">Open playground</a></div></main></body></html>`,
-)
+const fallback = renderPage({
+  file: '404',
+  markdown:
+    '# Page not found\n\nThis address does not match a documentation page. Use the navigation to return to the guides.',
+  destination: '404.html',
+  routes: relativeRoutes,
+  base,
+  origin,
+  version,
+  stable: process.env.DOCS_CHANNEL === 'stable',
+})
+write(`${out}/404.html`, fallback.html)
+
 console.log(
   `Built ${index.length} static pages, Markdown, versioned docs, schemas and agent indexes`,
 )

@@ -90,23 +90,9 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
   }
 
   return (
-    <div className="relative mt-6 bg-background [--diagram-frame-opacity:0.2]">
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-foreground opacity-[var(--diagram-frame-opacity)]"
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[linear-gradient(180deg,var(--foreground),transparent)] opacity-[var(--diagram-frame-opacity)]"
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,var(--foreground),transparent)] opacity-[var(--diagram-frame-opacity)]"
-      />
-
+    <div className="relative mt-6 overflow-hidden rounded-lg border border-border bg-background">
       <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
         <span className="inline-flex items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
-          <i className="inline-block h-[7px] w-[7px] rounded-full bg-branch shadow-[0_0_8px_color-mix(in_srgb,var(--color-branch)_55%,transparent)]" />
           {STRINGS.themeMode[locale]} / {theme}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">

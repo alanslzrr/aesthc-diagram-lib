@@ -1,6 +1,4 @@
-import soraLicense from '../../../licenses/Sora-OFL.txt?raw'
-import geistLicense from '../../../licenses/Geist-Mono-OFL.txt?raw'
-import bodoniLicense from '../../../licenses/Bodoni-Moda-OFL.txt?raw'
+import geistLicense from '../../../licenses/Geist-OFL.txt?raw'
 
 // Standalone SVG export: clones the live canvas and inlines the computed
 // presentation of every element, so the file opens with the page's exact
@@ -118,7 +116,7 @@ function serializeSettled(svg: SVGSVGElement): string {
 
 // ── Font embedding ───────────────────────────────────────────────────────────
 // An exported SVG opened outside this page (or rasterized through <img>)
-// cannot reach webfonts, so downloads inline the latin Sora + Geist Mono
+// cannot reach webfonts, so downloads inline the latin Geist Sans + Geist Mono
 // faces as data: URIs. Fetched once per session.
 
 let fontCssPromise: Promise<string> | null = null
@@ -139,7 +137,7 @@ function embeddedFontCss(): Promise<string> {
         for (const rule of rules) {
           if (!(rule instanceof CSSFontFaceRule)) continue
           const family = rule.style.getPropertyValue('font-family')
-          if (!/Sora|Geist Mono|Bodoni Moda/.test(family)) continue
+          if (!/Geist/.test(family)) continue
           const source = rule.style.getPropertyValue('src')
           const match = source.match(/url\("?([^")]+\.woff2)"?\)/)
           if (!match) continue
@@ -180,7 +178,7 @@ export async function serializeDiagramSvgStandalone(svg: SVGSVGElement): Promise
   const fontCss = await embeddedFontCss()
   if (!fontCss) return markup
   const metadata = document.createElementNS('http://www.w3.org/2000/svg', 'metadata')
-  metadata.textContent = [soraLicense, geistLicense, bodoniLicense].join('\n\n')
+  metadata.textContent = [geistLicense].join('\n\n')
   const notice = new XMLSerializer().serializeToString(metadata)
   return markup.replace(/(<svg[^>]*>)/, `$1${notice}<style>${fontCss}</style>`)
 }

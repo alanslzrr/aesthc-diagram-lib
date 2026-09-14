@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
 import { assertDiagramSpec } from '@aesthc/diagram-lib/validation'
+import { previewBounds } from './docs/preview-bounds'
 
 mkdirSync('site/dist/docs-assets/previews', { recursive: true })
 for (const type of [
@@ -18,6 +19,7 @@ for (const type of [
   const spec = JSON.parse(readFileSync(`examples/${type}.json`, 'utf8'))
   assertDiagramSpec(spec)
   const layout = layoutDiagram(spec)
+  const bounds = previewBounds(layout)
   const markup = renderToStaticMarkup(
     createElement(DiagramCanvas, {
       layout,
@@ -39,8 +41,13 @@ for (const type of [
   writeFileSync(
     `site/dist/docs-assets/previews/${type}.html`,
     markup
-      .replace('<svg ', `<svg data-compact="${layout.width <= 550}" `)
-      .replace('style="', `style="--preview-min-width:${Math.min(layout.width, 550)}px;`)
+      .replace(
+        `viewBox="0 0 ${layout.width} ${layout.height}"`,
+        `viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}"`,
+      )
+      .replace(/max-width:[^;"]+/, `max-width:${bounds.width}px`)
+      .replace('<svg ', `<svg data-compact="${bounds.width <= 550}" `)
+      .replace('style="', `style="--preview-min-width:${Math.min(bounds.width, 720)}px;`)
       .replaceAll('role="button"', 'role="img"')
       .replaceAll('tabindex="0"', 'tabindex="-1"')
       .replace(/ aria-pressed="[^"]*"/g, ''),

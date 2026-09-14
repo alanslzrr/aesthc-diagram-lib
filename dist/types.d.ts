@@ -13,7 +13,11 @@ type DiagramNodeShape = 'card' | 'state' | 'table' | 'event' | 'terminal' | 'bar
 type DiagramNodeTextAnchor = 'start' | 'end' | 'middle';
 type SvglNodeIconKey = 'express' | 'google-cloud' | 'mcp' | 'nextjs' | 'openai' | 'openrouter' | 'pdf' | 'postgresql';
 type SemanticNodeIconKey = 'arrows-split' | 'brackets-curly' | 'folder-lock' | 'gauge' | 'graph' | 'handshake' | 'list-checks' | 'list-magnifying-glass' | 'monitor' | 'receipt' | 'rocket-launch' | 'scales' | 'seal-check' | 'user-check' | 'user-focus' | 'warning';
+type ThesvgNodeIconKey = SvglNodeIconKey | 'azure';
 type DiagramNodeVisual = {
+    source: 'thesvg';
+    key: ThesvgNodeIconKey;
+} | {
     source: 'svgl';
     key: SvglNodeIconKey;
 } | {
@@ -256,4 +260,4 @@ interface DiagramRegistration<T extends DiagramSpec = DiagramSpec> {
 }
 type DiagramType = DiagramSpec['type'];
 
-export type { BandDiagramNode, BandDiagramSpec, ContinuationAnchor, ContinuationSide, DiagramBand, DiagramContinuation, DiagramDecision, DiagramEdge, DiagramNode, DiagramNodeShape, DiagramNodeTextAnchor, DiagramNodeVisual, DiagramRegistration, DiagramSpec, DiagramType, EdgeLabelPlacement, EdgeLane, EdgeVariant, ErDiagramSpec, ErEntity, ErRelation, FlowchartDiagramSpec, LegacyBandSpec, LocalizedDiagram, NodeWeight, PortSide, SemanticNodeIconKey, SequenceDiagramSpec, SequenceMessage, SequenceParticipant, StateMachineDiagramSpec, StateMachineState, StateTransition, SvglNodeIconKey, SwimlaneDiagramSpec, SwimlaneLane, TableField, TimelineDiagramSpec, TimelineEvent };
+export type { BandDiagramNode, BandDiagramSpec, ContinuationAnchor, ContinuationSide, DiagramBand, DiagramContinuation, DiagramDecision, DiagramEdge, DiagramNode, DiagramNodeShape, DiagramNodeTextAnchor, DiagramNodeVisual, DiagramRegistration, DiagramSpec, DiagramType, EdgeLabelPlacement, EdgeLane, EdgeVariant, ErDiagramSpec, ErEntity, ErRelation, FlowchartDiagramSpec, LegacyBandSpec, LocalizedDiagram, NodeWeight, PortSide, SemanticNodeIconKey, SequenceDiagramSpec, SequenceMessage, SequenceParticipant, StateMachineDiagramSpec, StateMachineState, StateTransition, SvglNodeIconKey, SwimlaneDiagramSpec, SwimlaneLane, TableField, ThesvgNodeIconKey, TimelineDiagramSpec, TimelineEvent };

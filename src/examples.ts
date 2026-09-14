@@ -921,3 +921,52 @@ export function registerExampleDiagrams(): void {
     registerDiagram(key, registration)
   }
 }
+
+/** Explicit brand visuals: provider labels alone never select or load an icon. */
+export const CLOUD_ARCHITECTURE_VISUALS = {
+  ingress: { source: 'phosphor', key: 'brackets-curly' },
+  gcp: { source: 'thesvg', key: 'google-cloud' },
+  azure: { source: 'thesvg', key: 'azure' },
+} satisfies Record<string, import('./types').DiagramNodeVisual>
+
+/** A small illustrative multi-cloud pipeline, not a production deployment recommendation. */
+export const CLOUD_ARCHITECTURE_SPEC = {
+  type: 'band',
+  caption: 'Cloud architecture: API ingress, Google Cloud processing, Azure recovery.',
+  legend: { main: 'Request path', branch: 'Recovery path' },
+  bands: [{ title: 'Input' }, { title: 'Processing' }, { title: 'Recovery' }],
+  nodes: [
+    {
+      id: 'ingress',
+      band: 0,
+      label: 'API ingress',
+      description: 'Receive an authenticated request.',
+      kind: 'Input',
+      sublabel: 'HTTPS',
+      weight: 'primary',
+    },
+    {
+      id: 'gcp',
+      band: 1,
+      label: 'Google Cloud',
+      description: 'Process the request in Google Cloud.',
+      kind: 'Compute',
+      sublabel: 'GCP',
+      weight: 'primary',
+    },
+    {
+      id: 'azure',
+      band: 2,
+      label: 'Microsoft Azure',
+      description: 'An illustrative secondary recovery destination.',
+      kind: 'Recovery',
+      sublabel: 'Azure',
+    },
+  ],
+  edges: [
+    { id: 'request', from: 'ingress', to: 'gcp' },
+    { id: 'recovery', from: 'gcp', to: 'azure', variant: 'branch', dashed: true },
+  ],
+} satisfies import('./types').BandDiagramSpec
+
+export { ARCHITECTURE_EXAMPLES, type ArchitectureExample } from './architecture-examples'
