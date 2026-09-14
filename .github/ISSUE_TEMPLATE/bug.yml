@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible package or playground defect
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For security issues, use SECURITY.md instead of a public report. Remove private data.
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: React, framework, Node, OS and browser versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include a minimal spec and steps or a public reproduction URL.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
