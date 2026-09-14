@@ -29,7 +29,9 @@ consumer. The package checksum must match the artifact produced from the tag.
 Create GitHub release notes from the actual diff, including migrations, validation
 and known limitations. Historical Git tags do not prove historical npm publication.
 
-Deploy the matching static docs with `DOCS_CHANNEL=stable`. Re-run the human and
+After anonymous registry verification, set `diagramRelease.channel` to `stable`
+and `diagramRelease.npmAvailable` to `true` in the release follow-up and regenerate docs.
+Deploy the matching static docs; `DOCS_CHANNEL`, if supplied, must match that metadata. Re-run the human and
 agent onboarding from the public URL, not local aliases. Check JS-disabled docs,
 Markdown, llms indexes, schemas, OG metadata and the seven playground types.
 
@@ -58,11 +60,20 @@ write GitHub release notes, or declare candidate docs stable automatically.
 Visual comparisons use `pnpm test:visual` against reviewed Chromium baselines.
 Functional browser tests run independently of platform-specific screenshot baselines.
 
-After verifying a stable docs build, copy its `site/dist/versions/VERSION` folder
-into `site/public/versions/VERSION` in the release follow-up. These immutable
+After verifying a stable docs build, run `pnpm docs:freeze VERSION` in the release
+follow-up. This validates `snapshot.json` checksums before copying the complete
+version directory into `site/public/versions/VERSION`; existing versions are rejected. These immutable
 snapshots are carried into future builds; the generator will not overwrite a
 frozen version. Versioned documentation links stay within that version and
-source links target its Git tag. Do not freeze a candidate as a stable release.
+source links target its Git tag. The directory contains HTML, page data, Markdown,
+search, scripts/styles, fonts, examples, schemas, notices and agent indexes.
+`contentBase` scopes resources/search/downloads; `base` remains the deployment root.
+Frozen HTML/CSS uses relative resource/navigation URLs; client payloads derive the
+serving prefix without rewriting the archive. The fixture also changes the base
+between A and B to cover local and Pages consumption.
+Do not freeze a candidate as a stable release. Run `pnpm test:snapshots` to verify
+A survives a changed B build with and without JavaScript. Never edit a frozen
+snapshot to repair drift; use a new version.
 
 Transfer budgets gate total site JavaScript at 175 KiB gzip, CSS at 12 KiB gzip,
 and the package at 2 MiB packed / 8 MiB unpacked. These are regression ceilings,

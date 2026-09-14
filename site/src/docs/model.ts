@@ -24,6 +24,7 @@ export type DocPage = {
   label: string
   destination: string
   base: string
+  contentBase?: string
   origin: string
   version: string
   stable: boolean
@@ -39,4 +40,21 @@ export function safeHref(href = '') {
   const normalized = href.trim()
   const protocol = normalized.replace(/[\u0000-\u0020\u007f]/g, '')
   return /^(?:https?:|mailto:)/i.test(protocol) || !/^[\w+.-]+:/.test(protocol) ? normalized : '#'
+}
+
+/** Frozen payloads are data; derive the serving prefix rather than rewriting archives. */
+export function rebaseDocPage(data: DocPage, pathname: string): DocPage {
+  if (!data.contentBase) return data
+  const marker = `/versions/${data.version}/`
+  const index = pathname.indexOf(marker)
+  if (index < 0) return data
+  const base = pathname.slice(0, index + 1)
+  if (base === data.base) return data
+  return JSON.parse(JSON.stringify(data), (key, value) =>
+    ['base', 'contentBase', 'url', 'href'].includes(key) &&
+    typeof value === 'string' &&
+    value.startsWith(data.base)
+      ? base + value.slice(data.base.length)
+      : value,
+  )
 }
