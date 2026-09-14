@@ -1,9 +1,9 @@
-// Soft, Sora-styled controls shared across the playground.
+// Soft, Geist-styled controls shared across the playground.
 
 import { Component, useState, type ReactNode } from 'react'
 
 /**
- * Control button in the host design system's own language: Sora, xs/medium,
+ * Control button in the host design system's own language: Geist, xs/medium,
  * normal case, hairline border, quiet muted hover — mono stays reserved for
  * source code, never for controls or interface labels.
  */
@@ -12,24 +12,28 @@ export function ControlButton({
   active,
   children,
   title,
+  iconOnly,
 }: {
   onClick: () => void
   /** Toggle/tab state; when provided it is also exposed as aria-pressed. */
   active?: boolean
   children: ReactNode
   title?: string
+  iconOnly?: boolean
 }) {
   return (
     <button
       type="button"
       title={title}
+      aria-label={iconOnly ? title : undefined}
       aria-pressed={active}
       onClick={onClick}
       className={[
-        'inline-flex rounded-xl h-9 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
+        'ui-control inline-flex rounded-md h-9 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
+        iconOnly ? 'icon-control' : '',
         active
-          ? 'border-foreground/40 bg-muted text-foreground'
-          : 'border-border bg-transparent text-foreground/75 hover:bg-muted hover:text-foreground',
+          ? 'border-border bg-muted text-foreground'
+          : 'border-transparent bg-transparent text-foreground/75 hover:bg-muted hover:text-foreground',
       ].join(' ')}
     >
       {children}
@@ -41,10 +45,12 @@ export function CopyButton({
   getText,
   label,
   copiedLabel,
+  icon,
 }: {
   getText: () => string | Promise<string>
   label: string
   copiedLabel: string
+  icon?: ReactNode
 }) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,13 +69,7 @@ export function CopyButton({
             .catch((cause) => setError(`Copy failed: ${String(cause)}`))
         }}
       >
-        <span
-          aria-hidden="true"
-          className={[
-            'inline-block h-[6px] w-[6px] rounded-full transition-colors duration-150',
-            copied ? 'bg-cobalt' : 'bg-foreground/30',
-          ].join(' ')}
-        />
+        {icon}
         {copied ? copiedLabel : label}
       </ControlButton>
       {error ? (
@@ -99,7 +99,7 @@ export class PanelBoundary extends Component<{ children: ReactNode }, { error: s
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="mt-4 inline-flex rounded-xl h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
+            className="mt-4 ui-control inline-flex rounded-md h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
           >
             Retry
           </button>

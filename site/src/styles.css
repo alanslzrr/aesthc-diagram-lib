@@ -1,13 +1,15 @@
+@import './components/primitives/primitives.css';
 /* Site chrome uses its own utilities; the canvas consumes the distributed
  * package stylesheet. Both share the host tokens below. */
 @import './fonts.css';
+@import './design-system.css';
 @import 'tailwindcss';
 
 @custom-variant dark (&:is([data-theme='dark'] *));
 
 @theme {
-  --font-display: 'Bodoni Moda', 'Didot', ui-serif, serif;
-  --font-sans: 'Sora', system-ui, sans-serif;
+  --font-display: 'Geist', system-ui, sans-serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --glass-blur: 20px;
   --glass-radius-shell: 1.15rem;
@@ -164,7 +166,7 @@
 
 :root {
   color-scheme: light;
-  --diagram-font-display: 'Bodoni Moda', Georgia, serif;
+  --diagram-font-display: 'Geist', system-ui, sans-serif;
 }
 [data-theme='dark'] {
   color-scheme: dark;
@@ -212,15 +214,15 @@ a {
   --cobalt-ink: #49b9ff;
 }
 
-/* Controls borrow the nodes’ soft corners; monospace is reserved for code. */
+/* Restrained control corners; source typography stays separate from UI. */
 button,
 input:not([type='color']),
 select {
-  border-radius: 12px;
+  border-radius: 6px;
   font-family: var(--font-sans);
 }
 [data-diagram-panel] {
-  border-radius: 22px;
+  border-radius: 8px;
   overflow: hidden;
 }
 [data-diagram-panel] > span[aria-hidden='true'] {
@@ -229,5 +231,5 @@ select {
 pre,
 textarea,
 code.inline-flex {
-  border-radius: 16px;
+  border-radius: 8px;
 }
