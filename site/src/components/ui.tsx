@@ -136,7 +136,7 @@ export function SectionHeader({
         <span aria-hidden="true" className="mr-3 font-sans text-xs text-muted-foreground">
           {index}
         </span>
-        {title}
+        <span className="sr-only">{title}</span>
       </span>
       <span className="h-px flex-1 bg-foreground/16" />
       <span className="font-sans text-xs tracking-normal text-foreground/75">{meta}</span>

@@ -45,7 +45,10 @@ export default function App() {
   useEffect(() => {
     if (!hydrated) return
     const target = window.location.hash.slice(1)
-    if (target !== 'main' && target !== 'top' && !SECTIONS.some((entry) => entry.key === target))
+    if (
+      !['main', 'top', 'quick-start', 'cloud-architecture', 'theme-studio'].includes(target) &&
+      !SECTIONS.some((entry) => entry.key === target)
+    )
       return
     let cancelled = false
     void document.fonts.ready.then(() => {
@@ -71,7 +74,7 @@ export default function App() {
         onLocale={() => setLocale((current) => (current === 'en' ? 'es' : 'en'))}
       />
 
-      <Hero locale={locale} />
+      <Hero locale={locale} theme={theme} />
 
       {shareError ? (
         <p role="alert" className="mx-auto max-w-4xl p-4">
@@ -105,7 +108,7 @@ export default function App() {
 
         <CloudArchitecture locale={locale} />
 
-        <article className="border-t border-foreground/20 py-12">
+        <article id="theme-studio" className="border-t border-foreground/20 py-12">
           <SectionHeader
             index={sections.length + 1}
             title={STRINGS.themeTitle[locale]}
