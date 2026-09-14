@@ -123,6 +123,7 @@ try {
         'react-jsx',
         'exports.ts',
         'consumer.tsx',
+        'brand-icon.tsx',
         ...readdirSync(join(consumer, 'examples'))
           .filter((file) => file.endsWith('.tsx'))
           .map((file) => `examples/${file}`),

@@ -11,7 +11,7 @@ test('docs navigation, real previews, downloads and heading anchors are complete
   await page.goto('/docs/')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Documentation')
   const navigation = page.locator('.sidebar nav')
-  await expect(navigation.locator('a')).toHaveCount(17)
+  await expect(navigation.locator('a')).toHaveCount(18)
   for (const href of await navigation
     .locator('a')
     .evaluateAll((links) => links.map((a) => a.getAttribute('href')!))) {
