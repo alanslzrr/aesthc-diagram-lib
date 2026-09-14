@@ -36,6 +36,13 @@ test('raw invalid edits survive locale round trips without persistence', async (
   await input.fill('{ raw invalid draft')
   await expect(input).toHaveAttribute('aria-invalid', 'true')
   await page.getByRole('button', { name: 'EN', exact: true }).click()
+  expect(
+    await page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }),
+  ).toBe(true)
   await page
     .locator('#example-flowchart')
     .getByRole('button', { name: 'Código', exact: true })

@@ -46,6 +46,16 @@ export function DiagramPanel({
   const baseSpec = EXAMPLE_DIAGRAMS[entry.key].diagram[locale]
   const [draft, setDraft] = useState<DiagramSpec>(() => sharedSpec ?? baseSpec)
   const rawDrafts = useRef(new Map<string, string>())
+  const unsavedDrafts = useRef(new Map<string, boolean>())
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (![...unsavedDrafts.current.values()].some(Boolean)) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [])
   const [editorRevision, setEditorRevision] = useState(0)
   const [tab, setTab] = useState<PanelTab>('preview')
   const edited = JSON.stringify(draft) !== JSON.stringify(baseSpec)
@@ -320,7 +330,11 @@ export function DiagramPanel({
             )
           }
           revision={editorRevision}
-          onRaw={(text) => rawDrafts.current.set(`${entry.key}:${locale}`, text)}
+          onRaw={(text, saved = false) => {
+            const source = `${entry.key}:${locale}`
+            rawDrafts.current.set(source, text)
+            unsavedDrafts.current.set(source, text !== specSource(baseSpec) && !saved)
+          }}
         />
       </div>
 
@@ -403,7 +417,7 @@ function CodeView({
   draft: DiagramSpec
   initialText: string
   revision: number
-  onRaw: (text: string) => void
+  onRaw: (text: string, saved?: boolean) => void
   onApply: (spec: DiagramSpec) => void
 }) {
   const [codeTab, setCodeTab] = useState<CodeTab>('spec')
@@ -439,19 +453,11 @@ function CodeView({
   const [storageError, setStorageError] = useState(false)
   const baseText = specSource(EXAMPLE_DIAGRAMS[entry.key].diagram[locale])
   useEffect(() => {
-    if (text === baseText || (enabled && !storageError && !recovery)) return
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [text, baseText, enabled, storageError, recovery])
-  useEffect(() => {
     if (!enabled || recovery) return
     try {
       if (text === baseText) removeDraft(storageKey)
       else writeDraft(storageKey, text)
+      onRaw(text, true)
       setStorageError(false)
     } catch {
       setStorageError(true)
@@ -503,6 +509,7 @@ function CodeView({
             onChange={(event) => {
               const value = event.target.checked
               setEnabled(value)
+              onRaw(text, false)
               try {
                 localStorage.setItem(enabledKey, String(value))
                 if (!value) removeDraft(storageKey)

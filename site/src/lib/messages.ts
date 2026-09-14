@@ -20,10 +20,6 @@ export const MESSAGES = {
     en: 'Invalid or oversized share link. Default examples are shown; your link was not evaluated.',
     es: 'El enlace compartido no es válido o es demasiado grande. Se muestran los ejemplos originales; el enlace no se ha ejecutado.',
   },
-  discardInvalid: {
-    en: 'Discard invalid JSON before changing language?',
-    es: '¿Descartar el JSON no válido antes de cambiar de idioma?',
-  },
   invalidColor: {
     en: 'Enter a complete hexadecimal color. The last valid color remains applied.',
     es: 'Introduce un color hexadecimal completo. Se conserva el último color válido.',
