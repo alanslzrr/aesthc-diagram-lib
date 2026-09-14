@@ -1,0 +1,19 @@
+/* Generated from site/src/lib/palette.ts by pnpm docs:generate. */
+:root {
+  --palette-background: #e9eef4;
+  --palette-foreground: #202b38;
+  --palette-card: #f9fbfd;
+  --palette-border: #aebdcd;
+  --palette-muted-foreground: #536273;
+  --palette-cobalt: #087cbd;
+  --palette-branch: #a66b21;
+}
+[data-theme='dark'] {
+  --palette-background: #070707;
+  --palette-foreground: #f2f2ee;
+  --palette-card: #101010;
+  --palette-border: #242424;
+  --palette-muted-foreground: #a8a8a1;
+  --palette-cobalt: #14a8ff;
+  --palette-branch: #d6a55e;
+}

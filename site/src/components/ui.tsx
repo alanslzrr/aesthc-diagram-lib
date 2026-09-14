@@ -1,6 +1,8 @@
 // Soft, Geist-styled controls shared across the playground.
 
-import { Component, useState, type ReactNode } from 'react'
+import type { Locale } from '../content'
+import { MESSAGES } from '../lib/messages'
+import { Component, useEffect, useState, type ReactNode } from 'react'
 
 /**
  * Control button in the host design system's own language: Geist, xs/medium,
@@ -42,11 +44,13 @@ export function ControlButton({
 }
 
 export function CopyButton({
+  locale = 'en',
   getText,
   label,
   copiedLabel,
   icon,
 }: {
+  locale?: Locale
   getText: () => string | Promise<string>
   label: string
   copiedLabel: string
@@ -54,6 +58,11 @@ export function CopyButton({
 }) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 4000)
+    return () => clearTimeout(timer)
+  }, [copied])
   return (
     <span aria-live="polite">
       <ControlButton
@@ -64,9 +73,8 @@ export function CopyButton({
             .then((text) => navigator.clipboard.writeText(text))
             .then(() => {
               setCopied(true)
-              window.setTimeout(() => setCopied(false), 1600)
             })
-            .catch((cause) => setError(`Copy failed: ${String(cause)}`))
+            .catch(() => setError(MESSAGES.copyFailed[locale]))
         }}
       >
         {icon}
@@ -82,7 +90,10 @@ export function CopyButton({
 }
 
 /** Keeps one broken panel from unmounting the whole page. */
-export class PanelBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+export class PanelBoundary extends Component<
+  { children: ReactNode; locale?: Locale },
+  { error: string | null }
+> {
   state = { error: null as string | null }
 
   static getDerivedStateFromError(error: unknown) {
@@ -94,14 +105,14 @@ export class PanelBoundary extends Component<{ children: ReactNode }, { error: s
       return (
         <div className="mt-6 border border-border px-5 py-14 text-center">
           <p className="text-xs font-medium text-[var(--branch-ink)]">
-            The panel crashed — {this.state.error}
+            {MESSAGES.panelFailed[this.props.locale ?? 'en']}
           </p>
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
             className="mt-4 ui-control inline-flex rounded-md h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
           >
-            Retry
+            {MESSAGES.retry[this.props.locale ?? 'en']}
           </button>
         </div>
       )

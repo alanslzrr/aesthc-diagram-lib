@@ -87,7 +87,7 @@ export const STRINGS = {
   },
   hoverHint: {
     en: 'hover a node, focus it with the keyboard, or tap it to explore its role and trace its path',
-    es: 'pasá el cursor por un nodo, enfocalo con el teclado o tocalo para explorar su rol y trazar su camino',
+    es: 'pasa el cursor por un nodo, enfócalo con el teclado o tócalo para explorar su rol y trazar su camino',
   },
   preview: { en: 'Preview', es: 'Vista' },
   code: { en: 'Code', es: 'Código' },
@@ -99,7 +99,7 @@ export const STRINGS = {
   downloadSvg: { en: 'SVG', es: 'SVG' },
   downloadPng: { en: 'PNG', es: 'PNG' },
   share: { en: 'Share', es: 'Compartir' },
-  shareCopied: { en: 'Link copied', es: 'Link copiado' },
+  shareCopied: { en: 'Link copied', es: 'Enlace copiado' },
   reset: { en: 'Reset', es: 'Restaurar' },
   edited: { en: 'Edited', es: 'Editado' },
   direction: { en: 'Direction', es: 'Dirección' },
@@ -111,12 +111,12 @@ export const STRINGS = {
   },
   themeTitle: { en: 'Theme studio', es: 'Estudio de tema' },
   themeIntro: {
-    en: 'The canvas reads the host CSS variables, so it inherits any design system. Tune the tokens — every diagram on this page restyles in real time — then copy the CSS block into your app.',
-    es: 'El canvas lee las variables CSS del host, así que hereda cualquier design system. Ajustá los tokens — todos los diagramas de esta página se repintan en tiempo real — y copiá el bloque CSS a tu app.',
+    en: 'The canvas reads the host CSS variables, so it inherits any design system. Tune the tokens — the local preview restyles in real time — then copy the CSS block into your app.',
+    es: 'El canvas lee las variables CSS del host, así que hereda cualquier design system. Ajusta los tokens — la vista previa local se actualiza en tiempo real — y copia el bloque CSS a tu app.',
   },
   themeMode: { en: 'editing', es: 'editando' },
   copyCss: { en: 'Copy theme CSS', es: 'Copiar CSS del tema' },
-  presets: { en: 'Presets', es: 'Presets' },
+  presets: { en: 'Presets', es: 'Preajustes' },
   quickStartTitle: { en: 'Quick start', es: 'Inicio rápido' },
   quickStartIntro: {
     en: 'Pass a typed spec to a layout, then render the canvas with controlled interaction. Registration is optional. The API reference and React guide cover imports, state, CSS and Next.js.',

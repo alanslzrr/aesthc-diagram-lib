@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { DEFAULT_LIGHT, DEFAULT_DARK } from '../site/src/lib/palette'
 import { generatedApi } from './docs/exports'
 import { minimalSpecs } from '../examples/specs'
 import { usageSnippet } from '../site/src/lib/code'
@@ -69,6 +70,17 @@ for (const [type, spec] of Object.entries(minimalSpecs)) {
     `# ${titles[type]} diagrams\n\nVersion ${manifest.version}. The minimal spec below is validated and its complete React\nexample is compiled against the package tarball. See [API](../api/index.md) for\ndefaults, [React](../guides/react.md) for state/SSR and [Theming](../guides/theming.md)\nfor required host variables. For richer localized examples use the public examples entrypoint.\n\n\`\`\`json\n${json}\`\`\`\n${fields}\n## Boundaries\n\nIDs must be unique; references must exist. Parallel relations need explicit IDs\nwhen their identity must survive reordering. Large graphs and very long labels\nneed host-specific testing; there is no automatic text measurement or drag editor.\n`,
   )
 }
+const paletteBlock = (tokens: Record<string, string>) =>
+  Object.entries(tokens)
+    .map(
+      ([key, value]) =>
+        `  --palette-${key.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())}: ${value};`,
+    )
+    .join('\n')
+output(
+  'site/src/generated/palette.css',
+  `/* Generated from site/src/lib/palette.ts by pnpm docs:generate. */\n:root {\n${paletteBlock(DEFAULT_LIGHT)}\n}\n[data-theme='dark'] {\n${paletteBlock(DEFAULT_DARK)}\n}\n`,
+)
 output('docs/api/index.md', generatedApi(manifest))
 const quick = usageSnippet('example-flowchart', 'flowchart', minimalSpecs.flowchart)
 const intro = `# Getting started\n\nDocumentation for **${manifest.version}**. ${availability}\n\nReact \`^18.3.1 || ^19.0.0\`, ESM and Node 20.19+ are the declared consumer targets.\nSee the [support matrix](guides/support.md) for verification scope.\n\n## Installation\n\n\`\`\`bash\nnpm install @aesthc/diagram-lib@${manifest.version}\n\`\`\`\n\nUse your existing package manager; npm, pnpm, yarn and bun can install the same package.\nImport the stylesheet and define the host variables in [Theming](guides/theming.md).\nTailwind is not required.\n\n## First diagram\n\nThis complete example includes selection/focus state:\n\n\`\`\`tsx\n${quick}\`\`\`\n\n## Next steps\n\nFor Next App Router, add a client boundary as described in [React integration](guides/react.md).\nFor untrusted JSON, validate before rendering using the [API](api/index.md).\nAll seven examples are included in the package. A coding agent can start with\nthe [integration guide](agents/integrate.md), without installing extra tools.\n`

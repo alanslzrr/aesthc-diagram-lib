@@ -92,11 +92,16 @@ export interface ThemeTokens {
   branch: string
 }
 
-export function themeCss(light: ThemeTokens, dark: ThemeTokens): string {
+export const isHexColor = (value: string): boolean =>
+  /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)
+
+export function themeCss(light: ThemeTokens, dark: ThemeTokens, scope = ':root'): string {
   // The node-border formula is per-theme by design: light themes mix extra
   // foreground into the outline for contrast, dark themes use the border.
-  const color = (value: string): string =>
-    /^#[0-9a-f]{3,8}$/i.test(value) && [4, 5, 7, 9].includes(value.length) ? value : 'currentColor'
+  const color = (value: string): string => {
+    if (!isHexColor(value)) throw new Error('Expected a complete hexadecimal color')
+    return value
+  }
   const block = (tokens: ThemeTokens, nodeBorder: string, lightMode = false): string =>
     [
       `  --background: ${color(tokens.background)};`,
@@ -114,5 +119,5 @@ export function themeCss(light: ThemeTokens, dark: ThemeTokens): string {
       `  --branch: ${color(tokens.branch)};`,
     ].join('\n')
 
-  return `:root {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))', true)}\n}\n\n[data-theme='dark'] {\n${block(dark, 'var(--border)')}\n}\n`
+  return `${scope} {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))', true)}\n}\n\n[data-theme='dark']${scope === ':root' ? '' : ` ${scope}`} {\n${block(dark, 'var(--border)')}\n}\n`
 }

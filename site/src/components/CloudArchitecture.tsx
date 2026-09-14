@@ -21,7 +21,7 @@ export function CloudArchitecture({ locale }: { locale: Locale }) {
   return (
     <section
       className="border-t border-foreground/20 py-12"
-      aria-label="Cloud architecture example"
+      aria-label={locale === 'es' ? 'Ejemplo de arquitectura cloud' : 'Cloud architecture example'}
       id="cloud-architecture"
     >
       <h2 className="section-title">
@@ -56,7 +56,7 @@ export function CloudArchitecture({ locale }: { locale: Locale }) {
       </p>
       <ScrollArea
         orientation="horizontal"
-        label="Cloud architecture diagram"
+        label={locale === 'es' ? 'Diagrama de arquitectura cloud' : 'Cloud architecture diagram'}
         className="mt-6 rounded-lg border border-border bg-card/30"
       >
         <div className="min-w-[960px] p-6">

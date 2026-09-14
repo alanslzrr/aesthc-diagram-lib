@@ -2,6 +2,7 @@ import { ScrollArea } from './primitives/ScrollArea'
 import { Disclosure, DisclosureTrigger, DisclosureContent } from './primitives/Disclosure'
 import { ExportMenu } from './ExportMenu'
 import { PreviewIcon, CodeIcon, ShareIcon, TerminalIcon } from './primitives/icons'
+import { MESSAGES } from '../lib/messages'
 import { PACKAGE_VERSION } from '../generated/quick-start'
 // One showcase panel: the library chrome (hairline frame, mono header,
 // caption + legend footer) around a live DiagramCanvas, plus the playground
@@ -195,6 +196,7 @@ export function DiagramPanel({
           ) : null}
           <ShareButton entry={entry} draft={draft} locale={locale} />
           <CopyButton
+            locale={locale}
             icon={<TerminalIcon />}
             label={locale === 'es' ? 'Copiar prompt' : 'Copy prompt'}
             copiedLabel={STRINGS.copied[locale]}
@@ -212,6 +214,7 @@ export function DiagramPanel({
             }
           />
           <ExportMenu
+            locale={locale}
             label={locale === 'es' ? 'Copiar o descargar' : 'Copy or download'}
             actions={[
               {
@@ -223,7 +226,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return navigator.clipboard.writeText(serializeDiagramSvg(svg))
                 },
               },
@@ -245,7 +248,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return downloadDiagramSvg(svg, `${entry.key}.svg`)
                 },
               },
@@ -254,7 +257,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return downloadDiagramPng(svg, `${entry.key}.png`)
                 },
               },
@@ -268,7 +271,14 @@ export function DiagramPanel({
       </div>
 
       <div hidden={tab !== 'preview'}>
-        <ScrollArea orientation="horizontal" label="Diagram canvas; scroll horizontally to explore">
+        <ScrollArea
+          orientation="horizontal"
+          label={
+            locale === 'es'
+              ? 'Canvas del diagrama; desplázate horizontalmente para explorar'
+              : 'Diagram canvas; scroll horizontally to explore'
+          }
+        >
           <div className="px-5 py-10 sm:px-7" data-diagram-scroll ref={svgHostRef}>
             {layoutResult.layout ? (
               <DiagramCanvas
@@ -378,14 +388,14 @@ function ShareButton({
             })
             .then(() => {
               setCopied(true)
-              window.setTimeout(() => setCopied(false), 1800)
+              window.setTimeout(() => setCopied(false), 4000)
             })
-            .catch((cause) => setError(String(cause)))
+            .catch(() => setError(MESSAGES.actionFailed[locale]))
         }}
       >
         <ShareIcon />
       </ControlButton>
-      <span className="sr-only" role="status">
+      <span className="action-status" role="status">
         {copied ? STRINGS.shareCopied[locale] : ''}
       </span>
       {error ? <span role="alert">{error}</span> : null}
@@ -468,6 +478,7 @@ function CodeView({
             </span>
           ) : null}
           <CopyButton
+            locale={locale}
             label={STRINGS.copy[locale]}
             copiedLabel={STRINGS.copied[locale]}
             getText={() => (codeTab === 'spec' ? text : usage)}
@@ -502,7 +513,7 @@ function CodeView({
         <pre
           tabIndex={0}
           role="region"
-          aria-label="Integration code"
+          aria-label={MESSAGES.integration[locale]}
           className="max-h-[460px] overflow-auto border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85"
         >
           {usage}

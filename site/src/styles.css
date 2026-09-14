@@ -1,3 +1,4 @@
+@import './generated/palette.css';
 @import './components/primitives/primitives.css';
 /* Site chrome uses its own utilities; the canvas consumes the distributed
  * package stylesheet. Both share the host tokens below. */
@@ -18,38 +19,38 @@
 
 /* Host theme contract from the README (subset of alansalazar.dev). */
 :root {
-  --background: #e9eef4;
-  --foreground: #202b38;
-  --card: #f9fbfd;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
   --muted: #dde5ee;
-  --muted-foreground: #536273;
-  --border: #aebdcd;
+  --muted-foreground: var(--palette-muted-foreground);
+  --border: var(--palette-border);
   --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));
   --diagram-node-fill: var(--card);
   --diagram-secondary-fill: color-mix(in srgb, var(--card) 38%, var(--background));
   --diagram-grid-opacity: 0.18;
   --diagram-main-tail-opacity: 0.62;
   --diagram-branch-tail-opacity: 0.48;
-  --cobalt: #087cbd;
-  --branch: #a66b21;
+  --cobalt: var(--palette-cobalt);
+  --branch: var(--palette-branch);
   --ring: #1a9de2;
 }
 
 [data-theme='dark'] {
-  --background: #070707;
-  --foreground: #f2f2ee;
-  --card: #101010;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
   --muted: #151515;
-  --muted-foreground: #a8a8a1;
-  --border: #242424;
+  --muted-foreground: var(--palette-muted-foreground);
+  --border: var(--palette-border);
   --diagram-node-border: var(--border);
   --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
   --diagram-secondary-fill: transparent;
   --diagram-grid-opacity: 0.12;
   --diagram-main-tail-opacity: 0.24;
   --diagram-branch-tail-opacity: 0.12;
-  --cobalt: #14a8ff;
-  --branch: #d6a55e;
+  --cobalt: var(--palette-cobalt);
+  --branch: var(--palette-branch);
   --ring: #14a8ff;
 }
 
