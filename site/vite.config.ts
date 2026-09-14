@@ -7,7 +7,7 @@ import { defineConfig, type Plugin } from 'vite'
 
 // The site consumes the library straight from `../src` so layout and canvas
 // edits hot-reload without a package build step.
-const libSrc = fileURLToPath(new URL('../src', import.meta.url))
+// Resolve the workspace package through its published export map, never src aliases.
 const galleryDir = fileURLToPath(new URL('../docs/diagrams', import.meta.url))
 
 /**
@@ -28,11 +28,15 @@ function galleryWriter(): Plugin {
           return
         }
         let body = ''
+        let rejected = false
         req.setEncoding('utf8')
         req.on('data', (chunk: string) => {
+          if (rejected) return
+          if (Buffer.byteLength(body) + Buffer.byteLength(chunk) > 2 * 1024 * 1024) { rejected = true; res.statusCode = 413; res.end('Gallery payload exceeds 2 MiB'); return }
           body += chunk
         })
         req.on('end', () => {
+          if (rejected) return
           mkdirSync(galleryDir, { recursive: true })
           if (name.endsWith('.png')) {
             // PNGs arrive as a base64 data URL from canvas.toDataURL().
@@ -54,12 +58,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), galleryWriter()],
   resolve: {
     dedupe: ['react', 'react-dom'],
-    alias: [
-      { find: /^@aesthc\/diagram-lib$/, replacement: libSrc },
-      { find: /^@aesthc\/diagram-lib\/(.+)$/, replacement: `${libSrc}/$1` },
-    ],
   },
   server: {
+    host: '127.0.0.1',
     port: 5173,
     strictPort: true,
   },
