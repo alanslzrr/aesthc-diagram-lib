@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Service-level architecture examples
+
+- Replace the provider-name showcase with selectable document ingestion, asynchronous order fulfillment and container delivery reference designs in both locales.
+- Export localized specs, explicit visuals, operational notes and provider references through `ARCHITECTURE_EXAMPLES`; retain the earlier cloud constants for compatibility.
+
+### Diagram action toolbar
+
+- Replace repeated preview/code/share labels with accessible icon controls in playground and docs previews.
+- Copy a ready-to-use integration prompt and consolidate JSON/SVG/PNG copy/download options into one keyboard-accessible disclosure.
+
+### Compact web design system
+
+- Define shared Geist typography, bounded icon sizes and a four-pixel spacing scale for the landing page and docs.
+- Compact the hero, installation block and responsive header while retaining native reading scroll.
+- Prevent ER field types and unique constraints from overlapping in SVG rendering.
+
+### Brand icons and installation
+
+- Source selected local brand artwork from a pinned TheSVG revision with per-asset notices.
+- Add optional `icons` entrypoint and `thesvg` node visuals; preserve legacy `svgl` keys.
+- Share underlined full-color package-manager tabs and icon-only copy across docs/playground.
+- Include an illustrative Google Cloud/Azure architecture example with explicit visual mappings.
+
+### Geist and React documentation
+
+- Use self-hosted Geist Sans/Mono across package defaults, docs, playground and standalone exports; preserve host font overrides.
+- Prerender React documentation routes and hydrate client navigation, search, previews and copy controls.
+- Share Radix ScrollArea panels, animated native Disclosure and the system/light/dark icon selector with the playground.
+- Keep normal document scroll, direct/versioned routes and no-JavaScript reading.
+- Apply the existing175KiB JavaScript and12KiB CSS transfer budgets to each complete multi-entry dependency graph, counting shared and lazy chunks.
+
+
+### Visual corrections
+
+- Use restrained six-pixel control corners and text-based previous/next navigation;
+  remove decorative left callout stripes and toolbar status dots.
+- Center label-only nodes without reserving an empty icon rail. Keep table fields,
+  event labels and annotated/icon-bearing cards in their own layout-specific alignment.
+- Give documentation nodes opaque surfaces over the SVG grid and preserve artboard
+  aspect ratios rather than capping height independently of width.
+
 ### Documentation experience
 
 - Add a dedicated documentation home and 17 statically rendered pages with grouped
