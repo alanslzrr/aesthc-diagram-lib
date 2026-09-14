@@ -4214,6 +4214,7 @@ function validateDiagramSpec(input) {
   const unique = (ids2, path) => {
     const seen = /* @__PURE__ */ new Set();
     ids2.forEach((id, index) => {
+      if (id === void 0) return;
       if (!id.trim() || unsafe.has(id))
         add(`${path}/${index}/id`, "id", "Expected a non-empty, non-reserved ID");
       if (seen.has(id)) add(`${path}/${index}/id`, "duplicate-id", `Duplicate ID: ${id}`);
@@ -4221,17 +4222,28 @@ function validateDiagramSpec(input) {
     });
   };
   const ids = diagramNodeIds(spec);
-  unique(ids, "/nodes");
+  const nodeField = {
+    sequence: "participants",
+    "state-machine": "states",
+    er: "entities",
+    timeline: "events"
+  }[spec.type] ?? "nodes";
+  const relationField = { sequence: "messages", "state-machine": "transitions", er: "relations" }[spec.type] ?? "edges";
+  unique(ids, `/${nodeField}`);
   const nodes = new Set(ids);
   const edges = relations(spec);
   unique(
-    edges.flatMap((edge) => edge.id === void 0 ? [] : [edge.id]),
-    "/relations"
+    edges.map((edge) => edge.id),
+    `/${relationField}`
   );
   edges.forEach((edge, index) => {
     for (const endpoint of ["from", "to"]) {
       if (!nodes.has(edge[endpoint]))
-        add(`/relations/${index}/${endpoint}`, "reference", `Unknown node: ${edge[endpoint]}`);
+        add(
+          `/${relationField}/${index}/${endpoint}`,
+          "reference",
+          `Unknown node: ${edge[endpoint]}`
+        );
     }
   });
   if (spec.type === "band") {

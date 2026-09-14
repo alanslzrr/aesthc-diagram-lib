@@ -45,3 +45,11 @@ Architecture `nodeVisuals` accept `source: 'thesvg'` with the original brand key
 and `azure`; legacy `source: 'svgl'` mappings remain compatible. Artwork now comes
 from a pinned TheSVG revision, so brand silhouettes may differ slightly. Specs,
 layout geometry and callbacks are unchanged. Font and theme tokens still apply.
+
+## Semantic issue paths
+
+Validation issues now use the authored collection (`edges`, `messages`,
+`transitions`, `relations`, `participants`, `states`, `entities` or `events`), not
+normalized `/nodes` and `/relations` paths. Duplicate explicit IDs retain original
+indices even after anonymous relations. Consumers matching exact paths should
+update their field mapping; issue codes and success/result shapes are unchanged.
