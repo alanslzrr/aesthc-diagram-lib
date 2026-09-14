@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, relative, resolve, sep } from 'node:path'
+import { copySnapshotResources, sealSnapshot, verifySnapshot } from './docs/snapshots.mjs'
 import { renderDocument } from './docs/render.tsx'
 import { renderPage, label } from './docs/page.mjs'
 const out = resolve('site/dist')
@@ -38,8 +39,6 @@ function write(path, contents) {
   writeFileSync(path, contents)
 }
 mkdirSync(`${out}/docs-assets/fonts`, { recursive: true })
-for (const font of ['geist-sans.woff2', 'geist-mono.woff2'])
-  cpSync(`site/src/assets/fonts/${font}`, `${out}/docs-assets/${font}`)
 for (const font of ['geist-sans.woff2', 'geist-mono.woff2'])
   cpSync(`site/src/assets/fonts/${font}`, `${out}/docs-assets/fonts/${font}`)
 cpSync('site/docs/docs.css', `${out}/docs-assets/docs.css`)
@@ -98,6 +97,7 @@ for (const file of sources) {
       }
       return value
     })
+    versionData.contentBase = `${base}versions/${version}/`
     versionData.destination = `versions/${version}/${destination}`
     write(`${out}/versions/${version}/${destination}index.html`, renderDocument(versionData))
     write(`${out}/versions/${version}/${destination}page.json`, JSON.stringify(versionData))
@@ -154,3 +154,38 @@ write(
     })),
   ),
 )
+
+const snapshot = `${out}/versions/${version}`
+if (!existsSync(`site/public/versions/${version}`)) {
+  const contentBase = `${base}versions/${version}/`
+  copySnapshotResources(out, snapshot, base, contentBase, version)
+  const search = JSON.parse(readFileSync(`${out}/docs-assets/search.json`, 'utf8'))
+  write(
+    `${snapshot}/docs-assets/search.json`,
+    JSON.stringify(
+      search.map((entry) => ({ ...entry, url: entry.url.replace(base, contentBase) })),
+    ),
+  )
+  write(
+    `${snapshot}/llms.txt`,
+    `# @aesthc/diagram-lib ${version}\n\n${index.map(({ title, destination }) => `- [${title}](${origin}versions/${version}/${destination}index.md)`).join('\n')}\n\n- [Schema](${origin}versions/${version}/schemas/${version}/DiagramSpec.schema.json)\n`,
+  )
+  write(
+    `${snapshot}/llms-full.txt`,
+    index
+      .map(({ destination }) => readFileSync(`${snapshot}/${destination}index.md`, 'utf8'))
+      .join('\n\n---\n\n'),
+  )
+  sealSnapshot(snapshot, {
+    version,
+    channel: manifest.diagramRelease.channel,
+    base,
+    contentBase,
+    sha: process.env.GITHUB_SHA ?? 'local-build',
+  })
+}
+verifySnapshot(snapshot)
+if (existsSync('site/public/versions')) {
+  for (const entry of readdirSync('site/public/versions', { withFileTypes: true }))
+    if (entry.isDirectory()) verifySnapshot(`${out}/versions/${entry.name}`)
+}
