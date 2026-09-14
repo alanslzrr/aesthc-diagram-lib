@@ -282,7 +282,16 @@ export default function DocsApp({ initial }: { initial: DocPage }) {
     document.title = `${page.title} · @aesthc/diagram-lib`
     document
       .querySelector('meta[name="description"]')
-      ?.setAttribute('content', `${page.title} for @aesthc/diagram-lib ${page.version}`)
+      ?.setAttribute(
+        'content',
+        page.description ?? `${page.title} for @aesthc/diagram-lib ${page.version}`,
+      )
+    document
+      .querySelector('meta[property="og:description"]')
+      ?.setAttribute('content', page.description ?? page.title)
+    document
+      .querySelector('meta[property="og:url"]')
+      ?.setAttribute('content', page.origin + page.destination)
     document.querySelector('meta[property="og:title"]')?.setAttribute('content', page.title)
     document
       .querySelector('link[rel="canonical"]')

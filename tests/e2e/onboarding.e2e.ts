@@ -18,3 +18,27 @@ test('candidate onboarding is explicit and generated pages link to their source'
   await expect(page.getByRole('main')).toContainText('BrandIcon')
   await expect(page.getByRole('main')).toContainText('ARCHITECTURE_EXAMPLES')
 })
+
+test('static discovery metadata and missing-page recovery are usable without JavaScript', async ({
+  browser,
+  request,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+  await page.goto('/docs/getting-started/')
+  const gettingStarted = await page.locator('meta[name="description"]').getAttribute('content')
+  await page.goto('/docs/guides/theming/')
+  const theming = await page.locator('meta[name="description"]').getAttribute('content')
+  expect(gettingStarted).not.toEqual(theming)
+  expect(theming).not.toMatch(/\]\(|\|---/)
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', theming!)
+  await page.goto('/404.html')
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Read the documentation' })).toHaveAttribute(
+    'href',
+    '/docs/',
+  )
+  expect(await (await request.get('/robots.txt')).text()).toContain('sitemap.xml')
+  expect((await request.get('/licenses/TheSVG-MIT.txt')).ok()).toBe(true)
+  await context.close()
+})
