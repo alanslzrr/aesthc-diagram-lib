@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation experience
+
+- Add a dedicated documentation home and 17 statically rendered pages with grouped
+  navigation, heading links, a table of contents and previous/next pagination.
+- Show validated SVG previews, complete highlighted React examples, downloadable
+  JSON/TSX and local documentation search. Reading and navigation work without JavaScript.
+- Add persistent npm/pnpm/yarn/bun installation commands and clipboard feedback.
+- Replace native documentation disclosure triangles with rounded-stroke chevrons,
+  explicit open-state rotation and keyboard-friendly mobile navigation.
+- Round playground controls and diagram frames; use normal-case Sora for interface
+  labels while retaining Bodoni headings and monospace only for source code.
+
 ### Release candidate: 0.3.0
 
 - Refine the light palette with a blue-gray canvas, distinct node surfaces,

@@ -3,7 +3,7 @@
 Seven diagram types with one visual language: declarative React SVG diagrams with
 localized data, controlled interaction and host-defined themes.
 
-[Playground](https://alanslzrr.github.io/aesthc-diagram-lib/) · [Documentation](https://alanslzrr.github.io/aesthc-diagram-lib/docs/getting-started/) · [Use with your agent](https://alanslzrr.github.io/aesthc-diagram-lib/agents/) · [MIT license](https://github.com/alanslzrr/aesthc-diagram-lib/blob/main/LICENSE)
+[Playground](https://alanslzrr.github.io/aesthc-diagram-lib/) · [Documentation](https://alanslzrr.github.io/aesthc-diagram-lib/docs/) · [Use with your agent](https://alanslzrr.github.io/aesthc-diagram-lib/agents/) · [MIT license](https://github.com/alanslzrr/aesthc-diagram-lib/blob/main/LICENSE)
 
 ![Band diagram](https://raw.githubusercontent.com/alanslzrr/aesthc-diagram-lib/main/docs/diagrams/band.svg)
 
