@@ -100,6 +100,11 @@ export function renderPage({ file, markdown, destination, routes, base, origin, 
   const order = nav.flatMap((group) => group.pages)
   const position = order.findIndex((page) => page.file === file)
   const data = {
+    description: (blocks.find((block) => block.type === 'paragraph')?.text ?? label(file))
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[*`_]|<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .slice(0, 180),
     file,
     title: /^# (.+)$/m.exec(markdown)?.[1] ?? label(file),
     label: label(file),

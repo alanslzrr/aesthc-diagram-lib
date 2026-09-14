@@ -8,7 +8,7 @@ import { InstallCommand } from './InstallCommand'
 import { MESSAGES } from '../lib/messages'
 import { PACKAGE_VERSION } from '../generated/quick-start'
 import type { Locale } from '../content'
-import { FEATURES, GITHUB_URL, QUICK_START, STRINGS } from '../content'
+import { FEATURES, GITHUB_URL, QUICK_START, SECTIONS, STRINGS } from '../content'
 import { CopyButton, ControlButton, SectionHeader } from './ui'
 
 export function TopBar({ locale, onLocale }: { locale: Locale; onLocale: () => void }) {
@@ -58,7 +58,7 @@ export function TopBar({ locale, onLocale }: { locale: Locale; onLocale: () => v
   )
 }
 
-export function Hero({ locale }: { locale: Locale }) {
+export function Hero({ locale, theme }: { locale: Locale; theme: 'light' | 'dark' }) {
   return (
     <div className="site-hero" id="top">
       <p className="text-xs tracking-normal text-muted-foreground">{STRINGS.label[locale]}</p>
@@ -68,10 +68,58 @@ export function Hero({ locale }: { locale: Locale }) {
       </h1>
       <p className="hero-intro">{STRINGS.intro[locale]}</p>
 
+      <a
+        href="#example-band"
+        className="mt-5 block rounded-md border border-border overflow-hidden"
+        aria-label={
+          locale === 'es'
+            ? 'Explorar este diagrama interactivo'
+            : 'Explore this interactive diagram'
+        }
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}diagram-preview-${theme}.png`}
+          width="996"
+          height="333"
+          alt={
+            locale === 'es'
+              ? 'Flujo de ingreso, validación y aprobación con un camino de cuarentena'
+              : 'Ingress, validation and approval flow with a quarantine path'
+          }
+          className="w-full h-auto"
+          fetchPriority="high"
+        />
+      </a>
       <InstallCommand locale={locale} />
+      <nav
+        aria-label={locale === 'es' ? 'Explorar la biblioteca' : 'Explore the library'}
+        className="mt-5 flex flex-wrap gap-4 text-sm underline underline-offset-4"
+      >
+        <a href="#quick-start">{STRINGS.quickStartTitle[locale]}</a>
+        <a href="#cloud-architecture">
+          {locale === 'es' ? 'Arquitecturas reales' : 'Real architectures'}
+        </a>
+        <a href="#theme-studio">{STRINGS.themeTitle[locale]}</a>
+      </nav>
+      <nav
+        aria-label={locale === 'es' ? 'Tipos de diagrama' : 'Diagram types'}
+        className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"
+      >
+        {SECTIONS.map((entry) => (
+          <a key={entry.key} href={`#${entry.key}`} className="underline underline-offset-4">
+            {entry.title[locale]}
+          </a>
+        ))}
+      </nav>
 
       <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/75">
-        {['ESM', 'React 18.3.1 / 19', 'TypeScript', '7 layouts', 'en · es'].map((badge) => (
+        {[
+          'ESM',
+          'React 18.3.1 / 19',
+          'TypeScript',
+          locale === 'es' ? '7 diseños' : '7 layouts',
+          'en · es',
+        ].map((badge) => (
           <li key={badge} className="inline-flex items-center gap-2">
             <i aria-hidden="true" className="inline-block h-1 w-1 rounded-full bg-foreground/30" />
             {badge}
@@ -105,32 +153,39 @@ export function Hero({ locale }: { locale: Locale }) {
 
 export function QuickStart({ locale, index }: { locale: Locale; index: number }) {
   return (
-    <article className="border-t border-foreground/20 py-12">
+    <article id="quick-start" className="border-t border-foreground/20 py-12">
       <SectionHeader index={index} title={STRINGS.quickStartTitle[locale]} meta="readme" />
       <h2 className="section-title text-foreground">{STRINGS.quickStartTitle[locale]}</h2>
       <p className="section-copy mt-3 max-w-[64ch] text-foreground/74">
         {STRINGS.quickStartIntro[locale]}
       </p>
 
-      <div className="relative mt-6 overflow-hidden rounded-lg border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))]">
-        <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <span className="font-sans text-xs tracking-normal text-foreground/75">
-            quick-start.tsx
-          </span>
-          <CopyButton
-            locale={locale}
-            label={STRINGS.copy[locale]}
-            copiedLabel={STRINGS.copied[locale]}
-            getText={() => QUICK_START}
-          />
-        </div>
-        <ScrollArea orientation="horizontal" label={MESSAGES.integration[locale]}>
-          {' '}
-          <pre className="p-5 font-mono text-[13px] leading-[1.7] text-foreground/85">
-            {QUICK_START}
-          </pre>
-        </ScrollArea>
-      </div>
+      <Disclosure className="mt-6">
+        <DisclosureTrigger>
+          {locale === 'es' ? 'Ejemplo React completo' : 'Complete React example'}
+        </DisclosureTrigger>
+        <DisclosureContent>
+          <div className="relative mt-6 overflow-hidden rounded-lg border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <span className="font-sans text-xs tracking-normal text-foreground/75">
+                quick-start.tsx
+              </span>
+              <CopyButton
+                locale={locale}
+                label={STRINGS.copy[locale]}
+                copiedLabel={STRINGS.copied[locale]}
+                getText={() => QUICK_START}
+              />
+            </div>
+            <ScrollArea orientation="horizontal" label={MESSAGES.integration[locale]}>
+              {' '}
+              <pre className="p-5 font-mono text-[13px] leading-[1.7] text-foreground/85">
+                {QUICK_START}
+              </pre>
+            </ScrollArea>
+          </div>
+        </DisclosureContent>
+      </Disclosure>
     </article>
   )
 }

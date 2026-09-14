@@ -1,3 +1,4 @@
+import { compareVisual } from './helpers/visual'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 const types = ['band', 'flowchart', 'sequence', 'state-machine', 'er', 'timeline', 'swimlane']
@@ -22,7 +23,7 @@ test('seven types render with unique SVG IDs in both themes', async ({ page }) =
         .evaluateAll((nodes) => nodes.map((node) => node.id))
       expect(new Set(ids).size).toBe(ids.length)
       if (process.env.VISUAL_REGRESSION === '1')
-        await expect.soft(panel).toHaveScreenshot(`${type}-${theme}.png`, {
+        await compareVisual(panel, `${type}-${theme}.png`, {
           animations: 'disabled',
           maxDiffPixelRatio: 0.001,
           threshold: 0.05,

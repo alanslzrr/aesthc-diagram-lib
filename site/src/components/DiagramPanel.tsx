@@ -316,26 +316,28 @@ export function DiagramPanel({
         </DisclosureContent>
       </Disclosure>
       <div hidden={tab !== 'code'}>
-        <CodeView
-          key={`${entry.key}:${locale}`}
-          entry={entry}
-          locale={locale}
-          draft={draft}
-          onApply={setDraft}
-          initialText={
-            rawDrafts.current.get(`${entry.key}:${locale}`) ??
-            specSource(
-              localeDrafts.current.get(`${entry.key}:${locale}`) ??
-                (specSourceRef.current === `${entry.key}:${locale}` ? draft : baseSpec),
-            )
-          }
-          revision={editorRevision}
-          onRaw={(text, saved = false) => {
-            const source = `${entry.key}:${locale}`
-            rawDrafts.current.set(source, text)
-            unsavedDrafts.current.set(source, text !== specSource(baseSpec) && !saved)
-          }}
-        />
+        {tab === 'code' ? (
+          <CodeView
+            key={`${entry.key}:${locale}`}
+            entry={entry}
+            locale={locale}
+            draft={draft}
+            onApply={setDraft}
+            initialText={
+              rawDrafts.current.get(`${entry.key}:${locale}`) ??
+              specSource(
+                localeDrafts.current.get(`${entry.key}:${locale}`) ??
+                  (specSourceRef.current === `${entry.key}:${locale}` ? draft : baseSpec),
+              )
+            }
+            revision={editorRevision}
+            onRaw={(text, saved = false) => {
+              const source = `${entry.key}:${locale}`
+              rawDrafts.current.set(source, text)
+              unsavedDrafts.current.set(source, text !== specSource(baseSpec) && !saved)
+            }}
+          />
+        ) : null}
       </div>
 
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-sans text-xs text-foreground/75">
