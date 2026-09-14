@@ -35,6 +35,7 @@ try {
         next: '15.5.25',
         vite: '7.3.6',
         typescript: version('typescript'),
+        '@types/node': version('@types/node'),
         '@types/react': version('@types/react'),
         '@types/react-dom': version('@types/react-dom'),
       },

@@ -40,12 +40,17 @@ This is not a release announcement or a claim that the full plan is complete.
 ## Still required before closing the plan
 
 - Final clean-commit checks, review of all generated artifacts and local changes.
-- Full Firefox/WebKit runs: browser CDN downloads timed out locally. CI has the
-  matrix configured, but has not run on GitHub.
+- Require a successful final remote CI run for the reviewed commit. The first
+  GitHub run passed all 45 browser tests (Chromium, Firefox, WebKit and mobile
+  profiles), then exposed a missing Node type dependency in the isolated Next.js
+  consumer. That dependency is now explicit; the corrected consumer also passes
+  locally with `CI=1`. See [PR #5](https://github.com/alanslzrr/aesthc-diagram-lib/pull/5)
+  for the current required-check result.
 - Manual screen-reader/high-contrast/zoom review and broader visual review.
 - Broader security/CSP review beyond the executable-data lint rules.
 - Cold-start agent evaluation: no independent agent evaluation was performed.
-- Confirm and apply remote settings, open/review the PR and verify remote CI.
+- Review [PR #5](https://github.com/alanslzrr/aesthc-diagram-lib/pull/5) and verify
+  its required check before merging. Remote security settings are already applied.
 - Freeze versioned docs at release; verify links from the public deployed URL.
 - npm authentication and scope ownership, trusted publisher/environment setup.
 - Publish immutable artifact/tag/release, deploy stable docs and verify anonymous
