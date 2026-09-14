@@ -78,6 +78,8 @@ interface PlacedLifeline {
 interface Adjacency {
     out: Map<string, string[]>;
     in: Map<string, string[]>;
+    /** Relation identities grouped by encoded endpoints. */
+    relations?: Map<string, string[]>;
 }
 interface Highlight {
     nodes: Set<string>;
@@ -94,7 +96,13 @@ interface DiagramLayout {
     lifelines?: PlacedLifeline[];
     nodeById: Record<string, PlacedNode>;
 }
-declare const edgeId: (edge: Pick<DiagramEdge, "from" | "to">) => string;
+declare const edgeId: (edge: Pick<DiagramEdge, "from" | "to" | "id">) => string;
+/** Preserve explicit IDs; assign unique deterministic IDs to anonymous edges.
+ * Anonymous parallel identities follow authored order. Use explicit IDs when reordering.
+ */
+declare function identifyEdges<T extends DiagramEdge>(edges: T[]): Array<T & {
+    id: string;
+}>;
 declare const labelPillWidth: (label: string) => number;
 declare const nodeHeight: (node: Pick<DiagramNode, "sublabel">) => number;
 declare const isMutedNode: (node: Pick<PlacedNode, "weight">) => boolean;
@@ -134,4 +142,4 @@ declare function connectedIds(nodeId: string, adjacency: Adjacency): Highlight;
 /** Returns only real connection points; unused/hollow ports are intentionally absent. */
 declare function nodePorts(node: PlacedNode, edges: PlacedEdge[], continuations?: PlacedContinuation[]): NodePort[];
 
-export { type Adjacency, type DiagramLayout, type Highlight, type NodePort, type PlacedContainer, type PlacedContinuation, type PlacedDecision, type PlacedEdge, type PlacedLifeline, type PlacedNode, buildAdjacency, connectY, connectedIds, diagramEdges, edgeId, isMutedNode, labelPillWidth, nodeHeight, nodePorts, roundedPolyline, splitBackEdges };
+export { type Adjacency, type DiagramLayout, type Highlight, type NodePort, type PlacedContainer, type PlacedContinuation, type PlacedDecision, type PlacedEdge, type PlacedLifeline, type PlacedNode, buildAdjacency, connectY, connectedIds, diagramEdges, edgeId, identifyEdges, isMutedNode, labelPillWidth, nodeHeight, nodePorts, roundedPolyline, splitBackEdges };
