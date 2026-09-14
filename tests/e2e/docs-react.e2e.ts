@@ -454,7 +454,7 @@ test('architecture showcase switches concrete service flows, failures and locale
   page,
 }) => {
   await page.goto('/')
-  const region = page.getByRole('region', { name: 'Cloud architecture example' })
+  const region = page.getByRole('region', { name: /Cloud architecture example|Ejemplo de arquitectura cloud/ })
   const cases = [
     {
       en: 'Document ingestion',
