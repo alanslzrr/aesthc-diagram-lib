@@ -77,44 +77,6 @@
     inset 0 1px 0 color-mix(in srgb, white 9%, transparent);
 }
 
-/* Reveal-on-scroll: edges fade in, nodes rise with a stagger set inline by
-   the panel. Only the 'pending' and 'shown' phases have rules — once the
-   panel reaches 'done' the canvas's own opacity control takes over again.
-   prefers-reduced-motion never leaves 'done'. */
-[data-reveal='pending'] svg :is(g[data-node-id], [data-layer]) {
-  opacity: 0;
-}
-
-[data-reveal='shown'] svg [data-layer] {
-  animation: adl-fade 0.8s ease both;
-  animation-delay: 90ms;
-}
-
-[data-reveal='shown'] svg g[data-node-id] {
-  animation: adl-rise 0.55s cubic-bezier(0.22, 0.68, 0.35, 1) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-@keyframes adl-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes adl-rise {
-  from {
-    opacity: 0;
-    transform: translateY(7px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 /* Functional amber text (errors, edited badge) needs more ink on the light
    surface than the decorative --branch accent provides. */
 :root {
