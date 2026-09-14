@@ -1,7 +1,7 @@
 {
   "name": "@aesthc/diagram-lib",
   "version": "0.3.0",
-  "description": "Reusable SVG diagram library — band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
+  "description": "Reusable SVG diagram library \u2014 band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
   "type": "module",
   "sideEffects": [
     "./dist/styles.css"
@@ -71,19 +71,23 @@
     "./validation": {
       "types": "./dist/validation/index.d.ts",
       "default": "./dist/validation/index.js"
+    },
+    "./icons": {
+      "types": "./dist/icons/index.d.ts",
+      "default": "./dist/icons/index.js"
     }
   },
   "scripts": {
     "test": "vitest run",
     "test:package": "pnpm build && node ./scripts/test-package.mjs",
     "typecheck": "tsc --noEmit",
-    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs",
+    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs && node scripts/copy-fonts.mjs",
     "build": "tsup && node ./scripts/inject-use-client.mjs && pnpm build:css",
     "schemas:generate": "node scripts/generate-schemas.mjs",
     "schemas:check": "node scripts/generate-schemas.mjs --check",
     "docs:generate": "tsx scripts/generate-docs.ts",
     "docs:check": "tsx scripts/generate-docs.ts --check",
-    "docs:build": "tsx scripts/render-doc-previews.tsx && node scripts/build-docs.mjs",
+    "docs:build": "tsx scripts/render-doc-previews.tsx && tsx --tsconfig site/tsconfig.json scripts/build-docs.mjs",
     "site:build": "pnpm --dir site build && pnpm docs:build",
     "test:e2e": "playwright test",
     "format:check": "prettier --check src scripts tests site/src site/docs *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml",
