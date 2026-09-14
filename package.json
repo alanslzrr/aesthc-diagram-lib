@@ -95,7 +95,7 @@
     "release:check": "pnpm check && pnpm test:e2e",
     "test:frameworks": "pnpm build && node scripts/test-frameworks.mjs",
     "prepack": "pnpm schemas:check && pnpm docs:check && pnpm build",
-    "test:visual": "VISUAL_REGRESSION=1 playwright test --project=chromium",
+    "test:visual": "VISUAL_REGRESSION=1 playwright test --project=chromium --grep \"seven types render|layout previews preserve geometry|landing presentation\"",
     "check:budgets": "node scripts/check-budgets.mjs",
     "lint": "eslint src site/src site/docs scripts tests",
     "docs:freeze": "node scripts/freeze-docs.mjs",

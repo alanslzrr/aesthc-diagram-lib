@@ -36,9 +36,9 @@ jobs:
           REACT_TYPES_VERSION: 18.3.28
           REACT_DOM_TYPES_VERSION: 18.3.7
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm test:e2e
       - name: Compare reviewed Chromium visuals
         run: pnpm test:visual
+      - run: pnpm test:e2e
       - run: node scripts/test-frameworks.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
