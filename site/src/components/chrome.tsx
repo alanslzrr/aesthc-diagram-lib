@@ -5,6 +5,7 @@ import { Disclosure, DisclosureTrigger, DisclosureContent } from './primitives/D
 import { InstallCommand } from './InstallCommand'
 // Page chrome: fixed top bar, hero, quick start and footer.
 
+import { MESSAGES } from '../lib/messages'
 import { PACKAGE_VERSION } from '../generated/quick-start'
 import type { Locale } from '../content'
 import { FEATURES, GITHUB_URL, QUICK_START, STRINGS } from '../content'
@@ -21,7 +22,10 @@ export function TopBar({ locale, onLocale }: { locale: Locale; onLocale: () => v
           <span className="sm:hidden">aesthc</span>
           <span className="hidden sm:inline">aesthc / diagrams</span>
         </a>
-        <nav aria-label="Main navigation" className="inline-flex flex-wrap items-center gap-2">
+        <nav
+          aria-label={locale === 'es' ? 'Navegación principal' : 'Main navigation'}
+          className="inline-flex flex-wrap items-center gap-2"
+        >
           <a
             className="text-xs underline underline-offset-4"
             href={`${import.meta.env.BASE_URL}docs/`}
@@ -114,12 +118,13 @@ export function QuickStart({ locale, index }: { locale: Locale; index: number })
             quick-start.tsx
           </span>
           <CopyButton
+            locale={locale}
             label={STRINGS.copy[locale]}
             copiedLabel={STRINGS.copied[locale]}
             getText={() => QUICK_START}
           />
         </div>
-        <ScrollArea orientation="horizontal" label="Quick start code">
+        <ScrollArea orientation="horizontal" label={MESSAGES.integration[locale]}>
           {' '}
           <pre className="p-5 font-mono text-[13px] leading-[1.7] text-foreground/85">
             {QUICK_START}

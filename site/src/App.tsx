@@ -1,3 +1,4 @@
+import { MESSAGES, savedLocale, saveLocale } from './lib/messages'
 import { CloudArchitecture } from './components/CloudArchitecture'
 import { useThemePreference } from './components/primitives/theme'
 import { useEffect, useState } from 'react'
@@ -20,7 +21,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.enhanced = 'true'
   }, [])
-  const [locale, setLocale] = useState<Locale>('en')
+  const [locale, setLocale] = useState<Locale>(savedLocale)
   const sections = useDebugSections()
   const [shared, setShared] = useState<{ key: string; spec: DiagramSpec } | null>(null)
   const [shareError, setShareError] = useState(false)
@@ -57,19 +58,20 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.lang = locale
+    saveLocale(locale)
   }, [locale])
 
   return (
     <div className="pb-4">
       <a href="#main" className="skip-link">
-        Skip to diagrams
+        {MESSAGES.skip[locale]}
       </a>
       <TopBar
         locale={locale}
         onLocale={() => {
           if (
             !document.querySelector('textarea[aria-invalid="true"]') ||
-            window.confirm('Discard invalid JSON before changing language?')
+            window.confirm(MESSAGES.discardInvalid[locale])
           )
             setLocale((current) => (current === 'en' ? 'es' : 'en'))
         }}
@@ -79,7 +81,7 @@ export default function App() {
 
       {shareError ? (
         <p role="alert" className="mx-auto max-w-4xl p-4">
-          Invalid or oversized share link. Default examples are shown; your link was not evaluated.
+          {MESSAGES.invalidShare[locale]}
         </p>
       ) : null}
       <main id="main" tabIndex={-1} className="mx-auto mt-12 w-full max-w-[1180px] px-4 sm:px-8">
@@ -95,7 +97,7 @@ export default function App() {
               {entry.description[locale]}
             </p>
 
-            <PanelBoundary>
+            <PanelBoundary locale={locale}>
               {hydrated ? (
                 <DiagramPanel
                   entry={entry}

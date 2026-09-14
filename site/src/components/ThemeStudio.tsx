@@ -1,33 +1,14 @@
-// Live token editor: edits feed a <style> tag that overrides the host theme
-// contract, so every diagram on the page restyles in real time. "Copy CSS"
-// exports the exact block the README documents.
+// Keep editable text separate from validated colors. Only the local SVG preview
+// receives custom tokens; copying exports the valid host theme block.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { Locale } from '../content'
 import { STRINGS } from '../content'
-import { themeCss, type ThemeTokens } from '../lib/code'
+import { isHexColor, themeCss, type ThemeTokens } from '../lib/code'
+import { DEFAULT_LIGHT, DEFAULT_DARK } from '../lib/palette'
+import { MESSAGES } from '../lib/messages'
 import { CopyButton, ControlButton } from './ui'
-
-const DEFAULT_LIGHT: ThemeTokens = {
-  background: '#e9eef4',
-  foreground: '#202b38',
-  card: '#f9fbfd',
-  border: '#aebdcd',
-  mutedForeground: '#536273',
-  cobalt: '#087cbd',
-  branch: '#a66b21',
-}
-
-const DEFAULT_DARK: ThemeTokens = {
-  background: '#070707',
-  foreground: '#f2f2ee',
-  card: '#101010',
-  border: '#242424',
-  mutedForeground: '#a8a8a1',
-  cobalt: '#14a8ff',
-  branch: '#d6a55e',
-}
 
 interface Preset {
   name: string
@@ -70,30 +51,36 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
 
   const css = useMemo(() => themeCss(light, dark), [light, dark])
 
-  useEffect(() => {
-    let styleTag = document.getElementById('theme-studio-overrides')
-    if (!styleTag) {
-      styleTag = document.createElement('style')
-      styleTag.id = 'theme-studio-overrides'
-      document.head.appendChild(styleTag)
-    }
-    styleTag.textContent = css
-  }, [css])
-
+  const [lightText, setLightText] = useState(DEFAULT_LIGHT)
+  const [darkText, setDarkText] = useState(DEFAULT_DARK)
+  const previewCss = useMemo(() => themeCss(light, dark, '.theme-studio-preview'), [light, dark])
   const activeTokens = theme === 'dark' ? dark : light
+  const activeText = theme === 'dark' ? darkText : lightText
+  const setActiveText = theme === 'dark' ? setDarkText : setLightText
+  const hasErrors = [...Object.values(lightText), ...Object.values(darkText)].some(
+    (value) => !isHexColor(value),
+  )
+  const edit = (token: keyof ThemeTokens, value: string) => {
+    setPreset('custom')
+    setActiveText((tokens) => ({ ...tokens, [token]: value }))
+    if (isHexColor(value)) setActiveTokens((tokens) => ({ ...tokens, [token]: value }))
+  }
   const setActiveTokens = theme === 'dark' ? setDark : setLight
 
   const applyPreset = (candidate: Preset) => {
     setPreset(candidate.name)
     setLight({ ...DEFAULT_LIGHT, ...candidate.light })
     setDark({ ...DEFAULT_DARK, ...candidate.dark })
+    setLightText({ ...DEFAULT_LIGHT, ...candidate.light })
+    setDarkText({ ...DEFAULT_DARK, ...candidate.dark })
   }
 
   return (
     <div className="relative mt-6 overflow-hidden rounded-lg border border-border bg-background">
       <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
         <span className="inline-flex items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
-          {STRINGS.themeMode[locale]} / {theme}
+          {STRINGS.themeMode[locale]} /{' '}
+          {locale === 'es' ? (theme === 'dark' ? 'oscuro' : 'claro') : theme}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-xs text-foreground/75">{STRINGS.presets[locale]}</span>
@@ -108,6 +95,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
           ))}
           <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
           <CopyButton
+            locale={locale}
             label={STRINGS.copyCss[locale]}
             copiedLabel={STRINGS.copied[locale]}
             getText={() => css}
@@ -119,69 +107,99 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
         />
       </div>
 
-      <svg
-        role="img"
-        aria-label="Local theme preview"
-        viewBox="0 0 640 140"
-        className="mx-auto mt-6 w-full max-w-2xl px-5"
-      >
-        <rect
-          x="10"
-          y="20"
-          width="220"
-          height="100"
-          rx="8"
-          fill="var(--card)"
-          stroke="var(--diagram-node-border)"
-        />
-        <rect
-          x="410"
-          y="20"
-          width="220"
-          height="100"
-          rx="8"
-          fill="var(--card)"
-          stroke="var(--diagram-node-border)"
-        />
-        <path d="M230 70H410" stroke="var(--cobalt)" strokeWidth="2" />
-        <text x="120" y="76" textAnchor="middle" fill="var(--foreground)">
-          Request
-        </text>
-        <text x="520" y="76" textAnchor="middle" fill="var(--foreground)">
-          Response
-        </text>
-      </svg>
+      <style>{previewCss}</style>
+      {hasErrors ? (
+        <p role="status" className="px-5 text-xs">
+          {MESSAGES.pendingColors[locale]}
+        </p>
+      ) : null}
+      <div className="theme-studio-preview" style={{ background: 'var(--background)' }}>
+        <svg
+          role="img"
+          aria-label={MESSAGES.preview[locale]}
+          viewBox="0 0 640 140"
+          className="mx-auto mt-6 w-full max-w-2xl px-5"
+        >
+          <rect
+            x="10"
+            y="20"
+            width="220"
+            height="100"
+            rx="8"
+            fill="var(--card)"
+            stroke="var(--diagram-node-border)"
+          />
+          <rect
+            x="410"
+            y="20"
+            width="220"
+            height="100"
+            rx="8"
+            fill="var(--card)"
+            stroke="var(--diagram-node-border)"
+          />
+          <path d="M230 70H410" stroke="var(--cobalt)" strokeWidth="2" />
+          <text x="120" y="76" textAnchor="middle" fill="var(--foreground)">
+            {MESSAGES.request[locale]}
+          </text>
+          <text x="520" y="76" textAnchor="middle" fill="var(--foreground)">
+            {MESSAGES.response[locale]}
+          </text>
+        </svg>
+      </div>
       <div className="grid gap-x-8 gap-y-5 px-5 py-8 sm:grid-cols-2 sm:px-7 lg:grid-cols-3">
         {FIELDS.map((field) => (
-          <label key={field.token} className="flex items-center justify-between gap-4">
+          <label key={field.token} className="flex flex-wrap items-center justify-between gap-4">
             <span className="text-xs font-medium text-foreground/80">
-              {field.label}
-              <span className="mt-0.5 block font-sans text-[10px] font-normal text-foreground/75">
+              {locale === 'es'
+                ? {
+                    cobalt: 'cobalto · principal',
+                    branch: 'rama · alternativa',
+                    background: 'fondo',
+                    card: 'superficie',
+                    border: 'borde',
+                    foreground: 'texto',
+                    mutedForeground: 'texto secundario',
+                  }[field.token]
+                : field.label}
+              <span className="mt-0.5 block font-sans text-xs font-normal text-foreground/75">
                 {field.cssVar}
               </span>
             </span>
             <span className="inline-flex items-center gap-2.5">
               <input
                 type="text"
-                value={activeTokens[field.token]}
+                value={activeText[field.token]}
                 onChange={(event) => {
-                  setPreset('custom')
-                  setActiveTokens((tokens) => ({ ...tokens, [field.token]: event.target.value }))
+                  edit(field.token, event.target.value)
                 }}
+                aria-invalid={!isHexColor(activeText[field.token])}
+                aria-describedby={
+                  !isHexColor(activeText[field.token])
+                    ? `theme-${theme}-${field.token}-error`
+                    : undefined
+                }
                 aria-label={`${field.cssVar} — ${STRINGS.hexAria[locale]}`}
-                className="w-[86px] border border-border bg-transparent px-2 py-1 font-sans text-[10.5px] text-foreground/80 outline-none focus:border-foreground/35"
+                className="w-[86px] border border-border bg-transparent px-2 py-1 font-sans text-xs text-foreground/80 outline-none focus:border-foreground/35"
               />
               <input
                 type="color"
                 value={toHex(activeTokens[field.token])}
                 onChange={(event) => {
-                  setPreset('custom')
-                  setActiveTokens((tokens) => ({ ...tokens, [field.token]: event.target.value }))
+                  edit(field.token, event.target.value)
                 }}
                 aria-label={`${field.cssVar} — ${STRINGS.pickerAria[locale]}`}
                 className="h-7 w-9 cursor-pointer border border-border bg-transparent p-0.5"
               />
             </span>
+            {!isHexColor(activeText[field.token]) ? (
+              <span id={`theme-${theme}-${field.token}-error`} className="text-xs" role="alert">
+                {MESSAGES.invalidColor[locale]}{' '}
+                <button type="button" onClick={() => edit(field.token, activeTokens[field.token])}>
+                  {MESSAGES.restore[locale]}
+                </button>
+              </span>
+            ) : null}
           </label>
         ))}
       </div>
@@ -189,4 +207,12 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
   )
 }
 
-const toHex = (value: string): string => (/^#[0-9a-fA-F]{6}$/.test(value) ? value : '#888888')
+const toHex = (value: string): string =>
+  value.length <= 5
+    ? '#' +
+      value
+        .slice(1, 4)
+        .split('')
+        .map((part) => part + part)
+        .join('')
+    : value.slice(0, 7)

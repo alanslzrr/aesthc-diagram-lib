@@ -15,6 +15,7 @@ export function InstallCommand({ locale }: { locale: Locale }) {
             : 'Release candidate—not yet available on npm. The command is for the future release.'}
       </p>
       <InstallSnippet
+        locale={locale}
         packages={`@aesthc/diagram-lib@${PACKAGE_VERSION}`}
         className="mt-3"
         label={locale === 'es' ? 'Instalar paquete' : 'Install package'}

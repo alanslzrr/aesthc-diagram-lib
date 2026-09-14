@@ -1,3 +1,5 @@
+import type { Locale } from '../content'
+import { MESSAGES } from '../lib/messages'
 import { useEffect, useState } from 'react'
 import { BrandIcon } from '@aesthc/diagram-lib/icons'
 import { ScrollArea } from './primitives/ScrollArea'
@@ -7,11 +9,13 @@ type Manager = 'pnpm' | 'yarn' | 'npm' | 'bun'
 const managers: Manager[] = ['pnpm', 'yarn', 'npm', 'bun']
 
 export function InstallSnippet({
+  locale = 'en',
   packages,
   label = 'Install package',
   copyLabel = 'Copy installation command',
   className = '',
 }: {
+  locale?: Locale
   packages: string
   label?: string
   copyLabel?: string
@@ -29,7 +33,7 @@ export function InstallSnippet({
   }, [])
   useEffect(() => {
     if (!status) return
-    const timer = setTimeout(() => setStatus(''), 1800)
+    const timer = setTimeout(() => setStatus(''), 4000)
     return () => clearTimeout(timer)
   }, [status])
   const code = `${manager} ${manager === 'npm' ? 'install' : 'add'} ${packages}`
@@ -40,7 +44,7 @@ export function InstallSnippet({
       data-package-command=""
     >
       <div className="install-toolbar">
-        <div className="install-managers" role="group" aria-label="Package manager">
+        <div className="install-managers" role="group" aria-label={MESSAGES.manager[locale]}>
           {managers.map((name) => (
             <button
               type="button"
@@ -71,13 +75,13 @@ export function InstallSnippet({
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(code)
-              setStatus('Copied')
+              setStatus(MESSAGES.copied[locale])
             } catch {
-              setStatus('Copy failed. Select the command and copy it manually.')
+              setStatus(MESSAGES.copyFailed[locale])
             }
           }}
         >
-          {status === 'Copied' ? (
+          {status === MESSAGES.copied[locale] ? (
             <svg
               viewBox="0 0 24 24"
               width="18"
@@ -99,7 +103,12 @@ export function InstallSnippet({
           </span>
         </button>
       </div>
-      <ScrollArea orientation="horizontal" label="Installation command">
+      {status ? (
+        <p className="action-status" role="status">
+          {status}
+        </p>
+      ) : null}
+      <ScrollArea orientation="horizontal" label={MESSAGES.installation[locale]}>
         <pre className="install-command">
           <span className="install-prompt" aria-hidden="true">
             $

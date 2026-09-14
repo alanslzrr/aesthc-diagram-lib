@@ -68,3 +68,22 @@ and sublabel. Edges show specific events, commands or artifacts and include a re
 exception path. Detailed settlement, identity and idempotency assumptions belong
 in descriptions/notes, not oversized edge pills. Reference designs must cite
 provider documentation and must not be presented as deployed production systems.
+
+### Palette source and reading overrides
+
+`site/src/lib/palette.ts` defines the seven base light/dark tokens. Documentation
+and playground styles consume generated `--palette-*` values. Theme Studio starts
+from that base and scopes edits to its local SVG preview, never document controls.
+
+| Token | Light base | Dark base | Docs dark reading override |
+|---|---|---|---|
+| background | #e9eef4 | #070707 | none |
+| foreground | #202b38 | #f2f2ee | none |
+| card | #f9fbfd | #101010 | none |
+| border | #aebdcd | #242424 | #323232, readable panel outlines |
+| muted-foreground | #536273 | #a8a8a1 | #b0b0aa, long-form supporting text |
+| cobalt | #087cbd | #14a8ff | #49b9ff, reading/focus contrast |
+| branch | #a66b21 | #d6a55e | none |
+
+Copied CSS exports base canvas tokens, not documentation reading overrides.
+`pnpm docs:generate` regenerates palette CSS; do not edit the generated file.
