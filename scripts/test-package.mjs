@@ -12,7 +12,7 @@ import {
 } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { delimiter, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -52,10 +52,18 @@ function runNpm(args, cwd, capture = false) {
 }
 
 try {
-  const [packed] = JSON.parse(
-    runNpm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary], root, true),
-  )
-  const archive = join(temporary, packed.filename)
+  const archive = process.env.PACKAGE_ARCHIVE
+    ? resolve(process.env.PACKAGE_ARCHIVE)
+    : join(
+        temporary,
+        JSON.parse(
+          runNpm(
+            ['pack', '--json', '--ignore-scripts', '--pack-destination', temporary],
+            root,
+            true,
+          ),
+        )[0].filename,
+      )
   cpSync(new URL('../tests/fixtures/package-consumer/', import.meta.url), consumer, {
     recursive: true,
   })
@@ -84,7 +92,7 @@ try {
     ),
   )
 
-  console.log(`Testing ${packed.filename} in an isolated consumer`)
+  console.log(`Testing ${archive} in an isolated consumer`)
   // Do not execute lifecycle scripts from the package or its dependencies.
   // Direct peer/compiler versions match the installed, lockfile-backed workspace.
   runNpm(
