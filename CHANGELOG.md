@@ -7,149 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Service-level architecture examples
-
-- Replace the provider-name showcase with selectable document ingestion, asynchronous order fulfillment and container delivery reference designs in both locales.
-- Export localized specs, explicit visuals, operational notes and provider references through `ARCHITECTURE_EXAMPLES`; retain the earlier cloud constants for compatibility.
-
-### Diagram action toolbar
-
-- Replace repeated preview/code/share labels with accessible icon controls in playground and docs previews.
-- Copy a ready-to-use integration prompt and consolidate JSON/SVG/PNG copy/download options into one keyboard-accessible disclosure.
-
-### Compact web design system
-
-- Define shared Geist typography, bounded icon sizes and a four-pixel spacing scale for the landing page and docs.
-- Compact the hero, installation block and responsive header while retaining native reading scroll.
-- Prevent ER field types and unique constraints from overlapping in SVG rendering.
-
-### Brand icons and installation
-
-- Source selected local brand artwork from a pinned TheSVG revision with per-asset notices.
-- Add optional `icons` entrypoint and `thesvg` node visuals; preserve legacy `svgl` keys.
-- Share underlined full-color package-manager tabs and icon-only copy across docs/playground.
-- Include an illustrative Google Cloud/Azure architecture example with explicit visual mappings.
-
-### Geist and React documentation
-
-- Use self-hosted Geist Sans/Mono across package defaults, docs, playground and standalone exports; preserve host font overrides.
-- Prerender React documentation routes and hydrate client navigation, search, previews and copy controls.
-- Share Radix ScrollArea panels, animated native Disclosure and the system/light/dark icon selector with the playground.
-- Keep normal document scroll, direct/versioned routes and no-JavaScript reading.
-- Apply the existing175KiB JavaScript and12KiB CSS transfer budgets to each complete multi-entry dependency graph, counting shared and lazy chunks.
-
-
-### Visual corrections
-
-- Use restrained six-pixel control corners and text-based previous/next navigation;
-  remove decorative left callout stripes and toolbar status dots.
-- Center label-only nodes without reserving an empty icon rail. Keep table fields,
-  event labels and annotated/icon-bearing cards in their own layout-specific alignment.
-- Give documentation nodes opaque surfaces over the SVG grid and preserve artboard
-  aspect ratios rather than capping height independently of width.
-
-### Documentation experience
-
-- Add a dedicated documentation home and 17 statically rendered pages with grouped
-  navigation, heading links, a table of contents and previous/next pagination.
-- Show validated SVG previews, complete highlighted React examples, downloadable
-  JSON/TSX and local documentation search. Reading and navigation work without JavaScript.
-- Add persistent npm/pnpm/yarn/bun installation commands and clipboard feedback.
-- Replace native documentation disclosure triangles with rounded-stroke chevrons,
-  explicit open-state rotation and keyboard-friendly mobile navigation.
-- Round playground controls and diagram frames; use normal-case Sora for interface
-  labels while retaining Bodoni headings and monospace only for source code.
-
 ### Release candidate: 0.3.0
 
-- Refine the light palette with a blue-gray canvas, distinct node surfaces,
-  stronger grid and connection contrast. Optional detail tokens preserve existing
-  consumer defaults; the playground, copied CSS and SVG exports stay aligned.
-  The dark palette is unchanged.
-
-This version is prepared locally, not yet verified on the public npm registry.
-
-- Add generated JSON Schemas and the dependency-free `/validation` entrypoint.
-- Use explicit relation IDs and collision-safe anonymous parallel identities;
-  preserve every relation during connected-path highlighting.
-- Replace executable editor input with validated JSON and retain the last valid
-  preview. Version shared links with locale and bounded decoding.
-- Generate seven complete interactive examples, API/type documentation, a static
-  integration guide for agents, Markdown endpoints and `llms.txt` indexes.
-- Consume package exports in the playground and test installed tarballs with
-  React 18/19, TypeScript NodeNext/Bundler, Vite and Next.js.
-- Add private security/conduct contacts, contribution templates, license notices,
-  browser accessibility checks and a gated OIDC release workflow.
-- Improve mobile controls, keyboard-accessible code regions, text descriptions,
-  theme previews and error reporting for copy/download actions.
-
-Migration: editor/share data is JSON, not executable JavaScript. Sequence relation
-IDs now match authored message IDs. See [migration notes](docs/guides/migration.md).
-
-
-### Fixed
-
-- Registry state is now shared between the root, registry, examples and showcase
-  package entrypoints. Previously, independent bundles duplicated the registry
-  and could report an unknown diagram for registrations made through another import.
-- Full builds remove obsolete distribution chunks before generating JS, types and
-  CSS, preventing stale files from accumulating in release artifacts.
+Prepared for review; public npm availability has not yet been verified.
 
 ### Added
 
-- An isolated tarball consumer test verifies public imports, registry identity,
-  showcase rendering, client directives and published TypeScript declarations.
-
-- Site round 2 (inspired by editorial diagram tooling): **PNG export (2×)**
-  rasterized from the standalone SVG, **share links** (spec
-  deflate-compressed into the URL hash, hydrating the exact diagram on
-  open), **reveal-on-scroll motion** (edges fade, nodes rise with a
-  stagger; fully static under `prefers-reduced-motion`), a feature grid in
-  the hero, and **self-hosted latin fonts** (no external requests; the SVG
-  exporter inlines them so downloads open with the real typography
-  anywhere). A dev-only Vite endpoint regenerates the README gallery
-  (`docs/diagrams/*.svg`) from real playground exports.
-- State machine: the `final` marker is a concentric ring on the pill's
-  right edge instead of a dot over the label text.
-
-- `site/`: an interactive open-source showcase page (Vite + Tailwind v4,
-  deployed to GitHub Pages) with a live TS-flavoured spec editor per diagram,
-  per-type knobs, standalone SVG export (copy + download), a theme studio
-  with presets that restyles every canvas in real time, and bilingual
-  (en/es) page copy driven by the library's own localization model.
-- `PlacedEdge.arrowEnd` / `PlacedEdge.strokeWidth`: layouts can now request a
-  chevron arrowhead (rendered with the continuation markers) and a per-edge
-  stroke width. Sequence messages, state transitions, swimlane handoffs, the
-  timeline spine and flowchart feedback/skip lanes use arrowheads.
+- Generated schemas, structural/semantic validation, complete tested examples and agent integration guides.
+- Local TheSVG brand icons, explicit node visuals and service-level architecture examples with localized notes and references; legacy mappings/constants remain compatible.
+- Validated JSON playground, bounded locale-aware shared links, standalone SVG/PNG exports and keyboard-accessible action controls.
+- Prerendered React documentation, Markdown/search/downloads, package-consumer and framework checks, size budgets and authorized OIDC release preparation.
 
 ### Changed
 
-- Every layout now reports an **honest canvas width** derived from its
-  content, and the canvas caps its rendered size at 1 unit = 1px (centred in
-  the panel) instead of stretching small artboards to a fixed 1680u frame.
-- **Flowchart**: `top-down` renders levels as stacked rows (the previous
-  implementation inverted the axes and degenerated into one long strip),
-  back edges detected by a DFS are excluded from levelling and routed on an
-  outer feedback lane, and level-skipping edges travel a side lane instead of
-  crossing intermediate cards.
-- **State machine**: states sit on a compact ellipse (roughly half the old
-  ring's canvas), transitions are trimmed at the pill borders — outward arcs
-  between ring neighbours, gentle inward chords across — and labels sit at
-  the true curve midpoint.
-- **ER**: grid rows size to the tallest table in the row (previously a fixed
-  240u pitch), and relations route orthogonally through the grid corridors
-  with rounded corners instead of drawing straight lines across tables.
-- **Sequence**: participant headers use the slim card height (labels no
-  longer overflow the card), messages carry arrowheads, and activation bars
-  span from the opening message to the participant's next reply.
-- **Swimlane**: nodes advance through global topological columns so the flow
-  reads left-to-right across lanes; cells that stack grow their lane.
-- **Timeline**: the canvas hugs the content, the spine overhangs the first
-  and last events with a direction arrow, and below-spine event text keeps
-  the connector clear of every line.
-- The dot-grid fade keeps a subtle floor at the canvas bottom instead of
-  fading to nothing, and ER key badges are typographic (`pk`/`fk`) rather
-  than emoji.
+- Use self-hosted Geist Sans/Mono throughout package defaults, site and exports while preserving host font overrides.
+- Share compact design-system sizing, native reading scroll, accessible controls and opaque documentation node surfaces.
+- Improve per-layout routing and canvas bounds without rescaling SVG aspect ratios.
+
+### Fixed
+
+- Share registry state across distribution entrypoints and remove obsolete chunks on full builds.
+- Preserve explicit sequence/parallel relation identities; anonymous parallel identities follow authored order.
+- Correct label-only node alignment and ER field overlap.
+
+Migration: editor/share input is JSON, not executable JavaScript. See
+[migration notes](docs/guides/migration.md) for identity, styles and import guidance.
 
 ## [0.2.2] - 2026-08-14
 

@@ -15,6 +15,6 @@ editing/undo, advanced pan/zoom and configurable exports.
 A portable skill, CLI or MCP service is optional, not required to use the library.
 Add one only when documentation and ordinary package APIs cannot solve the task.
 
-The detailed execution record lives in `docs/plans/2026-09-13-open-source-readiness.md`.
+Track actionable work in [repository issues](https://github.com/alanslzrr/aesthc-diagram-lib/issues).
 Work is not complete merely because it appears on this roadmap. Versions and dates
 are commitments only when announced in a release.

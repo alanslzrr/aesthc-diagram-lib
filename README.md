@@ -9,70 +9,23 @@ localized data, controlled interaction and host-defined themes.
 
 ## Install
 
+Release candidate—not yet available on npm. The command below is for the future release, not a working installation today.
+
 ```bash
 npm install @aesthc/diagram-lib@0.3.0
 ```
 
-This README targets 0.3.0; verify that the matching release is public.
-Before initial publication, use the maintainer-provided candidate tarball rather
-than assuming that a Git tag means npm is available. React 18.3/19, ESM, Node20.19+.
+React `^18.3.1 || ^19.0.0`, ESM and Node 20.19+ are declared targets; see the [support matrix](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/support/).
 Tailwind is not required. Import the distributed CSS and configure [host theme variables](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/theming/).
 
 ## First diagram
 
-```tsx
-import { useId, useMemo, useState } from 'react'
-import { buildAdjacency, connectedIds, diagramEdges, type DiagramSpec } from '@aesthc/diagram-lib'
-import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
-import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
-import '@aesthc/diagram-lib/styles.css'
+**Spec → layout → canvas.** Pass a typed spec to `layoutDiagram`, then render the
+returned geometry with `DiagramCanvas`. Control selection, focus and tooltip
+state in your React component; registration is optional.
 
-const spec = {
-  "type": "flowchart",
-  "caption": "Request flow",
-  "legend": {
-    "main": "Main path",
-    "branch": "Alternative"
-  },
-  "nodes": [
-    {
-      "id": "a",
-      "label": "Request",
-      "description": "Receive a request."
-    },
-    {
-      "id": "b",
-      "label": "Response",
-      "description": "Return a response."
-    }
-  ],
-  "edges": [
-    {
-      "id": "request",
-      "from": "a",
-      "to": "b"
-    }
-  ],
-  "direction": "top-down"
-} satisfies DiagramSpec
-
-export function Diagram() {
-  const instanceId = useId()
-  const [hovered, setHovered] = useState<string | null>(null)
-  const [focused, setFocused] = useState<string | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
-  const layout = useMemo(() => layoutDiagram(spec), [])
-  const adjacency = useMemo(() => buildAdjacency(diagramEdges(spec)), [])
-  const active = hovered ?? focused ?? selected
-  const highlight = active ? connectedIds(active, adjacency) : null
-  return <DiagramCanvas layout={layout} highlight={highlight}
-    activeNodeId={active} focusedNodeId={focused} selectedNodeId={selected}
-    onTooltipNodeChange={(id, open) => setHovered(open ? id : null)}
-    onFocusNode={setFocused} onSelectNode={(id) => setSelected(selected === id ? null : id)}
-    onDismissNode={() => { setHovered(null); setSelected(null) }}
-    instanceId={instanceId} ariaLabel={spec.caption} nodeVisuals={{}} />
-}
-```
+Read the [complete tested React example](https://alanslzrr.github.io/aesthc-diagram-lib/docs/getting-started/#first-diagram)
+and [Next.js client-boundary guide](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/react/).
 
 ## Diagram types
 

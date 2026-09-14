@@ -6,7 +6,11 @@ const out = resolve('site/dist')
 if (!existsSync(out)) throw new Error('Build the site before building documentation')
 const base = (process.env.SITE_BASE ?? '/').replace(/\/?$/, '/')
 const origin = 'https://alanslzrr.github.io/aesthc-diagram-lib/'
-const version = JSON.parse(readFileSync('package.json', 'utf8')).version
+const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
+const version = manifest.version
+if (process.env.DOCS_CHANNEL && process.env.DOCS_CHANNEL !== manifest.diagramRelease.channel)
+  throw new Error('DOCS_CHANNEL disagrees with canonical release metadata')
+const stable = manifest.diagramRelease.channel === 'stable' && manifest.diagramRelease.npmAvailable
 const roots = [
   'docs/index.md',
   'docs/getting-started.md',
@@ -64,7 +68,7 @@ for (const file of sources) {
     base,
     origin,
     version,
-    stable: process.env.DOCS_CHANNEL === 'stable',
+    stable: stable,
   })
   write(`${out}/${destination}index.html`, html)
   write(`${out}/${destination}page.json`, JSON.stringify(data))
@@ -83,9 +87,7 @@ for (const file of sources) {
       `rel="canonical" href="${origin}${destination}"`,
       `rel="canonical" href="${origin}versions/${version}/${destination}"`,
     )
-    return process.env.DOCS_CHANNEL === 'stable'
-      ? canonical.replaceAll('/blob/main/', `/blob/v${version}/`)
-      : canonical
+    return stable ? canonical.replaceAll('/blob/main/', `/blob/v${version}/`) : canonical
   }
   if (!frozen) {
     const versionData = JSON.parse(JSON.stringify(data), (key, value) => {
@@ -126,7 +128,7 @@ const fallback = renderPage({
   base,
   origin,
   version,
-  stable: process.env.DOCS_CHANNEL === 'stable',
+  stable: stable,
 })
 write(`${out}/404.html`, fallback.html)
 

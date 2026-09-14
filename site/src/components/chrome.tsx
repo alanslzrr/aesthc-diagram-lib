@@ -67,7 +67,7 @@ export function Hero({ locale }: { locale: Locale }) {
       <InstallCommand locale={locale} />
 
       <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/75">
-        {['ESM', 'React ≥ 18', 'TypeScript', '7 layouts', 'en · es'].map((badge) => (
+        {['ESM', 'React 18.3.1 / 19', 'TypeScript', '7 layouts', 'en · es'].map((badge) => (
           <li key={badge} className="inline-flex items-center gap-2">
             <i aria-hidden="true" className="inline-block h-1 w-1 rounded-full bg-foreground/30" />
             {badge}
