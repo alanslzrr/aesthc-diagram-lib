@@ -38,12 +38,7 @@ function write(path, contents) {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, contents)
 }
-mkdirSync(`${out}/docs-assets/fonts`, { recursive: true })
-for (const font of ['geist-sans.woff2', 'geist-mono.woff2'])
-  cpSync(`site/src/assets/fonts/${font}`, `${out}/docs-assets/fonts/${font}`)
-cpSync('site/docs/docs.css', `${out}/docs-assets/docs.css`)
 cpSync('site/docs/theme.js', `${out}/docs-assets/theme.js`)
-cpSync('dist/styles.css', `${out}/docs-assets/canvas.css`)
 const relativeRoutes = new Map(sources.map((file) => [file, route(file)]))
 const index = []
 for (const file of sources) {
@@ -122,7 +117,11 @@ write(
 const fallback = renderPage({
   file: '404',
   markdown:
-    '# Page not found\n\nThis address does not match a documentation page. Use the navigation to return to the guides.',
+    '# Page not found\n\nThis address does not match a documentation page. Use the navigation to return to the guides.\n\n[Read the documentation](' +
+    base +
+    'docs/) or [open the playground](' +
+    base +
+    ').',
   destination: '404.html',
   routes: relativeRoutes,
   base,
@@ -130,7 +129,10 @@ const fallback = renderPage({
   version,
   stable: stable,
 })
-write(`${out}/404.html`, fallback.html)
+write(
+  `${out}/404.html`,
+  fallback.html.replace('</head>', '<meta name="robots" content="noindex"></head>'),
+)
 
 console.log(
   `Built ${index.length} static pages, Markdown, versioned docs, schemas and agent indexes`,
@@ -145,7 +147,7 @@ write(
       description: markdown
         .replace(/```[\s\S]*?```/g, '')
         .split('\n')
-        .filter((line) => line.trim() && !line.startsWith('#'))
+        .filter((line) => line.trim() && !line.startsWith('#') && !line.trim().startsWith('|'))
         .slice(0, 2)
         .join(' ')
         .replace(/[*`]/g, '')
@@ -181,7 +183,7 @@ if (!existsSync(`site/public/versions/${version}`)) {
     channel: manifest.diagramRelease.channel,
     base,
     contentBase,
-    sha: process.env.GITHUB_SHA ?? 'local-build',
+    sha: process.env.DOCS_BUILD_SHA ?? process.env.GITHUB_SHA ?? 'local-build',
   })
 }
 verifySnapshot(snapshot)
@@ -189,3 +191,14 @@ if (existsSync('site/public/versions')) {
   for (const entry of readdirSync('site/public/versions', { withFileTypes: true }))
     if (entry.isDirectory()) verifySnapshot(`${out}/versions/${entry.name}`)
 }
+
+write(
+  `${out}/deployment.json`,
+  JSON.stringify({
+    version,
+    channel: manifest.diagramRelease.channel,
+    sha: process.env.DOCS_BUILD_SHA ?? process.env.GITHUB_SHA ?? 'local-build',
+  }) + '\n',
+)
+
+write(`${out}/robots.txt`, `User-agent: *\nAllow: /\nSitemap: ${origin}sitemap.xml\n`)
