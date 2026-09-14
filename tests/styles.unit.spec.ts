@@ -31,7 +31,11 @@ describe('compiled stylesheet cascade contract', () => {
     expect(layerEndIndex).toBeGreaterThan(0)
     expect(markerIndex).toBeGreaterThan(layerEndIndex)
     expect(css).toContain('.adl-icon-dark {\n  display: none !important;\n}')
-    expect(css).toContain(":is([data-theme='dark'] *) .adl-icon-light {\n  display: none !important;\n}")
-    expect(css).toContain(":is([data-theme='dark'] *) .adl-icon-dark {\n  display: block !important;\n}")
+    expect(css).toContain(
+      ":is([data-theme='dark'] *) .adl-icon-light {\n  display: none !important;\n}",
+    )
+    expect(css).toContain(
+      ":is([data-theme='dark'] *) .adl-icon-dark {\n  display: block !important;\n}",
+    )
   })
 })
