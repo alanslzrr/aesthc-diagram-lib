@@ -1,0 +1,9 @@
+node_modules
+site/dist
+dist
+schemas
+src/validation/structural.js
+pnpm-lock.yaml
+
+site/src/generated
+examples
