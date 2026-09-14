@@ -19,6 +19,7 @@ export type DocToken = {
 }
 export type NavPage = { file: string; label: string; url: string }
 export type DocPage = {
+  description?: string
   file: string
   title: string
   label: string
