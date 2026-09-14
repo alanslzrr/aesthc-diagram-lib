@@ -119,8 +119,8 @@ export const STRINGS = {
   presets: { en: 'Presets', es: 'Presets' },
   quickStartTitle: { en: 'Quick start', es: 'Inicio rápido' },
   quickStartIntro: {
-    en: 'Register a localized spec once, lay it out, render the canvas. The full API — registry, adjacency helpers, per-type layouts, theming contract — is documented in the README.',
-    es: 'Registrá un spec localizado una vez, calculá el layout y renderizá el canvas. La API completa — registry, helpers de adyacencia, layouts por tipo y contrato de theming — está documentada en el README.',
+    en: 'Pass a typed spec to a layout, then render the canvas with controlled interaction. Registration is optional. The API reference and React guide cover imports, state, CSS and Next.js.',
+    es: 'Pasa un spec tipado al layout y renderiza el canvas con interacción controlada. El registro es opcional. La referencia de API y la guía React explican imports, estado, CSS y Next.js.',
   },
   install: { en: 'install', es: 'instalar' },
   viewOnGitHub: { en: 'View on GitHub', es: 'Ver en GitHub' },

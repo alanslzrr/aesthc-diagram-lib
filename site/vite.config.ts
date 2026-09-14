@@ -5,8 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
-// The site consumes the library straight from `../src` so layout and canvas
-// edits hot-reload without a package build step.
+// Rebuild the package after library edits; the site consumes dist.
 // Resolve the workspace package through its published export map, never src aliases.
 const galleryDir = fileURLToPath(new URL('../docs/diagrams', import.meta.url))
 

@@ -413,9 +413,11 @@ export default function DocsApp({ initial }: { initial: DocPage }) {
             </span>
             <a href={`${page.base}${page.destination}index.md`}>Read Markdown ↗</a>
             <a
-              href={`https://github.com/alanslzrr/aesthc-diagram-lib/blob/${page.stable && page.destination.startsWith('versions/') ? `v${page.version}` : 'main'}/${page.file}`}
+              href={`https://github.com/alanslzrr/aesthc-diagram-lib/blob/${page.stable && page.destination.startsWith('versions/') ? `v${page.version}` : 'main'}/${page.file === 'docs/getting-started.md' || page.file.startsWith('docs/diagrams/') ? 'scripts/generate-docs.ts' : page.file}`}
             >
-              Edit this page ↗
+              {page.file === 'docs/getting-started.md' || page.file.startsWith('docs/diagrams/')
+                ? 'Edit generation source ↗'
+                : 'Edit this page ↗'}
             </a>
           </div>
           <div className="typeset typeset-docs">
