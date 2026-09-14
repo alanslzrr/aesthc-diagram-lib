@@ -14,16 +14,6 @@ import {
   splitBackEdges
 } from "./chunk-QVERY2JP.js";
 import {
-  getDiagram,
-  getDiagramEntry,
-  getDiagramKeys,
-  getDiagramVisuals,
-  hasDiagram,
-  registerDiagram,
-  registerDiagrams
-} from "./chunk-UNV5K3AO.js";
-import "./chunk-6F4PWJZI.js";
-import {
   BAND_PITCH,
   BAND_X0,
   CANVAS_BOTTOM_PAD,
@@ -64,6 +54,16 @@ import {
   TIMELINE_ALT_OFFSET,
   TIMELINE_EVENT_GAP
 } from "./chunk-TVEV5XLW.js";
+import {
+  getDiagram,
+  getDiagramEntry,
+  getDiagramKeys,
+  getDiagramVisuals,
+  hasDiagram,
+  registerDiagram,
+  registerDiagrams
+} from "./chunk-UNV5K3AO.js";
+import "./chunk-6F4PWJZI.js";
 export {
   BAND_PITCH,
   BAND_X0,
