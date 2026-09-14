@@ -60,12 +60,10 @@ test('landing presentation preserves both locales and themes at narrow and deskt
           )
         await page.addStyleTag({ content: 'header.fixed { visibility: hidden }' })
         await expect(page.locator('.site-hero img')).toBeVisible()
-        await expect
-          .soft(page.locator('.site-hero'))
-          .toHaveScreenshot(`hero-${width}-${locale}-${theme}.png`, {
-            animations: 'disabled',
-            maxDiffPixelRatio: 0.001,
-          })
+        await compareVisual(page.locator('.site-hero'), `hero-${width}-${locale}-${theme}.png`, {
+          animations: 'disabled',
+          maxDiffPixelRatio: 0.001,
+        })
       }
     }
   }
