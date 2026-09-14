@@ -1,11 +1,15 @@
+import type { Locale } from '../content'
+import { MESSAGES } from '../lib/messages'
 import { useEffect, useRef, useState } from 'react'
 import { ExportIcon } from './primitives/icons'
 
 /** Native disclosure: no portal/dependency, ordinary buttons retain keyboard semantics. */
 export function ExportMenu({
+  locale = 'en',
   label,
   actions,
 }: {
+  locale?: Locale
   label: string
   actions: { label: string; run: () => void | Promise<void>; disabled?: boolean }[]
 }) {
@@ -68,8 +72,8 @@ export function ExportMenu({
                 setError('')
                 Promise.resolve()
                   .then(action.run)
-                  .then(() => setStatus(action.label))
-                  .catch((cause) => setError(String(cause)))
+                  .then(() => setStatus(`${MESSAGES.actionDone[locale]}: ${action.label}`))
+                  .catch(() => setError(MESSAGES.actionFailed[locale]))
               }}
             >
               {action.label}
@@ -78,7 +82,7 @@ export function ExportMenu({
         </div>
       </details>
       {error ? <span role="alert">{error}</span> : null}
-      <span className="sr-only" role="status">
+      <span className="action-status" role="status">
         {status}
       </span>
     </span>
