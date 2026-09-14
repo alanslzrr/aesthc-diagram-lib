@@ -16,6 +16,32 @@
 7. This release targets React 18.3/19 and Node 20.19+ consumers, with Node 22.14+
    for development. Validate your actual framework/bundler configuration.
 
+Label-only cards without an icon now center their labels. Annotated cards without
+an icon use normal inner padding instead of reserving an empty icon rail; cards
+with icons retain the original alignment. No spec fields or interaction callbacks
+change. Do not rely on the previous fixed text coordinates in custom overlays.
+
 Pre-1.0 minor versions can contain documented breaking changes. Pin a version when
 embedding documentation in an agent workflow and upgrade deliberately. We keep
 published versions immutable; fixes use a new version, not replacement tarballs.
+
+## Geist typography
+
+The package stylesheet now supplies Geist Sans and Geist Mono and uses them as
+its default font families. Existing specs and callbacks are unchanged. Set
+`--diagram-font-sans`, `--diagram-font-display` and `--diagram-font-mono` to retain
+a host application's own fonts. Ensure your bundler copies the stylesheet's
+relative `fonts/*.woff2` assets. Standalone playground SVG/PNG exports use Geist.
+
+The documentation now uses prerendered React pages and client navigation.
+Existing routes, Markdown downloads and versioned documentation are preserved.
+The shared theme preference accepts `system`, `light` or `dark`; an absent or
+invalid preference follows the system. Existing explicit light/dark choices remain.
+
+### Selected TheSVG brands
+
+The optional `@aesthc/diagram-lib/icons` entrypoint exposes `BrandIcon`.
+Architecture `nodeVisuals` accept `source: 'thesvg'` with the original brand keys
+and `azure`; legacy `source: 'svgl'` mappings remain compatible. Artwork now comes
+from a pinned TheSVG revision, so brand silhouettes may differ slightly. Specs,
+layout geometry and callbacks are unchanged. Font and theme tokens still apply.
