@@ -18,7 +18,7 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
         background: styles.getPropertyValue('--background').trim(),
         grid: getComputedStyle(grid).opacity,
         fill: getComputedStyle(card).fill,
-        tail: styles.getPropertyValue('--diagram-main-tail-opacity').trim(),
+        tail: String(Number(styles.getPropertyValue('--diagram-main-tail-opacity').trim())),
       }
     })
   const light = await detail()
@@ -37,7 +37,7 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
   await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
   const download = await pending
   const markup = await readFile((await download.path())!, 'utf8')
-  expect(markup).toContain('stop-opacity="0.62"')
+  expect(markup).toMatch(/stop-opacity="0?\.62"/)
   expect(markup).not.toContain('var(--diagram-')
   expect(markup).toContain('rgb(249, 251, 253)')
 })

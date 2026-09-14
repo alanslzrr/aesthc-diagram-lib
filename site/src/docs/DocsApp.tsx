@@ -1,3 +1,4 @@
+import { rebaseDocPage } from './model'
 import { GitHubIcon, PreviewIcon, CodeIcon } from '../components/primitives/icons'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigationType } from 'react-router'
@@ -96,17 +97,29 @@ function Search({ page }: { page: DocPage }) {
   }
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`${page.base}docs-assets/search.json`, { signal: controller.signal })
+    fetch(`${page.contentBase ?? page.base}docs-assets/search.json`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw Error('Search unavailable')
         return r.json()
       })
-      .then(setEntries)
+      .then((items: typeof entries) =>
+        setEntries(
+          items.map((entry) => {
+            const marker = `/versions/${page.version}/`
+            const index = entry.url.indexOf(marker)
+            return {
+              ...entry,
+              url:
+                page.contentBase && index >= 0 ? page.base + entry.url.slice(index + 1) : entry.url,
+            }
+          }),
+        ),
+      )
       .catch((e) => {
         if (e.name !== 'AbortError') setFailed(true)
       })
     return () => controller.abort()
-  }, [page.base])
+  }, [page.base, page.contentBase])
   useEffect(() => {
     function keys(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -140,7 +153,6 @@ function Search({ page }: { page: DocPage }) {
     )
     .sort((a, b) => score(b) - score(a))
     .slice(0, 12)
-  const versionPrefix = page.destination.match(/^(versions\/[^/]+\/)/)?.[1] ?? ''
   return (
     <>
       <button
@@ -148,7 +160,7 @@ function Search({ page }: { page: DocPage }) {
         type="button"
         data-open-search
         aria-label="Search documentation"
-        data-search-index={`${page.base}docs-assets/search.json`}
+        data-search-index={`${page.contentBase ?? page.base}docs-assets/search.json`}
         onClick={open}
       >
         <span>Search</span>
@@ -187,11 +199,7 @@ function Search({ page }: { page: DocPage }) {
         <ScrollArea className="search-scroll" label="Search results">
           <div className="search-results">
             {found.map((entry) => (
-              <DocLink
-                key={entry.url}
-                href={`${page.base}${versionPrefix}${entry.url.slice(page.base.length)}`}
-                onClick={() => dialog.current?.close()}
-              >
+              <DocLink key={entry.url} href={entry.url} onClick={() => dialog.current?.close()}>
                 <span>{entry.title}</span>
                 <small>{entry.description}</small>
               </DocLink>
@@ -259,7 +267,7 @@ export default function DocsApp({ initial }: { initial: DocPage }) {
           return response.json()
         })
         .then((next: DocPage) => {
-          setPage(next)
+          setPage(rebaseDocPage(next, location.pathname))
           setPending(false)
           setMobileKey((key) => key + 1)
         })
@@ -447,14 +455,14 @@ export default function DocsApp({ initial }: { initial: DocPage }) {
                         <div className="page-meta not-typeset">
                           <a
                             className="control"
-                            href={`${page.base}examples/${page.preview!.type}.tsx`}
+                            href={`${page.contentBase ?? page.base}examples/${page.preview!.type}.tsx`}
                             download
                           >
                             React example ↓
                           </a>
                           <a
                             className="control"
-                            href={`${page.base}examples/${page.preview!.type}.json`}
+                            href={`${page.contentBase ?? page.base}examples/${page.preview!.type}.json`}
                             download
                           >
                             JSON spec ↓

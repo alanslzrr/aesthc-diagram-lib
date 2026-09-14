@@ -2,6 +2,7 @@ import { ScrollArea } from './primitives/ScrollArea'
 import { Disclosure, DisclosureTrigger, DisclosureContent } from './primitives/Disclosure'
 import { ExportMenu } from './ExportMenu'
 import { PreviewIcon, CodeIcon, ShareIcon, TerminalIcon } from './primitives/icons'
+import { MESSAGES } from '../lib/messages'
 import { PACKAGE_VERSION } from '../generated/quick-start'
 // One showcase panel: the library chrome (hairline frame, mono header,
 // caption + legend footer) around a live DiagramCanvas, plus the playground
@@ -18,7 +19,8 @@ import {
 } from '@aesthc/diagram-lib'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
 import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
-import { validateDiagramSpec } from '@aesthc/diagram-lib/validation'
+import { checkedPlaygroundSpec } from '../lib/playground-policy'
+import { readDraft, writeDraft, removeDraft, type LocalDraft } from '../lib/drafts'
 import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'
 
 import type { Locale, SectionEntry } from '../content'
@@ -30,7 +32,6 @@ import { CopyButton, ControlButton } from './ui'
 
 type PanelTab = 'preview' | 'code'
 type CodeTab = 'spec' | 'usage'
-type RevealPhase = 'pending' | 'shown' | 'done'
 
 export function DiagramPanel({
   entry,
@@ -44,6 +45,18 @@ export function DiagramPanel({
 }) {
   const baseSpec = EXAMPLE_DIAGRAMS[entry.key].diagram[locale]
   const [draft, setDraft] = useState<DiagramSpec>(() => sharedSpec ?? baseSpec)
+  const rawDrafts = useRef(new Map<string, string>())
+  const unsavedDrafts = useRef(new Map<string, boolean>())
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (![...unsavedDrafts.current.values()].some(Boolean)) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [])
+  const [editorRevision, setEditorRevision] = useState(0)
   const [tab, setTab] = useState<PanelTab>('preview')
   const edited = JSON.stringify(draft) !== JSON.stringify(baseSpec)
 
@@ -88,48 +101,13 @@ export function DiagramPanel({
   const svgHostRef = useRef<HTMLDivElement>(null)
   const findSvg = () => svgHostRef.current?.querySelector('svg') ?? null
 
-  // Reveal-on-scroll: edges fade, nodes rise with a small stagger. Disabled
-  // wholesale under prefers-reduced-motion; interactive opacity control
-  // returns once the phase reaches 'done'.
-  const panelRef = useRef<HTMLDivElement>(null)
-  const [reveal, setReveal] = useState<RevealPhase>('pending')
-  useEffect(() => {
-    const panel = panelRef.current
-    if (!panel) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setReveal('done')
-      return
-    }
-    panel.querySelectorAll<SVGGElement>('svg g[data-node-id]').forEach((node, index) => {
-      node.style.setProperty('--reveal-delay', `${Math.min(index * 55, 660)}ms`)
-    })
-    let doneTimer: number | undefined
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((observed) => observed.isIntersecting)) {
-          setReveal('shown')
-          doneTimer = window.setTimeout(() => setReveal('done'), 1500)
-          observer.disconnect()
-        }
-      },
-      { rootMargin: '0px 0px -12% 0px' },
-    )
-    observer.observe(panel)
-    return () => {
-      observer.disconnect()
-      window.clearTimeout(doneTimer)
-    }
-  }, [])
-
   const caption = 'caption' in draft ? draft.caption : ''
   const legend = 'legend' in draft ? draft.legend : { main: '', branch: '' }
   const direction = draft.type === 'flowchart' ? (draft.direction ?? 'top-down') : null
 
   return (
     <div
-      ref={panelRef}
       data-diagram-panel={entry.key}
-      data-reveal={reveal}
       className="relative mt-6 border border-border bg-background transition-colors duration-200"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -168,12 +146,13 @@ export function DiagramPanel({
           <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
           {direction ? (
             <ControlButton
-              onClick={() =>
+              onClick={() => {
+                setEditorRevision((value) => value + 1)
                 setDraft({
                   ...draft,
                   direction: direction === 'top-down' ? 'left-right' : 'top-down',
                 } as DiagramSpec)
-              }
+              }}
               title={STRINGS.direction[locale]}
             >
               {direction === 'top-down' ? STRINGS.topDown[locale] : STRINGS.leftRight[locale]}
@@ -186,8 +165,11 @@ export function DiagramPanel({
                   window.confirm(
                     locale === 'es' ? '¿Descartar los cambios?' : 'Discard your changes?',
                   )
-                )
+                ) {
                   setDraft(baseSpec)
+                  setEditorRevision((value) => value + 1)
+                  rawDrafts.current.delete(`${entry.key}:${locale}`)
+                }
               }}
             >
               {STRINGS.reset[locale]}
@@ -195,6 +177,7 @@ export function DiagramPanel({
           ) : null}
           <ShareButton entry={entry} draft={draft} locale={locale} />
           <CopyButton
+            locale={locale}
             icon={<TerminalIcon />}
             label={locale === 'es' ? 'Copiar prompt' : 'Copy prompt'}
             copiedLabel={STRINGS.copied[locale]}
@@ -212,6 +195,7 @@ export function DiagramPanel({
             }
           />
           <ExportMenu
+            locale={locale}
             label={locale === 'es' ? 'Copiar o descargar' : 'Copy or download'}
             actions={[
               {
@@ -223,7 +207,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return navigator.clipboard.writeText(serializeDiagramSvg(svg))
                 },
               },
@@ -245,7 +229,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return downloadDiagramSvg(svg, `${entry.key}.svg`)
                 },
               },
@@ -254,7 +238,7 @@ export function DiagramPanel({
                 disabled: !layoutResult.layout,
                 run: () => {
                   const svg = findSvg()
-                  if (!svg) throw Error('Diagram unavailable')
+                  if (!svg) throw Error(MESSAGES.panelFailed[locale])
                   return downloadDiagramPng(svg, `${entry.key}.png`)
                 },
               },
@@ -268,7 +252,14 @@ export function DiagramPanel({
       </div>
 
       <div hidden={tab !== 'preview'}>
-        <ScrollArea orientation="horizontal" label="Diagram canvas; scroll horizontally to explore">
+        <ScrollArea
+          orientation="horizontal"
+          label={
+            locale === 'es'
+              ? 'Canvas del diagrama; desplázate horizontalmente para explorar'
+              : 'Diagram canvas; scroll horizontally to explore'
+          }
+        >
           <div className="px-5 py-10 sm:px-7" data-diagram-scroll ref={svgHostRef}>
             {layoutResult.layout ? (
               <DiagramCanvas
@@ -325,7 +316,26 @@ export function DiagramPanel({
         </DisclosureContent>
       </Disclosure>
       <div hidden={tab !== 'code'}>
-        <CodeView entry={entry} locale={locale} draft={draft} onApply={setDraft} />
+        <CodeView
+          key={`${entry.key}:${locale}`}
+          entry={entry}
+          locale={locale}
+          draft={draft}
+          onApply={setDraft}
+          initialText={
+            rawDrafts.current.get(`${entry.key}:${locale}`) ??
+            specSource(
+              localeDrafts.current.get(`${entry.key}:${locale}`) ??
+                (specSourceRef.current === `${entry.key}:${locale}` ? draft : baseSpec),
+            )
+          }
+          revision={editorRevision}
+          onRaw={(text, saved = false) => {
+            const source = `${entry.key}:${locale}`
+            rawDrafts.current.set(source, text)
+            unsavedDrafts.current.set(source, text !== specSource(baseSpec) && !saved)
+          }}
+        />
       </div>
 
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-sans text-xs text-foreground/75">
@@ -378,14 +388,14 @@ function ShareButton({
             })
             .then(() => {
               setCopied(true)
-              window.setTimeout(() => setCopied(false), 1800)
+              window.setTimeout(() => setCopied(false), 4000)
             })
-            .catch((cause) => setError(String(cause)))
+            .catch(() => setError(MESSAGES.actionFailed[locale]))
         }}
       >
         <ShareIcon />
       </ControlButton>
-      <span className="sr-only" role="status">
+      <span className="action-status" role="status">
         {copied ? STRINGS.shareCopied[locale] : ''}
       </span>
       {error ? <span role="alert">{error}</span> : null}
@@ -398,27 +408,61 @@ function CodeView({
   locale,
   draft,
   onApply,
+  initialText,
+  revision,
+  onRaw,
 }: {
   entry: SectionEntry
   locale: Locale
   draft: DiagramSpec
+  initialText: string
+  revision: number
+  onRaw: (text: string, saved?: boolean) => void
   onApply: (spec: DiagramSpec) => void
 }) {
   const [codeTab, setCodeTab] = useState<CodeTab>('spec')
-  const [text, setText] = useState(() => specSource(draft))
+  const [text, setText] = useState(initialText)
   const [error, setError] = useState<string | null>(null)
-  const fromEditorRef = useRef(false)
   const debounceRef = useRef<number | undefined>(undefined)
-
+  const revisionRef = useRef(revision)
   useEffect(() => {
-    if (fromEditorRef.current) {
-      fromEditorRef.current = false
-      return
-    }
-    setText(specSource(draft))
+    if (revisionRef.current === revision) return
+    revisionRef.current = revision
+    const raw = specSource(draft)
+    setText(raw)
+    onRaw(raw)
     setError(null)
-  }, [draft])
-
+    window.clearTimeout(debounceRef.current)
+  }, [revision, draft, onRaw])
+  const storageKey = `${entry.key}:${locale}`
+  const enabledKey = `adl-draft-enabled:${entry.key}`
+  const [enabled, setEnabled] = useState(() => {
+    try {
+      return localStorage.getItem(enabledKey) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const [recovery, setRecovery] = useState<LocalDraft | null>(() => {
+    try {
+      return readDraft(storageKey)
+    } catch {
+      return null
+    }
+  })
+  const [storageError, setStorageError] = useState(false)
+  const baseText = specSource(EXAMPLE_DIAGRAMS[entry.key].diagram[locale])
+  useEffect(() => {
+    if (!enabled || recovery) return
+    try {
+      if (text === baseText) removeDraft(storageKey)
+      else writeDraft(storageKey, text)
+      onRaw(text, true)
+      setStorageError(false)
+    } catch {
+      setStorageError(true)
+    }
+  }, [enabled, recovery, text, baseText, storageKey])
   // A pending parse must not fire into an unmounted editor (tab switch) or
   // over a freshly reset draft.
   useEffect(() => () => window.clearTimeout(debounceRef.current), [])
@@ -430,28 +474,125 @@ function CodeView({
 
   const handleEdit = (value: string) => {
     setText(value)
+    onRaw(value)
     window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       try {
-        const result = validateDiagramSpec(parseSpecSource(value))
-        if (!result.success)
-          throw new Error(
-            result.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n'),
-          )
-        const parsed = result.data
+        const parsed = checkedPlaygroundSpec(parseSpecSource(value))
         if (parsed.type !== entry.type) throw new Error(`Expected ${entry.type} in this panel`)
         layoutDiagram(parsed)
-        fromEditorRef.current = true
         onApply(parsed)
         setError(null)
       } catch (parseError) {
-        setError(parseError instanceof Error ? parseError.message : String(parseError))
+        const details =
+          parseError instanceof Error && parseError.message.startsWith('/')
+            ? parseError.message
+            : ''
+        setError(
+          `${locale === 'es' ? 'JSON no válido o límite superado (1000 nodos, 2000 relaciones, 256 KiB). Se conserva la última vista válida.' : 'Invalid JSON or limit exceeded (1000 nodes, 2000 relations, 256 KiB). Last valid preview retained.'} ${details}`,
+        )
       }
     }, 350)
   }
 
+  useEffect(() => {
+    if (initialText !== baseText) handleEdit(initialText)
+  }, [])
+
   return (
     <div className="px-5 py-6 sm:px-7">
+      <div className="mb-4 text-xs">
+        <label>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => {
+              const value = event.target.checked
+              setEnabled(value)
+              onRaw(text, false)
+              try {
+                localStorage.setItem(enabledKey, String(value))
+                if (!value) removeDraft(storageKey)
+                setStorageError(false)
+              } catch {
+                setStorageError(true)
+              }
+            }}
+          />{' '}
+          {locale === 'es' ? 'Guardar borradores en este navegador' : 'Save drafts in this browser'}
+        </label>
+        <p>
+          {locale === 'es'
+            ? 'Solo almacenamiento local, sin cifrado. No guardes secretos. Puedes borrar o restaurar cada borrador.'
+            : 'Local storage only, not encrypted. Do not store secrets. You can clear or restore each draft.'}
+        </p>
+        {storageError ? (
+          <p role="alert">
+            {locale === 'es'
+              ? 'No se pudo guardar el borrador. Se avisará antes de salir.'
+              : 'Draft could not be saved. You will be warned before leaving.'}
+          </p>
+        ) : null}
+        {recovery ? (
+          <div role="status">
+            <p>
+              {locale === 'es'
+                ? 'Hay un borrador guardado. Restaurarlo sustituye el texto actual tras confirmarlo.'
+                : 'A saved draft is available. Restore replaces editor text after confirmation.'}
+            </p>
+            <ControlButton
+              onClick={() => {
+                if (
+                  window.confirm(
+                    locale === 'es'
+                      ? '¿Restaurar el borrador y sustituir el texto actual?'
+                      : 'Restore draft and replace current text?',
+                  )
+                ) {
+                  const raw = recovery.text
+                  setRecovery(null)
+                  handleEdit(raw)
+                }
+              }}
+            >
+              {locale === 'es' ? 'Restaurar borrador' : 'Restore draft'}
+            </ControlButton>
+            <ControlButton
+              onClick={() => {
+                try {
+                  removeDraft(storageKey)
+                  setRecovery(null)
+                } catch {
+                  setStorageError(true)
+                }
+              }}
+            >
+              {locale === 'es' ? 'Descartar borrador guardado' : 'Discard saved draft'}
+            </ControlButton>
+          </div>
+        ) : null}
+        <ControlButton
+          onClick={() => {
+            if (
+              window.confirm(
+                locale === 'es'
+                  ? '¿Borrar el borrador y restablecer el ejemplo?'
+                  : 'Clear draft and reset example?',
+              )
+            ) {
+              try {
+                removeDraft(storageKey)
+                setRecovery(null)
+              } catch {
+                setStorageError(true)
+              }
+              handleEdit(baseText)
+            }
+          }}
+        >
+          {locale === 'es' ? 'Borrar y restablecer' : 'Clear and reset'}
+        </ControlButton>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
         <span className="inline-flex items-center gap-1.5">
           <ControlButton active={codeTab === 'spec'} onClick={() => setCodeTab('spec')}>
@@ -468,6 +609,7 @@ function CodeView({
             </span>
           ) : null}
           <CopyButton
+            locale={locale}
             label={STRINGS.copy[locale]}
             copiedLabel={STRINGS.copied[locale]}
             getText={() => (codeTab === 'spec' ? text : usage)}
@@ -482,6 +624,7 @@ function CodeView({
             onChange={(event) => handleEdit(event.target.value)}
             spellCheck={false}
             aria-invalid={Boolean(error)}
+            aria-describedby={`${entry.key}-${locale}-editor-error`}
             aria-label={`${entry.key} — ${STRINGS.spec[locale]}`}
             className={[
               'block h-[430px] w-full resize-y border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85 outline-none transition-colors',
@@ -489,6 +632,7 @@ function CodeView({
             ].join(' ')}
           />
           <p
+            id={`${entry.key}-${locale}-editor-error`}
             aria-live="polite"
             className={[
               'mt-2 min-h-[1rem] font-sans text-xs',
@@ -502,7 +646,7 @@ function CodeView({
         <pre
           tabIndex={0}
           role="region"
-          aria-label="Integration code"
+          aria-label={MESSAGES.integration[locale]}
           className="max-h-[460px] overflow-auto border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85"
         >
           {usage}

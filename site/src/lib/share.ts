@@ -1,7 +1,7 @@
-import { validateDiagramSpec } from '@aesthc/diagram-lib/validation'
+import { checkedPlaygroundSpec, PLAYGROUND_LIMITS } from './playground-policy'
 import type { DiagramSpec } from '@aesthc/diagram-lib'
 
-export const SHARE_LIMITS = { encoded: 65536, expanded: 262144, nodes: 1000, relations: 2000 }
+export const SHARE_LIMITS = { ...PLAYGROUND_LIMITS, encoded: 65536 }
 export interface SharedSpec {
   key: string
   spec: DiagramSpec
@@ -15,22 +15,10 @@ const base64url = (bytes: Uint8Array): string => {
 }
 
 function checked(key: unknown, spec: unknown, locale: unknown): SharedSpec {
-  const result = validateDiagramSpec(spec)
-  if (!result.success)
-    throw new Error(result.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n'))
-  if (key !== `example-${result.data.type}`)
-    throw new Error('Shared diagram key does not match its type')
+  const data = checkedPlaygroundSpec(spec)
+  if (key !== `example-${data.type}`) throw new Error('Shared diagram key does not match its type')
   if (locale !== 'en' && locale !== 'es') throw new Error('Unsupported shared locale')
-  const record = result.data as unknown as Record<string, unknown>
-  for (const field of ['nodes', 'participants', 'states', 'entities', 'events', 'lanes']) {
-    if (Array.isArray(record[field]) && record[field].length > SHARE_LIMITS.nodes)
-      throw new Error('Too many diagram nodes')
-  }
-  for (const field of ['edges', 'messages', 'relations', 'transitions']) {
-    if (Array.isArray(record[field]) && record[field].length > SHARE_LIMITS.relations)
-      throw new Error('Too many diagram relations')
-  }
-  return { key: key as string, spec: result.data, locale }
+  return { key: key as string, spec: data, locale }
 }
 
 async function readBounded(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {

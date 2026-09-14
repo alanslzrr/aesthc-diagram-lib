@@ -29,7 +29,7 @@ of this repository, not a requirement in your application.
   --background: #070707;
   --foreground: #f2f2ee;
   --card: #101010;
-  --border: #404040;
+  --border: #242424;
   --muted: #151515;
   --muted-foreground: #a8a8a1;
   --cobalt: #14a8ff;
