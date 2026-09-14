@@ -97,7 +97,9 @@
     "prepack": "pnpm schemas:check && pnpm docs:check && pnpm build",
     "test:visual": "VISUAL_REGRESSION=1 playwright test --project=chromium",
     "check:budgets": "node scripts/check-budgets.mjs",
-    "lint": "eslint src site/src site/docs scripts tests"
+    "lint": "eslint src site/src site/docs scripts tests",
+    "docs:freeze": "node scripts/freeze-docs.mjs",
+    "test:snapshots": "playwright test tests/e2e/snapshots.e2e.ts --project=chromium"
   },
   "keywords": [
     "diagram",
