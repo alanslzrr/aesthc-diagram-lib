@@ -137,7 +137,7 @@ export const STRINGS = {
 } satisfies Record<string, Localized>
 
 export const GITHUB_URL = 'https://github.com/alanslzrr/aesthc-diagram-lib'
-export const INSTALL_COMMAND = 'pnpm add @aesthc/diagram-lib'
+export const INSTALL_COMMAND = 'pnpm add @aesthc/diagram-lib@0.3.0'
 
 export interface Feature {
   label: Localized
@@ -189,28 +189,4 @@ export const FEATURES: Feature[] = [
   },
 ]
 
-export const QUICK_START = `import { registerDiagram, getDiagram } from '@aesthc/diagram-lib'
-import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
-import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
-import '@aesthc/diagram-lib/styles.css'
-
-registerDiagram('my-pipeline', {
-  diagram: {
-    en: {
-      type: 'band',
-      caption: 'what the diagram tells',
-      legend: { main: 'main path', branch: 'alternative' },
-      bands: [{ title: 'Input' }, { title: 'Process' }, { title: 'Output' }],
-      nodes: [
-        { id: 'a', band: 0, label: 'Step A', description: 'What A does.', kind: 'Trigger' },
-        { id: 'b', band: 1, label: 'Step B', description: 'What B does.', weight: 'primary' },
-        { id: 'c', band: 2, label: 'Step C', description: 'What C does.' },
-      ],
-      edges: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }],
-    },
-    es: { /* same ids and topology, Spanish text */ },
-  },
-})
-
-const layout = layoutDiagram(getDiagram('my-pipeline', 'en'))
-// <DiagramCanvas layout={layout} … />`
+export { QUICK_START } from './generated/quick-start'
