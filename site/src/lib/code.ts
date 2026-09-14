@@ -46,47 +46,38 @@ export function printValue(value: unknown, indent = 0): string {
   return String(value)
 }
 
-/** Parses the TS-flavoured object literal the editor shows. */
+/** Strict data parsing: never evaluate editor text as JavaScript. */
 export function parseSpecSource(source: string): unknown {
-  const trimmed = source.trim().replace(/;$/, '')
-  // The page only ever evaluates text the visitor typed into their own
-  // browser — same trust model as the devtools console.
-  return new Function(`'use strict'; return (${trimmed})`)()
+  if (source.length > 262144) throw new Error('Spec exceeds the 256 KiB editor limit')
+  return JSON.parse(source)
 }
 
-export const specSource = (spec: unknown): string => printValue(spec, 0)
+export const specSource = (spec: unknown): string => JSON.stringify(spec, null, 2)
 
-export function usageSnippet(key: string, type: string, spec: unknown): string {
-  return `import { registerDiagram, getDiagram, diagramEdges, buildAdjacency } from '@aesthc/diagram-lib'
+export function usageSnippet(_key: string, _type: string, spec: unknown): string {
+  return `import { useId, useMemo, useState } from 'react'
+import { buildAdjacency, connectedIds, diagramEdges, type DiagramSpec } from '@aesthc/diagram-lib'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
 import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
 import '@aesthc/diagram-lib/styles.css'
 
-const spec = ${printValue(spec, 0)}
-
-// Register once at module scope — pair it with your own 'es' variant.
-registerDiagram('${key}', { diagram: { en: spec, es: spec } })
+const spec = ${JSON.stringify(spec, null, 2)} satisfies DiagramSpec
 
 export function Diagram() {
-  const diagram = getDiagram('${key}', 'en')
-  const layout = layoutDiagram(diagram)
-
-  return (
-    <DiagramCanvas
-      layout={layout}
-      highlight={null}
-      activeNodeId={null}
-      focusedNodeId={null}
-      selectedNodeId={null}
-      onTooltipNodeChange={() => {}}
-      onFocusNode={() => {}}
-      onSelectNode={() => {}}
-      onDismissNode={() => {}}
-      instanceId="${key}"
-      ariaLabel="${type} diagram"
-      nodeVisuals={{}}
-    />
-  )
+  const instanceId = useId()
+  const [hovered, setHovered] = useState<string | null>(null)
+  const [focused, setFocused] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const layout = useMemo(() => layoutDiagram(spec), [])
+  const adjacency = useMemo(() => buildAdjacency(diagramEdges(spec)), [])
+  const active = hovered ?? focused ?? selected
+  const highlight = active ? connectedIds(active, adjacency) : null
+  return <DiagramCanvas layout={layout} highlight={highlight}
+    activeNodeId={active} focusedNodeId={focused} selectedNodeId={selected}
+    onTooltipNodeChange={(id, open) => setHovered(open ? id : null)}
+    onFocusNode={setFocused} onSelectNode={(id) => setSelected(selected === id ? null : id)}
+    onDismissNode={() => { setHovered(null); setSelected(null) }}
+    instanceId={instanceId} ariaLabel={spec.caption} nodeVisuals={{}} />
 }
 `
 }
@@ -104,17 +95,24 @@ export interface ThemeTokens {
 export function themeCss(light: ThemeTokens, dark: ThemeTokens): string {
   // The node-border formula is per-theme by design: light themes mix extra
   // foreground into the outline for contrast, dark themes use the border.
-  const block = (tokens: ThemeTokens, nodeBorder: string): string =>
+  const color = (value: string): string =>
+    /^#[0-9a-f]{3,8}$/i.test(value) && [4, 5, 7, 9].includes(value.length) ? value : 'currentColor'
+  const block = (tokens: ThemeTokens, nodeBorder: string, lightMode = false): string =>
     [
-      `  --background: ${tokens.background};`,
-      `  --foreground: ${tokens.foreground};`,
-      `  --card: ${tokens.card};`,
-      `  --border: ${tokens.border};`,
-      `  --muted-foreground: ${tokens.mutedForeground};`,
+      `  --background: ${color(tokens.background)};`,
+      `  --foreground: ${color(tokens.foreground)};`,
+      `  --card: ${color(tokens.card)};`,
+      `  --border: ${color(tokens.border)};`,
+      `  --muted-foreground: ${color(tokens.mutedForeground)};`,
       `  --diagram-node-border: ${nodeBorder};`,
-      `  --cobalt: ${tokens.cobalt};`,
-      `  --branch: ${tokens.branch};`,
+      `  --diagram-node-fill: ${lightMode ? 'var(--card)' : 'color-mix(in srgb, var(--foreground) 4%, var(--background))'};`,
+      `  --diagram-secondary-fill: ${lightMode ? 'color-mix(in srgb, var(--card) 38%, var(--background))' : 'transparent'};`,
+      `  --diagram-grid-opacity: ${lightMode ? '0.18' : '0.12'};`,
+      `  --diagram-main-tail-opacity: ${lightMode ? '0.62' : '0.24'};`,
+      `  --diagram-branch-tail-opacity: ${lightMode ? '0.48' : '0.12'};`,
+      `  --cobalt: ${color(tokens.cobalt)};`,
+      `  --branch: ${color(tokens.branch)};`,
     ].join('\n')
 
-  return `:root {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))')}\n}\n\n[data-theme='dark'] {\n${block(dark, 'var(--border)')}\n}\n`
+  return `:root {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))', true)}\n}\n\n[data-theme='dark'] {\n${block(dark, 'var(--border)')}\n}\n`
 }
