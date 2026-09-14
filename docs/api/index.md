@@ -13,8 +13,9 @@ The package is ESM. Always use declared exports rather than internal files.
 | `/registry` | `registerDiagram`, `registerDiagrams`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram` |
 | `/canvas` | `DiagramCanvas`, `ArchitectureNodeIcon`, `DiagramCanvasProps` |
 | `/showcase` | `DiagramShowcase`, `DiagramShowcaseProps`, `ShowcaseEntry`, `DEFAULT_SHOWCASE_ENTRIES` |
-| `/examples` | `EXAMPLE_DIAGRAMS`, `registerExampleDiagrams` |
+| `/examples` | `EXAMPLE_DIAGRAMS`, `registerExampleDiagrams`, `ARCHITECTURE_EXAMPLES`, `ArchitectureExample`; compatibility: `CLOUD_ARCHITECTURE_SPEC`, `CLOUD_ARCHITECTURE_VISUALS` |
 | `/validation` | `validateDiagramSpec`, `assertDiagramSpec`, `validateLocalizedDiagram`, issue/result types |
+| `/icons` | `BrandIcon`, `BrandIconName`, `BrandIconProps`; selected local brand artwork with theme variants |
 | `/styles.css` | Generated stylesheet, imported once by the host |
 
 ## Canvas contract
@@ -50,3 +51,74 @@ Legend/caption are required in every spec. Relation variant defaults to `main`;
 flowchart direction defaults to `top-down`. Optional layout hints do not replace
 reference validation. Inspect each diagram's generated field reference for the
 full data model and use explicit IDs for persistent relation identity.
+
+## Brand icons
+
+```tsx
+import { BrandIcon } from '@aesthc/diagram-lib/icons'
+import '@aesthc/diagram-lib/styles.css'
+
+export function PackageMark() {
+  return <BrandIcon name="pnpm" width={16} height={16} aria-label="pnpm" aria-hidden={false} role="img" />
+}
+```
+
+`BrandIconName` is the supported name union; icons are local, not a remote loader.
+For diagram nodes, use explicit `nodeVisuals` with `source: 'thesvg'`; names and
+provenance live in [the icon contribution recipe](../../CONTRIBUTING.md#adding-a-brand-icon).
+See [Theming](../guides/theming.md) for architecture examples and compatibility constants.
+
+<!-- generated-export-inventory -->
+## Complete public symbol inventory
+
+Generated from the TypeScript export graph by `pnpm docs:generate`. Edit the
+source contract and the purpose table above, not this inventory. No public
+subpaths are excluded; the stylesheet has no JavaScript symbols.
+
+### @aesthc/diagram-lib
+
+`Adjacency`, `BAND_PITCH`, `BAND_X0`, `BandDiagramNode`, `BandDiagramSpec`, `CANVAS_BOTTOM_PAD`, `CANVAS_MIN_WIDTH`, `CANVAS_W`, `CARD_H_FULL`, `CARD_H_SLIM`, `CARD_PADDING_RIGHT`, `CARD_R`, `CARD_TEXT_X`, `CARD_W`, `CONTENT_TOP`, `CONTINUATION_LABEL_GAP`, `CONTINUATION_LABEL_OFFSET`, `CONTINUATION_LENGTH`, `CONTINUATION_PORT_INSET`, `ContinuationAnchor`, `ContinuationSide`, `DECISION_PILL_H`, `DECISION_PILL_R`, `DIMMED_OPACITY`, `DOT_R`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramEdge`, `DiagramLayout`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EDGE_STROKE_WIDTH`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FLOW_GAP_X`, `FLOW_GAP_Y`, `FlowchartDiagramSpec`, `Highlight`, `LABEL_CHAR_WIDTH`, `LABEL_EDGE_GAP`, `LABEL_HORIZONTAL_PADDING`, `LANE_R`, `LIFELINE_TOP`, `LegacyBandSpec`, `LocalizedDiagram`, `MESSAGE_PITCH`, `NODE_ICON_SIZE`, `NodePort`, `NodeWeight`, `PILL_H`, `PILL_R`, `PlacedContainer`, `PlacedContinuation`, `PlacedDecision`, `PlacedEdge`, `PlacedLifeline`, `PlacedNode`, `PortSide`, `RegistryEntry`, `SIDE_LANE_GAP`, `SLOT_PITCH`, `SWIMLANE_HEADER_W`, `SWIMLANE_PAD`, `SWIMLANE_ROW_PAD`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TIMELINE_ALT_OFFSET`, `TIMELINE_EVENT_GAP`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`, `buildAdjacency`, `connectY`, `connectedIds`, `diagramEdges`, `edgeId`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram`, `identifyEdges`, `isMutedNode`, `labelPillWidth`, `nodeHeight`, `nodePorts`, `registerDiagram`, `registerDiagrams`, `roundedPolyline`, `splitBackEdges`
+
+### /canvas
+
+`ArchitectureNodeIcon`, `DiagramCanvas`, `DiagramCanvasDefault`, `DiagramCanvasProps`
+
+### /layouts
+
+`CanvasMetrics`, `PlacedBand`, `canvasMetrics`, `layoutBand`, `layoutByType`, `layoutDiagram`, `layoutEr`, `layoutFlowchart`, `layoutSequence`, `layoutStateMachine`, `layoutSwimlane`, `layoutTimeline`
+
+### /layouts/band
+
+`BandSpecInput`, `CanvasMetrics`, `DiagramDecision`, `DiagramNode`, `EdgeVariant`, `PlacedBand`, `PlacedBandNode`, `PortSide`, `canvasMetrics`, `layoutBand`, `textTop`
+
+### /registry
+
+`RegistryEntry`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram`, `registerDiagram`, `registerDiagrams`
+
+### /types
+
+`BandDiagramNode`, `BandDiagramSpec`, `ContinuationAnchor`, `ContinuationSide`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramEdge`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FlowchartDiagramSpec`, `LegacyBandSpec`, `LocalizedDiagram`, `NodeWeight`, `PortSide`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`
+
+### /theme
+
+`BAND_PITCH`, `BAND_X0`, `CANVAS_BOTTOM_PAD`, `CANVAS_MIN_WIDTH`, `CANVAS_W`, `CARD_H_FULL`, `CARD_H_SLIM`, `CARD_PADDING_RIGHT`, `CARD_R`, `CARD_TEXT_X`, `CARD_W`, `CONTENT_TOP`, `CONTINUATION_LABEL_GAP`, `CONTINUATION_LABEL_OFFSET`, `CONTINUATION_LENGTH`, `CONTINUATION_PORT_INSET`, `DECISION_PILL_H`, `DECISION_PILL_R`, `DIMMED_OPACITY`, `DOT_R`, `EDGE_STROKE_WIDTH`, `FLOW_GAP_X`, `FLOW_GAP_Y`, `LABEL_CHAR_WIDTH`, `LABEL_EDGE_GAP`, `LABEL_HORIZONTAL_PADDING`, `LANE_R`, `LIFELINE_TOP`, `MESSAGE_PITCH`, `NODE_ICON_SIZE`, `PILL_H`, `PILL_R`, `SIDE_LANE_GAP`, `SLOT_PITCH`, `SWIMLANE_HEADER_W`, `SWIMLANE_PAD`, `SWIMLANE_ROW_PAD`, `TIMELINE_ALT_OFFSET`, `TIMELINE_EVENT_GAP`
+
+### /layout
+
+`Adjacency`, `DIMMED_OPACITY`, `DiagramLayout`, `Highlight`, `NodePort`, `PlacedContainer`, `PlacedContinuation`, `PlacedDecision`, `PlacedEdge`, `PlacedLifeline`, `PlacedNode`, `buildAdjacency`, `connectY`, `connectedIds`, `diagramEdges`, `edgeId`, `identifyEdges`, `isMutedNode`, `labelPillWidth`, `nodeHeight`, `nodePorts`, `roundedPolyline`, `splitBackEdges`
+
+### /examples
+
+`ARCHITECTURE_EXAMPLES`, `ArchitectureExample`, `CLOUD_ARCHITECTURE_SPEC`, `CLOUD_ARCHITECTURE_VISUALS`, `EXAMPLE_DIAGRAMS`, `registerExampleDiagrams`
+
+### /showcase
+
+`DEFAULT_SHOWCASE_ENTRIES`, `DiagramShowcase`, `DiagramShowcaseDefault`, `DiagramShowcaseProps`, `ShowcaseEntry`
+
+### /validation
+
+`ValidationIssue`, `ValidationResult`, `assertDiagramSpec`, `diagramNodeIds`, `validateDiagramSpec`, `validateLocalizedDiagram`
+
+### /icons
+
+`BrandIcon`, `BrandIconName`, `BrandIconProps`

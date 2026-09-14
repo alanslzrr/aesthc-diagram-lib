@@ -1,8 +1,9 @@
 # Getting started
 
-Documentation for **0.3.0**. Install the matching publicly released
-version, or use the candidate tarball supplied by a maintainer before publication.
-React 18.3/19, ESM and Node 20.19+ are the supported target lines.
+Documentation for **0.3.0**. Release candidate—not yet available on npm. The command below is for the future release, not a working installation today.
+
+React `^18.3.1 || ^19.0.0`, ESM and Node 20.19+ are the declared consumer targets.
+See the [support matrix](guides/support.md) for verification scope.
 
 ## Installation
 
