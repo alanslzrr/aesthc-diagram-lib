@@ -23,20 +23,12 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://alanslzrr.github.io/aesthc-diagram-lib/og.png" />
     <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
-    <script>
-      // Set the theme before first paint: stored choice, else OS preference,
-      // else the site's dark default.
-      try {
-        var stored = localStorage.getItem('adl-theme')
-        var preferred =
-          stored === 'light' || stored === 'dark'
-            ? stored
-            : window.matchMedia('(prefers-color-scheme: light)').matches
-              ? 'light'
-              : 'dark'
-        document.documentElement.dataset.theme = preferred
-      } catch (e) {}
-    </script>
+    <script>// Shared pre-paint preference, before React hydration.
+let preference = 'system'
+try { const saved = localStorage.getItem('adl-theme'); if (saved === 'dark' || saved === 'light') preference = saved } catch { /* Use system when storage is blocked. */ }
+document.documentElement.dataset.themePreference = preference
+document.documentElement.dataset.theme = preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : preference
+</script>
   </head>
   <body>
     <div id="root"></div>

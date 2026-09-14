@@ -1,12 +1,15 @@
-// Apply the saved theme before body content paints; docs remain readable without JS.
+// Shared pre-paint preference, before React hydration.
+let preference = 'system'
 try {
   const saved = localStorage.getItem('adl-theme')
-  document.documentElement.dataset.theme =
-    saved === 'dark' || saved === 'light'
-      ? saved
-      : matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
+  if (saved === 'dark' || saved === 'light') preference = saved
 } catch {
-  document.documentElement.dataset.theme = 'light'
+  /* Use system when storage is blocked. */
 }
+document.documentElement.dataset.themePreference = preference
+document.documentElement.dataset.theme =
+  preference === 'system'
+    ? matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+    : preference
