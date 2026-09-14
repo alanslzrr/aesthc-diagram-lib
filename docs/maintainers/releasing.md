@@ -93,3 +93,53 @@ persistence and clipboard/search failure states. `pnpm test:e2e` covers these fl
 Run a Pages-base build with `SITE_BASE=/aesthc-diagram-lib/`; all local assets and
 links must retain that prefix. Refresh visual baselines only after reviewing
 intentional design changes, then rerun comparisons without updating snapshots.
+
+## Public artifact verification
+
+After an explicitly authorized publication, run the read-only verifier with the
+exact tarball retained from the reviewed tag:
+
+```sh
+node scripts/verify-public-release.mjs /absolute/path/aesthc-diagram-lib-0.3.0.tgz
+```
+
+It fetches the version and archive anonymously, checks identity and SHA-512 against
+both registry metadata and the reviewed tarball, then runs the isolated runtime
+and declaration consumer tests on the downloaded artifact. It does not publish,
+create a tag or change candidate metadata. The release workflow performs this in
+a separate read-only job after publishing, without OIDC publishing permissions.
+
+After deploying and freezing the matching stable documentation, include its base:
+
+```sh
+node scripts/verify-public-release.mjs /absolute/path/aesthc-diagram-lib-0.3.0.tgz https://alanslzrr.github.io/aesthc-diagram-lib/
+```
+
+This additionally rejects candidate, mismatched or untraceable snapshots and checks
+version-local human/agent/schema endpoints. A registry-only success is not proof
+of complete release readiness. A failed follow-up never republishes automatically.
+
+## Deployment gates
+
+Pages runs only after a successful **push-to-main CI** workflow, checks out that
+workflow's exact SHA and rejects it if main has moved. CI includes functional
+browser tests, the React 18 consumer, framework consumers, visual comparisons and
+a separate Node 20.19.0 minimum-consumer job. Pull-request and manually dispatched
+CI runs cannot trigger Pages. The build records version/channel/SHA in
+`deployment.json`; the deployment verifies that public revision and docs/agent
+endpoints with bounded retries. A failed smoke test requires investigation or an
+explicit rollback, not a claim that deployment succeeded.
+
+## Presentation assets
+
+Rebuild the site, then explicitly regenerate the seven standalone Geist SVGs and
+1200×630 social image from the public playground UI:
+
+```sh
+pnpm site:build
+UPDATE_PRESENTATION_ASSETS=1 pnpm exec playwright test tests/e2e/presentation-assets.e2e.ts --project=chromium
+```
+
+Review the images before committing. This command is opt-in and is skipped in
+ordinary CI; CI must never silently accept newly generated screenshot baselines.
+Font and icon notices remain preserved, including historical font licenses.
