@@ -5,17 +5,11 @@
 // than one level) travel a side lane so they never cross intermediate cards.
 
 import type { DiagramEdge, FlowchartDiagramSpec } from '../types'
-import {
-  CARD_W,
-  CONTENT_TOP,
-  EDGE_STROKE_WIDTH,
-  FLOW_GAP_X,
-  FLOW_GAP_Y,
-  LANE_R,
-} from '../theme'
+import { CARD_W, CONTENT_TOP, EDGE_STROKE_WIDTH, FLOW_GAP_X, FLOW_GAP_Y, LANE_R } from '../theme'
 import {
   connectY,
   edgeId,
+  identifyEdges,
   labelPillWidth,
   nodeHeight,
   roundedPolyline,
@@ -86,6 +80,7 @@ export function topologicalLevels(
 }
 
 export function layoutFlowchart(spec: FlowchartDiagramSpec): DiagramLayout {
+  spec = { ...spec, edges: identifyEdges(spec.edges) }
   const { forward, back } = splitBackEdges(spec.nodes, spec.edges)
   const levelOf =
     spec.level !== undefined
@@ -118,8 +113,7 @@ export function layoutFlowchart(spec: FlowchartDiagramSpec): DiagramLayout {
   const skipEdges = forward.filter(
     (edge) => Math.abs((levelOf.get(edge.to) ?? 0) - (levelOf.get(edge.from) ?? 0)) > 1,
   )
-  const nearLaneSpan =
-    back.length > 0 ? OUTER_LANE_GAP + (back.length - 1) * OUTER_LANE_STEP : 0
+  const nearLaneSpan = back.length > 0 ? OUTER_LANE_GAP + (back.length - 1) * OUTER_LANE_STEP : 0
   const farLaneSpan =
     skipEdges.length > 0 ? OUTER_LANE_GAP + (skipEdges.length - 1) * OUTER_LANE_STEP : 0
 
@@ -130,7 +124,10 @@ export function layoutFlowchart(spec: FlowchartDiagramSpec): DiagramLayout {
     // ── Top-down: levels are rows ────────────────────────────────────────────
     const rowWidth = (members: PlacedNode[]) =>
       members.length * CARD_W + (members.length - 1) * FLOW_GAP_X
-    const contentW = Math.max(CARD_W, ...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])))
+    const contentW = Math.max(
+      CARD_W,
+      ...levelIndices.map((index) => rowWidth(levels.get(index) ?? [])),
+    )
     const originX = MARGIN_X + nearLaneSpan
     const width = originX + contentW + farLaneSpan + MARGIN_X
 

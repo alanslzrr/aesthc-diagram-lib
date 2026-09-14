@@ -10,7 +10,6 @@ import type { DiagramRegistration } from './types'
 import { registerDiagram } from './registry'
 
 export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
-
   // ── Band ──────────────────────────────────────────────────────────────────
   'example-band': {
     diagram: {
@@ -19,11 +18,7 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
         caption:
           'a request pipeline: intake, validation, and a policy-gated outcome with an off-canvas retry',
         legend: { main: 'request path', branch: 'sandbox · retry' },
-        bands: [
-          { title: 'Intake' },
-          { title: 'Validation' },
-          { title: 'Outcome' },
-        ],
+        bands: [{ title: 'Intake' }, { title: 'Validation' }, { title: 'Outcome' }],
         nodes: [
           {
             id: 'ingress',
@@ -38,7 +33,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             id: 'validate',
             band: 1,
             label: 'Validate',
-            description: 'Deterministic checks plus an LLM pass confirm the request is well-formed.',
+            description:
+              'Deterministic checks plus an LLM pass confirm the request is well-formed.',
             kind: 'Engine',
             sublabel: 'rules · llm',
             weight: 'primary',
@@ -93,17 +89,14 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
         caption:
           'un pipeline de solicitudes: entrada, validación y un resultado regido por políticas con reintento fuera de lienzo',
         legend: { main: 'ruta de solicitud', branch: 'prueba · reintento' },
-        bands: [
-          { title: 'Entrada' },
-          { title: 'Validación' },
-          { title: 'Resultado' },
-        ],
+        bands: [{ title: 'Entrada' }, { title: 'Validación' }, { title: 'Resultado' }],
         nodes: [
           {
             id: 'ingress',
             band: 0,
             label: 'Entrada',
-            description: 'La API autenticada y las subidas manuales entran como una misma solicitud normalizada.',
+            description:
+              'La API autenticada y las subidas manuales entran como una misma solicitud normalizada.',
             kind: 'Disparador',
             sublabel: 'api · subida',
             weight: 'primary',
@@ -112,7 +105,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             id: 'validate',
             band: 1,
             label: 'Validar',
-            description: 'Comprobaciones deterministas más un pase de LLM confirman que la solicitud es válida.',
+            description:
+              'Comprobaciones deterministas más un pase de LLM confirman que la solicitud es válida.',
             kind: 'Motor',
             sublabel: 'reglas · llm',
             weight: 'primary',
@@ -121,7 +115,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             id: 'approve',
             band: 2,
             label: 'Aprobado',
-            description: 'La solicitud supera la política y se conserva con su registro de auditoría.',
+            description:
+              'La solicitud supera la política y se conserva con su registro de auditoría.',
             kind: 'Resultado',
             sublabel: 'persistido',
             weight: 'primary',
@@ -130,7 +125,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             id: 'quarantine',
             band: 2,
             label: 'Cuarentena',
-            description: 'Las solicitudes con poca confianza esperan revisión del operador en vez de fallar.',
+            description:
+              'Las solicitudes con poca confianza esperan revisión del operador en vez de fallar.',
             kind: 'Resultado',
             sublabel: 'revisión',
           },
@@ -170,7 +166,6 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
       quarantine: { source: 'phosphor', key: 'warning' },
     },
   },
-
 
   // ── Flowchart ─────────────────────────────────────────────────────────────
   'example-flowchart': {
@@ -254,7 +249,13 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
           { from: 'approve', to: 'canary' },
           { from: 'approve', to: 'rollback', label: 'rejected', variant: 'branch', dashed: true },
           { from: 'canary', to: 'prod', label: 'healthy' },
-          { from: 'canary', to: 'rollback', label: 'budget exceeded', variant: 'branch', dashed: true },
+          {
+            from: 'canary',
+            to: 'rollback',
+            label: 'budget exceeded',
+            variant: 'branch',
+            dashed: true,
+          },
           { from: 'rollback', to: 'start', label: 'fix forward', variant: 'branch', dashed: true },
         ],
       },
@@ -306,7 +307,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
           {
             id: 'canary',
             label: 'Canary 5%',
-            description: 'Enruta una pequeña parte del tráfico mientras se vigila el presupuesto de error.',
+            description:
+              'Enruta una pequeña parte del tráfico mientras se vigila el presupuesto de error.',
             kind: 'Despliegue',
             sublabel: 'ventana 10 min',
             weight: 'primary',
@@ -416,12 +418,47 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
         caption: 'an order lifecycle with a cancelled sink state and an expiry timer',
         legend: { main: 'valid transition', branch: 'timeout · cancel' },
         states: [
-          { id: 'created', label: 'Created', kind: 'Start', initial: true, description: 'The order is persisted but not yet paid.' },
-          { id: 'payment', label: 'Payment pending', kind: 'Awaiting', description: 'Waiting for the payment provider confirmation.' },
-          { id: 'paid', label: 'Paid', kind: 'Confirmed', weight: 'primary', description: 'Payment succeeded; the order is ready to fulfil.' },
-          { id: 'shipped', label: 'Shipped', kind: 'Fulfilment', description: 'The carrier has the parcel.' },
-          { id: 'delivered', label: 'Delivered', kind: 'Done', weight: 'primary', final: true, description: 'The customer received the order.' },
-          { id: 'cancelled', label: 'Cancelled', kind: 'Sink', final: true, description: 'Terminal state; no further transitions.' },
+          {
+            id: 'created',
+            label: 'Created',
+            kind: 'Start',
+            initial: true,
+            description: 'The order is persisted but not yet paid.',
+          },
+          {
+            id: 'payment',
+            label: 'Payment pending',
+            kind: 'Awaiting',
+            description: 'Waiting for the payment provider confirmation.',
+          },
+          {
+            id: 'paid',
+            label: 'Paid',
+            kind: 'Confirmed',
+            weight: 'primary',
+            description: 'Payment succeeded; the order is ready to fulfil.',
+          },
+          {
+            id: 'shipped',
+            label: 'Shipped',
+            kind: 'Fulfilment',
+            description: 'The carrier has the parcel.',
+          },
+          {
+            id: 'delivered',
+            label: 'Delivered',
+            kind: 'Done',
+            weight: 'primary',
+            final: true,
+            description: 'The customer received the order.',
+          },
+          {
+            id: 'cancelled',
+            label: 'Cancelled',
+            kind: 'Sink',
+            final: true,
+            description: 'Terminal state; no further transitions.',
+          },
         ],
         transitions: [
           { from: 'created', to: 'payment', label: 'checkout' },
@@ -435,15 +472,51 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
       },
       es: {
         type: 'state-machine',
-        caption: 'un ciclo de vida de pedido con estado final cancelado y temporizador de expiración',
+        caption:
+          'un ciclo de vida de pedido con estado final cancelado y temporizador de expiración',
         legend: { main: 'transición válida', branch: 'tiempo · cancelar' },
         states: [
-          { id: 'created', label: 'Creado', kind: 'Inicio', initial: true, description: 'El pedido se conserva pero aún no se ha pagado.' },
-          { id: 'payment', label: 'Pago pendiente', kind: 'Espera', description: 'Esperando la confirmación del proveedor de pagos.' },
-          { id: 'paid', label: 'Pagado', kind: 'Confirmado', weight: 'primary', description: 'El pago se completó; el pedido está listo para despacho.' },
-          { id: 'shipped', label: 'Enviado', kind: 'Despacho', description: 'El transportista tiene el paquete.' },
-          { id: 'delivered', label: 'Entregado', kind: 'Final', weight: 'primary', final: true, description: 'El cliente recibió el pedido.' },
-          { id: 'cancelled', label: 'Cancelado', kind: 'Sumidero', final: true, description: 'Estado terminal; sin más transiciones.' },
+          {
+            id: 'created',
+            label: 'Creado',
+            kind: 'Inicio',
+            initial: true,
+            description: 'El pedido se conserva pero aún no se ha pagado.',
+          },
+          {
+            id: 'payment',
+            label: 'Pago pendiente',
+            kind: 'Espera',
+            description: 'Esperando la confirmación del proveedor de pagos.',
+          },
+          {
+            id: 'paid',
+            label: 'Pagado',
+            kind: 'Confirmado',
+            weight: 'primary',
+            description: 'El pago se completó; el pedido está listo para despacho.',
+          },
+          {
+            id: 'shipped',
+            label: 'Enviado',
+            kind: 'Despacho',
+            description: 'El transportista tiene el paquete.',
+          },
+          {
+            id: 'delivered',
+            label: 'Entregado',
+            kind: 'Final',
+            weight: 'primary',
+            final: true,
+            description: 'El cliente recibió el pedido.',
+          },
+          {
+            id: 'cancelled',
+            label: 'Cancelado',
+            kind: 'Sumidero',
+            final: true,
+            description: 'Estado terminal; sin más transiciones.',
+          },
         ],
         transitions: [
           { from: 'created', to: 'payment', label: 'checkout' },
@@ -601,7 +674,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
     diagram: {
       en: {
         type: 'timeline',
-        caption: 'a launch week: soft launch on Monday, public launch Friday, retention review the next',
+        caption:
+          'a launch week: soft launch on Monday, public launch Friday, retention review the next',
         legend: { main: 'launch event', branch: 'internal milestone' },
         events: [
           {
@@ -646,7 +720,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
       },
       es: {
         type: 'timeline',
-        caption: 'una semana de lanzamiento: soft launch el lunes, público el viernes y revisión de retención la siguiente',
+        caption:
+          'una semana de lanzamiento: soft launch el lunes, público el viernes y revisión de retención la siguiente',
         legend: { main: 'evento de lanzamiento', branch: 'hito interno' },
         events: [
           {
@@ -670,14 +745,16 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             kind: 'lanzamiento',
             sublabel: 'vie',
             weight: 'primary',
-            description: 'Lanzamiento completo con monitorización, página de estado y redes activas.',
+            description:
+              'Lanzamiento completo con monitorización, página de estado y redes activas.',
           },
           {
             id: 'week1',
             label: 'Revisión semana 1',
             kind: 'interno',
             sublabel: '+7d',
-            description: 'Revisión de métricas: activación, presupuesto de error y volumen de soporte.',
+            description:
+              'Revisión de métricas: activación, presupuesto de error y volumen de soporte.',
           },
           {
             id: 'retention',
@@ -685,7 +762,8 @@ export const EXAMPLE_DIAGRAMS: Record<string, DiagramRegistration> = {
             kind: 'interno',
             sublabel: '+30d',
             variant: 'branch',
-            description: 'Análisis de retención por cohortes y hoja de ruta de la siguiente iteración.',
+            description:
+              'Análisis de retención por cohortes y hoja de ruta de la siguiente iteración.',
           },
         ],
       },

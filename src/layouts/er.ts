@@ -6,6 +6,7 @@ import type { ErDiagramSpec, TableField } from '../types'
 import { LANE_R } from '../theme'
 import {
   edgeId,
+  identifyEdges,
   labelPillWidth,
   roundedPolyline,
   type DiagramLayout,
@@ -25,8 +26,7 @@ const MARGIN_TOP = 64
 const BOTTOM_PAD = 64
 const COLS = 3
 
-const tableHeight = (fields: TableField[]): number =>
-  HEADER_H + fields.length * ROW_H + FOOT_PAD
+const tableHeight = (fields: TableField[]): number => HEADER_H + fields.length * ROW_H + FOOT_PAD
 
 export function layoutEr(spec: ErDiagramSpec): DiagramLayout {
   const cols = Math.min(COLS, Math.max(1, spec.entities.length))
@@ -86,7 +86,7 @@ export function layoutEr(spec: ErDiagramSpec): DiagramLayout {
   const anchorY = (node: PlacedNode): number => node.y + HEADER_H / 2
 
   const edges: PlacedEdge[] = []
-  for (const relation of spec.relations) {
+  for (const relation of identifyEdges(spec.relations)) {
     const from = nodeById[relation.from]
     const to = nodeById[relation.to]
     if (!from || !to) continue

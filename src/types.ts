@@ -21,14 +21,7 @@ export type DiagramNodeShape = 'card' | 'state' | 'table' | 'event' | 'terminal'
 export type DiagramNodeTextAnchor = 'start' | 'end' | 'middle'
 
 export type SvglNodeIconKey =
-  | 'express'
-  | 'google-cloud'
-  | 'mcp'
-  | 'nextjs'
-  | 'openai'
-  | 'openrouter'
-  | 'pdf'
-  | 'postgresql'
+  'express' | 'google-cloud' | 'mcp' | 'nextjs' | 'openai' | 'openrouter' | 'pdf' | 'postgresql'
 
 export type SemanticNodeIconKey =
   | 'arrows-split'
@@ -49,8 +42,7 @@ export type SemanticNodeIconKey =
   | 'warning'
 
 export type DiagramNodeVisual =
-  | { source: 'svgl'; key: SvglNodeIconKey }
-  | { source: 'phosphor'; key: SemanticNodeIconKey }
+  { source: 'svgl'; key: SvglNodeIconKey } | { source: 'phosphor'; key: SemanticNodeIconKey }
 
 /** A single row in an ER table node. */
 export interface TableField {
@@ -90,6 +82,8 @@ export interface BandDiagramNode extends DiagramNode {
 }
 
 export interface DiagramEdge {
+  /** Stable identity for parallel relations; recommended when editing/reordering. */
+  id?: string
   from: string
   to: string
   label?: string
@@ -148,7 +142,7 @@ export interface FlowchartDiagramSpec {
   legend: { main: string; branch: string }
   nodes: DiagramNode[]
   edges: DiagramEdge[]
-  /** Optional explicit column index; defaults to a topological pass. */
+  /** Global level override for every node; omit for automatic topological levels. */
   level?: number
   /** Main flow direction. */
   direction?: 'top-down' | 'left-right'
@@ -193,6 +187,8 @@ export interface StateMachineState {
 }
 
 export interface StateTransition {
+  /** Stable identity for parallel relations; recommended when editing/reordering. */
+  id?: string
   from: string
   to: string
   label?: string
@@ -217,6 +213,8 @@ export interface ErEntity {
 }
 
 export interface ErRelation {
+  /** Stable identity for parallel relations; recommended when editing/reordering. */
+  id?: string
   from: string
   to: string
   label?: string
@@ -260,7 +258,7 @@ export interface SwimlaneDiagramSpec {
   caption: string
   legend: { main: string; branch: string }
   lanes: SwimlaneLane[]
-  nodes: DiagramNode[] & Array<{ lane: string }>
+  nodes: Array<DiagramNode & { lane: string }>
   edges: DiagramEdge[]
 }
 

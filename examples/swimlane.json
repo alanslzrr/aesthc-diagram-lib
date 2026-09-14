@@ -1,0 +1,39 @@
+{
+  "type": "swimlane",
+  "caption": "Support handoff",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "lanes": [
+    {
+      "id": "support",
+      "label": "Support"
+    },
+    {
+      "id": "engineering",
+      "label": "Engineering"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "a",
+      "label": "Request",
+      "description": "Receive a request.",
+      "lane": "support"
+    },
+    {
+      "id": "b",
+      "label": "Response",
+      "description": "Return a response.",
+      "lane": "engineering"
+    }
+  ],
+  "edges": [
+    {
+      "id": "handoff",
+      "from": "a",
+      "to": "b"
+    }
+  ]
+}

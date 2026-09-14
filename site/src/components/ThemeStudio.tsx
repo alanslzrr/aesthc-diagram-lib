@@ -10,13 +10,13 @@ import { themeCss, type ThemeTokens } from '../lib/code'
 import { CopyButton, MonoButton } from './ui'
 
 const DEFAULT_LIGHT: ThemeTokens = {
-  background: '#f4f7fb',
-  foreground: '#171717',
-  card: '#f9fbff',
-  border: '#d8e0eb',
-  mutedForeground: '#666666',
-  cobalt: '#0fa8ff',
-  branch: '#d6a55e',
+  background: '#e9eef4',
+  foreground: '#202b38',
+  card: '#f9fbfd',
+  border: '#aebdcd',
+  mutedForeground: '#536273',
+  cobalt: '#087cbd',
+  branch: '#a66b21',
 }
 
 const DEFAULT_DARK: ThemeTokens = {
@@ -105,12 +105,12 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
       />
 
       <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
-        <span className="inline-flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/55">
+        <span className="inline-flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/75">
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-branch shadow-[0_0_8px_color-mix(in_srgb,var(--color-branch)_55%,transparent)]" />
           {STRINGS.themeMode[locale]} / {theme}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-foreground/45">{STRINGS.presets[locale]}</span>
+          <span className="mr-1 text-xs text-foreground/75">{STRINGS.presets[locale]}</span>
           {PRESETS.map((candidate) => (
             <MonoButton
               key={candidate.name}
@@ -133,12 +133,44 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
         />
       </div>
 
+      <svg
+        role="img"
+        aria-label="Local theme preview"
+        viewBox="0 0 640 140"
+        className="mx-auto mt-6 w-full max-w-2xl px-5"
+      >
+        <rect
+          x="10"
+          y="20"
+          width="220"
+          height="100"
+          rx="8"
+          fill="var(--card)"
+          stroke="var(--diagram-node-border)"
+        />
+        <rect
+          x="410"
+          y="20"
+          width="220"
+          height="100"
+          rx="8"
+          fill="var(--card)"
+          stroke="var(--diagram-node-border)"
+        />
+        <path d="M230 70H410" stroke="var(--cobalt)" strokeWidth="2" />
+        <text x="120" y="76" textAnchor="middle" fill="var(--foreground)">
+          Request
+        </text>
+        <text x="520" y="76" textAnchor="middle" fill="var(--foreground)">
+          Response
+        </text>
+      </svg>
       <div className="grid gap-x-8 gap-y-5 px-5 py-8 sm:grid-cols-2 sm:px-7 lg:grid-cols-3">
         {FIELDS.map((field) => (
           <label key={field.token} className="flex items-center justify-between gap-4">
             <span className="text-xs font-medium text-foreground/80">
               {field.label}
-              <span className="mt-0.5 block font-mono text-[10px] font-normal text-foreground/40">
+              <span className="mt-0.5 block font-mono text-[10px] font-normal text-foreground/75">
                 {field.cssVar}
               </span>
             </span>

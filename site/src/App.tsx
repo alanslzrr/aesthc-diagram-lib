@@ -24,17 +24,20 @@ export default function App() {
   const [locale, setLocale] = useState<Locale>('en')
   const sections = useDebugSections()
   const [shared, setShared] = useState<{ key: string; spec: DiagramSpec } | null>(null)
+  const [shareError, setShareError] = useState(false)
   const [hydrated, setHydrated] = useState(!window.location.hash.includes('s='))
 
   useEffect(() => {
     if (hydrated) return
     void decodeShareHash(window.location.hash).then((decoded) => {
       if (decoded) {
-        setShared({ key: decoded.key, spec: decoded.spec as DiagramSpec })
+        setShared({ key: decoded.key, spec: decoded.spec })
+        setLocale(decoded.locale)
         window.setTimeout(() => {
           document.getElementById(decoded.key)?.scrollIntoView({ block: 'start' })
         }, 60)
       }
+      setShareError(!decoded)
       setHydrated(true)
     })
   }, [hydrated])
@@ -54,16 +57,30 @@ export default function App() {
 
   return (
     <div className="pb-4">
+      <a href="#main" className="skip-link">
+        Skip to diagrams
+      </a>
       <TopBar
         locale={locale}
         theme={theme}
-        onLocale={() => setLocale((current) => (current === 'en' ? 'es' : 'en'))}
+        onLocale={() => {
+          if (
+            !document.querySelector('textarea[aria-invalid="true"]') ||
+            window.confirm('Discard invalid JSON before changing language?')
+          )
+            setLocale((current) => (current === 'en' ? 'es' : 'en'))
+        }}
         onTheme={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
       />
 
       <Hero locale={locale} />
 
-      <main className="mx-auto mt-20 w-full max-w-[1180px] px-4 sm:px-8">
+      {shareError ? (
+        <p role="alert" className="mx-auto max-w-4xl p-4">
+          Invalid or oversized share link. Default examples are shown; your link was not evaluated.
+        </p>
+      ) : null}
+      <main id="main" tabIndex={-1} className="mx-auto mt-20 w-full max-w-[1180px] px-4 sm:px-8">
         {sections.map((entry, index) => (
           <article
             key={entry.key}

@@ -1,48 +1,47 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
+  workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   ci:
-    name: Typecheck, Tests & Styles
+    name: Contracts and package
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          version: 10.29.3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          node-version: '22'
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Build package (ESM + d.ts + styles)
-        run: pnpm build
-
-      - name: Verify dist is in sync
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm audit --audit-level=high
+      - name: Verify tracked distribution
         run: |
-          git diff --exit-code dist/
-          echo "dist/ is up to date (JS, d.ts and styles.css)"
+          git diff --exit-code -- dist/
+          test -z "$(git ls-files --others --exclude-standard -- dist/)"
+      - name: Test React 18 consumer
+        run: node scripts/test-package.mjs
+        env:
+          REACT_VERSION: 18.3.1
+          REACT_TYPES_VERSION: 18.3.28
+          REACT_DOM_TYPES_VERSION: 18.3.7
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm test:e2e
+      - run: node scripts/test-frameworks.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: browser-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

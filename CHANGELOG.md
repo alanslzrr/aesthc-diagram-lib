@@ -7,7 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Release candidate: 0.3.0
+
+- Refine the light palette with a blue-gray canvas, distinct node surfaces,
+  stronger grid and connection contrast. Optional detail tokens preserve existing
+  consumer defaults; the playground, copied CSS and SVG exports stay aligned.
+  The dark palette is unchanged.
+
+This version is prepared locally, not yet verified on the public npm registry.
+
+- Add generated JSON Schemas and the dependency-free `/validation` entrypoint.
+- Use explicit relation IDs and collision-safe anonymous parallel identities;
+  preserve every relation during connected-path highlighting.
+- Replace executable editor input with validated JSON and retain the last valid
+  preview. Version shared links with locale and bounded decoding.
+- Generate seven complete interactive examples, API/type documentation, a static
+  integration guide for agents, Markdown endpoints and `llms.txt` indexes.
+- Consume package exports in the playground and test installed tarballs with
+  React 18/19, TypeScript NodeNext/Bundler, Vite and Next.js.
+- Add private security/conduct contacts, contribution templates, license notices,
+  browser accessibility checks and a gated OIDC release workflow.
+- Improve mobile controls, keyboard-accessible code regions, text descriptions,
+  theme previews and error reporting for copy/download actions.
+
+Migration: editor/share data is JSON, not executable JavaScript. Sequence relation
+IDs now match authored message IDs. See [migration notes](docs/guides/migration.md).
+
+
+### Fixed
+
+- Registry state is now shared between the root, registry, examples and showcase
+  package entrypoints. Previously, independent bundles duplicated the registry
+  and could report an unknown diagram for registrations made through another import.
+- Full builds remove obsolete distribution chunks before generating JS, types and
+  CSS, preventing stale files from accumulating in release artifacts.
+
 ### Added
+
+- An isolated tarball consumer test verifies public imports, registry identity,
+  showcase rendering, client directives and published TypeScript declarations.
 
 - Site round 2 (inspired by editorial diagram tooling): **PNG export (2×)**
   rasterized from the standalone SVG, **share links** (spec

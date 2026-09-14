@@ -1,14 +1,7 @@
-/*
- * Site styles. Unlike an external consumer (which imports the compiled,
- * layer-wrapped dist/styles.css), the site compiles Tailwind over BOTH its
- * own sources and the library's `src/` in one pass, so utilities used by the
- * canvas exist without any cascade-layer gymnastics.
- */
+/* Site chrome uses its own utilities; the canvas consumes the distributed
+ * package stylesheet. Both share the host tokens below. */
 @import './fonts.css';
 @import 'tailwindcss';
-@import '../../src/icon-styles.css';
-
-@source '../../src';
 
 @custom-variant dark (&:is([data-theme='dark'] *));
 
@@ -23,15 +16,20 @@
 
 /* Host theme contract from the README (subset of alansalazar.dev). */
 :root {
-  --background: #f4f7fb;
-  --foreground: #171717;
-  --card: #f9fbff;
-  --muted: #edf2f8;
-  --muted-foreground: #666666;
-  --border: #d8e0eb;
+  --background: #e9eef4;
+  --foreground: #202b38;
+  --card: #f9fbfd;
+  --muted: #dde5ee;
+  --muted-foreground: #536273;
+  --border: #aebdcd;
   --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));
-  --cobalt: #0fa8ff;
-  --branch: #d6a55e;
+  --diagram-node-fill: var(--card);
+  --diagram-secondary-fill: color-mix(in srgb, var(--card) 38%, var(--background));
+  --diagram-grid-opacity: 0.18;
+  --diagram-main-tail-opacity: 0.62;
+  --diagram-branch-tail-opacity: 0.48;
+  --cobalt: #087cbd;
+  --branch: #a66b21;
   --ring: #1a9de2;
 }
 
@@ -43,6 +41,11 @@
   --muted-foreground: #a8a8a1;
   --border: #242424;
   --diagram-node-border: var(--border);
+  --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --diagram-secondary-fill: transparent;
+  --diagram-grid-opacity: 0.12;
+  --diagram-main-tail-opacity: 0.24;
+  --diagram-branch-tail-opacity: 0.12;
   --cobalt: #14a8ff;
   --branch: #d6a55e;
   --ring: #14a8ff;
@@ -157,4 +160,54 @@
   ::selection {
     background: color-mix(in srgb, var(--color-cobalt) 25%, transparent);
   }
+}
+
+:root {
+  color-scheme: light;
+  --diagram-font-display: 'Bodoni Moda', Georgia, serif;
+}
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -6rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--foreground);
+  color: var(--background);
+}
+.skip-link:focus {
+  top: 1rem;
+}
+[id] {
+  scroll-margin-top: 7rem;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+[hidden] {
+  display: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:root {
+  --cobalt-ink: #075a91;
+}
+[data-theme='dark'] {
+  --cobalt-ink: #49b9ff;
 }

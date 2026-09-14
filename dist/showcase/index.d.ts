@@ -26,4 +26,11 @@ interface DiagramShowcaseProps {
  */
 declare function DiagramShowcase({ locale, label, hoverHint, heading, headingAccent, intro, entries, }: DiagramShowcaseProps): react.JSX.Element;
 
-export { DiagramShowcase, DiagramShowcase as DiagramShowcaseDefault, type DiagramShowcaseProps, type ShowcaseEntry };
+/**
+ * Default showcase lineup — one entry per supported diagram type.
+ * Localized copy is provided by the host (see DiagramShowcase props);
+ * the English defaults below match the library's example diagrams.
+ */
+declare const DEFAULT_SHOWCASE_ENTRIES: ShowcaseEntry[];
+
+export { DEFAULT_SHOWCASE_ENTRIES, DiagramShowcase, DiagramShowcase as DiagramShowcaseDefault, type DiagramShowcaseProps, type ShowcaseEntry };

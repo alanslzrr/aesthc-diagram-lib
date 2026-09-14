@@ -1,0 +1,28 @@
+{
+  "type": "flowchart",
+  "caption": "Request flow",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "label": "Request",
+      "description": "Receive a request."
+    },
+    {
+      "id": "b",
+      "label": "Response",
+      "description": "Return a response."
+    }
+  ],
+  "edges": [
+    {
+      "id": "request",
+      "from": "a",
+      "to": "b"
+    }
+  ],
+  "direction": "top-down"
+}

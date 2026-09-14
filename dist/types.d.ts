@@ -55,6 +55,8 @@ interface BandDiagramNode extends DiagramNode {
     band: number;
 }
 interface DiagramEdge {
+    /** Stable identity for parallel relations; recommended when editing/reordering. */
+    id?: string;
     from: string;
     to: string;
     label?: string;
@@ -116,7 +118,7 @@ interface FlowchartDiagramSpec {
     };
     nodes: DiagramNode[];
     edges: DiagramEdge[];
-    /** Optional explicit column index; defaults to a topological pass. */
+    /** Global level override for every node; omit for automatic topological levels. */
     level?: number;
     /** Main flow direction. */
     direction?: 'top-down' | 'left-right';
@@ -159,6 +161,8 @@ interface StateMachineState {
     final?: boolean;
 }
 interface StateTransition {
+    /** Stable identity for parallel relations; recommended when editing/reordering. */
+    id?: string;
     from: string;
     to: string;
     label?: string;
@@ -183,6 +187,8 @@ interface ErEntity {
     fields: TableField[];
 }
 interface ErRelation {
+    /** Stable identity for parallel relations; recommended when editing/reordering. */
+    id?: string;
     from: string;
     to: string;
     label?: string;
@@ -230,7 +236,7 @@ interface SwimlaneDiagramSpec {
         branch: string;
     };
     lanes: SwimlaneLane[];
-    nodes: DiagramNode[] & Array<{
+    nodes: Array<DiagramNode & {
         lane: string;
     }>;
     edges: DiagramEdge[];

@@ -26,7 +26,7 @@
   --color-branch: var(--branch);
   --color-muted: var(--muted, var(--foreground));
   --color-muted-foreground: var(--muted-foreground, var(--foreground));
-  --font-display: var(--font-display, ui-serif, Georgia, serif);
+  --font-display: var(--diagram-font-display, ui-serif, Georgia, serif);
 }
 
 @custom-variant dark (&:is([data-theme='dark'] *));

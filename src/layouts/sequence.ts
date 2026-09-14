@@ -77,8 +77,7 @@ export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
     nodeById[header.id] = header
   })
 
-  const messageY = (index: number): number =>
-    messageTop + index * MESSAGE_PITCH + MESSAGE_PITCH / 2
+  const messageY = (index: number): number => messageTop + index * MESSAGE_PITCH + MESSAGE_PITCH / 2
 
   const edges: PlacedEdge[] = []
   spec.messages.forEach((message, index) => {
@@ -148,8 +147,12 @@ export function layoutSequence(spec: SequenceDiagramSpec): DiagramLayout {
     )
     const closesAt = reply >= 0 ? messageY(reply) : opensAt + MESSAGE_PITCH * 0.72
 
+    const baseId = `activation-${message.id}`
+    let id = baseId
+    let suffix = 2
+    while (Object.hasOwn(nodeById, id)) id = `${baseId}::${suffix++}`
     const bar: PlacedNode = {
-      id: `activation-${message.id}`,
+      id,
       label: '',
       description: '',
       band: 0,

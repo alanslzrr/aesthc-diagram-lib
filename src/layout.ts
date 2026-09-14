@@ -24,7 +24,6 @@ import {
   LANE_R,
 } from './theme'
 
-
 /** Vertical attachment point for a port on a given side. */
 export interface NodePort {
   side: PortSide
@@ -109,6 +108,8 @@ export interface PlacedLifeline {
 export interface Adjacency {
   out: Map<string, string[]>
   in: Map<string, string[]>
+  /** Relation identities grouped by encoded endpoints. */
+  relations?: Map<string, string[]>
 }
 
 export interface Highlight {
@@ -128,8 +129,29 @@ export interface DiagramLayout {
   nodeById: Record<string, PlacedNode>
 }
 
-export const edgeId = (edge: Pick<DiagramEdge, 'from' | 'to'>): string =>
-  `${edge.from}::${edge.to}`
+export const edgeId = (edge: Pick<DiagramEdge, 'from' | 'to' | 'id'>): string =>
+  edge.id ?? `${encodeURIComponent(edge.from)}::${encodeURIComponent(edge.to)}`
+
+/** Preserve explicit IDs; assign unique deterministic IDs to anonymous edges.
+ * Anonymous parallel identities follow authored order. Use explicit IDs when reordering.
+ */
+export function identifyEdges<T extends DiagramEdge>(edges: T[]): Array<T & { id: string }> {
+  const used = new Set<string>()
+  for (const edge of edges) {
+    if (edge.id === undefined) continue
+    if (used.has(edge.id)) throw new Error(`Duplicate relation id: ${edge.id}`)
+    used.add(edge.id)
+  }
+  return edges.map((edge) => {
+    if (edge.id !== undefined) return { ...edge, id: edge.id }
+    const base = edgeId(edge)
+    let id = base
+    let ordinal = 1
+    while (used.has(id)) id = `${base}::${++ordinal}`
+    used.add(id)
+    return { ...edge, id }
+  })
+}
 
 export const labelPillWidth = (label: string): number =>
   label.length * LABEL_CHAR_WIDTH + LABEL_HORIZONTAL_PADDING
@@ -137,8 +159,7 @@ export const labelPillWidth = (label: string): number =>
 export const nodeHeight = (node: Pick<DiagramNode, 'sublabel'>): number =>
   node.sublabel ? CARD_H_FULL : CARD_H_SLIM
 
-export const isMutedNode = (node: Pick<PlacedNode, 'weight'>): boolean =>
-  node.weight === 'muted'
+export const isMutedNode = (node: Pick<PlacedNode, 'weight'>): boolean => node.weight === 'muted'
 
 /**
  * Vertical attachment point for a port on a given side. A muted node has no
@@ -219,8 +240,13 @@ export function splitBackEdges(
 export function buildAdjacency(edges: DiagramEdge[]): Adjacency {
   const out = new Map<string, string[]>()
   const incoming = new Map<string, string[]>()
+  const relations = new Map<string, string[]>()
 
-  for (const edge of edges) {
+  for (const edge of identifyEdges(edges)) {
+    const key = edgeId({ from: edge.from, to: edge.to })
+    const identities = relations.get(key) ?? []
+    identities.push(edge.id)
+    relations.set(key, identities)
     const forward = out.get(edge.from)
     if (forward) forward.push(edge.to)
     else out.set(edge.from, [edge.to])
@@ -230,7 +256,7 @@ export function buildAdjacency(edges: DiagramEdge[]): Adjacency {
     else incoming.set(edge.to, [edge.from])
   }
 
-  return { out, in: incoming }
+  return { out, in: incoming, relations }
 }
 
 /**
@@ -243,7 +269,7 @@ export function diagramEdges(spec: DiagramSpec | LegacyBandSpec): DiagramEdge[] 
   // list is missing entirely — treat it as empty rather than crashing the
   // adjacency build downstream.
   const list = (candidate: DiagramEdge[] | undefined): DiagramEdge[] =>
-    Array.isArray(candidate) ? candidate : []
+    Array.isArray(candidate) ? identifyEdges(candidate) : []
 
   if (!('type' in spec)) return list(spec.edges)
   switch (spec.type) {
@@ -278,7 +304,11 @@ export function connectedIds(nodeId: string, adjacency: Adjacency): Highlight {
       const neighbours = adjacency[direction].get(current) ?? []
 
       for (const next of neighbours) {
-        edges.add(direction === 'out' ? `${current}::${next}` : `${next}::${current}`)
+        const key =
+          direction === 'out'
+            ? edgeId({ from: current, to: next })
+            : edgeId({ from: next, to: current })
+        for (const id of adjacency.relations?.get(key) ?? [key]) edges.add(id)
         nodes.add(next)
         if (seen.has(next)) continue
         seen.add(next)
@@ -334,7 +364,6 @@ export function nodePorts(
 
   return [...hits.values()]
 }
-
 
 /** Re-exported so consumers keep a single import site for dimming. */
 export { DIMMED_OPACITY }

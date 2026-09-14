@@ -29,6 +29,7 @@ import {
 import {
   connectY,
   edgeId,
+  identifyEdges,
   isMutedNode,
   labelPillWidth,
   nodeHeight,
@@ -80,7 +81,7 @@ function placeBandEdges(diagram: BandSpecInput, nodes: PlacedBandNode[]): Placed
   for (const node of nodes) nodeById[node.id] = node
 
   const edges: PlacedEdge[] = []
-  for (const edge of diagram.edges) {
+  for (const edge of identifyEdges(diagram.edges)) {
     const from = nodeById[edge.from]
     const to = nodeById[edge.to]
     if (!from || !to) continue
@@ -243,10 +244,7 @@ function placeBandEdges(diagram: BandSpecInput, nodes: PlacedBandNode[]): Placed
   return edges
 }
 
-function placeBandDecisions(
-  diagram: BandSpecInput,
-  nodes: PlacedBandNode[],
-): PlacedDecision[] {
+function placeBandDecisions(diagram: BandSpecInput, nodes: PlacedBandNode[]): PlacedDecision[] {
   const decisions = (diagram.decisions ?? []).map((decision) => ({ ...decision }))
   if (decisions.length === 0) return []
 

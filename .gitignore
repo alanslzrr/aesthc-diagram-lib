@@ -7,3 +7,6 @@ site/dist
 
 # local agent tooling
 .claude/
+
+playwright-report
+test-results

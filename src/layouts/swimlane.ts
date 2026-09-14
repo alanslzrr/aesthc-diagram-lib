@@ -8,6 +8,7 @@ import type { SwimlaneDiagramSpec } from '../types'
 import { CARD_W, SWIMLANE_HEADER_W, SWIMLANE_PAD, SWIMLANE_ROW_PAD } from '../theme'
 import {
   edgeId,
+  identifyEdges,
   labelPillWidth,
   nodeHeight,
   splitBackEdges,
@@ -25,6 +26,7 @@ const NODE_GAP = 96
 const STACK_GAP = 24
 
 export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
+  spec = { ...spec, edges: identifyEdges(spec.edges) }
   const laneIds = spec.lanes.map((lane) => lane.id)
   const { forward } = splitBackEdges(spec.nodes, spec.edges)
   const columnOf = topologicalLevels(spec.nodes, forward)
@@ -59,8 +61,7 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
     if (!laneColumns) return 88
     let tallest = 0
     for (const cell of laneColumns.values()) {
-      const stackH =
-        cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
+      const stackH = cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
       tallest = Math.max(tallest, stackH)
     }
     return Math.max(88, tallest + SWIMLANE_ROW_PAD)
@@ -98,8 +99,7 @@ export function layoutSwimlane(spec: SwimlaneDiagramSpec): DiagramLayout {
 
     for (const [column, cell] of laneColumns) {
       const x = xForColumn(column)
-      const stackH =
-        cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
+      const stackH = cell.reduce((sum, member) => sum + member.h, 0) + (cell.length - 1) * STACK_GAP
       let memberY = top + (laneH - stackH) / 2
       for (const member of cell) {
         const cy = memberY + member.h / 2 + (member.nudge ?? 0)

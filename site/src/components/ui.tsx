@@ -27,10 +27,10 @@ export function MonoButton({
       aria-pressed={active}
       onClick={onClick}
       className={[
-        'inline-flex h-7 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
+        'inline-flex h-9 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
         active
           ? 'border-foreground/40 bg-muted text-foreground'
-          : 'border-border bg-transparent text-foreground/60 hover:bg-muted hover:text-foreground',
+          : 'border-border bg-transparent text-foreground/75 hover:bg-muted hover:text-foreground',
       ].join(' ')}
     >
       {children}
@@ -43,24 +43,25 @@ export function CopyButton({
   label,
   copiedLabel,
 }: {
-  getText: () => string
+  getText: () => string | Promise<string>
   label: string
   copiedLabel: string
 }) {
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   return (
     <span aria-live="polite">
       <MonoButton
         onClick={() => {
-          navigator.clipboard
-            .writeText(getText())
+          setError(null)
+          Promise.resolve()
+            .then(getText)
+            .then((text) => navigator.clipboard.writeText(text))
             .then(() => {
               setCopied(true)
               window.setTimeout(() => setCopied(false), 1600)
             })
-            .catch(() => {
-              /* clipboard denied — leave the label untouched */
-            })
+            .catch((cause) => setError(`Copy failed: ${String(cause)}`))
         }}
       >
         <span
@@ -72,15 +73,17 @@ export function CopyButton({
         />
         {copied ? copiedLabel : label}
       </MonoButton>
+      {error ? (
+        <span role="alert" className="block text-[var(--branch-ink)]">
+          {error}
+        </span>
+      ) : null}
     </span>
   )
 }
 
 /** Keeps one broken panel from unmounting the whole page. */
-export class PanelBoundary extends Component<
-  { children: ReactNode },
-  { error: string | null }
-> {
+export class PanelBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null as string | null }
 
   static getDerivedStateFromError(error: unknown) {
@@ -97,7 +100,7 @@ export class PanelBoundary extends Component<
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="mt-4 inline-flex h-7 items-center border border-border px-3 text-xs font-medium text-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="mt-4 inline-flex h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
           >
             Retry
           </button>
@@ -119,11 +122,11 @@ export function SectionHeader({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/55">
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/75">
         {String(index).padStart(2, '0')} — {title}
       </span>
       <span className="h-px flex-1 bg-foreground/16" />
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/45">
+      <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/75">
         {meta}
       </span>
     </div>
