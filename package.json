@@ -1,12 +1,29 @@
 {
   "name": "@aesthc/diagram-lib",
-  "version": "0.2.2",
-  "description": "Reusable SVG diagram library — band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
+  "version": "0.3.0",
+  "description": "Reusable SVG diagram library \u2014 band, flowchart, sequence, state-machine, ER, timeline and swimlane layouts with a cohesive visual language (dot grid, hairline cards, cobalt/branch edges, glass tooltips).",
   "type": "module",
-  "sideEffects": ["./dist/styles.css"],
+  "sideEffects": [
+    "./dist/styles.css"
+  ],
   "files": [
     "dist",
-    "src"
+    "src",
+    "schemas",
+    "docs/api",
+    "docs/guides",
+    "docs/agents",
+    "docs/getting-started.md",
+    "examples/*.tsx",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "licenses",
+    "THIRD_PARTY_NOTICES.md",
+    "examples/*.json",
+    "docs/diagrams/*.md",
+    "docs/maintainers",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md"
   ],
   "exports": {
     ".": {
@@ -49,13 +66,33 @@
       "types": "./dist/showcase/index.d.ts",
       "default": "./dist/showcase/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "default": "./dist/validation/index.js"
+    }
   },
   "scripts": {
     "test": "vitest run",
+    "test:package": "pnpm build && node ./scripts/test-package.mjs",
     "typecheck": "tsc --noEmit",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs",
-    "build": "tsup && node ./scripts/inject-use-client.mjs && pnpm build:css"
+    "build": "tsup && node ./scripts/inject-use-client.mjs && pnpm build:css",
+    "schemas:generate": "node scripts/generate-schemas.mjs",
+    "schemas:check": "node scripts/generate-schemas.mjs --check",
+    "docs:generate": "tsx scripts/generate-docs.ts",
+    "docs:check": "tsx scripts/generate-docs.ts --check",
+    "docs:build": "node scripts/build-docs.mjs",
+    "site:build": "pnpm --dir site build && pnpm docs:build",
+    "test:e2e": "playwright test",
+    "format:check": "prettier --check src scripts tests site/src *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml",
+    "check": "pnpm lint && pnpm format:check && pnpm schemas:check && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:package && pnpm --dir site exec tsc --noEmit && pnpm site:build && pnpm check:budgets",
+    "release:check": "pnpm check && pnpm test:e2e",
+    "test:frameworks": "pnpm build && node scripts/test-frameworks.mjs",
+    "prepack": "pnpm schemas:check && pnpm docs:check && pnpm build",
+    "test:visual": "VISUAL_REGRESSION=1 playwright test --project=chromium",
+    "check:budgets": "node scripts/check-budgets.mjs",
+    "lint": "eslint src site/src scripts tests"
   },
   "keywords": [
     "diagram",
@@ -69,8 +106,8 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
+    "react": "^18.3.1 || ^19.0.0",
+    "react-dom": "^18.3.1 || ^19.0.0"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -79,36 +116,51 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^26.2.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "ajv": "^8.20.0",
+    "eslint": "^9.39.5",
+    "marked": "^18.0.13",
+    "prettier": "^3.9.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.3.3",
+    "ts-json-schema-generator": "^2.9.0",
     "tsup": "^8.5.1",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.0",
-    "vitest": "^4.0.0"
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11"
   },
   "author": "Alan Salazar",
   "repository": {
     "type": "git",
     "url": "https://github.com/alanslzrr/aesthc-diagram-lib.git"
   },
-  "homepage": "https://github.com/alanslzrr/aesthc-diagram-lib#readme",
+  "homepage": "https://alanslzrr.github.io/aesthc-diagram-lib/",
   "bugs": {
     "url": "https://github.com/alanslzrr/aesthc-diagram-lib/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "packageManager": "pnpm@10.29.3",
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "@parcel/watcher"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@parcel/watcher"
+    ],
+    "overrides": {
+      "tsup>esbuild": "^0.28.1"
+    }
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
