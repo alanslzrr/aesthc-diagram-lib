@@ -1,13 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
-import { animate } from 'motion/mini'
 
 const Context = createContext<{ expanded: boolean; enhanced: boolean; closing: boolean }>({
   expanded: false,
   enhanced: false,
   closing: false,
 })
-// Native details/summary before hydration, with Motion's measured height
+// Native details/summary before hydration, with a native measured height
 // transition after hydration. Keep details open while its closing animation runs.
 export function Disclosure({
   children,
@@ -26,7 +25,7 @@ export function Disclosure({
   useEffect(() => {
     const root = ref.current
     if (!root || !enhanced) return
-    let controls: ReturnType<typeof animate> | undefined
+    let controls: Animation | undefined
     let generation = 0
     const content = root.querySelector<HTMLElement>('[data-disclosure-content]')!
     const trigger = root.querySelector('summary')!
@@ -34,7 +33,7 @@ export function Disclosure({
       event.preventDefault()
       const next = !root!.hasAttribute('data-expanded')
       const run = ++generation
-      controls?.stop()
+      controls?.cancel()
       if (!next && content.contains(document.activeElement)) trigger.focus()
       const start = content.getBoundingClientRect().height
       root!.open = true
@@ -44,15 +43,18 @@ export function Disclosure({
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
       content.style.height = 'auto'
       const height = content.scrollHeight
-      controls = animate(
-        content,
-        { height: [next ? start : height, next ? height : 0], opacity: next ? [0, 1] : [1, 0] },
-        { duration: reduced ? 0 : 0.18, ease: 'easeOut' },
+      controls = content.animate(
+        {
+          height: [`${next ? start : height}px`, `${next ? height : 0}px`],
+          opacity: next ? [0, 1] : [1, 0],
+        },
+        { duration: reduced ? 0 : 180, easing: 'ease-out', fill: 'both' },
       )
-      controls
+      controls.finished
         .then(() => {
           if (run !== generation) return
           if (!next) root!.open = false
+          controls?.cancel()
           content.style.height = ''
           content.style.opacity = ''
           setClosing(false)
@@ -70,7 +72,7 @@ export function Disclosure({
     root.addEventListener('keydown', escape)
     return () => {
       generation++
-      controls?.stop()
+      controls?.cancel()
       trigger.removeEventListener('click', toggle)
       root.removeEventListener('keydown', escape)
     }
