@@ -1,3 +1,7 @@
+import soraLicense from '../../../licenses/Sora-OFL.txt?raw'
+import geistLicense from '../../../licenses/Geist-Mono-OFL.txt?raw'
+import bodoniLicense from '../../../licenses/Bodoni-Moda-OFL.txt?raw'
+
 // Standalone SVG export: clones the live canvas and inlines the computed
 // presentation of every element, so the file opens with the page's exact
 // palette anywhere — no Tailwind classes, no CSS variables required.
@@ -135,7 +139,7 @@ function embeddedFontCss(): Promise<string> {
         for (const rule of rules) {
           if (!(rule instanceof CSSFontFaceRule)) continue
           const family = rule.style.getPropertyValue('font-family')
-          if (!/Sora|Geist Mono/.test(family)) continue
+          if (!/Sora|Geist Mono|Bodoni Moda/.test(family)) continue
           const source = rule.style.getPropertyValue('src')
           const match = source.match(/url\("?([^")]+\.woff2)"?\)/)
           if (!match) continue
@@ -148,7 +152,9 @@ function embeddedFontCss(): Promise<string> {
 
       const embedded: string[] = []
       for (const face of faces) {
-        const buffer = await (await fetch(face.url)).arrayBuffer()
+        const response = await fetch(face.url)
+        if (!response.ok) throw new Error(`Font download failed: ${response.status}`)
+        const buffer = await response.arrayBuffer()
         const bytes = new Uint8Array(buffer)
         let binary = ''
         for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
@@ -160,7 +166,10 @@ function embeddedFontCss(): Promise<string> {
         )
       }
       return embedded.join('\n')
-    })().catch(() => '')
+    })().catch((error) => {
+      fontCssPromise = null
+      throw error
+    })
   }
   return fontCssPromise
 }
@@ -170,7 +179,10 @@ export async function serializeDiagramSvgStandalone(svg: SVGSVGElement): Promise
   const markup = serializeDiagramSvg(svg)
   const fontCss = await embeddedFontCss()
   if (!fontCss) return markup
-  return markup.replace(/(<svg[^>]*>)/, `$1<style>${fontCss}</style>`)
+  const metadata = document.createElementNS('http://www.w3.org/2000/svg', 'metadata')
+  metadata.textContent = [soraLicense, geistLicense, bodoniLicense].join('\n\n')
+  const notice = new XMLSerializer().serializeToString(metadata)
+  return markup.replace(/(<svg[^>]*>)/, `$1${notice}<style>${fontCss}</style>`)
 }
 
 function triggerDownload(blob: Blob, filename: string): void {
@@ -207,10 +219,11 @@ export async function downloadDiagramPng(
     canvas.width = Math.round(viewBox.width * scale)
     canvas.height = Math.round(viewBox.height * scale)
     const context = canvas.getContext('2d')
-    if (!context) return
+    if (!context) throw new Error('Canvas rendering is unavailable')
     context.drawImage(image, 0, 0, canvas.width, canvas.height)
     const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
-    if (png) triggerDownload(png, filename)
+    if (!png) throw new Error('PNG encoding failed')
+    triggerDownload(png, filename)
   } finally {
     window.setTimeout(() => URL.revokeObjectURL(svgUrl), 4000)
   }
