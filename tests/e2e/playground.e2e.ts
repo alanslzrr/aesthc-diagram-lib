@@ -83,7 +83,7 @@ test('static docs and agent entrypoint work without JavaScript', async ({ browse
   const page = await context.newPage()
   await page.goto('http://127.0.0.1:4173/agents/')
   await expect(page.getByRole('heading', { level: 1 })).toContainText('coding agent')
-  await page.getByRole('link', { name: 'Get started', exact: true }).click()
+  await page.getByRole('main').getByRole('link', { name: 'Getting started', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Getting started')
   expect((await page.request.get('http://127.0.0.1:4173/llms.txt')).status()).toBe(200)
   await context.close()

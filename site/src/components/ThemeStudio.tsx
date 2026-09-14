@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Locale } from '../content'
 import { STRINGS } from '../content'
 import { themeCss, type ThemeTokens } from '../lib/code'
-import { CopyButton, MonoButton } from './ui'
+import { CopyButton, ControlButton } from './ui'
 
 const DEFAULT_LIGHT: ThemeTokens = {
   background: '#e9eef4',
@@ -105,20 +105,20 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
       />
 
       <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
-        <span className="inline-flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/75">
+        <span className="inline-flex items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-branch shadow-[0_0_8px_color-mix(in_srgb,var(--color-branch)_55%,transparent)]" />
           {STRINGS.themeMode[locale]} / {theme}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-xs text-foreground/75">{STRINGS.presets[locale]}</span>
           {PRESETS.map((candidate) => (
-            <MonoButton
+            <ControlButton
               key={candidate.name}
               active={preset === candidate.name}
               onClick={() => applyPreset(candidate)}
             >
               {candidate.name}
-            </MonoButton>
+            </ControlButton>
           ))}
           <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
           <CopyButton
@@ -170,7 +170,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
           <label key={field.token} className="flex items-center justify-between gap-4">
             <span className="text-xs font-medium text-foreground/80">
               {field.label}
-              <span className="mt-0.5 block font-mono text-[10px] font-normal text-foreground/75">
+              <span className="mt-0.5 block font-sans text-[10px] font-normal text-foreground/75">
                 {field.cssVar}
               </span>
             </span>
@@ -183,7 +183,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
                   setActiveTokens((tokens) => ({ ...tokens, [field.token]: event.target.value }))
                 }}
                 aria-label={`${field.cssVar} — ${STRINGS.hexAria[locale]}`}
-                className="w-[86px] border border-border bg-transparent px-2 py-1 font-mono text-[10.5px] text-foreground/80 outline-none focus:border-foreground/35"
+                className="w-[86px] border border-border bg-transparent px-2 py-1 font-sans text-[10.5px] text-foreground/80 outline-none focus:border-foreground/35"
               />
               <input
                 type="color"

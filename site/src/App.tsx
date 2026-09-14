@@ -43,6 +43,20 @@ export default function App() {
   }, [hydrated])
 
   useEffect(() => {
+    if (!hydrated) return
+    const target = window.location.hash.slice(1)
+    if (target !== 'main' && target !== 'top' && !SECTIONS.some((entry) => entry.key === target))
+      return
+    let cancelled = false
+    void document.fonts.ready.then(() => {
+      if (!cancelled) document.getElementById(target)?.scrollIntoView({ block: 'start' })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [hydrated])
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme
     try {
       localStorage.setItem('adl-theme', theme)

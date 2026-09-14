@@ -22,7 +22,7 @@ import { STRINGS } from '../content'
 import { parseSpecSource, specSource, usageSnippet } from '../lib/code'
 import { encodeShareHash } from '../lib/share'
 import { downloadDiagramPng, downloadDiagramSvg, serializeDiagramSvg } from '../lib/svg-export'
-import { CopyButton, MonoButton } from './ui'
+import { CopyButton, ControlButton } from './ui'
 
 type PanelTab = 'preview' | 'code'
 type CodeTab = 'spec' | 'usage'
@@ -148,9 +148,9 @@ export function DiagramPanel({
         className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,var(--foreground),transparent)] opacity-[var(--diagram-frame-opacity)]"
       />
 
-      {/* Mono header bar: identity left, playground controls right. */}
+      {/* Sora header bar: identity left, playground controls right. */}
       <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
-        <span className="inline-flex shrink-0 items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground/75">
+        <span className="inline-flex shrink-0 items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
           <i className="inline-block h-[7px] w-[7px] rounded-full bg-cobalt shadow-[0_0_8px_color-mix(in_srgb,var(--color-cobalt)_55%,transparent)]" />
           {entry.type} / {entry.key}
           {edited ? (
@@ -160,15 +160,15 @@ export function DiagramPanel({
           ) : null}
         </span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <MonoButton active={tab === 'preview'} onClick={() => setTab('preview')}>
+          <ControlButton active={tab === 'preview'} onClick={() => setTab('preview')}>
             {STRINGS.preview[locale]}
-          </MonoButton>
-          <MonoButton active={tab === 'code'} onClick={() => setTab('code')}>
+          </ControlButton>
+          <ControlButton active={tab === 'code'} onClick={() => setTab('code')}>
             {STRINGS.code[locale]}
-          </MonoButton>
+          </ControlButton>
           <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
           {direction ? (
-            <MonoButton
+            <ControlButton
               onClick={() =>
                 setDraft({
                   ...draft,
@@ -178,10 +178,10 @@ export function DiagramPanel({
               title={STRINGS.direction[locale]}
             >
               {direction === 'top-down' ? STRINGS.topDown[locale] : STRINGS.leftRight[locale]}
-            </MonoButton>
+            </ControlButton>
           ) : null}
           {edited ? (
-            <MonoButton
+            <ControlButton
               onClick={() => {
                 if (
                   window.confirm(
@@ -192,7 +192,7 @@ export function DiagramPanel({
               }}
             >
               {STRINGS.reset[locale]}
-            </MonoButton>
+            </ControlButton>
           ) : null}
           <ShareButton entry={entry} draft={draft} locale={locale} />
           <CopyButton
@@ -213,7 +213,7 @@ export function DiagramPanel({
               )
             }
           />
-          <MonoButton
+          <ControlButton
             onClick={() => {
               const url = URL.createObjectURL(
                 new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' }),
@@ -226,7 +226,7 @@ export function DiagramPanel({
             }}
           >
             ↓ JSON
-          </MonoButton>
+          </ControlButton>
           {tab === 'preview' && layoutResult.layout ? (
             <>
               <CopyButton
@@ -237,7 +237,7 @@ export function DiagramPanel({
                   return svg ? serializeDiagramSvg(svg) : ''
                 }}
               />
-              <MonoButton
+              <ControlButton
                 onClick={() => {
                   const svg = findSvg()
                   if (svg)
@@ -247,8 +247,8 @@ export function DiagramPanel({
                 }}
               >
                 ↓ {STRINGS.downloadSvg[locale]}
-              </MonoButton>
-              <MonoButton
+              </ControlButton>
+              <ControlButton
                 onClick={() => {
                   const svg = findSvg()
                   if (svg)
@@ -258,7 +258,7 @@ export function DiagramPanel({
                 }}
               >
                 ↓ {STRINGS.downloadPng[locale]}
-              </MonoButton>
+              </ControlButton>
             </>
           ) : null}
         </span>
@@ -305,7 +305,7 @@ export function DiagramPanel({
               nodeVisuals={getDiagramVisuals(entry.key)}
             />
           ) : (
-            <p className="py-16 text-center font-mono text-[11px] text-[var(--branch-ink)]">
+            <p className="py-16 text-center font-sans text-xs text-[var(--branch-ink)]">
               {layoutResult.error}
             </p>
           )}
@@ -334,7 +334,7 @@ export function DiagramPanel({
         <CodeView entry={entry} locale={locale} draft={draft} onApply={setDraft} />
       </div>
 
-      <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-mono text-[10.5px] text-foreground/75">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-sans text-xs text-foreground/75">
         <span className="max-w-[68ch] leading-relaxed">
           {'// '}
           {caption}
@@ -371,7 +371,7 @@ function ShareButton({
   const [error, setError] = useState<string | null>(null)
   return (
     <span aria-live="polite">
-      <MonoButton
+      <ControlButton
         onClick={() => {
           setError(null)
           void encodeShareHash(entry.key, draft, locale)
@@ -395,7 +395,7 @@ function ShareButton({
           ].join(' ')}
         />
         {copied ? STRINGS.shareCopied[locale] : STRINGS.share[locale]}
-      </MonoButton>
+      </ControlButton>
       {error ? <span role="alert">{error}</span> : null}
     </span>
   )
@@ -462,12 +462,12 @@ function CodeView({
     <div className="px-5 py-6 sm:px-7">
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
         <span className="inline-flex items-center gap-1.5">
-          <MonoButton active={codeTab === 'spec'} onClick={() => setCodeTab('spec')}>
+          <ControlButton active={codeTab === 'spec'} onClick={() => setCodeTab('spec')}>
             {STRINGS.spec[locale]}.json
-          </MonoButton>
-          <MonoButton active={codeTab === 'usage'} onClick={() => setCodeTab('usage')}>
+          </ControlButton>
+          <ControlButton active={codeTab === 'usage'} onClick={() => setCodeTab('usage')}>
             {STRINGS.usage[locale]}.tsx
-          </MonoButton>
+          </ControlButton>
         </span>
         <span className="inline-flex items-center gap-3">
           {codeTab === 'spec' ? (
@@ -499,7 +499,7 @@ function CodeView({
           <p
             aria-live="polite"
             className={[
-              'mt-2 min-h-[1rem] font-mono text-[10px]',
+              'mt-2 min-h-[1rem] font-sans text-xs',
               error ? 'text-[var(--branch-ink)]' : 'text-transparent',
             ].join(' ')}
           >

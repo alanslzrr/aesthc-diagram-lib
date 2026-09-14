@@ -67,3 +67,18 @@ source links target its Git tag. Do not freeze a candidate as a stable release.
 Transfer budgets gate total site JavaScript at 175 KiB gzip, CSS at 12 KiB gzip,
 and the package at 2 MiB packed / 8 MiB unpacked. These are regression ceilings,
 not performance scores; changes require measured justification.
+
+## Documentation pipeline
+
+`pnpm site:build` builds the package-consuming playground, renders seven validated
+SVG illustrations through public exports, then builds the dedicated `/docs/` site.
+The same Markdown supplies HTML pages, heading navigation and the local search
+index. `site/docs` owns the responsive shell, theme and progressive enhancements;
+reading, links and complete examples do not depend on browser JavaScript.
+
+After editing navigation, check every page, heading link and download, including
+`/agents/` and versioned routes. Test both themes, mobile navigation, package-manager
+persistence and clipboard/search failure states. `pnpm test:e2e` covers these flows.
+Run a Pages-base build with `SITE_BASE=/aesthc-diagram-lib/`; all local assets and
+links must retain that prefix. Refresh visual baselines only after reviewing
+intentional design changes, then rerun comparisons without updating snapshots.

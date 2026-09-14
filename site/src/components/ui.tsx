@@ -1,14 +1,13 @@
-// Small mono-styled control primitives shared across the page. Everything
-// follows the library's chrome: hairline borders, uppercase mono micro-type.
+// Soft, Sora-styled controls shared across the playground.
 
 import { Component, useState, type ReactNode } from 'react'
 
 /**
  * Control button in the host design system's own language: Sora, xs/medium,
  * normal case, hairline border, quiet muted hover — mono stays reserved for
- * technical micro-labels (keys, captions, code), never for controls.
+ * source code, never for controls or interface labels.
  */
-export function MonoButton({
+export function ControlButton({
   onClick,
   active,
   children,
@@ -27,7 +26,7 @@ export function MonoButton({
       aria-pressed={active}
       onClick={onClick}
       className={[
-        'inline-flex h-9 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
+        'inline-flex rounded-xl h-9 shrink-0 select-none items-center gap-1.5 whitespace-nowrap border px-2.5 text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50',
         active
           ? 'border-foreground/40 bg-muted text-foreground'
           : 'border-border bg-transparent text-foreground/75 hover:bg-muted hover:text-foreground',
@@ -51,7 +50,7 @@ export function CopyButton({
   const [error, setError] = useState<string | null>(null)
   return (
     <span aria-live="polite">
-      <MonoButton
+      <ControlButton
         onClick={() => {
           setError(null)
           Promise.resolve()
@@ -72,7 +71,7 @@ export function CopyButton({
           ].join(' ')}
         />
         {copied ? copiedLabel : label}
-      </MonoButton>
+      </ControlButton>
       {error ? (
         <span role="alert" className="block text-[var(--branch-ink)]">
           {error}
@@ -100,7 +99,7 @@ export class PanelBoundary extends Component<{ children: ReactNode }, { error: s
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="mt-4 inline-flex h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
+            className="mt-4 inline-flex rounded-xl h-9 items-center border border-border px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
           >
             Retry
           </button>
@@ -122,13 +121,14 @@ export function SectionHeader({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/75">
-        {String(index).padStart(2, '0')} — {title}
+      <span className="font-sans text-sm font-medium tracking-normal text-foreground/75">
+        <span aria-hidden="true" className="mr-3 font-sans text-xs text-muted-foreground">
+          {index}
+        </span>
+        {title}
       </span>
       <span className="h-px flex-1 bg-foreground/16" />
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/75">
-        {meta}
-      </span>
+      <span className="font-sans text-xs tracking-normal text-foreground/75">{meta}</span>
     </div>
   )
 }

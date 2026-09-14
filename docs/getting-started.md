@@ -4,13 +4,19 @@ Documentation for **0.3.0**. Install the matching publicly released
 version, or use the candidate tarball supplied by a maintainer before publication.
 React 18.3/19, ESM and Node 20.19+ are the supported target lines.
 
+## Installation
+
 ```bash
 npm install @aesthc/diagram-lib@0.3.0
 ```
 
-Use your existing package manager; npm, pnpm and yarn can install the same package.
+Use your existing package manager; npm, pnpm, yarn and bun can install the same package.
 Import the stylesheet and define the host variables in [Theming](guides/theming.md).
-Tailwind is not required. This complete example includes selection/focus state:
+Tailwind is not required.
+
+## First diagram
+
+This complete example includes selection/focus state:
 
 ```tsx
 import { useId, useMemo, useState } from 'react'
@@ -65,6 +71,8 @@ export function Diagram() {
     instanceId={instanceId} ariaLabel={spec.caption} nodeVisuals={{}} />
 }
 ```
+
+## Next steps
 
 For Next App Router, add a client boundary as described in [React integration](guides/react.md).
 For untrusted JSON, validate before rendering using the [API](api/index.md).
