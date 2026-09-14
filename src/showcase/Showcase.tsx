@@ -210,7 +210,7 @@ export function DiagramShowcase({
   entries,
 }: DiagramShowcaseProps) {
   return (
-    <div className="pb-24 pt-16">
+    <div className="font-sans pb-24 pt-16">
       <div className="mx-auto w-full max-w-[720px] px-4 sm:px-8">
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{label}</p>
         <h1 className="mt-3 font-display text-[clamp(2.5rem,4vw,4rem)] leading-[0.95] tracking-[-0.05em]">

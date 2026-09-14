@@ -26,7 +26,9 @@
   --color-branch: var(--branch);
   --color-muted: var(--muted, var(--foreground));
   --color-muted-foreground: var(--muted-foreground, var(--foreground));
-  --font-display: var(--diagram-font-display, ui-serif, Georgia, serif);
+  --font-display: var(--diagram-font-display, Geist, system-ui, sans-serif);
+  --font-sans: var(--diagram-font-sans, Geist, system-ui, sans-serif);
+  --font-mono: var(--diagram-font-mono, 'Geist Mono', ui-monospace, monospace);
 }
 
 @custom-variant dark (&:is([data-theme='dark'] *));
@@ -51,4 +53,22 @@
   box-shadow:
     0 18px 48px -24px rgb(0 0 0 / 0.5),
     inset 0 1px 0 color-mix(in srgb, white 9%, transparent);
+}
+
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-sans.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-mono.woff2') format('woff2');
+}
+.diagram-canvas {
+  font-family: var(--diagram-font-sans, Geist, system-ui, sans-serif);
 }
