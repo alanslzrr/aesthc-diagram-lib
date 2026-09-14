@@ -88,7 +88,7 @@ export function DiagramCanvas({
       preserveAspectRatio="xMidYMid meet"
       role="group"
       aria-label={ariaLabel}
-      className="mx-auto block h-auto w-full"
+      className="diagram-canvas mx-auto block h-auto w-full"
       style={{
         // Never upscale past 1 unit = 1px (typography stays true to the band
         // reference), and keep the legibility floor for wide artboards.
@@ -309,6 +309,8 @@ export function DiagramCanvas({
             const isTable = node.shape === 'table'
             const isState = node.shape === 'state'
             const isTerminal = node.shape === 'terminal'
+            const centeredLabel = !visual && !node.kind && !node.sublabel && !isMuted
+            const textX = visual ? node.x + CARD_TEXT_X : node.x + 18
             const radius = isState || isTerminal ? Math.min(CARD_R * 2.4, node.h / 2) : CARD_R
 
             return (
@@ -436,6 +438,7 @@ export function DiagramCanvas({
                     ) : isTable ? (
                       <>
                         <rect
+                          data-node-surface="true"
                           x={node.x}
                           y={node.y}
                           width={node.w}
@@ -493,30 +496,24 @@ export function DiagramCanvas({
                               </text>
                             ) : null}
                             <text
+                              data-field-name={field.name}
                               x={node.x + (field.key === 'pk' || field.key === 'fk' ? 34 : 14)}
                               y={node.y + 26 + fieldIndex * 22 + 14.5}
                               className="fill-foreground/80 font-mono text-[11px]"
                             >
                               {field.name}
                             </text>
-                            {field.type ? (
+                            {field.type || field.key === 'unique' ? (
                               <text
+                                data-field-annotation={field.name}
                                 x={node.x + node.w - 14}
                                 y={node.y + 26 + fieldIndex * 22 + 14.5}
                                 textAnchor="end"
                                 className="fill-foreground/75 font-mono text-[10px]"
                               >
-                                {field.type}
-                              </text>
-                            ) : null}
-                            {field.key === 'unique' ? (
-                              <text
-                                x={node.x + node.w - (field.type ? 80 : 14)}
-                                y={node.y + 26 + fieldIndex * 22 + 14.5}
-                                textAnchor="end"
-                                className="fill-foreground/75 font-mono text-[9.5px]"
-                              >
-                                unique
+                                {[field.type, field.key === 'unique' ? 'unique' : null]
+                                  .filter(Boolean)
+                                  .join(' · ')}
                               </text>
                             ) : null}
                           </g>
@@ -533,6 +530,7 @@ export function DiagramCanvas({
                       />
                     ) : (
                       <rect
+                        data-node-surface="true"
                         x={node.x}
                         y={node.y}
                         width={node.w}
@@ -632,7 +630,7 @@ export function DiagramCanvas({
 
                     {!isEvent && !isTable && node.kind ? (
                       <text
-                        x={node.x + CARD_TEXT_X}
+                        x={textX}
                         y={node.y + 24}
                         letterSpacing="1.6"
                         className="fill-foreground/75 font-mono text-[11.25px] uppercase"
@@ -643,8 +641,11 @@ export function DiagramCanvas({
 
                     {!isEvent && !isTable ? (
                       <text
-                        x={node.x + CARD_TEXT_X}
-                        y={node.y + 48}
+                        data-node-label="true"
+                        x={centeredLabel ? node.cx : textX}
+                        y={centeredLabel ? node.cy : node.y + 48}
+                        textAnchor={centeredLabel ? 'middle' : undefined}
+                        dominantBaseline={centeredLabel ? 'central' : undefined}
                         className={
                           weight === 'primary'
                             ? 'fill-foreground text-[14.5px]'
@@ -657,7 +658,7 @@ export function DiagramCanvas({
 
                     {!isEvent && !isTable && node.sublabel ? (
                       <text
-                        x={node.x + CARD_TEXT_X}
+                        x={textX}
                         y={node.y + 70}
                         className="fill-foreground/75 font-mono text-[11.25px]"
                       >
@@ -683,7 +684,7 @@ export function DiagramCanvas({
 
                     dismissNode(node.id)
                   }}
-                  className="block max-w-[min(19rem,calc(100vw-2rem))] px-4 py-3.5 text-left"
+                  className="font-sans block max-w-[min(19rem,calc(100vw-2rem))] px-4 py-3.5 text-left"
                 >
                   <span className="block font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/75">
                     {node.kind ?? node.label}

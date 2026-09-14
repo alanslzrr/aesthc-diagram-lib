@@ -160,6 +160,22 @@ describe('DiagramCanvas renders every type', () => {
       }),
     )
 
+  it('centers label-only cards without an empty icon rail', () => {
+    const spec: DiagramSpec = {
+      type: 'flowchart',
+      caption: 'Plain card',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'plain', label: 'Plain', description: 'Label-only card' }],
+      edges: [],
+    }
+    const node = layoutDiagram(spec).nodes[0]
+    const markup = render(spec)
+    expect(markup).toContain(
+      `data-node-label="true" x="${node.cx}" y="${node.cy}" text-anchor="middle" dominant-baseline="central"`,
+    )
+    expect(markup).toContain('data-node-surface="true"')
+  })
+
   it('uses the host node-border token for secondary outlines', () => {
     const markup = render(EXAMPLE_DIAGRAMS['example-flowchart'].diagram.en)
     expect(markup).toContain('stroke="var(--diagram-node-border, var(--border))"')
