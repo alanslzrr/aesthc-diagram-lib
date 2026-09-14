@@ -1,3 +1,4 @@
+import { compareVisual } from './helpers/visual'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
@@ -306,7 +307,7 @@ for (const theme of ['light', 'dark']) {
       }
       await pane.screenshot({ path: `/tmp/aesthc-preview-${type}-${theme}.png` })
       if (process.env.VISUAL_REGRESSION && !isMobile && browserName === 'chromium')
-        await expect.soft(pane).toHaveScreenshot(`docs-${type}-${theme}.png`)
+        await compareVisual(pane, `docs-${type}-${theme}.png`)
       const code = page.locator('.preview').getByRole('tab', { name: 'Code', exact: true })
       await code.click()
       await expect(pane).not.toBeVisible()

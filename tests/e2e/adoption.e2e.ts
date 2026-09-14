@@ -1,3 +1,4 @@
+import { compareVisual } from './helpers/visual'
 import { test, expect } from '@playwright/test'
 
 test('landing links reach adoption tools and editors mount only on demand', async ({ page }) => {
