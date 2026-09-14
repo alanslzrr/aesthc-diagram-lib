@@ -87,9 +87,10 @@ export function validateDiagramSpec(input: unknown): ValidationResult<DiagramSpe
     }
   const spec = input as DiagramSpec
   const add = (path: string, code: string, message: string) => issues.push({ path, code, message })
-  const unique = (ids: string[], path: string) => {
+  const unique = (ids: Array<string | undefined>, path: string) => {
     const seen = new Set<string>()
     ids.forEach((id, index) => {
+      if (id === undefined) return
       if (!id.trim() || unsafe.has(id))
         add(`${path}/${index}/id`, 'id', 'Expected a non-empty, non-reserved ID')
       if (seen.has(id)) add(`${path}/${index}/id`, 'duplicate-id', `Duplicate ID: ${id}`)
@@ -97,17 +98,36 @@ export function validateDiagramSpec(input: unknown): ValidationResult<DiagramSpe
     })
   }
   const ids = diagramNodeIds(spec)
-  unique(ids, '/nodes')
+  const nodeField =
+    (
+      {
+        sequence: 'participants',
+        'state-machine': 'states',
+        er: 'entities',
+        timeline: 'events',
+      } as Partial<Record<DiagramSpec['type'], string>>
+    )[spec.type] ?? 'nodes'
+  const relationField =
+    (
+      { sequence: 'messages', 'state-machine': 'transitions', er: 'relations' } as Partial<
+        Record<DiagramSpec['type'], string>
+      >
+    )[spec.type] ?? 'edges'
+  unique(ids, `/${nodeField}`)
   const nodes = new Set(ids)
   const edges = relations(spec)
   unique(
-    edges.flatMap((edge) => (edge.id === undefined ? [] : [edge.id])),
-    '/relations',
+    edges.map((edge) => edge.id),
+    `/${relationField}`,
   )
   edges.forEach((edge, index) => {
     for (const endpoint of ['from', 'to'] as const) {
       if (!nodes.has(edge[endpoint]))
-        add(`/relations/${index}/${endpoint}`, 'reference', `Unknown node: ${edge[endpoint]}`)
+        add(
+          `/${relationField}/${index}/${endpoint}`,
+          'reference',
+          `Unknown node: ${edge[endpoint]}`,
+        )
     }
   })
   if (spec.type === 'band') {
