@@ -300,3 +300,69 @@ Logs temporales: /tmp/adl-structure-red.log,
  /tmp/adl-continuation-react18.log, /tmp/adl-continuation-frameworks2.log,
  /tmp/adl-continuation-e2e2.log, /tmp/adl-continuation-visual.log.
 Captura: /tmp/adl-eight-handles.png. No publicación ni commits.
+
+## Continuación M1: renderer, gestos, clipboard estructurado y persistencia (2026-09-23)
+
+Baseline commiteado (`feat(editor): baseline editable canvas foundation`), verificado
+con Node 22.23.2 / pnpm 10.29.3. Los cambios de esta continuación están en 9 commits
+convencionales (feat/perf/test/chore), sin publicar ni declarar release.
+
+- E05: primitives del renderer alineados con el canvas legado: contenedores rx LANE_R con
+  label mono uppercase + tracking, lifelines 2/6, edges con EDGE_STROKE_WIDTH y caps round,
+  dashes 2/7, pills de edge/continuation con PILL_H/PILL_R, pills de decisión, header path
+  de tablas ER, opacidades del estado final, muted hairline, barras de activación y kinds
+  uppercase. Los labels de edge salen del grupo del path (z-order como el legado), por lo
+  que el test E2E de Studio pasó a filtrar `[data-edge-label]`. Test de paridad nuevo
+  `tests/editor-render-parity.unit.spec.ts` (11 casos, siete tipos + primitives de gap).
+- E05 medición: `src/geometry/text.ts` con `TextMeasurer` pluggable y
+  `createCanvasTextMeasurer()` (canvas 2D), usado por el editor y la exportación vía
+  `ResolveContext.measureText`; el estimador conservador se mantiene como fallback y el
+  overflow reporta con la medición real cuando hay DOM.
+- E06: resize de selección múltiple (`resizeRects`/`rectsUnion` en `src/geometry/resize.ts`):
+  un set de 8 handles sobre el rect de unión, escala proporcional con ancla opuesta fija,
+  un commit por gesto, undo y cancelación; teclado 1/16px. El `onFocus` de los hit rects ya
+  no reemplaza una selección múltiple existente. Gestos coalescidos con requestAnimationFrame
+  (un preview por frame; el queue se vacía en pointerup antes de commit y se descarta sin
+  gesto activo). Long-press táctil sin callouts del sistema (`-webkit-touch-callout`,
+  `-webkit-user-select`) con E2E de selección sin drag ni commits.
+- E07: selección visual de conexiones (hit rects por segmento, no paths de bbox cero) y
+  edición de rutas: toggle manual/auto, waypoints arrastrables (gesto transaccional con
+  cancel/undo) y anclas source/target reubicables (`anchorPoint`/`anchorFromPoint`
+  exportados desde scene). Inspector `EditorRoute` con lista, añadir y quitar waypoints.
+- E08: paste estructurado en `pasteFragment`: bandas por índice con clamp al target o
+  mapping explícito `structured.band`; carriles por label con fallback a la primera lane o
+  mapping explícito `structured.lane`, rechazo `lane.missing` sin carril válido. Sin
+  placements/escena para tipos estructurados; zOrder siempre actualizado. `read()` del
+  adapter distingue JSON corrupto (`storage.corrupt`) de acceso denegado.
+- E10: `purge` en StorageAdapter (memoria y localStorage) para descartar copias corruptas;
+  Studio con recuperación de borrador persistido (aviso "Restore draft" con confirmación),
+  cuarentena de copias corruptas sin sobrescribirlas y «Guardar como» con slug sanitizado.
+
+### Gates de esta continuación
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check` Node22.23.2 | PASS: **281 unit en 36 archivos, 12 tarball**, lint/formato/schemas/docs/tipos/build/site/budgets |
+| E2E completo Chrome153 + Pixel7, puerto 42880 | **142 passed, 14 skipped**; sin fallos |
+| Studio dentro de la suite | 19 tests: resize múltiple, waypoints/anchors, clipboard estructurado, persistencia (draft/cuarentena/save-as) |
+| Visual legacy Chrome153, puerto 42878 | **4 passed** tras diagnosticar y revisar el golden darwin de docs-sequence-dark |
+| Tarball Vite/Next y React18 | No re-ejecutados en esta continuación; el build del paquete pasó en `pnpm check` |
+
+### Diagnóstico del diff visual de 6 píxeles
+
+La diferencia en `docs-sequence-dark.png` se root-causeó antes de tocar referencias:
+el golden se capturó el 2026-09-14 y la ruta de render del preview (canvas legado,
+layouts, tema, página docs) está byte-idéntica desde el baseline. Los 13 píxeles que
+superan el umbral de Playwright están en el anti-aliasing de un glifo de texto (filas
+188-195, x 342-367): mismas formas, pesos AA distintos. Es drift de renderizado de
+Chrome en macOS, no un bug de código. Se actualizó el golden darwin tras revisión;
+los goldens Linux de CI con Chromium fijado no se modificaron y siguen siendo la
+referencia autoritativa.
+
+### Pendiente tras esta continuación
+
+E09 (slots/configuración y selectores granulares), E11 (paridad visual certificada y
+fallas de plataforma), E12 (cierre formal M1), E02/E03/E04 (matrices exhaustivas y
+benchmarks), y todo E13–E24 según la tabla de estado. Firefox/WebKit/Chromium fijado
+siguen sin binarios; Chrome instalado es evidencia complementaria. No se crearon
+releases ni se publicó el paquete.
