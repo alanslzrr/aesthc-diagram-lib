@@ -2,7 +2,17 @@ import type { DiagramDocument, ResolvedScene } from '../editor-core/types'
 import { nodeGeometry, tableFieldGeometry } from '../geometry/node'
 import { renderNodeIcon } from './icons'
 import { semanticIconLicense, brandIconNotices } from '../brand-icons/semantic-data'
-import { DOT_R, NODE_ICON_SIZE } from '../theme'
+import {
+  CARD_R,
+  DECISION_PILL_H,
+  DECISION_PILL_R,
+  DOT_R,
+  EDGE_STROKE_WIDTH,
+  LANE_R,
+  NODE_ICON_SIZE,
+  PILL_H,
+  PILL_R,
+} from '../theme'
 /** Only this encoder writes authored strings into SVG/XML. */
 export const escapeXml = (text: string) =>
   text
@@ -36,23 +46,26 @@ export function renderSceneMarkup(
     family = 'Geist',
   ) =>
     `<text x="${x}" y="${y}" font-family="${family}, sans-serif" font-size="${size * document.presentation.textScale}" fill="${fill}" text-anchor="${anchor}">${escapeXml(value)}</text>`
-  let out = `<defs><marker id="arrow-${id}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1L7 4L1 7" fill="none" stroke="context-stroke"/></marker><pattern id="grid-${id}" width="${document.presentation.grid.size}" height="${document.presentation.grid.size}" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.7" fill="${p.border}"/></pattern></defs>`
+  const monoLabel = (
+    x: number,
+    y: number,
+    value: string,
+    size: number,
+    fill: string,
+    spacing = 0,
+  ) =>
+    `<text x="${x}" y="${y}"${spacing ? ` letter-spacing="${spacing}"` : ''} font-family="Geist Mono, monospace" font-size="${size * document.presentation.textScale}" fill="${fill}">${escapeXml(value)}</text>`
+  let out = `<defs><marker id="arrow-${id}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="context-stroke" stroke-linecap="round" stroke-linejoin="round"/></marker><pattern id="grid-${id}" width="${document.presentation.grid.size}" height="${document.presentation.grid.size}" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="${p.foreground}" fill-opacity="0.12"/></pattern></defs>`
   if (document.presentation.grid.visible)
     out += `<rect x="${scene.worldBounds.x}" y="${scene.worldBounds.y}" width="${scene.worldBounds.width}" height="${scene.worldBounds.height}" fill="url(#grid-${id})"/>`
   for (const c of l.containers ?? [])
-    out += `<g><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="4" fill="${p.background}" stroke="${p.border}"/>${text(c.x + 12, c.y + 20, c.label, 12, p.mutedForeground)}</g>`
+    out += `<g><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="${LANE_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(c.x + 18, c.y + 26, (c.label ?? '').toUpperCase(), 11.25, p.mutedForeground, 1.6)}${c.kind ? monoLabel(c.x + 18, c.y + 44, c.kind, 10, p.mutedForeground) : ''}</g>`
   for (const line of l.lifelines ?? [])
-    out += `<path d="M${line.x} ${line.y0}V${line.y1}" fill="none" stroke="${p.border}" stroke-dasharray="4 4"/>`
-  for (const e of l.edges) {
-    out += `<g data-edge-id="${escapeXml(e.id)}"><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? 1.5}"${e.dashed ? ' stroke-dasharray="5 4"' : ''}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ''}/>`
-    if (e.label)
-      out += `<rect x="${e.labelX - e.labelWidth / 2}" y="${e.labelY - 12}" width="${e.labelWidth}" height="22" rx="4" fill="${p.card}" stroke="${p.border}"/>${text(e.labelX, e.labelY + 3, e.label, 11, p.foreground, 'middle', 'Geist Mono')}`
-    out += '</g>'
-  }
+    out += `<path d="M${line.x} ${line.y0}V${line.y1}" fill="none" stroke="${p.border}" stroke-dasharray="2 6"/>`
+  for (const e of l.edges)
+    out += `<g data-edge-id="${escapeXml(e.id)}"><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ''}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ''}/></g>`
   for (const c of l.continuations)
-    out += `<path d="${escapeXml(c.d)}" fill="none" stroke="${color(c.variant)}"/>${text(c.labelX, c.labelY, c.displayLabel, 11, p.mutedForeground, 'middle')}`
-  for (const d of l.decisions)
-    out += text(d.x + d.width / 2, d.y + 14, d.label, 11, p.mutedForeground, 'middle')
+    out += `<path d="${escapeXml(c.d)}" fill="none" stroke="${color(c.variant)}" stroke-width="${EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${id})"/>`
 
   for (const n of l.nodes) {
     const visual = document.metadata.visuals[n.id]
@@ -65,15 +78,15 @@ export function renderSceneMarkup(
     if (n.shape === 'event') {
       const stroke = color(n.weight === 'primary' ? 'main' : 'branch')
       out += `<line x1="${n.cx}" y1="${n.cy}" x2="${n.cx}" y2="${g.connectorEnd}" stroke="${stroke}" stroke-dasharray="2 4"/><circle cx="${n.cx}" cy="${n.cy}" r="${DOT_R}" fill="${p.background}" stroke="${stroke}"/><circle cx="${n.cx}" cy="${n.cy}" r="${DOT_R / 2.6}" fill="${stroke}"/>`
-      if (n.kind) out += text(n.cx, n.y - 24, n.kind, 10, p.mutedForeground, 'middle', 'Geist Mono')
+      if (n.kind) out += monoLabel(n.cx, n.y - 24, n.kind.toUpperCase(), 10, p.mutedForeground, 1.4)
       out += `<text data-node-label="true" x="${n.cx}" y="${n.y}" text-anchor="middle" font-family="Geist, sans-serif" font-size="${13.5 * document.presentation.textScale}" fill="${p.foreground}">${escapeXml(n.label)}</text>`
       if (n.sublabel)
-        out += text(n.cx, n.y + 18, n.sublabel, 10.5, p.mutedForeground, 'middle', 'Geist Mono')
+        out += monoLabel(n.cx, n.y + 18, n.sublabel, 10.5, p.mutedForeground)
       out += '</g>'
       continue
     }
     if (n.weight === 'muted' && n.shape !== 'table')
-      out += `<line x1="${n.x}" y1="${n.y + n.h}" x2="${n.x + n.w}" y2="${n.y + n.h}" stroke="${p.border}"/>`
+      out += `<line x1="${n.x}" y1="${n.y + n.h}" x2="${n.x + n.w}" y2="${n.y + n.h}" stroke="${p.border}" stroke-width="1"/>`
     else
       out += `<rect data-node-surface="true" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${g.radius}" fill="${p.card}" stroke="${p.border}"/>`
     if (visual) {
@@ -90,6 +103,7 @@ export function renderSceneMarkup(
     }
     if (n.shape === 'table') {
       out += text(n.x + 14, n.y + 17.5, n.label, 13)
+      out += `<path d="M ${n.x} ${n.y + 26} L ${n.x} ${n.y + CARD_R} Q ${n.x} ${n.y} ${n.x + CARD_R} ${n.y} L ${n.x + n.w - CARD_R} ${n.y} Q ${n.x + n.w} ${n.y} ${n.x + n.w} ${n.y + CARD_R} L ${n.x + n.w} ${n.y + 26} Z" fill="${p.foreground}" fill-opacity="0.06"/>`
       for (const [index, field] of (n.fields ?? []).entries()) {
         const f = tableFieldGeometry(n, index, field.key)
         out += `<line x1="${n.x}" y1="${f.lineY}" x2="${n.x + n.w}" y2="${f.lineY}" stroke="${p.border}" stroke-width=".75"/>`
@@ -116,14 +130,21 @@ export function renderSceneMarkup(
     if (n.shape === 'state' && n.initial)
       out += `<rect x="${n.x + 4}" y="${n.y + 4}" width="${n.w - 8}" height="${n.h - 8}" rx="${g.radius - 4}" fill="none" stroke="${p.border}"/>`
     if (n.shape === 'state' && n.final)
-      out += `<circle cx="${g.final.x}" cy="${g.final.y}" r="6.5" fill="none" stroke="${p.foreground}"/><circle cx="${g.final.x}" cy="${g.final.y}" r="2.6" fill="${p.foreground}"/>`
+      out += `<circle cx="${g.final.x}" cy="${g.final.y}" r="6.5" fill="none" stroke="${p.foreground}" stroke-opacity="0.55"/><circle cx="${g.final.x}" cy="${g.final.y}" r="2.6" fill="${p.foreground}" fill-opacity="0.7"/>`
     if (n.kind)
-      out += text(g.textX, n.y + 24, n.kind, 11.25, p.mutedForeground, 'start', 'Geist Mono')
+      out += monoLabel(g.textX, n.y + 24, n.kind.toUpperCase(), 11.25, p.mutedForeground, 1.6)
     out += `<text data-node-label="true" x="${g.labelX}" y="${g.labelY}"${g.centeredLabel ? ' text-anchor="middle" dominant-baseline="central"' : ''} font-family="Geist, sans-serif" font-size="${14.5 * document.presentation.textScale}" fill="${p.foreground}">${escapeXml(n.label)}</text>`
     if (n.sublabel)
-      out += text(g.textX, n.y + 70, n.sublabel, 11.25, p.mutedForeground, 'start', 'Geist Mono')
+      out += monoLabel(g.textX, n.y + 70, n.sublabel, 11.25, p.mutedForeground)
     out += '</g>'
   }
+  for (const d of l.decisions)
+    out += `<g><rect x="${d.x - d.width / 2}" y="${d.y - DECISION_PILL_H / 2}" width="${d.width}" height="${DECISION_PILL_H}" rx="${DECISION_PILL_R}" fill="${p.background}" stroke="${p.border}"/>${text(d.x, d.y + 4.5, d.label, 12.25, p.foreground, 'middle')}</g>`
+  for (const e of l.edges)
+    if (e.label)
+      out += `<g data-edge-label="${escapeXml(e.id)}"><rect x="${e.labelX - e.labelWidth / 2}" y="${e.labelY - PILL_H / 2}" width="${e.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(e.labelX, e.labelY + 4, e.label, 11.25, p.foreground)}</g>`
+  for (const c of l.continuations)
+    out += `<g data-continuation-label="${escapeXml(c.id)}"><rect x="${c.labelX - c.labelWidth / 2}" y="${c.labelY - PILL_H / 2}" width="${c.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(c.labelX, c.labelY + 4, c.displayLabel, 11.25, p.foreground)}</g>`
   if (Object.values(document.metadata.visuals).some((v) => v.source === 'phosphor'))
     out += `<metadata>${escapeXml(semanticIconLicense)}</metadata>`
   if (Object.values(document.metadata.visuals).some((v) => v.source !== 'phosphor'))

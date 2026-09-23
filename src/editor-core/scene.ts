@@ -1,4 +1,5 @@
 import { nodeGeometry } from '../geometry/node'
+import { estimateTextWidth, type TextRole } from '../geometry/text'
 import { labelPillWidth, roundedPolyline } from '../layout'
 import type { PlacedNode, PlacedEdge } from '../layout'
 import type {
@@ -204,18 +205,27 @@ export function resolveDocument(
     ]
   })
   const points: Array<[number, number]> = []
+  const measure = (value: string, role: TextRole) =>
+    (context.measureText ?? estimateTextWidth)(value, role)
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])
-    // Conservative envelope, not a font-shaping certificate. Publish warns on overflow.
-    const textWidth =
-      Math.max(
-        Array.from(n.label).length * 13,
-        Array.from(n.kind ?? '').length * 10,
-        Array.from(n.sublabel ?? '').length * 11,
-        ...(n.fields ?? []).map(
-          (f) => Array.from([f.key, f.name, f.type].filter(Boolean).join(' : ')).length * 11,
-        ),
-      ) * document.presentation.textScale
+    const labelRole: TextRole = { size: 14.5, family: 'Geist', charFactor: 13 / 14.5 }
+    const kindRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 10 / 11.25, tracking: 1.6 }
+    const sublabelRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 11 / 11.25 }
+    const fieldRole: TextRole = { size: 11, family: 'Geist Mono', charFactor: 1 }
+    const fieldAnnotationRole: TextRole = { size: 10, family: 'Geist Mono', charFactor: 1 }
+    const textWidth = Math.max(
+      measure(n.label, labelRole),
+      measure((n.kind ?? '').toUpperCase(), kindRole),
+      measure(n.sublabel ?? '', sublabelRole),
+      ...(n.fields ?? []).map((f) => {
+        const annotation = [f.type, f.key === 'unique' ? 'unique' : null].filter(Boolean).join(' · ')
+        return (
+          measure(f.name, fieldRole) +
+          (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0)
+        )
+      }),
+    ) * document.presentation.textScale
     const geometry = nodeGeometry(n, !!document.metadata.visuals[n.id])
     const textLeft =
       n.shape === 'table'

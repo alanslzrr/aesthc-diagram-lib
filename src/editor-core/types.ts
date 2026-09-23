@@ -18,6 +18,7 @@ import type {
   SwimlaneLane,
   TimelineEvent,
 } from '../types'
+import type { TextMeasurer } from '../geometry/text'
 import type { DiagramLayout } from '../layout'
 
 export type Locale = 'en' | 'es'
@@ -310,6 +311,8 @@ export interface ResolveContext {
   quality: 'edit' | 'publish'
   requestId: string
   signal?: AbortSignal
+  /** Real typographic measurer (e.g. canvas-backed). Falls back to a conservative estimate when absent. */
+  measureText?: TextMeasurer
 }
 
 export type EditorCommand =

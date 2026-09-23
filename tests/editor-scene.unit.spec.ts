@@ -77,4 +77,25 @@ describe('text extent diagnostics', () => {
     expect(result.value.worldBounds.width).toBeGreaterThan(2000)
     expect(result.diagnostics.map((d) => d.code)).toContain('quality.text-overflow')
   })
+  it('prefers the provided text measurer over the conservative estimate', () => {
+    const d = doc()
+    if (d.spec.type !== 'graph') throw Error('fixture')
+    d.spec.nodes[0].label = 'W'.repeat(200)
+    d.presentation.padding = 0
+    const narrow = resolveDocument(d, {
+      quality: 'edit',
+      requestId: 'measured',
+      measureText: () => 0,
+    })
+    if (!narrow.ok) throw Error('resolve')
+    expect(narrow.diagnostics.map((d) => d.code)).not.toContain('quality.text-overflow')
+    const wide = resolveDocument(d, {
+      quality: 'edit',
+      requestId: 'wide',
+      measureText: (text) => text.length * 1000,
+    })
+    if (!wide.ok) throw Error('resolve')
+    expect(wide.diagnostics.map((d) => d.code)).toContain('quality.text-overflow')
+    expect(wide.value.worldBounds.width).toBeGreaterThan(narrow.value.worldBounds.width)
+  })
 })

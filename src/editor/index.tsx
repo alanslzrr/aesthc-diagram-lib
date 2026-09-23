@@ -34,9 +34,12 @@ import { RESIZE_HANDLES, resizeRect, type ResizeDirection } from '../geometry/re
 import { pinchViewport } from '../geometry/pinch'
 import { nodeGeometry } from '../geometry/node'
 import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
+import { createCanvasTextMeasurer } from '../geometry/text'
 import type { StoreOptions } from '../editor-core/types'
 
 const Context = createContext<{ store: EditorStore; locale: Locale } | null>(null)
+/** Real font widths once Geist is loaded; conservative estimate otherwise. */
+const measureText = createCanvasTextMeasurer()
 export function EditorRoot({
   store,
   locale,
@@ -75,7 +78,7 @@ function dispatch(store: EditorStore, commands: EditorCommand[], label: string) 
   })
 }
 function materialize(document: DiagramDocument) {
-  const result = resolveDocument(document, { quality: 'edit', requestId: 'gesture' })
+  const result = resolveDocument(document, { quality: 'edit', requestId: 'gesture', measureText })
   if (!result.ok) return document.scene
   return {
     ...structuredClone(document.scene),
@@ -173,7 +176,7 @@ export function EditorSurface({
     [size, setSize] = useState({ width: 800, height: 600 })
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
   const resolved = useMemo(
-    () => resolveDocument(activeDoc, { quality: 'edit', requestId: instanceId }),
+    () => resolveDocument(activeDoc, { quality: 'edit', requestId: instanceId, measureText }),
     [activeDoc, instanceId],
   )
   const markup = useMemo(
@@ -228,6 +231,7 @@ export function EditorSurface({
           const current = resolveDocument(store.getSnapshot().document, {
             quality: 'edit',
             requestId: 'initial-fit',
+            measureText,
           })
           if (current.ok) {
             fitted.current = true
