@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { createEditorStore, validateDocument } from '../src/editor-core'
 import fixture from './fixtures/editor/graph-document.json'
 
+function doc() {
+  const result = validateDocument(structuredClone(fixture))
+  if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
+  return result.value
+}
 function makeStore(maxEntries = 100) {
   const result = validateDocument(structuredClone(fixture))
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
@@ -119,5 +124,104 @@ describe('history replay', () => {
     expect(store.getSnapshot().canRedo).toBe(false)
     expect(store.redo().status).toBe('noop')
     expect(store.getSnapshot().document.scene.nodes.a.x).toBe(60)
+  })
+})
+describe('granular change sets', () => {
+  it('invalidates only layout for moves and marks exactly the moved nodes', () => {
+    const store = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const changes: Array<{ invalidates: string[]; affected: string[] }> = []
+    store.onCommit((result) =>
+      changes.push({
+        invalidates: [...result.changes.invalidates],
+        affected: result.changes.affected.map((r) => r.id),
+      }),
+    )
+    const r = store.dispatch({
+      id: 'm',
+      label: 'move',
+      expectedRevision: 0,
+      commands: [{ type: 'nodes.move', positions: { a: { x: 10, y: 10 }, b: { x: 20, y: 20 } } }],
+    })
+    expect(r.status).toBe('committed')
+    expect(changes.at(-1)?.invalidates).toEqual(['layout'])
+    expect(changes.at(-1)?.affected.sort()).toEqual(['a', 'b'])
+    store.dispose()
+  })
+  it('adds graph invalidation only when topology actually changes', () => {
+    const store = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const changes: string[][] = []
+    store.onCommit((result) => changes.push([...result.changes.invalidates]))
+    const rename = store.dispatch({
+      id: 'r',
+      label: 'rename',
+      expectedRevision: 0,
+      commands: [
+        {
+          type: 'spec.replace',
+          spec: { ...structuredClone(doc().spec), caption: 'x' },
+          references: 'reject',
+        },
+      ],
+    })
+    expect(rename.status).toBe('committed')
+    expect(changes.at(-1)).toEqual(['layout'])
+    const addSpec = structuredClone(doc().spec)
+    const add = store.dispatch({
+      id: 'a',
+      label: 'add',
+      expectedRevision: 1,
+      commands: [
+        {
+          type: 'spec.replace',
+          spec: {
+            ...addSpec,
+            nodes: [
+              ...(addSpec.type === 'graph' ? addSpec.nodes : []),
+              { id: 'z', label: 'Z', description: '' },
+            ],
+          } as never,
+          references: 'reject',
+        },
+      ],
+    })
+    expect(add.status).toBe('committed')
+    expect(changes.at(-1)).toContain('graph')
+    store.dispose()
+  })
+  it('invalidates style and layout for presentation changes and everything for replacements', () => {
+    const store = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const changes: string[][] = []
+    store.onCommit((result) => changes.push([...result.changes.invalidates]))
+    const theme = store.dispatch({
+      id: 't',
+      label: 'theme',
+      expectedRevision: 0,
+      commands: [
+        {
+          type: 'presentation.set',
+          presentation: { ...structuredClone(doc().presentation), textScale: 1.2 },
+        },
+      ],
+    })
+    expect(theme.status).toBe('committed')
+    expect(changes.at(-1)?.sort()).toEqual(['layout', 'style'])
+    const replace = store.dispatch({
+      id: 'x',
+      label: 'replace',
+      expectedRevision: 1,
+      commands: [{ type: 'document.replace-content', document: doc() }],
+    })
+    expect(replace.status).toBe('committed')
+    expect(changes.at(-1)?.sort()).toEqual(['graph', 'layout', 'style', 'views'])
+    store.dispose()
   })
 })

@@ -23,6 +23,59 @@ import {
 } from "./chunk-4NII3VRT.js";
 
 // src/editor-core/store.ts
+function invalidationsFor(before, after, commands) {
+  const set = /* @__PURE__ */ new Set();
+  for (const command of commands) {
+    switch (command.type) {
+      case "scene.set":
+      case "nodes.move":
+      case "node.resize":
+      case "nodes.set-lock":
+      case "route.set":
+      case "group.upsert":
+      case "group.remove":
+        set.add("layout");
+        break;
+      case "spec.replace":
+        set.add("layout");
+        break;
+      case "presentation.set":
+        set.add("style");
+        set.add("layout");
+        break;
+      case "document.replace-content":
+        set.add("layout");
+        set.add("graph");
+        set.add("style");
+        set.add("views");
+        break;
+    }
+  }
+  const topology = (doc) => `${nodesOf(doc.spec).map((n) => n.id).join(",")}|${edgesOf(doc.spec).map((e) => e.id).sort().join(",")}`;
+  if (topology(before) !== topology(after)) set.add("graph");
+  if (!commands.length) set.add("graph"), set.add("style"), set.add("views");
+  return [...set];
+}
+function affectedFor(commands) {
+  const affected = [];
+  for (const command of commands) {
+    switch (command.type) {
+      case "nodes.move":
+        for (const id of Object.keys(command.positions)) affected.push({ kind: "node", id });
+        break;
+      case "node.resize":
+        affected.push({ kind: "node", id: command.id });
+        break;
+      case "nodes.set-lock":
+        for (const id of command.ids) affected.push({ kind: "node", id });
+        break;
+      case "route.set":
+        affected.push({ kind: "edge", id: command.id });
+        break;
+    }
+  }
+  return affected;
+}
 function createEditorStore(options) {
   const limits = limitsWith(options.limits);
   const checked = validateDocument(options.document, limits);
@@ -87,13 +140,18 @@ function createEditorStore(options) {
     }
     return validateDocument(doc, limits);
   }
-  function publish(doc) {
+  function publish(doc, commands) {
     if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected("revision.overflow");
-    doc = { ...doc, revision: snapshot.document.revision + 1 };
+    const before = snapshot.document;
+    doc = { ...doc, revision: before.revision + 1 };
     const nodeIds = new Set(nodesOf(doc.spec).map((n) => n.id)), edgeIds = new Set(edgesOf(doc.spec).map((e) => e.id)), groupIds = new Set(doc.scene.groups.map((g) => g.id));
     const selection = snapshot.selection.filter(
       (ref) => (ref.kind === "node" ? nodeIds : ref.kind === "edge" ? edgeIds : groupIds).has(ref.id)
     );
+    const changes = {
+      affected: affectedFor(commands),
+      invalidates: invalidationsFor(before, doc, commands)
+    };
     gesture = void 0;
     trim();
     notify({
@@ -109,10 +167,7 @@ function createEditorStore(options) {
       status: "committed",
       document: snapshot.document,
       diagnostics: [],
-      changes: {
-        affected: [...nodeIds].map((id) => ({ kind: "node", id })),
-        invalidates: ["layout", "graph", "style", "views"]
-      }
+      changes
     };
     for (const listener of [...commits]) listener(result);
     return result;
@@ -143,7 +198,7 @@ function createEditorStore(options) {
       if (entryBytes > historyLimits.maxBytes) return rejected("history.capacity");
       past.push(snapshot.document);
       future = [];
-      return publish(result.value);
+      return publish(result.value, transaction.commands);
     },
     beginGesture(transaction) {
       if (snapshot.draft.kind !== "none") return failure("draft.active");
@@ -224,7 +279,7 @@ function createEditorStore(options) {
         return rejected("revision.overflow");
       const doc = structuredClone(past.pop());
       future.push(snapshot.document);
-      return publish(doc);
+      return publish(doc, []);
     },
     redo() {
       if (disposed || !permissions.edit)
@@ -234,7 +289,7 @@ function createEditorStore(options) {
         return rejected("revision.overflow");
       const doc = structuredClone(future.pop());
       past.push(snapshot.document);
-      return publish(doc);
+      return publish(doc, []);
     },
     setSelection(selection) {
       const nodes = new Set(nodesOf(snapshot.document.spec).map((n) => n.id)), edges = new Set(edgesOf(snapshot.document.spec).map((e) => e.id)), groups = new Set(snapshot.document.scene.groups.map((g) => g.id));
@@ -271,7 +326,7 @@ function createEditorStore(options) {
       gesture = void 0;
       saved = canonicalizeContent(result.value);
       notify({ draft: { kind: "none" }, selection: [] });
-      return publish(structuredClone(result.value));
+      return publish(structuredClone(result.value), []);
     },
     markSaved(document) {
       if (!permissions.save || disposed) return;

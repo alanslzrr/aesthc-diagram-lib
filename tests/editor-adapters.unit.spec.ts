@@ -3,6 +3,7 @@ import { getAdapter } from '../src/editor-core/adapters'
 import { createDocument, validateDocument } from '../src/editor-core'
 import { nodeCollection, nodesOf } from '../src/editor-core/model'
 import type { DiagramSpec } from '../src/types'
+import type { ReorderCollection } from '../src/editor-core/types'
 import legacy from './fixtures/editor/legacy-specs.json'
 describe('semantic type adapters', () => {
   it.each(Object.entries(legacy))('normalizes and lays out %s independently', (_, input) => {
@@ -54,7 +55,7 @@ describe('adapter CRUD matrix across all seven types', () => {
       const d = createDocument(input, { id: 'matrix', locale: 'en' })
       if (!d.ok) throw Error('fixture')
       const a = getAdapter(d.value.spec.type)
-      const nodeInput: never = {
+      const nodeInput: Record<string, unknown> = {
         id: 'matrix-node',
         label: 'Matrix',
         ...(!['sequence', 'er'].includes(d.value.spec.type) ? { description: '' } : {}),
@@ -63,10 +64,10 @@ describe('adapter CRUD matrix across all seven types', () => {
           ? { lane: (d.value.spec as { lanes: Array<{ id: string }> }).lanes[0].id }
           : {}),
         ...(d.value.spec.type === 'er' ? { fields: [] } : {}),
-      } as never
+      }
       const inserted = a.insertNode(d.value.spec, {
         diagramType: d.value.spec.type,
-        node: nodeInput,
+        node: nodeInput as never,
       } as never)
       expect(inserted.ok).toBe(true)
       if (!inserted.ok) return
@@ -78,10 +79,11 @@ describe('adapter CRUD matrix across all seven types', () => {
       expect(replaced.ok).toBe(true)
       if (!replaced.ok) return
       expect(nodesOf(replaced.value).find((n) => n.id === 'matrix-node')?.label).toBe('Renamed')
-      const reordered = a.reorder(replaced.value, nodeCollection(replaced.value), [
-        a.nodeIds(replaced.value).at(-1)!,
-        ...a.nodeIds(replaced.value).slice(0, -1),
-      ])
+      const reordered = a.reorder(
+        replaced.value,
+        nodeCollection(replaced.value) as ReorderCollection,
+        [a.nodeIds(replaced.value).at(-1)!, ...a.nodeIds(replaced.value).slice(0, -1)],
+      )
       expect(reordered.ok).toBe(true)
       if (!reordered.ok) return
       const removed = a.removeNodes(reordered.value, ['matrix-node'])

@@ -1,9 +1,11 @@
 import type {
+  ChangeSet,
   CommitResult,
   DiagramDocument,
   EditorCommand,
   EditorSnapshot,
   EditorStore,
+  EntityRef,
   StoreOptions,
   Transaction,
 } from './types'
@@ -12,6 +14,72 @@ import { applyCommand } from './commands'
 import { edgesOf, nodesOf } from './model'
 import { failure, freezeData, inspectData, issue, limitsWith, success, validId } from './data'
 import { validateDocument } from './validation'
+
+/** Per-command invalidation so consumers skip unrelated recomputation. */
+function invalidationsFor(
+  before: DiagramDocument,
+  after: DiagramDocument,
+  commands: EditorCommand[],
+): ChangeSet['invalidates'] {
+  const set = new Set<ChangeSet['invalidates'][number]>()
+  for (const command of commands) {
+    switch (command.type) {
+      case 'scene.set':
+      case 'nodes.move':
+      case 'node.resize':
+      case 'nodes.set-lock':
+      case 'route.set':
+      case 'group.upsert':
+      case 'group.remove':
+        set.add('layout')
+        break
+      case 'spec.replace':
+        set.add('layout')
+        break
+      case 'presentation.set':
+        set.add('style')
+        set.add('layout')
+        break
+      case 'document.replace-content':
+        set.add('layout')
+        set.add('graph')
+        set.add('style')
+        set.add('views')
+        break
+    }
+  }
+  const topology = (doc: DiagramDocument) =>
+    `${nodesOf(doc.spec)
+      .map((n) => n.id)
+      .join(',')}|${edgesOf(doc.spec)
+      .map((e) => e.id)
+      .sort()
+      .join(',')}`
+  if (topology(before) !== topology(after)) set.add('graph')
+  if (!commands.length) (set.add('graph'), set.add('style'), set.add('views'))
+  return [...set]
+}
+
+function affectedFor(commands: EditorCommand[]): EntityRef[] {
+  const affected: EntityRef[] = []
+  for (const command of commands) {
+    switch (command.type) {
+      case 'nodes.move':
+        for (const id of Object.keys(command.positions)) affected.push({ kind: 'node', id })
+        break
+      case 'node.resize':
+        affected.push({ kind: 'node', id: command.id })
+        break
+      case 'nodes.set-lock':
+        for (const id of command.ids) affected.push({ kind: 'node', id })
+        break
+      case 'route.set':
+        affected.push({ kind: 'edge', id: command.id })
+        break
+    }
+  }
+  return affected
+}
 
 export function createEditorStore(options: StoreOptions): EditorStore {
   const limits = limitsWith(options.limits)
@@ -86,15 +154,20 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     }
     return validateDocument(doc, limits)
   }
-  function publish(doc: DiagramDocument): CommitResult {
+  function publish(doc: DiagramDocument, commands: EditorCommand[]): CommitResult {
     if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected('revision.overflow')
-    doc = { ...doc, revision: snapshot.document.revision + 1 }
+    const before = snapshot.document
+    doc = { ...doc, revision: before.revision + 1 }
     const nodeIds = new Set(nodesOf(doc.spec).map((n) => n.id)),
       edgeIds = new Set(edgesOf(doc.spec).map((e) => e.id)),
       groupIds = new Set(doc.scene.groups.map((g) => g.id))
     const selection = snapshot.selection.filter((ref) =>
       (ref.kind === 'node' ? nodeIds : ref.kind === 'edge' ? edgeIds : groupIds).has(ref.id),
     )
+    const changes: ChangeSet = {
+      affected: affectedFor(commands),
+      invalidates: invalidationsFor(before, doc, commands),
+    }
     gesture = undefined
     trim()
     notify({
@@ -110,10 +183,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       status: 'committed',
       document: snapshot.document,
       diagnostics: [],
-      changes: {
-        affected: [...nodeIds].map((id) => ({ kind: 'node', id })),
-        invalidates: ['layout', 'graph', 'style', 'views'],
-      },
+      changes,
     }
     for (const listener of [...commits]) listener(result)
     return result
@@ -146,7 +216,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
       past.push(snapshot.document)
       future = []
-      return publish(result.value)
+      return publish(result.value, transaction.commands)
     },
     beginGesture(transaction) {
       if (snapshot.draft.kind !== 'none') return failure('draft.active')
@@ -230,7 +300,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
         return rejected('revision.overflow')
       const doc = structuredClone(past.pop()!)
       future.push(snapshot.document)
-      return publish(doc)
+      return publish(doc, [])
     },
     redo() {
       if (disposed || !permissions.edit)
@@ -240,7 +310,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
         return rejected('revision.overflow')
       const doc = structuredClone(future.pop()!)
       past.push(snapshot.document)
-      return publish(doc)
+      return publish(doc, [])
     },
     setSelection(selection) {
       const nodes = new Set(nodesOf(snapshot.document.spec).map((n) => n.id)),
@@ -288,7 +358,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       gesture = undefined
       saved = canonicalizeContent(result.value)
       notify({ draft: { kind: 'none' }, selection: [] })
-      return publish(structuredClone(result.value))
+      return publish(structuredClone(result.value), [])
     },
     markSaved(document) {
       if (!permissions.save || disposed) return
