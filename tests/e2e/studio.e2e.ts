@@ -108,7 +108,7 @@ test('Studio creates, resizes, connects, duplicates and groups nodes', async ({ 
   await page.getByLabel('Connection target', { exact: true }).selectOption(targetId)
   await page.getByLabel('Connection label', { exact: true }).fill('Audit event')
   await page.getByRole('button', { name: 'Connect', exact: true }).click()
-  await expect(page.locator('svg [data-edge-id]').filter({ hasText: 'Audit event' })).toHaveCount(1)
+  await expect(page.locator('svg [data-edge-label]').filter({ hasText: 'Audit event' })).toHaveCount(1)
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Audit service', exact: true })).toHaveCount(2)
   await page.getByRole('button', { name: 'Order API', exact: true }).click({ modifiers: ['Shift'] })
@@ -446,4 +446,54 @@ test('Studio northwest resize anchors at zoom and locked nodes hide handles', as
   await node.click()
   await page.getByRole('button', { name: 'Lock', exact: true }).click()
   await expect(page.locator('[data-resize-node]')).toHaveCount(0)
+})
+
+test('Studio resizes a whole selection from one anchored handle in a single undoable edit', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Mouse drag gesture; keyboard multi-resize is also covered here')
+  await page.goto('/studio.html')
+  const api = page.getByRole('button', { name: 'Order API', exact: true })
+  const database = page.getByRole('button', { name: 'Orders', exact: true })
+  await api.click()
+  await database.click({ modifiers: ['Shift'] })
+  await expect(page.locator('[data-resize-selection]')).toHaveCount(8)
+  const beforeApi = {
+    x: Number(await api.getAttribute('x')),
+    y: Number(await api.getAttribute('y')),
+    width: Number(await api.getAttribute('width')),
+    height: Number(await api.getAttribute('height')),
+  }
+  const beforeDatabase = {
+    x: Number(await database.getAttribute('x')),
+    y: Number(await database.getAttribute('y')),
+    width: Number(await database.getAttribute('width')),
+    height: Number(await database.getAttribute('height')),
+  }
+  const handle = page.locator('[data-resize-direction="se"][data-resize-selection]')
+  const box = await handle.boundingBox()
+  if (!box) throw Error('missing selection handle')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 5 })
+  expect(Number(await api.getAttribute('width'))).toBeGreaterThan(beforeApi.width)
+  expect(Number(await api.getAttribute('height'))).toBeGreaterThan(beforeApi.height)
+  expect(Number(await database.getAttribute('width'))).toBeGreaterThan(beforeDatabase.width)
+  expect(Number(await database.getAttribute('y'))).toBeGreaterThan(beforeDatabase.y)
+  expect(Number(await database.getAttribute('height'))).toBeGreaterThan(beforeDatabase.height)
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  expect(Number(await api.getAttribute('width'))).toBe(beforeApi.width)
+  expect(Number(await database.getAttribute('x'))).toBe(beforeDatabase.x)
+  await api.click()
+  await database.click({ modifiers: ['Shift'] })
+  const keyboard = page.locator('[data-resize-direction="se"][data-resize-selection]')
+  await keyboard.focus()
+  await page.keyboard.press('Shift+ArrowRight')
+  expect(Number(await api.getAttribute('width'))).toBeGreaterThan(beforeApi.width)
+  expect(Number(await database.getAttribute('width'))).toBeGreaterThan(beforeDatabase.width)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  expect(Number(await api.getAttribute('width'))).toBe(beforeApi.width)
+  expect(Number(await database.getAttribute('width'))).toBe(beforeDatabase.width)
 })

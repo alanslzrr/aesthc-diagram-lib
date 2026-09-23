@@ -335,6 +335,25 @@ function applyCommand(doc, command) {
   return success(doc);
 }
 
+// src/geometry/text.ts
+var estimateTextWidth = (text, role) => {
+  const length = Array.from(text).length;
+  if (!length) return 0;
+  return length * role.size * role.charFactor + (length - 1) * (role.tracking ?? 0);
+};
+function createCanvasTextMeasurer() {
+  if (typeof document === "undefined" || typeof document.createElement !== "function")
+    return void 0;
+  const context = document.createElement("canvas").getContext("2d");
+  if (!context) return void 0;
+  return (text, role) => {
+    const length = Array.from(text).length;
+    if (!length) return 0;
+    context.font = `${role.size}px ${role.family === "Geist Mono" ? '"Geist Mono", monospace' : "Geist, sans-serif"}`;
+    return context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
+  };
+}
+
 // src/editor-core/scene.ts
 function anchor(node, port) {
   return {
@@ -342,14 +361,14 @@ function anchor(node, port) {
     y: port.side === "top" ? node.y : port.side === "bottom" ? node.y + node.h : node.y + node.h * port.offset
   };
 }
-function resolveDocument(document, context) {
+function resolveDocument(document2, context) {
   if (context.signal?.aborted) return failure("operation.aborted");
-  const checked = validateDocument(document);
+  const checked = validateDocument(document2);
   if (!checked.ok) return checked;
-  const seed = getAdapter(document.spec.type).seedLayout(document.spec);
+  const seed = getAdapter(document2.spec.type).seedLayout(document2.spec);
   if (!seed.ok) return seed;
   const layout = seed.value, diagnostics = [];
-  if (!freeTypes.has(document.spec.type))
+  if (!freeTypes.has(document2.spec.type))
     return success({
       layout,
       worldBounds: { x: 0, y: 0, width: layout.width, height: layout.height },
@@ -357,7 +376,7 @@ function resolveDocument(document, context) {
       diagnostics
     });
   for (const node of layout.nodes) {
-    const placement = document.scene.nodes[node.id];
+    const placement = document2.scene.nodes[node.id];
     if (placement)
       Object.assign(node, {
         x: placement.x,
@@ -369,12 +388,12 @@ function resolveDocument(document, context) {
       });
   }
   layout.nodes.sort(
-    (a, b) => document.scene.zOrder.indexOf(a.id) - document.scene.zOrder.indexOf(b.id)
+    (a, b) => document2.scene.zOrder.indexOf(a.id) - document2.scene.zOrder.indexOf(b.id)
   );
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]));
   const parallel = /* @__PURE__ */ new Map();
-  layout.edges = edgesOf(document.spec).map((edge) => {
-    const from = layout.nodeById[edge.from], to = layout.nodeById[edge.to], route = document.scene.routes[edge.id];
+  layout.edges = edgesOf(document2.spec).map((edge) => {
+    const from = layout.nodeById[edge.from], to = layout.nodeById[edge.to], route = document2.scene.routes[edge.id];
     const horizontal = Math.abs(to.cx - from.cx) >= Math.abs(to.cy - from.cy);
     let source = {
       side: horizontal ? to.cx >= from.cx ? "right" : "left" : to.cy >= from.cy ? "bottom" : "top",
@@ -387,10 +406,10 @@ function resolveDocument(document, context) {
     if (route?.mode === "manual") {
       source = route.source;
       target = route.target;
-    } else if (document.spec.type === "graph") {
-      const authored = document.spec.edges.find((e) => e.id === edge.id);
-      const sp = document.spec.nodes.find((n) => n.id === edge.from)?.ports?.find((p) => p.id === authored.sourcePort);
-      const tp = document.spec.nodes.find((n) => n.id === edge.to)?.ports?.find((p) => p.id === authored.targetPort);
+    } else if (document2.spec.type === "graph") {
+      const authored = document2.spec.edges.find((e) => e.id === edge.id);
+      const sp = document2.spec.nodes.find((n) => n.id === edge.from)?.ports?.find((p) => p.id === authored.sourcePort);
+      const tp = document2.spec.nodes.find((n) => n.id === edge.to)?.ports?.find((p) => p.id === authored.targetPort);
       if (sp) source = sp;
       if (tp) target = tp;
     }
@@ -416,7 +435,7 @@ function resolveDocument(document, context) {
         [end.x + 48 + offset, end.y],
         [end.x, end.y]
       ];
-    else if (document.presentation.edgeStyle === "straight" && !ordinal)
+    else if (document2.presentation.edgeStyle === "straight" && !ordinal)
       points2 = [
         [start.x, start.y],
         [end.x, end.y]
@@ -464,13 +483,13 @@ function resolveDocument(document, context) {
   const descendantNodes = (id) => {
     const ids = /* @__PURE__ */ new Set(), pending = [id];
     for (let i = 0; i < pending.length; i++) {
-      const g = document.scene.groups.find((g2) => g2.id === pending[i]);
+      const g = document2.scene.groups.find((g2) => g2.id === pending[i]);
       g?.nodeIds.forEach((n) => ids.add(n));
-      document.scene.groups.filter((g2) => g2.parentGroup === pending[i]).forEach((g2) => pending.push(g2.id));
+      document2.scene.groups.filter((g2) => g2.parentGroup === pending[i]).forEach((g2) => pending.push(g2.id));
     }
     return [...ids].map((id2) => layout.nodeById[id2]);
   };
-  layout.containers = document.scene.groups.flatMap((g) => {
+  layout.containers = document2.scene.groups.flatMap((g) => {
     const nodes = descendantNodes(g.id);
     if (!nodes.length) return [];
     const x2 = Math.min(...nodes.map((n) => n.x)) - 16, y2 = Math.min(...nodes.map((n) => n.y)) - 36;
@@ -487,17 +506,24 @@ function resolveDocument(document, context) {
     ];
   });
   const points = [];
+  const measure = (value, role) => (context.measureText ?? estimateTextWidth)(value, role);
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h]);
+    const labelRole = { size: 14.5, family: "Geist", charFactor: 13 / 14.5 };
+    const kindRole = { size: 11.25, family: "Geist Mono", charFactor: 10 / 11.25, tracking: 1.6 };
+    const sublabelRole = { size: 11.25, family: "Geist Mono", charFactor: 11 / 11.25 };
+    const fieldRole = { size: 11, family: "Geist Mono", charFactor: 1 };
+    const fieldAnnotationRole = { size: 10, family: "Geist Mono", charFactor: 1 };
     const textWidth = Math.max(
-      Array.from(n.label).length * 13,
-      Array.from(n.kind ?? "").length * 10,
-      Array.from(n.sublabel ?? "").length * 11,
-      ...(n.fields ?? []).map(
-        (f) => Array.from([f.key, f.name, f.type].filter(Boolean).join(" : ")).length * 11
-      )
-    ) * document.presentation.textScale;
-    const geometry = nodeGeometry(n, !!document.metadata.visuals[n.id]);
+      measure(n.label, labelRole),
+      measure((n.kind ?? "").toUpperCase(), kindRole),
+      measure(n.sublabel ?? "", sublabelRole),
+      ...(n.fields ?? []).map((f) => {
+        const annotation = [f.type, f.key === "unique" ? "unique" : null].filter(Boolean).join(" \xB7 ");
+        return measure(f.name, fieldRole) + (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0);
+      })
+    ) * document2.presentation.textScale;
+    const geometry = nodeGeometry(n, !!document2.metadata.visuals[n.id]);
     const textLeft = n.shape === "table" ? n.x + 14 : geometry.centeredLabel ? n.cx - textWidth / 2 : geometry.textX;
     const textRight = textLeft + textWidth;
     if (textLeft < n.x + 14 || textRight > n.x + n.w - 14) {
@@ -512,7 +538,7 @@ function resolveDocument(document, context) {
   }
   for (const e of layout.edges) {
     points.push(...e.routePoints ?? [], [e.startX - 8, e.startY - 8], [e.endX + 8, e.endY + 8]);
-    if (e.label || document.scene.routes[e.id]?.mode === "manual")
+    if (e.label || document2.scene.routes[e.id]?.mode === "manual")
       points.push(
         [e.labelX - e.labelWidth / 2, e.labelY - 12],
         [e.labelX + e.labelWidth / 2, e.labelY + 12]
@@ -520,7 +546,7 @@ function resolveDocument(document, context) {
   }
   for (const c of layout.containers) points.push([c.x, c.y], [c.x + c.w, c.y + c.h]);
   if (!points.length) points.push([0, 0], [160, 96]);
-  const padding = document.presentation.padding + 8;
+  const padding = document2.presentation.padding + 8;
   const x = points.reduce((bound, p) => Math.min(bound, p[0]), Infinity) - padding, y = points.reduce((bound, p) => Math.min(bound, p[1]), Infinity) - padding;
   const width = points.reduce((bound, p) => Math.max(bound, p[0]), -Infinity) - x + padding, height = points.reduce((bound, p) => Math.max(bound, p[1]), -Infinity) - y + padding;
   layout.width = width;
@@ -550,5 +576,6 @@ export {
   isNodeLocked,
   pruneReferences,
   applyCommand,
+  createCanvasTextMeasurer,
   resolveDocument
 };

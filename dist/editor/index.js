@@ -6,12 +6,13 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-3H4PSZIB.js";
+} from "../chunk-J6DV6I5R.js";
 import {
+  createCanvasTextMeasurer,
   getAdapter,
   isNodeLocked,
   resolveDocument
-} from "../chunk-GAR65PWF.js";
+} from "../chunk-GGCCJ4RU.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -25,7 +26,7 @@ import {
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-FIAY4RZV.js";
+} from "../chunk-JPBPMASF.js";
 import {
   nodeGeometry
 } from "../chunk-YKPE23VO.js";
@@ -112,6 +113,24 @@ function resizeRect(initial, direction, delta, gridSize) {
     height
   };
 }
+function rectsUnion(rects) {
+  if (!rects.length) return { x: 0, y: 0, width: 0, height: 0 };
+  const x = Math.min(...rects.map((r) => r.x)), y = Math.min(...rects.map((r) => r.y));
+  const right = Math.max(...rects.map((r) => r.x + r.width)), bottom = Math.max(...rects.map((r) => r.y + r.height));
+  return { x, y, width: right - x, height: bottom - y };
+}
+function resizeRects(rects, direction, delta, gridSize) {
+  if (!rects.length) return [];
+  if (rects.length === 1) return [resizeRect(rects[0], direction, delta, gridSize)];
+  const group = rectsUnion(rects), resized = resizeRect(group, direction, delta, gridSize);
+  const sx = group.width ? resized.width / group.width : 1, sy = group.height ? resized.height / group.height : 1;
+  return rects.map((rect) => ({
+    x: Math.round(resized.x + (rect.x - group.x) * sx),
+    y: Math.round(resized.y + (rect.y - group.y) * sy),
+    width: Math.round(rect.width * sx),
+    height: Math.round(rect.height * sy)
+  }));
+}
 
 // src/geometry/pinch.ts
 var midpoint = (points) => ({
@@ -144,6 +163,7 @@ function intersectsMarquee(a, b) {
 // src/editor/index.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 var Context = createContext(null);
+var measureText = createCanvasTextMeasurer();
 function EditorRoot({
   store,
   locale,
@@ -176,7 +196,7 @@ function dispatch(store, commands, label) {
   });
 }
 function materialize(document) {
-  const result = resolveDocument(document, { quality: "edit", requestId: "gesture" });
+  const result = resolveDocument(document, { quality: "edit", requestId: "gesture", measureText });
   if (!result.ok) return document.scene;
   return {
     ...structuredClone(document.scene),
@@ -266,7 +286,7 @@ function EditorSurface({
   const svgRef = useRef(null), [size, setSize] = useState({ width: 800, height: 600 });
   const activeDoc = snapshot.draft.kind === "gesture" ? snapshot.draft.preview : snapshot.document;
   const resolved = useMemo(
-    () => resolveDocument(activeDoc, { quality: "edit", requestId: instanceId }),
+    () => resolveDocument(activeDoc, { quality: "edit", requestId: instanceId, measureText }),
     [activeDoc, instanceId]
   );
   const markup = useMemo(
@@ -302,7 +322,8 @@ function EditorSurface({
         if (!fitted.current) {
           const current = resolveDocument(store.getSnapshot().document, {
             quality: "edit",
-            requestId: "initial-fit"
+            requestId: "initial-fit",
+            measureText
           });
           if (current.ok) {
             fitted.current = true;
@@ -487,9 +508,11 @@ function EditorSurface({
           }
           if (marquee.current || gesture.current || event.button !== 0 && event.button !== 1)
             return;
-          const target = event.target.closest("[data-hit-node], [data-resize-node]"), resize = target?.getAttribute("data-resize-node") ?? void 0, id = resize ?? target?.getAttribute("data-hit-node");
+          const target = event.target.closest(
+            "[data-hit-node], [data-resize-node], [data-resize-selection]"
+          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node");
           const pan = snapshot.tool === "hand" || event.button === 1 || spacePan.current;
-          if (!pan && !id) {
+          if (!pan && !id && !resizeSelection) {
             event.preventDefault();
             svgRef.current?.focus();
             marquee.current = {
@@ -505,14 +528,20 @@ function EditorSurface({
           }
           event.preventDefault();
           svgRef.current?.focus();
-          if (id && !pan) {
-            const selection = resize ? [{ kind: "node", id }] : event.shiftKey ? [
+          let resizeIds;
+          if (resizeSelection) {
+            resizeIds = snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
+            if (resizeIds.length < 2 || resizeIds.some((nodeId) => isNodeLocked(snapshot.document, nodeId)))
+              return;
+          } else if (id && !pan) {
+            const selection = resizeId ? snapshot.selection.filter((r) => r.kind === "node" && r.id !== id).length === 0 && snapshot.selection.some((r) => r.kind === "node" && r.id === id) ? [...snapshot.selection] : [{ kind: "node", id }] : event.shiftKey ? [
               ...snapshot.selection.filter((r) => !(r.kind === "node" && r.id === id)),
               ...!snapshot.selection.some((r) => r.kind === "node" && r.id === id) ? [{ kind: "node", id }] : []
             ] : snapshot.selection.some((r) => r.kind === "node" && r.id === id) ? [...snapshot.selection] : [{ kind: "node", id }];
             store.setSelection(selection);
             if (!getAdapter(snapshot.document.spec.type).capabilities.includes("move-free") || isNodeLocked(snapshot.document, id))
               return;
+            if (resizeId) resizeIds = [id];
           }
           const scene = materialize(snapshot.document), positions = {};
           for (const ref of store.getSnapshot().selection)
@@ -520,7 +549,7 @@ function EditorSurface({
               positions[ref.id] = { x: scene.nodes[ref.id].x, y: scene.nodes[ref.id].y };
           if (!pan && !store.beginGesture({
             id: globalThis.crypto.randomUUID(),
-            label: resize ? "Resize node" : "Move selection",
+            label: resizeIds ? resizeIds.length > 1 ? "Resize selection" : "Resize node" : "Move selection",
             expectedRevision: snapshot.document.revision
           }).ok)
             return;
@@ -531,8 +560,8 @@ function EditorSurface({
             positions,
             scene,
             pan,
-            resize: resize ? {
-              id: resize,
+            resize: resizeIds ? {
+              ids: resizeIds,
               direction: target?.getAttribute("data-resize-direction") ?? "se"
             } : void 0
           };
@@ -581,9 +610,14 @@ function EditorSurface({
           }
           const positions = {}, grid = snapshot.document.presentation.grid;
           if (current.resize) {
-            const initial = current.scene.nodes[current.resize.id];
-            const rect = resizeRect(
-              initial,
+            const rects = current.resize.ids.map((resizeId) => current.scene.nodes[resizeId]).filter((node) => node).map((node) => ({
+              x: node.x,
+              y: node.y,
+              width: node.width,
+              height: node.height
+            }));
+            const resized = resizeRects(
+              rects,
               current.resize.direction,
               {
                 x: dx / current.viewport.zoom,
@@ -591,14 +625,20 @@ function EditorSurface({
               },
               grid.snap ? grid.size : void 0
             );
+            const resizeCommands = resized.flatMap((rect, index) => {
+              const resizeId = current.resize.ids[index];
+              return [
+                { type: "nodes.move", positions: { [resizeId]: { x: rect.x, y: rect.y } } },
+                {
+                  type: "node.resize",
+                  id: resizeId,
+                  size: { width: rect.width, height: rect.height }
+                }
+              ];
+            });
             store.previewGesture([
               { type: "scene.set", scene: current.scene },
-              { type: "nodes.move", positions: { [current.resize.id]: { x: rect.x, y: rect.y } } },
-              {
-                type: "node.resize",
-                id: current.resize.id,
-                size: { width: rect.width, height: rect.height }
-              }
+              ...resizeCommands
             ]);
             return;
           }
@@ -651,7 +691,10 @@ function EditorSurface({
                   role: "button",
                   "aria-label": n.label,
                   "aria-pressed": snapshot.selection.some((r) => r.kind === "node" && r.id === n.id),
-                  onFocus: () => store.setSelection([{ kind: "node", id: n.id }]),
+                  onFocus: () => {
+                    if (!snapshot.selection.some((r) => r.kind === "node" && r.id === n.id))
+                      store.setSelection([{ kind: "node", id: n.id }]);
+                  },
                   onKeyDown: (event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
@@ -660,15 +703,52 @@ function EditorSurface({
                   }
                 }
               ) }, n.id)),
-              snapshot.tool === "select" && snapshot.selection.length === 1 && getAdapter(activeDoc.spec.type).capabilities.includes("resize") && authoredNodes.filter(
-                (n) => snapshot.selection.some((r) => r.kind === "node" && r.id === n.id) && !isNodeLocked(activeDoc, n.id)
-              ).flatMap(
-                (n) => RESIZE_HANDLES.map((handle) => /* @__PURE__ */ jsxs("g", { children: [
+              snapshot.tool === "select" && snapshot.selection.length >= 1 && getAdapter(activeDoc.spec.type).capabilities.includes("resize") && (() => {
+                const selected = authoredNodes.filter(
+                  (n) => snapshot.selection.some((r) => r.kind === "node" && r.id === n.id) && !isNodeLocked(activeDoc, n.id)
+                );
+                if (!selected.length) return null;
+                const group = rectsUnion(
+                  selected.map((n) => ({ x: n.x, y: n.y, width: n.w, height: n.h }))
+                );
+                const resizeTarget = selected.length === 1 ? selected[0].id : void 0;
+                const name = selected.length === 1 ? `${t("Resize", "Redimensionar")} ${selected[0].label}` : t("Resize selection", "Redimensionar selecci\xF3n");
+                const apply = (direction, delta, step) => {
+                  const scene = materialize(store.getSnapshot().document);
+                  const ids = resizeTarget ? [resizeTarget] : snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
+                  const rects = ids.map((resizeId) => scene.nodes[resizeId]).filter((node) => node).map((node) => ({ x: node.x, y: node.y, width: node.width, height: node.height }));
+                  const finalRects = resizeRects(rects, direction, {
+                    x: delta.x * step,
+                    y: delta.y * step
+                  });
+                  dispatch(
+                    store,
+                    [
+                      { type: "scene.set", scene },
+                      ...finalRects.flatMap((rect, index) => {
+                        const resizeId = ids[index];
+                        return [
+                          {
+                            type: "nodes.move",
+                            positions: { [resizeId]: { x: rect.x, y: rect.y } }
+                          },
+                          {
+                            type: "node.resize",
+                            id: resizeId,
+                            size: { width: rect.width, height: rect.height }
+                          }
+                        ];
+                      })
+                    ],
+                    resizeTarget ? "Resize node" : "Resize selection"
+                  );
+                };
+                return RESIZE_HANDLES.map((handle) => /* @__PURE__ */ jsxs("g", { children: [
                   /* @__PURE__ */ jsx(
                     "rect",
                     {
-                      x: n.x + n.w * handle.x - 5 / snapshot.viewport.zoom,
-                      y: n.y + n.h * handle.y - 5 / snapshot.viewport.zoom,
+                      x: group.x + group.width * handle.x - 5 / snapshot.viewport.zoom,
+                      y: group.y + group.height * handle.y - 5 / snapshot.viewport.zoom,
                       width: 10 / snapshot.viewport.zoom,
                       height: 10 / snapshot.viewport.zoom,
                       fill: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].card,
@@ -680,47 +760,33 @@ function EditorSurface({
                   /* @__PURE__ */ jsx(
                     "rect",
                     {
-                      "data-resize-node": n.id,
+                      ...resizeTarget ? { "data-resize-node": resizeTarget } : { "data-resize-selection": "" },
                       "data-resize-direction": handle.direction,
-                      x: n.x + n.w * handle.x - 22 / snapshot.viewport.zoom,
-                      y: n.y + n.h * handle.y - 22 / snapshot.viewport.zoom,
+                      x: group.x + group.width * handle.x - 22 / snapshot.viewport.zoom,
+                      y: group.y + group.height * handle.y - 22 / snapshot.viewport.zoom,
                       width: 44 / snapshot.viewport.zoom,
                       height: 44 / snapshot.viewport.zoom,
                       fill: "transparent",
                       style: { cursor: handle.cursor },
                       tabIndex: 0,
                       role: "button",
-                      "aria-label": `${t("Resize", "Redimensionar")} ${n.label}${handle.direction === "se" ? "" : ` \u2014 ${t(handle.en, handle.es)}`}`,
+                      "aria-label": `${name}${handle.direction === "se" ? "" : ` \u2014 ${t(handle.en, handle.es)}`}`,
                       "aria-description": t(handle.en, handle.es),
                       onKeyDown: (event) => {
                         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key))
                           return;
                         event.preventDefault();
                         event.stopPropagation();
-                        const step = event.shiftKey ? 16 : 1;
-                        const scene = materialize(store.getSnapshot().document);
-                        const rect = resizeRect(scene.nodes[n.id], handle.direction, {
-                          x: event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0,
-                          y: event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0
-                        });
-                        dispatch(
-                          store,
-                          [
-                            { type: "scene.set", scene },
-                            { type: "nodes.move", positions: { [n.id]: { x: rect.x, y: rect.y } } },
-                            {
-                              type: "node.resize",
-                              id: n.id,
-                              size: { width: rect.width, height: rect.height }
-                            }
-                          ],
-                          "Resize node"
-                        );
+                        const delta = {
+                          x: event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0,
+                          y: event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0
+                        };
+                        apply(handle.direction, delta, event.shiftKey ? 16 : 1);
                       }
                     }
                   )
-                ] }, `resize-${n.id}-${handle.direction}`))
-              ),
+                ] }, `resize-group-${handle.direction}`));
+              })(),
               selectionBox && /* @__PURE__ */ jsx(
                 "rect",
                 {

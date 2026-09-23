@@ -1,5 +1,15 @@
 import './theme.js';
 
+/** Font roles shared by scene bounds and quality diagnostics. */
+interface TextRole {
+    size: number;
+    family: 'Geist' | 'Geist Mono';
+    tracking?: number;
+    /** Character-width fraction of the font size used by the conservative fallback. */
+    charFactor: number;
+}
+type TextMeasurer = (text: string, role: TextRole) => number;
+
 type Locale = 'en' | 'es';
 type JsonValue = null | boolean | number | string | JsonValue[] | {
     [key: string]: JsonValue;
@@ -325,6 +335,8 @@ interface ResolveContext {
     quality: 'edit' | 'publish';
     requestId: string;
     signal?: AbortSignal;
+    /** Real typographic measurer (e.g. canvas-backed). Falls back to a conservative estimate when absent. */
+    measureText?: TextMeasurer;
 }
 type EditorCommand = {
     type: 'document.replace-content';

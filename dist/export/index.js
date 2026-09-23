@@ -1,8 +1,9 @@
 import {
+  createCanvasTextMeasurer,
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "../chunk-GAR65PWF.js";
+} from "../chunk-GGCCJ4RU.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -20,7 +21,7 @@ import "../chunk-UHROM3FO.js";
 import {
   escapeXml,
   renderSvg
-} from "../chunk-FIAY4RZV.js";
+} from "../chunk-JPBPMASF.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
 import "../chunk-KDAWQGDC.js";
@@ -159,7 +160,8 @@ async function exportDocument(input, options) {
     const resolved = resolveDocument(doc, {
       quality: options.quality,
       requestId: "export",
-      signal: options.signal
+      signal: options.signal,
+      measureText: createCanvasTextMeasurer()
     });
     if (!resolved.ok) return resolved;
     diagnostics.push(...resolved.diagnostics);

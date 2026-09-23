@@ -50,3 +50,39 @@ export function resizeRect(
     height,
   }
 }
+
+/** Smallest axis-aligned rectangle that contains every input rect. */
+export function rectsUnion(rects: Rect[]): Rect {
+  if (!rects.length) return { x: 0, y: 0, width: 0, height: 0 }
+  const x = Math.min(...rects.map((r) => r.x)),
+    y = Math.min(...rects.map((r) => r.y))
+  const right = Math.max(...rects.map((r) => r.x + r.width)),
+    bottom = Math.max(...rects.map((r) => r.y + r.height))
+  return { x, y, width: right - x, height: bottom - y }
+}
+
+/**
+ * Resize a whole selection from one anchored edge or corner. The group bounds
+ * are resized and clamped like a single rect; every member scales
+ * proportionally from the group origin, so the union always matches the
+ * resized group. Members are rounded to whole pixels to avoid float drift.
+ */
+export function resizeRects(
+  rects: Rect[],
+  direction: ResizeDirection,
+  delta: Point,
+  gridSize?: number,
+): Rect[] {
+  if (!rects.length) return []
+  if (rects.length === 1) return [resizeRect(rects[0], direction, delta, gridSize)]
+  const group = rectsUnion(rects),
+    resized = resizeRect(group, direction, delta, gridSize)
+  const sx = group.width ? resized.width / group.width : 1,
+    sy = group.height ? resized.height / group.height : 1
+  return rects.map((rect) => ({
+    x: Math.round(resized.x + (rect.x - group.x) * sx),
+    y: Math.round(resized.y + (rect.y - group.y) * sy),
+    width: Math.round(rect.width * sx),
+    height: Math.round(rect.height * sy),
+  }))
+}

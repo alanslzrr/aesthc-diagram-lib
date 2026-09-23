@@ -3,7 +3,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-GAR65PWF.js";
+} from "./chunk-GGCCJ4RU.js";
 import {
   canonicalizeContent,
   importDocument
