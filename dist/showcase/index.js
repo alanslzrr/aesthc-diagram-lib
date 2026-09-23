@@ -2,11 +2,15 @@
 import {
   registerExampleDiagrams
 } from "../chunk-LALSN5FV.js";
-import "../chunk-IDNRW7UP.js";
 import {
   DiagramCanvas
-} from "../chunk-LAUQCK2F.js";
-import "../chunk-NGWEEVZP.js";
+} from "../chunk-TSORMAZM.js";
+import "../chunk-IDNRW7UP.js";
+import {
+  getDiagram,
+  getDiagramVisuals
+} from "../chunk-UNV5K3AO.js";
+import "../chunk-6F4PWJZI.js";
 import {
   layoutDiagram
 } from "../chunk-VUW7SRON.js";
@@ -16,12 +20,10 @@ import {
   connectedIds,
   diagramEdges
 } from "../chunk-QVERY2JP.js";
+import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
-import {
-  getDiagram,
-  getDiagramVisuals
-} from "../chunk-UNV5K3AO.js";
-import "../chunk-6F4PWJZI.js";
+import "../chunk-GIHY37DH.js";
+import "../chunk-KDAWQGDC.js";
 
 // src/showcase/Showcase.tsx
 import { useEffect, useId, useMemo, useState } from "react";

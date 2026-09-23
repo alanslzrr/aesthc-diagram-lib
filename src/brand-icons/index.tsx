@@ -1,5 +1,6 @@
 import { useId, type SVGProps } from 'react'
 import { brandIcons } from './data'
+import { scopeIconMarkup } from './scope'
 
 export type BrandIconName =
   | 'pnpm'
@@ -25,11 +26,7 @@ export interface BrandIconProps extends SVGProps<SVGSVGElement> {
 export function BrandIcon({ name, ...props }: BrandIconProps) {
   const id = `adl-brand-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const data = brandIcons[name]
-  const scope = (body: string, suffix: string) =>
-    body
-      .replace(/id="([^"]+)"/g, `id="${id}-${suffix}-$1"`)
-      .replace(/((?:xlink:)?href=")#([^"]+)/g, `$1#${id}-${suffix}-$2`)
-      .replace(/url\(#([^)]+)\)/g, `url(#${id}-${suffix}-$1)`)
+  const scope = (body: string, suffix: string) => scopeIconMarkup(body, `${id}-${suffix}`)
   if ('light' in data && 'dark' in data) {
     return (
       <svg

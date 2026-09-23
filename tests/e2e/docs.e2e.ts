@@ -232,7 +232,7 @@ test('mobile disclosure uses a rounded chevron, keyboard states and works withou
     viewport: { width: 390, height: 844 },
   })
   const staticPage = await context.newPage()
-  await staticPage.goto('http://127.0.0.1:4173/docs/guides/react/')
+  await staticPage.goto(new URL('/docs/guides/react/', page.url()).href)
   await staticPage.locator('.mobile-nav summary').click()
   await expect(staticPage.locator('.mobile-nav')).toHaveAttribute('open', '')
   await expect(staticPage.locator('.mobile-nav .disclosure-icon')).toBeVisible()

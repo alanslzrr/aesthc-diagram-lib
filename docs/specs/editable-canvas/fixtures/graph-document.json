@@ -1,0 +1,169 @@
+{
+  "format": "aesthc-diagram",
+  "schemaVersion": 1,
+  "id": "doc-fixture",
+  "revision": 0,
+  "locale": "en",
+  "spec": {
+    "type": "graph",
+    "profile": "architecture",
+    "caption": "Request path",
+    "legend": {
+      "main": "Request",
+      "branch": "Fallback"
+    },
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Browser",
+        "description": "Starts a request."
+      },
+      {
+        "id": "b",
+        "label": "API",
+        "description": "Accepts the request."
+      },
+      {
+        "id": "c",
+        "label": "Database",
+        "description": "Stores records."
+      },
+      {
+        "id": "d",
+        "label": "Cache",
+        "description": "Returns cached records."
+      },
+      {
+        "id": "isolated",
+        "label": "Independent worker",
+        "description": "No authored connection."
+      }
+    ],
+    "edges": [
+      {
+        "id": "ab-primary",
+        "from": "a",
+        "to": "b"
+      },
+      {
+        "id": "ab-secondary",
+        "from": "a",
+        "to": "b"
+      },
+      {
+        "id": "bc",
+        "from": "b",
+        "to": "c"
+      },
+      {
+        "id": "ca",
+        "from": "c",
+        "to": "a"
+      },
+      {
+        "id": "cc",
+        "from": "c",
+        "to": "c"
+      },
+      {
+        "id": "ad",
+        "from": "a",
+        "to": "d"
+      },
+      {
+        "id": "dc",
+        "from": "d",
+        "to": "c"
+      }
+    ]
+  },
+  "scene": {
+    "mode": "manual",
+    "nodes": {
+      "a": {
+        "x": 0,
+        "y": 0,
+        "width": 120,
+        "height": 64,
+        "locked": false
+      },
+      "b": {
+        "x": 240,
+        "y": 0,
+        "width": 120,
+        "height": 64,
+        "locked": false
+      },
+      "c": {
+        "x": 480,
+        "y": 0,
+        "width": 120,
+        "height": 64,
+        "locked": false
+      },
+      "d": {
+        "x": 240,
+        "y": 160,
+        "width": 120,
+        "height": 64,
+        "locked": false
+      },
+      "isolated": {
+        "x": 480,
+        "y": 160,
+        "width": 120,
+        "height": 64,
+        "locked": false
+      }
+    },
+    "routes": {},
+    "groups": [],
+    "zOrder": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "isolated"
+    ]
+  },
+  "presentation": {
+    "theme": {
+      "mode": "light",
+      "light": {
+        "background": "#e9eef4",
+        "foreground": "#202b38",
+        "card": "#f9fbfd",
+        "border": "#aebdcd",
+        "mutedForeground": "#536273",
+        "cobalt": "#087cbd",
+        "branch": "#a66b21"
+      },
+      "dark": {
+        "background": "#070707",
+        "foreground": "#f2f2ee",
+        "card": "#101010",
+        "border": "#242424",
+        "mutedForeground": "#a8a8a1",
+        "cobalt": "#14a8ff",
+        "branch": "#d6a55e"
+      }
+    },
+    "grid": {
+      "visible": true,
+      "snap": true,
+      "size": 16
+    },
+    "padding": 32,
+    "legend": "visible",
+    "edgeStyle": "orthogonal",
+    "textScale": 1
+  },
+  "metadata": {
+    "nodes": {},
+    "edges": {},
+    "visuals": {}
+  },
+  "views": [],
+  "story": [],
+  "extensions": {}
+}

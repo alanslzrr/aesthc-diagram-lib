@@ -1,0 +1,226 @@
+{
+  "band": {
+    "type": "band",
+    "caption": "Request pipeline",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "bands": [
+      {
+        "title": "Input"
+      },
+      {
+        "title": "Output"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Request",
+        "description": "Receive a request.",
+        "band": 0
+      },
+      {
+        "id": "b",
+        "label": "Response",
+        "description": "Return a response.",
+        "band": 1
+      }
+    ],
+    "edges": [
+      {
+        "id": "request",
+        "from": "a",
+        "to": "b"
+      }
+    ]
+  },
+  "flowchart": {
+    "type": "flowchart",
+    "caption": "Request flow",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Request",
+        "description": "Receive a request."
+      },
+      {
+        "id": "b",
+        "label": "Response",
+        "description": "Return a response."
+      }
+    ],
+    "edges": [
+      {
+        "id": "request",
+        "from": "a",
+        "to": "b"
+      }
+    ],
+    "direction": "top-down"
+  },
+  "sequence": {
+    "type": "sequence",
+    "caption": "Request and response",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "participants": [
+      {
+        "id": "a",
+        "label": "Client"
+      },
+      {
+        "id": "b",
+        "label": "Server"
+      }
+    ],
+    "messages": [
+      {
+        "id": "request",
+        "from": "a",
+        "to": "b",
+        "label": "GET /"
+      },
+      {
+        "id": "response",
+        "from": "b",
+        "to": "a",
+        "label": "200 OK"
+      }
+    ]
+  },
+  "state-machine": {
+    "type": "state-machine",
+    "caption": "Job lifecycle",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "states": [
+      {
+        "id": "a",
+        "label": "Pending",
+        "initial": true
+      },
+      {
+        "id": "b",
+        "label": "Complete",
+        "final": true
+      }
+    ],
+    "transitions": [
+      {
+        "id": "finish",
+        "from": "a",
+        "to": "b",
+        "label": "finish"
+      }
+    ]
+  },
+  "er": {
+    "type": "er",
+    "caption": "Users and orders",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "entities": [
+      {
+        "id": "a",
+        "label": "User",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "key": "pk"
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "label": "Order",
+        "fields": [
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "key": "fk"
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "id": "orders",
+        "from": "a",
+        "to": "b",
+        "label": "places"
+      }
+    ]
+  },
+  "timeline": {
+    "type": "timeline",
+    "caption": "Release history",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "events": [
+      {
+        "id": "a",
+        "label": "Design",
+        "description": "Agree on the contract."
+      },
+      {
+        "id": "b",
+        "label": "Release",
+        "description": "Publish the verified package."
+      }
+    ]
+  },
+  "swimlane": {
+    "type": "swimlane",
+    "caption": "Support handoff",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "lanes": [
+      {
+        "id": "support",
+        "label": "Support"
+      },
+      {
+        "id": "engineering",
+        "label": "Engineering"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Request",
+        "description": "Receive a request.",
+        "lane": "support"
+      },
+      {
+        "id": "b",
+        "label": "Response",
+        "description": "Return a response.",
+        "lane": "engineering"
+      }
+    ],
+    "edges": [
+      {
+        "id": "handoff",
+        "from": "a",
+        "to": "b"
+      }
+    ]
+  }
+}

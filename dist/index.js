@@ -1,5 +1,15 @@
 import "./chunk-IDNRW7UP.js";
 import {
+  getDiagram,
+  getDiagramEntry,
+  getDiagramKeys,
+  getDiagramVisuals,
+  hasDiagram,
+  registerDiagram,
+  registerDiagrams
+} from "./chunk-UNV5K3AO.js";
+import "./chunk-6F4PWJZI.js";
+import {
   buildAdjacency,
   connectY,
   connectedIds,
@@ -54,16 +64,6 @@ import {
   TIMELINE_ALT_OFFSET,
   TIMELINE_EVENT_GAP
 } from "./chunk-TVEV5XLW.js";
-import {
-  getDiagram,
-  getDiagramEntry,
-  getDiagramKeys,
-  getDiagramVisuals,
-  hasDiagram,
-  registerDiagram,
-  registerDiagrams
-} from "./chunk-UNV5K3AO.js";
-import "./chunk-6F4PWJZI.js";
 export {
   BAND_PITCH,
   BAND_X0,

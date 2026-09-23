@@ -288,3 +288,6 @@ export interface DiagramRegistration<T extends DiagramSpec = DiagramSpec> {
 }
 
 export type DiagramType = DiagramSpec['type']
+
+/** Versioned editor data; the seven-type DiagramSpec union remains unchanged. */
+export type { DiagramDocument, DiagramFragment, GraphDiagramSpec } from './editor-core/types'

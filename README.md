@@ -53,9 +53,11 @@ Specs → pure layouts → controlled SVG canvas. Registration is optional.
 Read the [API](https://alanslzrr.github.io/aesthc-diagram-lib/docs/api/), [React/SSR guide](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/react/),
 [migration notes](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/migration/) and [troubleshooting](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/troubleshooting/).
 
-This is not a drag editor or a solver for arbitrarily large graphs. External input
-needs validation. Shared links are not encrypted; never include secrets. SVG/PNG
-exports and the JSON editor are playground features, not package APIs.
+The legacy canvas remains a controlled renderer. Opt-in editor subpaths add a
+versioned document, transactional store, editable SVG surface and canonical exports;
+see [editor integration](https://alanslzrr.github.io/aesthc-diagram-lib/docs/guides/editor/). This is not a solver for
+arbitrarily large graphs. External input needs validation. Shared links are not
+encrypted; never include secrets.
 
 ## Development and support
 

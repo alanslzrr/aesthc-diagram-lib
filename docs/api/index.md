@@ -17,6 +17,14 @@ The package is ESM. Always use declared exports rather than internal files.
 | `/validation` | `validateDiagramSpec`, `assertDiagramSpec`, `validateLocalizedDiagram`, issue/result types |
 | `/icons` | `BrandIcon`, `BrandIconName`, `BrandIconProps`; selected local brand artwork with theme variants |
 | `/styles.css` | Generated stylesheet, imported once by the host |
+| `/editor-core` | Opt-in versioned document, validation, adapters, immutable store, scene and viewport math |
+| `/editor` | React editor composition: root, surface, toolbar, inspector and JSON draft panel |
+| `/graph` | Authored directed route and reach queries with stable edge identities |
+| `/export` | Snapshot-based JSON/SVG/PNG/JPEG/WebP export; explicit fonts and side effects |
+| `/persistence` | Memory storage, Web-Locks local storage and opt-in autosave |
+| `/render` | Pure escaped SVG renderer for resolved editor scenes |
+| `/editor.css` | Opt-in editor control styles; does not change legacy canvas styles |
+| `/fonts/*` | Packaged Geist Sans/Mono WOFF2 assets for same-origin loading and export embedding |
 
 ## Canvas contract
 
@@ -77,7 +85,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### @aesthc/diagram-lib
 
-`Adjacency`, `BAND_PITCH`, `BAND_X0`, `BandDiagramNode`, `BandDiagramSpec`, `CANVAS_BOTTOM_PAD`, `CANVAS_MIN_WIDTH`, `CANVAS_W`, `CARD_H_FULL`, `CARD_H_SLIM`, `CARD_PADDING_RIGHT`, `CARD_R`, `CARD_TEXT_X`, `CARD_W`, `CONTENT_TOP`, `CONTINUATION_LABEL_GAP`, `CONTINUATION_LABEL_OFFSET`, `CONTINUATION_LENGTH`, `CONTINUATION_PORT_INSET`, `ContinuationAnchor`, `ContinuationSide`, `DECISION_PILL_H`, `DECISION_PILL_R`, `DIMMED_OPACITY`, `DOT_R`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramEdge`, `DiagramLayout`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EDGE_STROKE_WIDTH`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FLOW_GAP_X`, `FLOW_GAP_Y`, `FlowchartDiagramSpec`, `Highlight`, `LABEL_CHAR_WIDTH`, `LABEL_EDGE_GAP`, `LABEL_HORIZONTAL_PADDING`, `LANE_R`, `LIFELINE_TOP`, `LegacyBandSpec`, `LocalizedDiagram`, `MESSAGE_PITCH`, `NODE_ICON_SIZE`, `NodePort`, `NodeWeight`, `PILL_H`, `PILL_R`, `PlacedContainer`, `PlacedContinuation`, `PlacedDecision`, `PlacedEdge`, `PlacedLifeline`, `PlacedNode`, `PortSide`, `RegistryEntry`, `SIDE_LANE_GAP`, `SLOT_PITCH`, `SWIMLANE_HEADER_W`, `SWIMLANE_PAD`, `SWIMLANE_ROW_PAD`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TIMELINE_ALT_OFFSET`, `TIMELINE_EVENT_GAP`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`, `buildAdjacency`, `connectY`, `connectedIds`, `diagramEdges`, `edgeId`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram`, `identifyEdges`, `isMutedNode`, `labelPillWidth`, `nodeHeight`, `nodePorts`, `registerDiagram`, `registerDiagrams`, `roundedPolyline`, `splitBackEdges`
+`Adjacency`, `BAND_PITCH`, `BAND_X0`, `BandDiagramNode`, `BandDiagramSpec`, `CANVAS_BOTTOM_PAD`, `CANVAS_MIN_WIDTH`, `CANVAS_W`, `CARD_H_FULL`, `CARD_H_SLIM`, `CARD_PADDING_RIGHT`, `CARD_R`, `CARD_TEXT_X`, `CARD_W`, `CONTENT_TOP`, `CONTINUATION_LABEL_GAP`, `CONTINUATION_LABEL_OFFSET`, `CONTINUATION_LENGTH`, `CONTINUATION_PORT_INSET`, `ContinuationAnchor`, `ContinuationSide`, `DECISION_PILL_H`, `DECISION_PILL_R`, `DIMMED_OPACITY`, `DOT_R`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramDocument`, `DiagramEdge`, `DiagramFragment`, `DiagramLayout`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EDGE_STROKE_WIDTH`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FLOW_GAP_X`, `FLOW_GAP_Y`, `FlowchartDiagramSpec`, `GraphDiagramSpec`, `Highlight`, `LABEL_CHAR_WIDTH`, `LABEL_EDGE_GAP`, `LABEL_HORIZONTAL_PADDING`, `LANE_R`, `LIFELINE_TOP`, `LegacyBandSpec`, `LocalizedDiagram`, `MESSAGE_PITCH`, `NODE_ICON_SIZE`, `NodePort`, `NodeWeight`, `PILL_H`, `PILL_R`, `PlacedContainer`, `PlacedContinuation`, `PlacedDecision`, `PlacedEdge`, `PlacedLifeline`, `PlacedNode`, `PortSide`, `RegistryEntry`, `SIDE_LANE_GAP`, `SLOT_PITCH`, `SWIMLANE_HEADER_W`, `SWIMLANE_PAD`, `SWIMLANE_ROW_PAD`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TIMELINE_ALT_OFFSET`, `TIMELINE_EVENT_GAP`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`, `buildAdjacency`, `connectY`, `connectedIds`, `diagramEdges`, `edgeId`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram`, `identifyEdges`, `isMutedNode`, `labelPillWidth`, `nodeHeight`, `nodePorts`, `registerDiagram`, `registerDiagrams`, `roundedPolyline`, `splitBackEdges`
 
 ### /canvas
 
@@ -97,7 +105,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /types
 
-`BandDiagramNode`, `BandDiagramSpec`, `ContinuationAnchor`, `ContinuationSide`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramEdge`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FlowchartDiagramSpec`, `LegacyBandSpec`, `LocalizedDiagram`, `NodeWeight`, `PortSide`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`
+`BandDiagramNode`, `BandDiagramSpec`, `ContinuationAnchor`, `ContinuationSide`, `DiagramBand`, `DiagramContinuation`, `DiagramDecision`, `DiagramDocument`, `DiagramEdge`, `DiagramFragment`, `DiagramNode`, `DiagramNodeShape`, `DiagramNodeTextAnchor`, `DiagramNodeVisual`, `DiagramRegistration`, `DiagramSpec`, `DiagramType`, `EdgeLabelPlacement`, `EdgeLane`, `EdgeVariant`, `ErDiagramSpec`, `ErEntity`, `ErRelation`, `FlowchartDiagramSpec`, `GraphDiagramSpec`, `LegacyBandSpec`, `LocalizedDiagram`, `NodeWeight`, `PortSide`, `SemanticNodeIconKey`, `SequenceDiagramSpec`, `SequenceMessage`, `SequenceParticipant`, `StateMachineDiagramSpec`, `StateMachineState`, `StateTransition`, `SvglNodeIconKey`, `SwimlaneDiagramSpec`, `SwimlaneLane`, `TableField`, `ThesvgNodeIconKey`, `TimelineDiagramSpec`, `TimelineEvent`
 
 ### /theme
 
@@ -122,3 +130,27 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 ### /icons
 
 `BrandIcon`, `BrandIconName`, `BrandIconProps`
+
+### /editor-core
+
+`Capability`, `ChangeSet`, `CommitResult`, `ConversionReceipt`, `DEFAULT_LIMITS`, `Diagnostic`, `DiagramDocument`, `DiagramFragment`, `DiagramGroup`, `DiagramLink`, `DiagramScene`, `DocumentMetadata`, `EditorCommand`, `EditorDiagramType`, `EditorPermissions`, `EditorSnapshot`, `EditorSpec`, `EditorStore`, `EditorTool`, `EndpointAnchor`, `EntityMetadata`, `EntityRef`, `FocusSet`, `GraphDiagramSpec`, `GraphEdge`, `GraphNode`, `GraphPort`, `ImportOptions`, `ImportReceipt`, `JsonValue`, `Limits`, `Locale`, `NamedView`, `NodeInput`, `NodePlacement`, `Palette`, `Point`, `Presentation`, `Rect`, `RelationInput`, `ReorderCollection`, `ResolveContext`, `ResolvedScene`, `Result`, `RoutePlacement`, `Size`, `SourceEvidence`, `StoreOptions`, `StoryStep`, `StructuralEdit`, `Transaction`, `TypeAdapter`, `Viewport`, `applyTransaction`, `canonicalizeContent`, `convertToGraph`, `createDocument`, `createEditorStore`, `createFragment`, `defaultPresentation`, `fitViewport`, `getAdapter`, `importDocument`, `pasteFragment`, `resolveDocument`, `screenToWorld`, `serializeDocument`, `validateDocument`, `validateEditorSpec`, `worldToScreen`, `zoomAt`
+
+### /editor
+
+`EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorSelectionTools`, `EditorSurface`, `EditorToolbar`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
+
+### /graph
+
+`GraphFilter`, `GraphSnapshot`, `ReachResult`, `RouteResult`, `findReach`, `findRoute`, `graphSnapshot`
+
+### /export
+
+`ExportArtifact`, `ExportFormat`, `ExportOptions`, `copyArtifact`, `downloadArtifact`, `exportDocument`, `getExportCapabilities`
+
+### /persistence
+
+`AutosaveState`, `SaveResult`, `StorageAdapter`, `StoredDocument`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`
+
+### /render
+
+`RenderOptions`, `escapeXml`, `renderSceneMarkup`, `renderSvg`
