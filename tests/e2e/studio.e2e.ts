@@ -554,6 +554,13 @@ test('Studio recovers drafts, quarantines corrupt copies and supports save-as', 
   page.on('dialog', (d) => void d.accept('Backup copy'))
   await page.getByRole('button', { name: 'Save as…', exact: true }).click()
   await expect(page.getByText('Saved a copy as Backup-copy', { exact: false })).toBeVisible()
+  await page.getByText('Saved copies', { exact: true }).click()
+  const backup = page.locator('.studio-copies li', { hasText: 'Order platform' })
+  await expect(backup).toHaveCount(2)
+  await backup.last().getByRole('button', { name: 'Open', exact: true }).click()
+  await expect(page.getByText('Saved copy opened.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Order API v2', exact: true })).toHaveCount(1)
+  await page.getByText('Saved copies', { exact: true }).click()
   await page.evaluate(() => {
     localStorage.setItem('adl-document-v1:studio:studio-document', '{corrupt json')
   })

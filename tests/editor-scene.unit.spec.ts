@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveDocument } from '../src/editor-core/scene'
-import { validateDocument } from '../src/editor-core'
+import { createDocument, validateDocument } from '../src/editor-core'
 import { CARD_TEXT_X } from '../src/theme'
 import fixture from './fixtures/editor/graph-document.json'
 function doc() {
@@ -97,5 +97,34 @@ describe('text extent diagnostics', () => {
     if (!wide.ok) throw Error('resolve')
     expect(wide.diagnostics.map((d) => d.code)).toContain('quality.text-overflow')
     expect(wide.value.worldBounds.width).toBeGreaterThan(narrow.value.worldBounds.width)
+  })
+  it('reports measured overflow for structured layouts without changing their bounds', () => {
+    const result = createDocument(
+      {
+        type: 'band',
+        caption: 'Overflow',
+        legend: { main: 'Main', branch: 'Branch' },
+        bands: [{ title: 'In' }, { title: 'Out' }],
+        nodes: [
+          { id: 'a', label: 'Short', description: '', band: 0 },
+          { id: 'b', label: 'W'.repeat(60), description: '', band: 1 },
+        ],
+        edges: [],
+      } as never,
+      { id: 'band-overflow', locale: 'en' },
+    )
+    if (!result.ok) throw Error('doc')
+    const resolved = resolveDocument(result.value, {
+      quality: 'edit',
+      requestId: 'band-overflow',
+      measureText: (text) => text.length * 100,
+    })
+    expect(resolved.ok).toBe(true)
+    if (!resolved.ok) return
+    const codes = resolved.diagnostics.map((d) => d.code)
+    expect(codes).toContain('quality.text-overflow')
+    const subject = resolved.diagnostics.find((d) => d.subject?.id === 'b')
+    expect(subject?.subject?.id).toBe('b')
+    expect(resolved.value.worldBounds.width).toBe(resolved.value.layout.width)
   })
 })

@@ -158,17 +158,17 @@ describe('structured paste mappings', () => {
     expect(two?.band).toBe(1)
     expect(pasted.value.spec.edges.some((e) => e.from === 'n1' && e.to === 'n2')).toBe(true)
   })
-  it('maps swimlane nodes onto matching lanes by label and never invents lanes', () => {
+  it('maps swimlane nodes onto lanes by label and falls back to the source lane index', () => {
     const target = createDocument(
       {
         type: 'swimlane',
         caption: 'Support',
         legend: { main: 'Main', branch: 'Branch' },
         lanes: [
-          { id: 'support', label: 'Support' },
+          { id: 'sales', label: 'Sales' },
           { id: 'engineering', label: 'Engineering' },
         ],
-        nodes: [{ id: 'base', label: 'Base', description: '', lane: 'support' }],
+        nodes: [{ id: 'base', label: 'Base', description: '', lane: 'sales' }],
         edges: [],
       } as never,
       { id: 'swim-target', locale: 'en' },
@@ -180,11 +180,11 @@ describe('structured paste mappings', () => {
         legend: { main: 'Main', branch: 'Branch' },
         lanes: [
           { id: 'l1', label: 'Support' },
-          { id: 'l2', label: 'Marketing' },
+          { id: 'l2', label: 'Engineering' },
         ],
         nodes: [
           { id: 'a', label: 'Agent', description: '', lane: 'l1' },
-          { id: 'b', label: 'Campaign', description: '', lane: 'l2' },
+          { id: 'b', label: 'Worker', description: '', lane: 'l2' },
         ],
         edges: [{ id: 'e', from: 'a', to: 'b' }],
       } as never,
@@ -208,9 +208,58 @@ describe('structured paste mappings', () => {
     if (pasted.value.spec.type !== 'swimlane') throw Error('type')
     expect(pasted.value.spec.nodes.length).toBe(3)
     const agent = pasted.value.spec.nodes.find((n) => n.id === 's1')
-    const campaign = pasted.value.spec.nodes.find((n) => n.id === 's2')
-    expect(agent?.lane).toBe('support')
-    expect(campaign?.lane).toBe('support')
+    const worker = pasted.value.spec.nodes.find((n) => n.id === 's2')
+    expect(agent?.lane).toBe('sales')
+    expect(worker?.lane).toBe('engineering')
     expect(validateDocument(pasted.value).ok).toBe(true)
+  })
+  it('rejects swimlane pastes when neither the label nor the index matches a target lane', () => {
+    const target = createDocument(
+      {
+        type: 'swimlane',
+        caption: 'Support',
+        legend: { main: 'Main', branch: 'Branch' },
+        lanes: [{ id: 'only', label: 'Only' }],
+        nodes: [{ id: 'base', label: 'Base', description: '', lane: 'only' }],
+        edges: [],
+      } as never,
+      { id: 'swim-reject', locale: 'en' },
+    )
+    const source = createDocument(
+      {
+        type: 'swimlane',
+        caption: 'Other',
+        legend: { main: 'Main', branch: 'Branch' },
+        lanes: [
+          { id: 'l1', label: 'Marketing' },
+          { id: 'l2', label: 'Backoffice' },
+        ],
+        nodes: [
+          { id: 'a', label: 'Campaign', description: '', lane: 'l1' },
+          { id: 'b', label: 'Ledger', description: '', lane: 'l2' },
+        ],
+        edges: [],
+      } as never,
+      { id: 'swim-reject-frag', locale: 'en' },
+    )
+    if (!target.ok || !source.ok) throw Error('docs')
+    const fragment = {
+      format: 'aesthc-diagram-fragment',
+      schemaVersion: 1,
+      sourceDocumentId: 'swim-reject-frag',
+      document: source.value,
+      selection: [{ kind: 'node', id: 'a' }],
+    }
+    let i = 0
+    const pasted = pasteFragment(target.value, fragment, {
+      idFactory: () => 's' + ++i,
+      offset: { x: 0, y: 0 },
+    })
+    expect(pasted.ok).toBe(false)
+    if (!pasted.ok) {
+      expect(pasted.diagnostics.map((d) => d.code)).toContain('lane.missing')
+      return
+    }
+    throw Error('expected rejection')
   })
 })

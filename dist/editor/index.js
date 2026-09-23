@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-JI4SK5S3.js";
+} from "../chunk-43XN3AED.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -14,7 +14,7 @@ import {
   getAdapter,
   isNodeLocked,
   resolveDocument
-} from "../chunk-VL4OB4VM.js";
+} from "../chunk-WVQ2HMNC.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {

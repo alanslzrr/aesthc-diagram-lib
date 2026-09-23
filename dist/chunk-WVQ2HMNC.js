@@ -353,6 +353,40 @@ function createCanvasTextMeasurer() {
     return context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
   };
 }
+function toDataUrl(bytes) {
+  let raw = "";
+  for (const byte of bytes) raw += String.fromCharCode(byte);
+  return `data:font/woff2;base64,${btoa(raw)}`;
+}
+function createEmbeddedFontTextMeasurer(sans, mono) {
+  if (typeof document === "undefined" || typeof document.createElement !== "function")
+    return void 0;
+  const style = document.createElement("style");
+  style.textContent = `@font-face{font-family:"Geist";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(${toDataUrl(mono)}) format("woff2")}`;
+  document.head.appendChild(style);
+  const context = document.createElement("canvas").getContext("2d");
+  let disposed = false;
+  return {
+    measure: context === null ? estimateTextWidth : (text, role) => {
+      if (disposed) return estimateTextWidth(text, role);
+      const length = Array.from(text).length;
+      if (!length) return 0;
+      context.font = `${role.size}px ${role.family === "Geist Mono" ? '"Geist Mono", monospace' : "Geist, sans-serif"}`;
+      return context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
+    },
+    async ready() {
+      if (disposed || typeof document === "undefined" || !document.fonts) return;
+      await Promise.allSettled([
+        document.fonts.load('16px "Geist"'),
+        document.fonts.load('16px "Geist Mono"')
+      ]);
+    },
+    dispose() {
+      disposed = true;
+      style.remove();
+    }
+  };
+}
 
 // src/editor-core/scene.ts
 function anchor(node, port) {
@@ -394,6 +428,43 @@ function anchorFromPoint(point, rect) {
   candidates.sort((a, b) => a.distance - b.distance);
   return { side: candidates[0].side, offset: candidates[0].offset };
 }
+function nodeTextExtent(n, document2, context) {
+  const measure = (value, role) => (context.measureText ?? estimateTextWidth)(value, role);
+  const labelRole = { size: 14.5, family: "Geist", charFactor: 13 / 14.5 };
+  const kindRole = {
+    size: 11.25,
+    family: "Geist Mono",
+    charFactor: 10 / 11.25,
+    tracking: 1.6
+  };
+  const sublabelRole = { size: 11.25, family: "Geist Mono", charFactor: 11 / 11.25 };
+  const fieldRole = { size: 11, family: "Geist Mono", charFactor: 1 };
+  const fieldAnnotationRole = { size: 10, family: "Geist Mono", charFactor: 1 };
+  const textWidth = Math.max(
+    measure(n.label, labelRole),
+    measure((n.kind ?? "").toUpperCase(), kindRole),
+    measure(n.sublabel ?? "", sublabelRole),
+    ...(n.fields ?? []).map((f) => {
+      const annotation = [f.type, f.key === "unique" ? "unique" : null].filter(Boolean).join(" \xB7 ");
+      return measure(f.name, fieldRole) + (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0);
+    })
+  ) * document2.presentation.textScale;
+  const geometry = nodeGeometry(n, !!document2.metadata.visuals[n.id]);
+  const textLeft = n.shape === "table" ? n.x + 14 : geometry.centeredLabel ? n.cx - textWidth / 2 : geometry.textX;
+  return { width: textWidth, left: textLeft, right: textLeft + textWidth };
+}
+function pushTextOverflow(layout, document2, context, diagnostics) {
+  for (const n of layout.nodes) {
+    const extent = nodeTextExtent(n, document2, context);
+    if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14)
+      diagnostics.push({
+        ...issue("quality.text-overflow", "/spec"),
+        severity: "warning",
+        subject: { kind: "node", id: n.id },
+        supportedFixes: ["resize", "shorten-text-manually"]
+      });
+  }
+}
 function resolveDocument(document2, context) {
   if (context.signal?.aborted) return failure("operation.aborted");
   const checked = validateDocument(document2);
@@ -401,13 +472,18 @@ function resolveDocument(document2, context) {
   const seed = getAdapter(document2.spec.type).seedLayout(document2.spec);
   if (!seed.ok) return seed;
   const layout = seed.value, diagnostics = [];
-  if (!freeTypes.has(document2.spec.type))
-    return success({
-      layout,
-      worldBounds: { x: 0, y: 0, width: layout.width, height: layout.height },
-      origin: { x: 0, y: 0 },
+  if (!freeTypes.has(document2.spec.type)) {
+    pushTextOverflow(layout, document2, context, diagnostics);
+    return success(
+      {
+        layout,
+        worldBounds: { x: 0, y: 0, width: layout.width, height: layout.height },
+        origin: { x: 0, y: 0 },
+        diagnostics
+      },
       diagnostics
-    });
+    );
+  }
   for (const node of layout.nodes) {
     const placement = document2.scene.nodes[node.id];
     if (placement)
@@ -539,33 +615,11 @@ function resolveDocument(document2, context) {
     ];
   });
   const points = [];
-  const measure = (value, role) => (context.measureText ?? estimateTextWidth)(value, role);
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h]);
-    const labelRole = { size: 14.5, family: "Geist", charFactor: 13 / 14.5 };
-    const kindRole = {
-      size: 11.25,
-      family: "Geist Mono",
-      charFactor: 10 / 11.25,
-      tracking: 1.6
-    };
-    const sublabelRole = { size: 11.25, family: "Geist Mono", charFactor: 11 / 11.25 };
-    const fieldRole = { size: 11, family: "Geist Mono", charFactor: 1 };
-    const fieldAnnotationRole = { size: 10, family: "Geist Mono", charFactor: 1 };
-    const textWidth = Math.max(
-      measure(n.label, labelRole),
-      measure((n.kind ?? "").toUpperCase(), kindRole),
-      measure(n.sublabel ?? "", sublabelRole),
-      ...(n.fields ?? []).map((f) => {
-        const annotation = [f.type, f.key === "unique" ? "unique" : null].filter(Boolean).join(" \xB7 ");
-        return measure(f.name, fieldRole) + (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0);
-      })
-    ) * document2.presentation.textScale;
-    const geometry = nodeGeometry(n, !!document2.metadata.visuals[n.id]);
-    const textLeft = n.shape === "table" ? n.x + 14 : geometry.centeredLabel ? n.cx - textWidth / 2 : geometry.textX;
-    const textRight = textLeft + textWidth;
-    if (textLeft < n.x + 14 || textRight > n.x + n.w - 14) {
-      points.push([textLeft, n.y], [textRight, n.y + n.h]);
+    const extent = nodeTextExtent(n, document2, context);
+    if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
+      points.push([extent.left, n.y], [extent.right, n.y + n.h]);
       diagnostics.push({
         ...issue("quality.text-overflow", "/spec"),
         severity: "warning",
@@ -615,6 +669,7 @@ export {
   pruneReferences,
   applyCommand,
   createCanvasTextMeasurer,
+  createEmbeddedFontTextMeasurer,
   anchorPoint,
   anchorFromPoint,
   resolveDocument

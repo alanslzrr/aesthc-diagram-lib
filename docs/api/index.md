@@ -149,7 +149,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /persistence
 
-`AutosaveState`, `SaveResult`, `StorageAdapter`, `StoredDocument`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`
+`AutosaveState`, `SaveResult`, `StorageAdapter`, `StoredDocument`, `StoredEntry`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`
 
 ### /render
 

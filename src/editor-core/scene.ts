@@ -1,7 +1,7 @@
 import { nodeGeometry } from '../geometry/node'
 import { estimateTextWidth, type TextRole } from '../geometry/text'
 import { labelPillWidth, roundedPolyline } from '../layout'
-import type { PlacedNode, PlacedEdge } from '../layout'
+import type { DiagramLayout, PlacedNode, PlacedEdge } from '../layout'
 import type { PortSide } from '../types'
 import type {
   Diagnostic,
@@ -86,6 +86,63 @@ export function anchorFromPoint(
   candidates.sort((a, b) => a.distance - b.distance)
   return { side: candidates[0].side, offset: candidates[0].offset }
 }
+function nodeTextExtent(
+  n: PlacedNode,
+  document: DiagramDocument,
+  context: ResolveContext,
+): { width: number; left: number; right: number } {
+  const measure = (value: string, role: TextRole) =>
+    (context.measureText ?? estimateTextWidth)(value, role)
+  const labelRole: TextRole = { size: 14.5, family: 'Geist', charFactor: 13 / 14.5 }
+  const kindRole: TextRole = {
+    size: 11.25,
+    family: 'Geist Mono',
+    charFactor: 10 / 11.25,
+    tracking: 1.6,
+  }
+  const sublabelRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 11 / 11.25 }
+  const fieldRole: TextRole = { size: 11, family: 'Geist Mono', charFactor: 1 }
+  const fieldAnnotationRole: TextRole = { size: 10, family: 'Geist Mono', charFactor: 1 }
+  const textWidth =
+    Math.max(
+      measure(n.label, labelRole),
+      measure((n.kind ?? '').toUpperCase(), kindRole),
+      measure(n.sublabel ?? '', sublabelRole),
+      ...(n.fields ?? []).map((f) => {
+        const annotation = [f.type, f.key === 'unique' ? 'unique' : null]
+          .filter(Boolean)
+          .join(' · ')
+        return (
+          measure(f.name, fieldRole) +
+          (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0)
+        )
+      }),
+    ) * document.presentation.textScale
+  const geometry = nodeGeometry(n, !!document.metadata.visuals[n.id])
+  const textLeft =
+    n.shape === 'table' ? n.x + 14 : geometry.centeredLabel ? n.cx - textWidth / 2 : geometry.textX
+  return { width: textWidth, left: textLeft, right: textLeft + textWidth }
+}
+
+/** Overflow warnings apply to every type, including structured layouts. */
+function pushTextOverflow(
+  layout: DiagramLayout,
+  document: DiagramDocument,
+  context: ResolveContext,
+  diagnostics: Diagnostic[],
+) {
+  for (const n of layout.nodes) {
+    const extent = nodeTextExtent(n, document, context)
+    if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14)
+      diagnostics.push({
+        ...issue('quality.text-overflow', '/spec'),
+        severity: 'warning',
+        subject: { kind: 'node', id: n.id },
+        supportedFixes: ['resize', 'shorten-text-manually'],
+      })
+  }
+}
+
 export function resolveDocument(
   document: DiagramDocument,
   context: ResolveContext,
@@ -97,13 +154,18 @@ export function resolveDocument(
   if (!seed.ok) return seed
   const layout = seed.value,
     diagnostics: Diagnostic[] = []
-  if (!freeTypes.has(document.spec.type))
-    return success({
-      layout,
-      worldBounds: { x: 0, y: 0, width: layout.width, height: layout.height },
-      origin: { x: 0, y: 0 },
+  if (!freeTypes.has(document.spec.type)) {
+    pushTextOverflow(layout, document, context, diagnostics)
+    return success(
+      {
+        layout,
+        worldBounds: { x: 0, y: 0, width: layout.width, height: layout.height },
+        origin: { x: 0, y: 0 },
+        diagnostics,
+      },
       diagnostics,
-    })
+    )
+  }
   for (const node of layout.nodes) {
     const placement = document.scene.nodes[node.id]
     if (placement)
@@ -259,45 +321,11 @@ export function resolveDocument(
     ]
   })
   const points: Array<[number, number]> = []
-  const measure = (value: string, role: TextRole) =>
-    (context.measureText ?? estimateTextWidth)(value, role)
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])
-    const labelRole: TextRole = { size: 14.5, family: 'Geist', charFactor: 13 / 14.5 }
-    const kindRole: TextRole = {
-      size: 11.25,
-      family: 'Geist Mono',
-      charFactor: 10 / 11.25,
-      tracking: 1.6,
-    }
-    const sublabelRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 11 / 11.25 }
-    const fieldRole: TextRole = { size: 11, family: 'Geist Mono', charFactor: 1 }
-    const fieldAnnotationRole: TextRole = { size: 10, family: 'Geist Mono', charFactor: 1 }
-    const textWidth =
-      Math.max(
-        measure(n.label, labelRole),
-        measure((n.kind ?? '').toUpperCase(), kindRole),
-        measure(n.sublabel ?? '', sublabelRole),
-        ...(n.fields ?? []).map((f) => {
-          const annotation = [f.type, f.key === 'unique' ? 'unique' : null]
-            .filter(Boolean)
-            .join(' · ')
-          return (
-            measure(f.name, fieldRole) +
-            (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0)
-          )
-        }),
-      ) * document.presentation.textScale
-    const geometry = nodeGeometry(n, !!document.metadata.visuals[n.id])
-    const textLeft =
-      n.shape === 'table'
-        ? n.x + 14
-        : geometry.centeredLabel
-          ? n.cx - textWidth / 2
-          : geometry.textX
-    const textRight = textLeft + textWidth
-    if (textLeft < n.x + 14 || textRight > n.x + n.w - 14) {
-      points.push([textLeft, n.y], [textRight, n.y + n.h])
+    const extent = nodeTextExtent(n, document, context)
+    if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
+      points.push([extent.left, n.y], [extent.right, n.y + n.h])
       diagnostics.push({
         ...issue('quality.text-overflow', '/spec'),
         severity: 'warning',

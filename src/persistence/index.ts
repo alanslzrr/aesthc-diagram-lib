@@ -6,6 +6,11 @@ export interface StoredDocument {
   document: DiagramDocument
   token: string
 }
+export interface StoredEntry {
+  key: string
+  token: string
+  label: string
+}
 export type SaveResult =
   | { status: 'saved'; token: string }
   | { status: 'conflict'; current: StoredDocument }
@@ -21,6 +26,8 @@ export interface StorageAdapter {
   remove(key: string, expectedToken: string, signal?: AbortSignal): Promise<Result<void>>
   /** Remove stored data without validation or token checks; only for quarantined entries. */
   purge(key: string, signal?: AbortSignal): Promise<Result<void>>
+  /** Enumerate readable stored entries; unreadable payloads are skipped, never returned. */
+  list(signal?: AbortSignal): Promise<Result<StoredEntry[]>>
   subscribe?(key: string, listener: (token: string | null) => void): () => void
 }
 export function createMemoryStorage(): StorageAdapter {
@@ -59,6 +66,16 @@ export function createMemoryStorage(): StorageAdapter {
       values.delete(key)
       emit(key, null)
       return success(undefined)
+    },
+    async list(signal) {
+      if (signal?.aborted) return failure('operation.aborted')
+      return success(
+        [...values.entries()].map(([key, stored]) => ({
+          key,
+          token: stored.token,
+          label: stored.document.spec.caption || stored.document.id,
+        })),
+      )
     },
     subscribe(key, listener) {
       const set = listeners.get(key) ?? new Set()
@@ -156,6 +173,29 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
         if (signal?.aborted) return failure('operation.aborted')
         window.localStorage.removeItem(keyFor(key))
         return success(undefined)
+      } catch {
+        return failure('storage.denied')
+      }
+    },
+    async list(signal) {
+      if (typeof window === 'undefined') return failure('storage.unavailable')
+      if (signal?.aborted) return failure('operation.aborted')
+      try {
+        const prefix = `adl-document-v1:${namespace}:`
+        const entries: StoredEntry[] = []
+        for (let index = 0; index < window.localStorage.length; index++) {
+          const key = window.localStorage.key(index)
+          if (!key || !key.startsWith(prefix)) continue
+          const storedKey = decodeURIComponent(key.slice(prefix.length))
+          const result = await read(storedKey)
+          if (!result.ok || !result.value) continue
+          entries.push({
+            key: storedKey,
+            token: result.value.token,
+            label: result.value.document.spec.caption || result.value.document.id,
+          })
+        }
+        return success(entries)
       } catch {
         return failure('storage.denied')
       }

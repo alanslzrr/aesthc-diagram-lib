@@ -1,9 +1,10 @@
 import {
   createCanvasTextMeasurer,
+  createEmbeddedFontTextMeasurer,
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "../chunk-VL4OB4VM.js";
+} from "../chunk-WVQ2HMNC.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -150,10 +151,13 @@ async function exportDocument(input, options) {
     mimeType = "application/json";
   } else {
     let fonts = "";
+    let measurer;
     if (options.fonts) {
       const result = fontCss(options.fonts);
       if (!result.ok) return result;
       fonts = result.value;
+      measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono);
+      if (measurer) await measurer.ready();
     } else if (options.fontPolicy === "fallback")
       diagnostics.push({ ...issue("export.font-fallback"), severity: "warning" });
     else return failure("export.font-missing");
@@ -161,8 +165,9 @@ async function exportDocument(input, options) {
       quality: options.quality,
       requestId: "export",
       signal: options.signal,
-      measureText: createCanvasTextMeasurer()
+      measureText: measurer?.measure ?? createCanvasTextMeasurer()
     });
+    measurer?.dispose();
     if (!resolved.ok) return resolved;
     diagnostics.push(...resolved.diagnostics);
     if (options.quality === "publish" && diagnostics.some((d) => d.code.startsWith("quality.")))

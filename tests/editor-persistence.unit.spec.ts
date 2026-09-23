@@ -94,3 +94,46 @@ describe('storage quarantine', () => {
     expect(one.ok && one.value).toBeNull()
   })
 })
+describe('stored copy listing', () => {
+  function copyDocument(id: string, caption: string) {
+    const result = createDocument(
+      {
+        type: 'graph',
+        caption,
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'A', description: '' }],
+        edges: [],
+      } as never,
+      { id, locale: 'en' },
+    )
+    if (!result.ok) throw Error('doc')
+    return result.value
+  }
+  it('lists readable entries with their labels and tokens', async () => {
+    const memory = createMemoryStorage()
+    await memory.save('main', copyDocument('main', 'Current diagram'), null)
+    await memory.save('saveas:backup', copyDocument('saveas:backup', 'Backup copy'), null)
+    const listed = await memory.list()
+    expect(listed.ok).toBe(true)
+    if (!listed.ok) return
+    expect(listed.value.map((e) => e.key).sort()).toEqual(['main', 'saveas:backup'])
+    const backup = listed.value.find((e) => e.key === 'saveas:backup')
+    expect(backup?.label).toBe('Backup copy')
+    expect(backup?.token).toBeTruthy()
+  })
+  it('skips unreadable payloads instead of failing the whole listing', async () => {
+    const memory = createMemoryStorage()
+    await memory.save('good', copyDocument('good', 'Good copy'), null)
+    const local = {
+      ...memory,
+      load: async (key: string) => {
+        if (key === 'broken') return { ok: false as const, diagnostics: [] }
+        return memory.load(key)
+      },
+    }
+    const listed = await local.list()
+    expect(listed.ok).toBe(true)
+    if (!listed.ok) return
+    expect(listed.value.map((e) => e.key)).toEqual(['good'])
+  })
+})

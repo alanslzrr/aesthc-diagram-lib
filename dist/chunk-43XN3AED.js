@@ -3,7 +3,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-VL4OB4VM.js";
+} from "./chunk-WVQ2HMNC.js";
 import {
   canonicalizeContent,
   importDocument
@@ -8954,12 +8954,16 @@ function pasteFragment(document, input, options) {
     }
   }
   const targetBands = doc.spec.type === "band" ? doc.spec.bands.length : 0;
+  const sourceLanes = source.spec.type === "swimlane" ? source.spec.lanes : [];
   const targetLanes = doc.spec.type === "swimlane" ? doc.spec.lanes : [];
   const laneMatch = (sourceLaneId, sourceLabel) => {
     if (options.structured?.lane) return options.structured.lane(sourceLaneId, sourceLabel);
     if (!targetLanes.length) return void 0;
     const byLabel = targetLanes.find((lane) => lane.label === sourceLabel);
-    return (byLabel ?? targetLanes[0]).id;
+    if (byLabel) return byLabel.id;
+    const sourceIndex = sourceLanes.findIndex((lane) => lane.id === sourceLaneId);
+    if (sourceIndex >= 0 && sourceIndex < targetLanes.length) return targetLanes[sourceIndex].id;
+    return void 0;
   };
   for (const node of nodesOf(source.spec)) {
     const id = allocate("node");
@@ -8972,8 +8976,9 @@ function pasteFragment(document, input, options) {
       copy.band = options.structured?.band?.(band.band) ?? Math.min(band.band, Math.max(0, targetBands - 1));
     }
     if (doc.spec.type === "swimlane") {
-      const lane = node;
-      const mapped = laneMatch(lane.lane, copy.label);
+      const laneId = node.lane;
+      const sourceLane = sourceLanes.find((lane) => lane.id === laneId);
+      const mapped = laneMatch(laneId, sourceLane?.label ?? "");
       if (!mapped) return failure("lane.missing");
       copy.lane = mapped;
     }

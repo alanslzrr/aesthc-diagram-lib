@@ -45,6 +45,16 @@ function createMemoryStorage() {
       emit(key, null);
       return success(void 0);
     },
+    async list(signal) {
+      if (signal?.aborted) return failure("operation.aborted");
+      return success(
+        [...values.entries()].map(([key, stored]) => ({
+          key,
+          token: stored.token,
+          label: stored.document.spec.caption || stored.document.id
+        }))
+      );
+    },
     subscribe(key, listener) {
       const set = listeners.get(key) ?? /* @__PURE__ */ new Set();
       set.add(listener);
@@ -134,6 +144,29 @@ function createLocalStorageAdapter(namespace) {
         if (signal?.aborted) return failure("operation.aborted");
         window.localStorage.removeItem(keyFor(key));
         return success(void 0);
+      } catch {
+        return failure("storage.denied");
+      }
+    },
+    async list(signal) {
+      if (typeof window === "undefined") return failure("storage.unavailable");
+      if (signal?.aborted) return failure("operation.aborted");
+      try {
+        const prefix = `adl-document-v1:${namespace}:`;
+        const entries = [];
+        for (let index = 0; index < window.localStorage.length; index++) {
+          const key = window.localStorage.key(index);
+          if (!key || !key.startsWith(prefix)) continue;
+          const storedKey = decodeURIComponent(key.slice(prefix.length));
+          const result = await read(storedKey);
+          if (!result.ok || !result.value) continue;
+          entries.push({
+            key: storedKey,
+            token: result.value.token,
+            label: result.value.document.spec.caption || result.value.document.id
+          });
+        }
+        return success(entries);
       } catch {
         return failure("storage.denied");
       }

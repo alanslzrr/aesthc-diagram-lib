@@ -115,13 +115,20 @@ export function pasteFragment(
   }
   const targetBands =
     doc.spec.type === 'band' ? (doc.spec.bands as Array<{ title: string }>).length : 0
+  const sourceLanes =
+    source.spec.type === 'swimlane'
+      ? (source.spec.lanes as Array<{ id: string; label: string }>)
+      : []
   const targetLanes =
     doc.spec.type === 'swimlane' ? (doc.spec.lanes as Array<{ id: string; label: string }>) : []
   const laneMatch = (sourceLaneId: string, sourceLabel: string): string | undefined => {
     if (options.structured?.lane) return options.structured.lane(sourceLaneId, sourceLabel)
     if (!targetLanes.length) return undefined
     const byLabel = targetLanes.find((lane) => lane.label === sourceLabel)
-    return (byLabel ?? targetLanes[0]).id
+    if (byLabel) return byLabel.id
+    const sourceIndex = sourceLanes.findIndex((lane) => lane.id === sourceLaneId)
+    if (sourceIndex >= 0 && sourceIndex < targetLanes.length) return targetLanes[sourceIndex].id
+    return undefined
   }
   for (const node of nodesOf(source.spec)) {
     const id = allocate('node')
@@ -135,8 +142,9 @@ export function pasteFragment(
         options.structured?.band?.(band.band) ?? Math.min(band.band, Math.max(0, targetBands - 1))
     }
     if (doc.spec.type === 'swimlane') {
-      const lane = node as unknown as { lane: string; label: string }
-      const mapped = laneMatch(lane.lane, copy.label)
+      const laneId = (node as unknown as { lane: string }).lane
+      const sourceLane = sourceLanes.find((lane) => lane.id === laneId)
+      const mapped = laneMatch(laneId, sourceLane?.label ?? '')
       if (!mapped) return failure('lane.missing')
       copy.lane = mapped
     }

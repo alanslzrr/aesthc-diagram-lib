@@ -62,12 +62,11 @@ inmutables de CI. No se ha ejecutado un mutation runner exhaustivo.
 | E02 | Implementada; N/N+1 en once límites y preflight adversarial | Completar todas las combinaciones del catálogo |
 | E03 | Adapters y conversión implementados | Expandir matriz CRUD completa, reorder semántico y remapeos |
 | E04 | Store funcional y testeado; mutation manual | Más interleavings, invalidaciones granulares y benchmark |
-| E05 | Métricas compartidas, geometría corregida e iconos locales en renderer/export; bounds centrados y gutter | Paridad completa de primitives/estilos; bounds tipográficos medidos |
-| E06 | Superficie, marquee, resize de ocho direcciones, teclado, pinch, scroll nativo/zoom modificado y outline básico | Touch prolongado, resize múltiple, RAF/performance y matriz completa de accesibilidad/gestos |
-| E07 | CRUD/conexiones/inspector básicos | Inspector estructurado completo y edición visual de ports/waypoints |
-| E08 | Multiselección, grupos, fragmentos libres, clipboard del sistema y align/distribute | Paste estructurado con mapping; ampliar matriz de plataforma y casos de geometría |
-| E09 | Composición pública y ownership Strict Mode | Slots/configuración avanzada y selectors con suscripción granular |
-| E10 | Persistencia/auto-save y conflictos | UI de cuarentena, drafts persistidos, recuperación y save-as completos |
+| E05 | Primitives/estilos alineados con el legado (rx, dashes, pills, tablas, estado, muted, kinds); medición pluggable con provider canvas en editor/export y fuentes embebidas en export; overflow medido también para tipos estructurados | Certificación visual con Chromium fijado y shaping de fuentes definitivo; matriz bundled completa |
+| E06 | Superficie, marquee, resize de ocho direcciones y de selección múltiple, teclado, pinch, RAF por frame, scroll nativo/zoom modificado, touch prolongado y outline básico | Matriz completa de accesibilidad/gestos y benchmark de rendimiento |
+| E07 | CRUD/conexiones/inspector básicos; selección visual de conexiones y edición de rutas manuales (waypoints y anclas arrastrables, toggle auto/manual) | Inspector estructurado específico (ER/sequence/swimlane) y edición visual de puertos |
+| E08 | Multiselección, grupos, clipboard del sistema, align/distribute y paste estructurado con mapping de bandas (clamp o explícito) y carriles (label, luego índice, rechazo explícito) | Ampliar matriz de plataforma y casos de geometría |
+| E10 | Persistencia/auto-save/conflictos, recuperación de borradores, cuarentena de corruptos sin sobrescribir, save-as y reapertura de copias guardadas (list + open) | Escenarios de fallos de almacenamiento ampliados |
 | E11 | API estática/raster funcional | Paridad visual certificada, medición de fuentes y todas las fallas de plataforma |
 | E12 | Studio y consumidor externo funcionales | Cerrar dependencias M1 antes de declarar hito completo |
 | E13 | Graph queries implementadas | Viewer semántico y sus controles |
@@ -366,3 +365,31 @@ fallas de plataforma), E12 (cierre formal M1), E02/E03/E04 (matrices exhaustivas
 benchmarks), y todo E13–E24 según la tabla de estado. Firefox/WebKit/Chromium fijado
 siguen sin binarios; Chrome instalado es evidencia complementaria. No se crearon
 releases ni se publicó el paquete.
+
+## Continuación: correcciones de revisión M1 (2026-09-23)
+
+Respuesta al veredicto de revisión; sin cerrar M1.
+
+- E08 lane mapping: el emparejamiento usaba la etiqueta del NODO, no la del carril
+  de origen, y el fallback al primer carril podía cambiar el significado del diagrama.
+  Ahora busca el carril de origen por id en el documento fuente y mapea por etiqueta,
+  con fallback por índice del carril de origen y rechazo `lane.missing` si no hay
+  coincidencia ni índice válido. Regresión nueva con destino cuyo primer carril NO es
+  la coincidencia (Worker en Engineering → engineering, no sales) y caso de rechazo.
+- E10 save-as: el ciclo se completó con `list()` en StorageAdapter (memoria y
+  localStorage; entradas ilegibles se omiten) y una sección «Saved copies» en Studio
+  que enumera las copias y permite abrirlas con confirmación, token y limpieza del aviso
+  de borrador. `StoredEntry` y `list` son API pública documentada.
+- E05/E11 medición: `resolveDocument` ahora también emite `quality.text-overflow`
+  medido para tipos estructurados (sin alterar sus bounds de layout, que son
+  autoritativos). La exportación registra las fuentes embebidas en un @font-face scoped
+  (`createEmbeddedFontTextMeasurer`) y espera su carga antes de medir, de modo que la
+  medición usa los mismos bytes incorporados al archivo y no las fuentes del host;
+  el measurer se elimina tras resolver.
+- Consumidores re-ejecutados con estos cambios: tarball React 18.3.1 (resolvers
+  NodeNext/Bundler) y frameworks Vite 7.3.6 / Next 15.5.25, todos PASS.
+
+Pendiente explícito de E07: inspectores específicos de tipos estructurados (ER fields,
+sequence participants, swimlane lanes) y edición visual de puertos. E09 y E11 siguen
+abiertos (selectores granulares, slots, fallas de plataforma). Los 14 skips de E2E
+siguen siendo casos no aplicables (mobile/touch/pointer), separados de lo aprobado.

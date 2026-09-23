@@ -19,7 +19,7 @@ import {
 import { downloadArtifact, exportDocument } from '@aesthc/diagram-lib/export'
 import type { ExportFormat } from '@aesthc/diagram-lib/export'
 import { createLocalStorageAdapter, createAutosave } from '@aesthc/diagram-lib/persistence'
-import type { AutosaveState, StoredDocument } from '@aesthc/diagram-lib/persistence'
+import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 import '@aesthc/diagram-lib/editor.css'
@@ -82,10 +82,41 @@ function Workbench() {
     [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
+  const [copies, setCopies] = useState<StoredEntry[]>([])
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
+  async function refreshCopies() {
+    const result = await storage.list()
+    setCopies(result.ok ? result.value : [])
+  }
+  async function openCopy(key: string) {
+    const result = await storage.load(key)
+    if (!result.ok || !result.value) {
+      setMessage(t('The copy could not be opened.', 'La copia no se pudo abrir.'))
+      return
+    }
+    if (
+      store.getSnapshot().dirty &&
+      !window.confirm(
+        t(
+          'Replace unsaved changes with this saved copy?',
+          '¿Sustituir los cambios sin guardar por esta copia guardada?',
+        ),
+      )
+    )
+      return
+    const commit = store.replaceDocument(result.value.document, {
+      expectedRevision: store.getSnapshot().document.revision,
+      history: 'reset',
+    })
+    if (commit.status !== 'rejected') {
+      token.current = result.value.token
+      setDraft(null)
+      setMessage(t('Saved copy opened.', 'Copia guardada abierta.'))
+    }
+  }
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
@@ -343,6 +374,28 @@ function Workbench() {
           <button type="button" onClick={() => void load()}>
             {t('Load saved', 'Cargar guardado')}
           </button>
+          <details
+            className="studio-copies"
+            onToggle={(event) => {
+              if ((event.target as HTMLDetailsElement).open) void refreshCopies()
+            }}
+          >
+            <summary>{t('Saved copies', 'Copias guardadas')}</summary>
+            {copies.length ? (
+              <ul>
+                {copies.map((copy) => (
+                  <li key={copy.key}>
+                    <span className="adl-editor-mono">{copy.label}</span>
+                    <button type="button" onClick={() => void openCopy(copy.key)}>
+                      {t('Open', 'Abrir')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>{t('No saved copies.', 'No hay copias guardadas.')}</p>
+            )}
+          </details>
           <label>
             <input
               type="checkbox"
