@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-NRIFRYFP.js";
+} from "../chunk-NCA7MMCS.js";
 import {
   anchorFromPoint,
   anchorPoint,

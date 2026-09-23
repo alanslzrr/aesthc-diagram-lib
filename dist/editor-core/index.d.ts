@@ -26,10 +26,16 @@ declare function fitViewport(bounds: Rect, size: Size, padding: number): Viewpor
 declare function resolveDocument(document: DiagramDocument, context: ResolveContext): Result<ResolvedScene>;
 
 declare function createFragment(document: DiagramDocument, selection: EntityRef[]): Result<DiagramFragment>;
-declare function pasteFragment(document: DiagramDocument, input: unknown, options: {
+interface PasteOptions {
     idFactory: (kind: 'node' | 'edge' | 'group') => string;
     offset: Point;
-}): Result<DiagramDocument>;
+    /** Explicit structured assignment for band/swimlane pastes. */
+    structured?: {
+        band?: (sourceIndex: number) => number;
+        lane?: (sourceLaneId: string, sourceLabel: string) => string | undefined;
+    };
+}
+declare function pasteFragment(document: DiagramDocument, input: unknown, options: PasteOptions): Result<DiagramDocument>;
 
 interface ConversionReceipt {
     document: DiagramDocument;

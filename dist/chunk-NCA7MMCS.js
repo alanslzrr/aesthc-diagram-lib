@@ -8933,12 +8933,12 @@ function pasteFragment(document, input, options) {
   const fragment = input, validated = validateDocument(fragment.document);
   if (!validated.ok) return validated;
   if (document.spec.type !== fragment.document.spec.type) return failure("clipboard.type");
-  if (!freeTypes.has(document.spec.type)) return failure("clipboard.structured-mapping-required");
   if (!Number.isFinite(options.offset.x) || !Number.isFinite(options.offset.y))
     return failure("layout.range");
+  const free = freeTypes.has(document.spec.type);
   const doc = structuredClone(document), adapter = getAdapter(doc.spec.type), source = fragment.document;
-  const scene = resolveDocument(source, { quality: "edit", requestId: "paste" });
-  if (!scene.ok) return scene;
+  const scene = free ? resolveDocument(source, { quality: "edit", requestId: "paste" }) : null;
+  if (free && !scene.ok) return scene;
   const nodeIds = /* @__PURE__ */ new Map(), groupIds = /* @__PURE__ */ new Map();
   const used = /* @__PURE__ */ new Set([
     ...nodesOf(doc.spec).map((n) => n.id),
@@ -8953,24 +8953,46 @@ function pasteFragment(document, input, options) {
       return id;
     }
   }
+  const targetBands = doc.spec.type === "band" ? doc.spec.bands.length : 0;
+  const targetLanes = doc.spec.type === "swimlane" ? doc.spec.lanes : [];
+  const laneMatch = (sourceLaneId, sourceLabel) => {
+    if (options.structured?.lane) return options.structured.lane(sourceLaneId, sourceLabel);
+    if (!targetLanes.length) return void 0;
+    const byLabel = targetLanes.find((lane) => lane.label === sourceLabel);
+    return (byLabel ?? targetLanes[0]).id;
+  };
   for (const node of nodesOf(source.spec)) {
     const id = allocate("node");
     if (!id) return failure("id.collision");
     nodeIds.set(node.id, id);
+    const copy = structuredClone(node);
+    copy.id = id;
+    if (doc.spec.type === "band") {
+      const band = node;
+      copy.band = options.structured?.band?.(band.band) ?? Math.min(band.band, Math.max(0, targetBands - 1));
+    }
+    if (doc.spec.type === "swimlane") {
+      const lane = node;
+      const mapped = laneMatch(lane.lane, copy.label);
+      if (!mapped) return failure("lane.missing");
+      copy.lane = mapped;
+    }
     const inserted = adapter.insertNode(doc.spec, {
       diagramType: doc.spec.type,
-      node: { ...structuredClone(node), id }
+      node: copy
     });
     if (!inserted.ok) return inserted;
     doc.spec = inserted.value;
-    const placement = scene.value.layout.nodeById[node.id];
-    doc.scene.nodes[id] = {
-      x: placement.x + options.offset.x,
-      y: placement.y + options.offset.y,
-      width: placement.w,
-      height: placement.h,
-      locked: false
-    };
+    if (free) {
+      const placement = scene.value.layout.nodeById[node.id];
+      doc.scene.nodes[id] = {
+        x: placement.x + options.offset.x,
+        y: placement.y + options.offset.y,
+        width: placement.w,
+        height: placement.h,
+        locked: false
+      };
+    }
     doc.scene.zOrder.push(id);
     if (source.metadata.nodes[node.id])
       doc.metadata.nodes[id] = structuredClone(source.metadata.nodes[node.id]);
@@ -8994,7 +9016,7 @@ function pasteFragment(document, input, options) {
     if (source.metadata.edges[edge.id])
       doc.metadata.edges[id] = structuredClone(source.metadata.edges[edge.id]);
     const route = source.scene.routes[edge.id];
-    if (route) {
+    if (route && free) {
       const copy = structuredClone(route);
       if (copy.mode === "manual") {
         copy.points = copy.points.map((p) => ({
@@ -9014,15 +9036,16 @@ function pasteFragment(document, input, options) {
     if (!id) return failure("id.collision");
     groupIds.set(group.id, id);
   }
-  for (const group of source.scene.groups)
-    doc.scene.groups.push({
-      ...structuredClone(group),
-      id: groupIds.get(group.id),
-      nodeIds: group.nodeIds.map((id) => nodeIds.get(id)),
-      ...group.parentGroup ? { parentGroup: groupIds.get(group.parentGroup) } : {},
-      locked: false
-    });
-  doc.scene.mode = "hybrid";
+  if (free)
+    for (const group of source.scene.groups)
+      doc.scene.groups.push({
+        ...structuredClone(group),
+        id: groupIds.get(group.id),
+        nodeIds: group.nodeIds.map((id) => nodeIds.get(id)),
+        ...group.parentGroup ? { parentGroup: groupIds.get(group.parentGroup) } : {},
+        locked: false
+      });
+  if (free) doc.scene.mode = "hybrid";
   return validateDocument(doc);
 }
 

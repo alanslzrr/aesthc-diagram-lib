@@ -67,10 +67,19 @@ export function createFragment(
     selection: [...ids].map((id) => ({ kind: 'node', id })),
   })
 }
+export interface PasteOptions {
+  idFactory: (kind: 'node' | 'edge' | 'group') => string
+  offset: Point
+  /** Explicit structured assignment for band/swimlane pastes. */
+  structured?: {
+    band?: (sourceIndex: number) => number
+    lane?: (sourceLaneId: string, sourceLabel: string) => string | undefined
+  }
+}
 export function pasteFragment(
   document: DiagramDocument,
   input: unknown,
-  options: { idFactory: (kind: 'node' | 'edge' | 'group') => string; offset: Point },
+  options: PasteOptions,
 ): Result<DiagramDocument> {
   const checked = validateDocument(document)
   if (!checked.ok) return checked
@@ -81,14 +90,16 @@ export function pasteFragment(
     validated = validateDocument(fragment.document)
   if (!validated.ok) return validated
   if (document.spec.type !== fragment.document.spec.type) return failure('clipboard.type')
-  if (!freeTypes.has(document.spec.type)) return failure('clipboard.structured-mapping-required')
   if (!Number.isFinite(options.offset.x) || !Number.isFinite(options.offset.y))
     return failure('layout.range')
+  const free = freeTypes.has(document.spec.type)
   const doc = structuredClone(document),
     adapter = getAdapter(doc.spec.type),
     source = fragment.document
-  const scene = resolveDocument(source, { quality: 'edit', requestId: 'paste' })
-  if (!scene.ok) return scene
+  const scene = free
+    ? resolveDocument(source, { quality: 'edit', requestId: 'paste' })
+    : null
+  if (free && !scene!.ok) return scene!
   const nodeIds = new Map<string, string>(),
     groupIds = new Map<string, string>()
   const used = new Set([
@@ -104,23 +115,55 @@ export function pasteFragment(
       return id
     }
   }
+  const targetBands =
+    doc.spec.type === 'band'
+      ? (doc.spec.bands as Array<{ title: string }>).length
+      : 0
+  const targetLanes =
+    doc.spec.type === 'swimlane'
+      ? (doc.spec.lanes as Array<{ id: string; label: string }>)
+      : []
+  const laneMatch = (sourceLaneId: string, sourceLabel: string): string | undefined => {
+    if (options.structured?.lane) return options.structured.lane(sourceLaneId, sourceLabel)
+    if (!targetLanes.length) return undefined
+    const byLabel = targetLanes.find((lane) => lane.label === sourceLabel)
+    return (byLabel ?? targetLanes[0]).id
+  }
   for (const node of nodesOf(source.spec)) {
     const id = allocate('node')
     if (!id) return failure('id.collision')
     nodeIds.set(node.id, id)
+    const copy = structuredClone(node) as typeof node & { band?: number; lane?: string }
+    copy.id = id
+    if (doc.spec.type === 'band') {
+      const band = node as unknown as { band: number }
+      copy.band =
+        options.structured?.band?.(band.band) ??
+        Math.min(band.band, Math.max(0, targetBands - 1))
+    }
+    if (doc.spec.type === 'swimlane') {
+      const lane = node as unknown as { lane: string; label: string }
+      const mapped = laneMatch(lane.lane, copy.label)
+      if (!mapped) return failure('lane.missing')
+      copy.lane = mapped
+    }
     const inserted = adapter.insertNode(doc.spec, {
       diagramType: doc.spec.type,
-      node: { ...structuredClone(node), id },
+      node: copy,
     } as NodeInput)
     if (!inserted.ok) return inserted
     doc.spec = inserted.value
-    const placement = scene.value.layout.nodeById[node.id]
-    doc.scene.nodes[id] = {
-      x: placement.x + options.offset.x,
-      y: placement.y + options.offset.y,
-      width: placement.w,
-      height: placement.h,
-      locked: false,
+    if (free) {
+      const placement = (scene as Extract<typeof scene, { ok: true }>).value.layout.nodeById[
+        node.id
+      ]
+      doc.scene.nodes[id] = {
+        x: placement.x + options.offset.x,
+        y: placement.y + options.offset.y,
+        width: placement.w,
+        height: placement.h,
+        locked: false,
+      }
     }
     doc.scene.zOrder.push(id)
     if (source.metadata.nodes[node.id])
@@ -145,7 +188,7 @@ export function pasteFragment(
     if (source.metadata.edges[edge.id!])
       doc.metadata.edges[id] = structuredClone(source.metadata.edges[edge.id!])
     const route = source.scene.routes[edge.id!]
-    if (route) {
+    if (route && free) {
       const copy = structuredClone(route)
       if (copy.mode === 'manual') {
         copy.points = copy.points.map((p) => ({
@@ -165,14 +208,15 @@ export function pasteFragment(
     if (!id) return failure('id.collision')
     groupIds.set(group.id, id)
   }
-  for (const group of source.scene.groups)
-    doc.scene.groups.push({
-      ...structuredClone(group),
-      id: groupIds.get(group.id)!,
-      nodeIds: group.nodeIds.map((id) => nodeIds.get(id)!),
-      ...(group.parentGroup ? { parentGroup: groupIds.get(group.parentGroup)! } : {}),
-      locked: false,
-    })
-  doc.scene.mode = 'hybrid'
+  if (free)
+    for (const group of source.scene.groups)
+      doc.scene.groups.push({
+        ...structuredClone(group),
+        id: groupIds.get(group.id)!,
+        nodeIds: group.nodeIds.map((id) => nodeIds.get(id)!),
+        ...(group.parentGroup ? { parentGroup: groupIds.get(group.parentGroup)! } : {}),
+        locked: false,
+      })
+  if (free) doc.scene.mode = 'hybrid'
   return validateDocument(doc)
 }
