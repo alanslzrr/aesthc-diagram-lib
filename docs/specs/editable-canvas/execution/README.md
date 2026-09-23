@@ -394,3 +394,36 @@ Pendiente explícito de E07: inspectores específicos de tipos estructurados (ER
 sequence participants, swimlane lanes) y edición visual de puertos. E09 y E11 siguen
 abiertos (selectores granulares, slots, fallas de plataforma). Los 14 skips de E2E
 siguen siendo casos no aplicables (mobile/touch/pointer), separados de lo aprobado.
+
+## Continuación: inspectores, selectores, export y matrices (2026-09-23)
+
+Respuesta al segundo veredicto; M1 sigue abierto.
+
+- E07: `EditorStructuredInspector` por tipo — campos ER (nombre/tipo/clave pk-fk-unique, añadir/quitar),
+  participantes de sequence (añadir/quitar con poda de referencias), carriles de swimlane
+  (reasignar nodo, añadir carril, quitar carril con reassignment explícito al primer carril
+  restante vía `lanes.replace` exhaustivo) y puertos de graph (lado/dirección, añadir/quitar).
+  Edición visual de puertos: handles en el canvas sobre la posición del anchor, drag
+  transaccional que recalcula side/offset con `anchorFromPoint` (cancel/undo incluidos).
+  El ejemplo de Studio expone puertos (inbound/outbound en Order API). E2E cubre inspector
+  y drag de puertos + campos ER vía import de fixture (`tests/fixtures/editor/er-document.json`).
+- E09: `useEditorSelector` con igualdad (Object.is o `shallowEqual`) basado en
+  useState+useEffect (patrón zustand; el patrón useSyncExternalStore con getSnapshot
+  custom provocaba un loop de re-render #185 en React 19 y se descartó). Toolbar, Inspector,
+  JsonPanel, Outline, Route y StructuredInspector consumen slices estables
+  (selection/document), de modo que pan/zoom ya no los re-renderiza.
+- E11: pruebas de fallos de export añadidas: fuentes embebidas inválidas (`export.font-invalid`),
+  política required sin fuentes (`export.font-missing`), fallback con warning, escalas no
+  seguras (`export.scale`) y límites de píxeles (`export.pixels`), publish bloqueado por
+  overflow medido (`export.quality`), scope de selección con receipt `canonical:false`.
+- E03: matriz CRUD/reorder de los siete tipos en `tests/editor-adapters.unit.spec.ts`
+  (insert/replace/reorder/remove con inputs estructurados correctos por tipo).
+- E04: change sets granulares en el store — `affected` solo para entidades tocadas y
+  `invalidates` por comando (layout/graph/style/views), con detección de cambio de topología
+  para `graph` y conservadurismo total para undo/redo/replaceDocument. Bug corregido: el
+  change set se calculaba tras `notify`, comparando el documento nuevo contra sí mismo.
+
+Gates: `pnpm check` PASS (301 unit, 12 tarball); E2E completo 144 passed/14 skipped.
+Pendiente M1: matriz de accesibilidad E06, casos de plataforma E08/E10, cierre de
+aceptación E12, Chromium fijado/Firefox/WebKit, benchmark 1000 nodos y revisión de
+trazabilidad requisito→prueba→resultado.
