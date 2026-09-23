@@ -65,3 +65,67 @@ describe('isolated canonical exports', () => {
     ).toBe(false)
   })
 })
+describe('export failure and limit paths', () => {
+  it('rejects invalid embedded fonts and required policies without fake fallback', async () => {
+    const d = doc()
+    expect(
+      (
+        await exportDocument(d, {
+          ...options,
+          fonts: {
+            sans: new Uint8Array([1, 2, 3]),
+            mono: new Uint8Array([4, 5, 6]),
+          },
+        })
+      ).ok,
+    ).toBe(false)
+    const missing = await exportDocument(d, {
+      ...options,
+      fontPolicy: 'required',
+      fonts: undefined,
+    })
+    expect(missing.ok).toBe(false)
+    if (!missing.ok) expect(missing.diagnostics.map((x) => x.code)).toContain('export.font-missing')
+  })
+  it('warns on fallback fonts instead of failing, and still exports', async () => {
+    const d = doc()
+    const r = await exportDocument(d, { ...options, fontPolicy: 'fallback', fonts: undefined })
+    expect(r.ok).toBe(true)
+    if (r.ok)
+      expect(r.value.receipt.diagnostics.map((x) => x.code)).toContain('export.font-fallback')
+  })
+  it('rejects unsafe scales and pixel limits', async () => {
+    const d = doc()
+    const huge = await exportDocument(d, { ...options, scale: 20000 })
+    expect(huge.ok).toBe(false)
+    if (!huge.ok) expect(huge.diagnostics.map((x) => x.code)).toContain('export.scale')
+    d.scene.nodes.a = { x: 20000, y: 0, width: 240, height: 64, locked: false }
+    const big = await exportDocument(d, { ...options, scale: 8 })
+    expect(big.ok).toBe(false)
+    if (!big.ok) expect(big.diagnostics.map((x) => x.code)).toContain('export.pixels')
+  })
+  it('blocks publish quality on measured overflow diagnostics', async () => {
+    const d = doc()
+    if (d.spec.type !== 'graph') throw Error('fixture')
+    d.spec.nodes[0].label = 'W'.repeat(400)
+    const r = await exportDocument(d, { ...options, quality: 'publish', fonts: undefined })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.diagnostics.map((x) => x.code)).toContain('export.quality')
+    const edit = await exportDocument(d, { ...options, quality: 'edit', fonts: undefined })
+    expect(edit.ok).toBe(true)
+  })
+  it('exports a selection scope with canonical receipt flags', async () => {
+    const d = doc()
+    const r = await exportDocument(d, {
+      ...options,
+      scope: { type: 'selection', selection: [{ kind: 'node', id: 'a' }] },
+    })
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.value.receipt.scope).toBe('selection')
+      expect(r.value.receipt.canonical).toBe(false)
+      const svg = new TextDecoder().decode(r.value.bytes)
+      expect(svg).toMatch(/data-node-id="a"/)
+    }
+  })
+})
