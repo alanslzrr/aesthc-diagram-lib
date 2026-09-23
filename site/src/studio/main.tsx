@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createDocument, createEditorStore, importDocument, canonicalizeContent } from '@aesthc/diagram-lib/editor-core'
+import {
+  createDocument,
+  createEditorStore,
+  importDocument,
+  canonicalizeContent,
+} from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
 import {
   EditorRoot,
@@ -98,7 +103,6 @@ function Workbench() {
       cancelled = true
     }
     // Only the initial document identity matters; edits do not reopen the notice.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot.document.id])
   useEffect(() => {
     if (!autosave) return
@@ -215,7 +219,10 @@ function Workbench() {
   async function saveAs() {
     const name = window.prompt(t('Save a copy as…', 'Guardar una copia como…'))
     if (!name) return
-    const slug = name.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 60)
+    const slug = name
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .slice(0, 60)
     if (!slug) {
       setMessage(t('Save-as name is invalid.', 'El nombre de guardar como no es válido.'))
       return

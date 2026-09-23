@@ -35,7 +35,10 @@ function anchor(node: PlacedNode, port: EndpointAnchor): Point {
 }
 
 /** World-space anchor position for an authored placement rect. */
-export function anchorPoint(rect: { x: number; y: number; width: number; height: number }, port: EndpointAnchor): Point {
+export function anchorPoint(
+  rect: { x: number; y: number; width: number; height: number },
+  port: EndpointAnchor,
+): Point {
   return {
     x:
       port.side === 'left'
@@ -59,13 +62,21 @@ export function anchorFromPoint(
 ): EndpointAnchor {
   const clamp = (value: number) => Math.max(0, Math.min(1, value))
   const candidates: Array<{ side: PortSide; offset: number; distance: number }> = [
-    { side: 'top', offset: clamp((point.x - rect.x) / rect.width), distance: Math.abs(point.y - rect.y) },
+    {
+      side: 'top',
+      offset: clamp((point.x - rect.x) / rect.width),
+      distance: Math.abs(point.y - rect.y),
+    },
     {
       side: 'bottom',
       offset: clamp((point.x - rect.x) / rect.width),
       distance: Math.abs(point.y - (rect.y + rect.height)),
     },
-    { side: 'left', offset: clamp((point.y - rect.y) / rect.height), distance: Math.abs(point.x - rect.x) },
+    {
+      side: 'left',
+      offset: clamp((point.y - rect.y) / rect.height),
+      distance: Math.abs(point.x - rect.x),
+    },
     {
       side: 'right',
       offset: clamp((point.y - rect.y) / rect.height),
@@ -253,22 +264,30 @@ export function resolveDocument(
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])
     const labelRole: TextRole = { size: 14.5, family: 'Geist', charFactor: 13 / 14.5 }
-    const kindRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 10 / 11.25, tracking: 1.6 }
+    const kindRole: TextRole = {
+      size: 11.25,
+      family: 'Geist Mono',
+      charFactor: 10 / 11.25,
+      tracking: 1.6,
+    }
     const sublabelRole: TextRole = { size: 11.25, family: 'Geist Mono', charFactor: 11 / 11.25 }
     const fieldRole: TextRole = { size: 11, family: 'Geist Mono', charFactor: 1 }
     const fieldAnnotationRole: TextRole = { size: 10, family: 'Geist Mono', charFactor: 1 }
-    const textWidth = Math.max(
-      measure(n.label, labelRole),
-      measure((n.kind ?? '').toUpperCase(), kindRole),
-      measure(n.sublabel ?? '', sublabelRole),
-      ...(n.fields ?? []).map((f) => {
-        const annotation = [f.type, f.key === 'unique' ? 'unique' : null].filter(Boolean).join(' · ')
-        return (
-          measure(f.name, fieldRole) +
-          (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0)
-        )
-      }),
-    ) * document.presentation.textScale
+    const textWidth =
+      Math.max(
+        measure(n.label, labelRole),
+        measure((n.kind ?? '').toUpperCase(), kindRole),
+        measure(n.sublabel ?? '', sublabelRole),
+        ...(n.fields ?? []).map((f) => {
+          const annotation = [f.type, f.key === 'unique' ? 'unique' : null]
+            .filter(Boolean)
+            .join(' · ')
+          return (
+            measure(f.name, fieldRole) +
+            (annotation ? measure(` ${annotation}`, fieldAnnotationRole) : 0)
+          )
+        }),
+      ) * document.presentation.textScale
     const geometry = nodeGeometry(n, !!document.metadata.visuals[n.id])
     const textLeft =
       n.shape === 'table'

@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-NCA7MMCS.js";
+} from "../chunk-JI4SK5S3.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -14,7 +14,7 @@ import {
   getAdapter,
   isNodeLocked,
   resolveDocument
-} from "../chunk-ZPWPL4YZ.js";
+} from "../chunk-VL4OB4VM.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -29,7 +29,7 @@ import {
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-JPBPMASF.js";
+} from "../chunk-GZNL2GO6.js";
 import {
   nodeGeometry
 } from "../chunk-YKPE23VO.js";
@@ -389,7 +389,10 @@ function EditorSurface({
         const index = waypoint.index, initial = route.points[index];
         if (!initial) return;
         next.points = route.points.map(
-          (p, i) => i === index ? { x: initial.x + dx / current.viewport.zoom, y: initial.y + dy / current.viewport.zoom } : p
+          (p, i) => i === index ? {
+            x: initial.x + dx / current.viewport.zoom,
+            y: initial.y + dy / current.viewport.zoom
+          } : p
         );
       }
       store.previewGesture([
@@ -1608,14 +1611,21 @@ function EditorRoute() {
   const manual = route?.mode === "manual" ? route : void 0;
   const setRoute = (next, label) => {
     const scene = materialize(snapshot.document);
-    const commit = dispatch(store, [
-      { type: "scene.set", scene },
-      { type: "route.set", id: edgeId, route: next }
-    ], label);
+    const commit = dispatch(
+      store,
+      [
+        { type: "scene.set", scene },
+        { type: "route.set", id: edgeId, route: next }
+      ],
+      label
+    );
     setError(commit.diagnostics.map((d) => d.code).join(", "));
   };
   const toManual = () => {
-    const result = resolveDocument(snapshot.document, { quality: "edit", requestId: "route-manual" });
+    const result = resolveDocument(snapshot.document, {
+      quality: "edit",
+      requestId: "route-manual"
+    });
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(", "));
       return;

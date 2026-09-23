@@ -96,9 +96,7 @@ export function pasteFragment(
   const doc = structuredClone(document),
     adapter = getAdapter(doc.spec.type),
     source = fragment.document
-  const scene = free
-    ? resolveDocument(source, { quality: 'edit', requestId: 'paste' })
-    : null
+  const scene = free ? resolveDocument(source, { quality: 'edit', requestId: 'paste' }) : null
   if (free && !scene!.ok) return scene!
   const nodeIds = new Map<string, string>(),
     groupIds = new Map<string, string>()
@@ -116,13 +114,9 @@ export function pasteFragment(
     }
   }
   const targetBands =
-    doc.spec.type === 'band'
-      ? (doc.spec.bands as Array<{ title: string }>).length
-      : 0
+    doc.spec.type === 'band' ? (doc.spec.bands as Array<{ title: string }>).length : 0
   const targetLanes =
-    doc.spec.type === 'swimlane'
-      ? (doc.spec.lanes as Array<{ id: string; label: string }>)
-      : []
+    doc.spec.type === 'swimlane' ? (doc.spec.lanes as Array<{ id: string; label: string }>) : []
   const laneMatch = (sourceLaneId: string, sourceLabel: string): string | undefined => {
     if (options.structured?.lane) return options.structured.lane(sourceLaneId, sourceLabel)
     if (!targetLanes.length) return undefined
@@ -138,8 +132,7 @@ export function pasteFragment(
     if (doc.spec.type === 'band') {
       const band = node as unknown as { band: number }
       copy.band =
-        options.structured?.band?.(band.band) ??
-        Math.min(band.band, Math.max(0, targetBands - 1))
+        options.structured?.band?.(band.band) ?? Math.min(band.band, Math.max(0, targetBands - 1))
     }
     if (doc.spec.type === 'swimlane') {
       const lane = node as unknown as { lane: string; label: string }

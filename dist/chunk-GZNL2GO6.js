@@ -129,8 +129,7 @@ function renderSceneMarkup(document, scene, options) {
       out += `<line x1="${n.cx}" y1="${n.cy}" x2="${n.cx}" y2="${g.connectorEnd}" stroke="${stroke}" stroke-dasharray="2 4"/><circle cx="${n.cx}" cy="${n.cy}" r="${DOT_R}" fill="${p.background}" stroke="${stroke}"/><circle cx="${n.cx}" cy="${n.cy}" r="${DOT_R / 2.6}" fill="${stroke}"/>`;
       if (n.kind) out += monoLabel(n.cx, n.y - 24, n.kind.toUpperCase(), 10, p.mutedForeground, 1.4);
       out += `<text data-node-label="true" x="${n.cx}" y="${n.y}" text-anchor="middle" font-family="Geist, sans-serif" font-size="${13.5 * document.presentation.textScale}" fill="${p.foreground}">${escapeXml(n.label)}</text>`;
-      if (n.sublabel)
-        out += monoLabel(n.cx, n.y + 18, n.sublabel, 10.5, p.mutedForeground);
+      if (n.sublabel) out += monoLabel(n.cx, n.y + 18, n.sublabel, 10.5, p.mutedForeground);
       out += "</g>";
       continue;
     }
@@ -181,8 +180,7 @@ function renderSceneMarkup(document, scene, options) {
     if (n.kind)
       out += monoLabel(g.textX, n.y + 24, n.kind.toUpperCase(), 11.25, p.mutedForeground, 1.6);
     out += `<text data-node-label="true" x="${g.labelX}" y="${g.labelY}"${g.centeredLabel ? ' text-anchor="middle" dominant-baseline="central"' : ""} font-family="Geist, sans-serif" font-size="${14.5 * document.presentation.textScale}" fill="${p.foreground}">${escapeXml(n.label)}</text>`;
-    if (n.sublabel)
-      out += monoLabel(g.textX, n.y + 70, n.sublabel, 11.25, p.mutedForeground);
+    if (n.sublabel) out += monoLabel(g.textX, n.y + 70, n.sublabel, 11.25, p.mutedForeground);
     out += "</g>";
   }
   for (const d of l.decisions)

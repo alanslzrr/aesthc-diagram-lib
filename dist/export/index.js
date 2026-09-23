@@ -3,7 +3,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "../chunk-ZPWPL4YZ.js";
+} from "../chunk-VL4OB4VM.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -21,7 +21,7 @@ import "../chunk-UHROM3FO.js";
 import {
   escapeXml,
   renderSvg
-} from "../chunk-JPBPMASF.js";
+} from "../chunk-GZNL2GO6.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
 import "../chunk-KDAWQGDC.js";

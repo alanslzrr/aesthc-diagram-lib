@@ -108,7 +108,9 @@ test('Studio creates, resizes, connects, duplicates and groups nodes', async ({ 
   await page.getByLabel('Connection target', { exact: true }).selectOption(targetId)
   await page.getByLabel('Connection label', { exact: true }).fill('Audit event')
   await page.getByRole('button', { name: 'Connect', exact: true }).click()
-  await expect(page.locator('svg [data-edge-label]').filter({ hasText: 'Audit event' })).toHaveCount(1)
+  await expect(
+    page.locator('svg [data-edge-label]').filter({ hasText: 'Audit event' }),
+  ).toHaveCount(1)
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Audit service', exact: true })).toHaveCount(2)
   await page.getByRole('button', { name: 'Order API', exact: true }).click({ modifiers: ['Shift'] })
@@ -556,7 +558,9 @@ test('Studio recovers drafts, quarantines corrupt copies and supports save-as', 
     localStorage.setItem('adl-document-v1:studio:studio-document', '{corrupt json')
   })
   await page.getByRole('button', { name: 'Load saved', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Discard corrupted copy', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Discard corrupted copy', exact: true }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Discard corrupted copy', exact: true }).click()
   await expect(
     page.getByRole('button', { name: 'Discard corrupted copy', exact: true }),

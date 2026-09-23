@@ -86,8 +86,7 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
     }
     if (text === '') return success(null)
     try {
-      if (new TextEncoder().encode(text).length > 1048576 + 4096)
-        return failure('storage.corrupt')
+      if (new TextEncoder().encode(text).length > 1048576 + 4096) return failure('storage.corrupt')
       const envelope = JSON.parse(text)
       if (envelope?.schemaVersion !== 1 || typeof envelope.token !== 'string' || !envelope.token)
         return failure('storage.corrupt')

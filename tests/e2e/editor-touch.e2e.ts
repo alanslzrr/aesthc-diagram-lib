@@ -96,7 +96,6 @@ test('long touch selects without dragging, opening callouts or committing edits'
     'CDP touch injection; other engines use pointer regression coverage',
   )
   await page.goto('/studio.html')
-  const surface = page.getByRole('group', { name: /^Editable diagram/ })
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const before = await node.getAttribute('x')
   const box = await node.boundingBox()

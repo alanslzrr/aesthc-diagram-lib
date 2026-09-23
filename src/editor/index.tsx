@@ -30,13 +30,7 @@ import { createFragment, pasteFragment } from '../editor-core/clipboard'
 import type { DiagramFragment, RelationInput } from '../editor-core/types'
 import { createEditorStore } from '../editor-core/store'
 import { arrangeRects, type Arrangement } from '../geometry/arrange'
-import {
-  RESIZE_HANDLES,
-  rectsUnion,
-  resizeRect,
-  resizeRects,
-  type ResizeDirection,
-} from '../geometry/resize'
+import { RESIZE_HANDLES, rectsUnion, resizeRects, type ResizeDirection } from '../geometry/resize'
 import { pinchViewport } from '../geometry/pinch'
 import { nodeGeometry } from '../geometry/node'
 import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
@@ -314,7 +308,10 @@ export function EditorSurface({
         if (!initial) return
         next.points = route.points.map((p, i) =>
           i === index
-            ? { x: initial.x + dx / current.viewport.zoom, y: initial.y + dy / current.viewport.zoom }
+            ? {
+                x: initial.x + dx / current.viewport.zoom,
+                y: initial.y + dy / current.viewport.zoom,
+              }
             : p,
         )
       }
@@ -785,7 +782,9 @@ export function EditorSurface({
                 height: Math.abs(y2 - y1) + 12,
               })
             }
-            const hit = segments.length ? segments : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }]
+            const hit = segments.length
+              ? segments
+              : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }]
             return hit.map((segment, index) => {
               const selected = snapshot.selection.some((r) => r.kind === 'edge' && r.id === e.id)
               return (
@@ -933,15 +932,12 @@ export function EditorSurface({
                     aria-label={`${name}${handle.direction === 'se' ? '' : ` — ${t(handle.en, handle.es)}`}`}
                     aria-description={t(handle.en, handle.es)}
                     onKeyDown={(event) => {
-                      if (
-                        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
-                      )
+                      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key))
                         return
                       event.preventDefault()
                       event.stopPropagation()
                       const delta: Point = {
-                        x:
-                          event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
+                        x: event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0,
                         y: event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0,
                       }
                       apply(handle.direction, delta, event.shiftKey ? 16 : 1)
@@ -1669,14 +1665,21 @@ export function EditorRoute() {
     route?.mode === 'manual' ? route : undefined
   const setRoute = (next: RoutePlacement, label: string) => {
     const scene = materialize(snapshot.document)
-    const commit = dispatch(store, [
-      { type: 'scene.set', scene },
-      { type: 'route.set', id: edgeId, route: next },
-    ], label)
+    const commit = dispatch(
+      store,
+      [
+        { type: 'scene.set', scene },
+        { type: 'route.set', id: edgeId, route: next },
+      ],
+      label,
+    )
     setError(commit.diagnostics.map((d) => d.code).join(', '))
   }
   const toManual = () => {
-    const result = resolveDocument(snapshot.document, { quality: 'edit', requestId: 'route-manual' })
+    const result = resolveDocument(snapshot.document, {
+      quality: 'edit',
+      requestId: 'route-manual',
+    })
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(', '))
       return
@@ -1706,7 +1709,9 @@ export function EditorRoute() {
       <p className="adl-editor-mono">{edge.id}</p>
       <button
         type="button"
-        onClick={() => (route?.mode === 'manual' ? setRoute({ mode: 'auto' }, 'Set auto route') : toManual())}
+        onClick={() =>
+          route?.mode === 'manual' ? setRoute({ mode: 'auto' }, 'Set auto route') : toManual()
+        }
       >
         {route?.mode === 'manual'
           ? t('Auto route', 'Ruta automática')

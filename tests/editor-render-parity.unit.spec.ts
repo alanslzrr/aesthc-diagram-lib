@@ -25,7 +25,10 @@ function card(spec: DiagramSpec) {
   if (!doc.ok) throw Error('document')
   const scene = resolveDocument(doc.value, { quality: 'edit', requestId: 'parity' })
   if (!scene.ok) throw Error('scene')
-  return { node: scene.value.layout.nodes[0], markup: renderSceneMarkup(doc.value, scene.value, { instanceId: 'parity' }) }
+  return {
+    node: scene.value.layout.nodes[0],
+    markup: renderSceneMarkup(doc.value, scene.value, { instanceId: 'parity' }),
+  }
 }
 
 describe('editor renderer parity with the legacy canvas', () => {

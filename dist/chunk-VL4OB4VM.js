@@ -370,13 +370,21 @@ function anchorPoint(rect, port) {
 function anchorFromPoint(point, rect) {
   const clamp = (value) => Math.max(0, Math.min(1, value));
   const candidates = [
-    { side: "top", offset: clamp((point.x - rect.x) / rect.width), distance: Math.abs(point.y - rect.y) },
+    {
+      side: "top",
+      offset: clamp((point.x - rect.x) / rect.width),
+      distance: Math.abs(point.y - rect.y)
+    },
     {
       side: "bottom",
       offset: clamp((point.x - rect.x) / rect.width),
       distance: Math.abs(point.y - (rect.y + rect.height))
     },
-    { side: "left", offset: clamp((point.y - rect.y) / rect.height), distance: Math.abs(point.x - rect.x) },
+    {
+      side: "left",
+      offset: clamp((point.y - rect.y) / rect.height),
+      distance: Math.abs(point.x - rect.x)
+    },
     {
       side: "right",
       offset: clamp((point.y - rect.y) / rect.height),
@@ -535,7 +543,12 @@ function resolveDocument(document2, context) {
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h]);
     const labelRole = { size: 14.5, family: "Geist", charFactor: 13 / 14.5 };
-    const kindRole = { size: 11.25, family: "Geist Mono", charFactor: 10 / 11.25, tracking: 1.6 };
+    const kindRole = {
+      size: 11.25,
+      family: "Geist Mono",
+      charFactor: 10 / 11.25,
+      tracking: 1.6
+    };
     const sublabelRole = { size: 11.25, family: "Geist Mono", charFactor: 11 / 11.25 };
     const fieldRole = { size: 11, family: "Geist Mono", charFactor: 1 };
     const fieldAnnotationRole = { size: 10, family: "Geist Mono", charFactor: 1 };
