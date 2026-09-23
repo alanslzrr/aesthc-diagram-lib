@@ -225,6 +225,122 @@ export function EditorSurface({
   } | null>(null)
   const spacePan = useRef(false)
   const fitted = useRef(false)
+  /** One gesture update per animation frame: pointermove can outrun paint. */
+  const moveRaf = useRef(0)
+  const pendingMove = useRef<Point | null>(null)
+  const pendingPointer = useRef(-1)
+  const flushMove = () => {
+    if (moveRaf.current) {
+      cancelAnimationFrame(moveRaf.current)
+      moveRaf.current = 0
+    }
+    const point = pendingMove.current
+    pendingMove.current = null
+    const pointer = pendingPointer.current
+    pendingPointer.current = -1
+    if (point && pointer >= 0) applyMovePoint(point, pointer)
+  }
+  useEffect(
+    () => () => {
+      if (moveRaf.current) cancelAnimationFrame(moveRaf.current)
+    },
+    [],
+  )
+  function applyMovePoint(point: Point, pointerId: number) {
+    const selection = marquee.current
+    if (selection?.pointer === pointerId) {
+      if (!selection.moved) {
+        if (Math.hypot(point.x - selection.start.x, point.y - selection.start.y) < 3) return
+        selection.moved = true
+      }
+      const box = marqueeBounds(
+        screenToWorld(selection.start, selection.viewport),
+        screenToWorld(point, selection.viewport),
+      )
+      setSelectionBox(box)
+      const selected = authoredNodes
+        .filter((n) => intersectsMarquee(box, nodeGeometry(n).hit))
+        .map((n) => ({ kind: 'node' as const, id: n.id }))
+      const baseline = selection.additive ? selection.selection : []
+      store.setSelection([
+        ...baseline,
+        ...selected.filter((n) => !baseline.some((r) => r.kind === n.kind && r.id === n.id)),
+      ])
+      return
+    }
+    const current = gesture.current
+    if (!current || current.pointer !== pointerId) return
+    if (current.pan) {
+      store.setViewport({
+        ...current.viewport,
+        x: current.viewport.x + point.x - current.start.x,
+        y: current.viewport.y + point.y - current.start.y,
+      })
+      return
+    }
+    const dx = point.x - current.start.x,
+      dy = point.y - current.start.y,
+      positions: Record<string, Point> = {},
+      grid = snapshot.document.presentation.grid
+    if (current.resize) {
+      const rects = current.resize.ids
+        .map((resizeId) => current.scene.nodes[resizeId])
+        .filter((node) => node)
+        .map((node) => ({
+          x: node.x,
+          y: node.y,
+          width: node.width,
+          height: node.height,
+        }))
+      const resized = resizeRects(
+        rects,
+        current.resize.direction,
+        {
+          x: dx / current.viewport.zoom,
+          y: dy / current.viewport.zoom,
+        },
+        grid.snap ? grid.size : undefined,
+      )
+      const resizeCommands = resized.flatMap((rect, index) => {
+        const resizeId = current.resize!.ids[index]
+        return [
+          { type: 'nodes.move', positions: { [resizeId]: { x: rect.x, y: rect.y } } },
+          {
+            type: 'node.resize',
+            id: resizeId,
+            size: { width: rect.width, height: rect.height },
+          },
+        ] as const
+      })
+      store.previewGesture([{ type: 'scene.set', scene: current.scene }, ...resizeCommands])
+      return
+    }
+    for (const [id, start] of Object.entries(current.positions)) {
+      const x = start.x + dx / current.viewport.zoom,
+        y = start.y + dy / current.viewport.zoom
+      positions[id] = {
+        x: grid.snap ? Math.round(x / grid.size) * grid.size : x,
+        y: grid.snap ? Math.round(y / grid.size) * grid.size : y,
+      }
+    }
+    store.previewGesture([
+      { type: 'scene.set', scene: current.scene },
+      { type: 'nodes.move', positions },
+    ])
+  }
+  const scheduleMove = (point: Point, pointerId: number) => {
+    pendingMove.current = point
+    pendingPointer.current = pointerId
+    if (moveRaf.current) return
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = 0
+      const queued = pendingMove.current
+      pendingMove.current = null
+      const pointer = pendingPointer.current
+      pendingPointer.current = -1
+      if (queued && pointer >= 0) applyMovePoint(queued, pointer)
+    })
+  }
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
@@ -302,7 +418,10 @@ export function EditorSurface({
     if (gesture.current?.pointer !== event.pointerId) return
     if (!gesture.current.pan) {
       if (cancel) store.cancelGesture()
-      else store.commitGesture()
+      else {
+        flushMove()
+        store.commitGesture()
+      }
     }
     gesture.current = null
     if (event.currentTarget.hasPointerCapture(event.pointerId))
@@ -541,93 +660,8 @@ export function EditorSurface({
               )
             return
           }
-          const selection = marquee.current
-          if (selection?.pointer === event.pointerId) {
-            const point = local(event)
-            if (
-              !selection.moved &&
-              Math.hypot(point.x - selection.start.x, point.y - selection.start.y) < 3
-            )
-              return
-            selection.moved = true
-            const box = marqueeBounds(
-              screenToWorld(selection.start, selection.viewport),
-              screenToWorld(point, selection.viewport),
-            )
-            setSelectionBox(box)
-            const selected = authoredNodes
-              .filter((n) => intersectsMarquee(box, nodeGeometry(n).hit))
-              .map((n) => ({ kind: 'node' as const, id: n.id }))
-            const baseline = selection.additive ? selection.selection : []
-            store.setSelection([
-              ...baseline,
-              ...selected.filter((n) => !baseline.some((r) => r.kind === n.kind && r.id === n.id)),
-            ])
-            return
-          }
-          const current = gesture.current
-          if (!current || current.pointer !== event.pointerId) return
-          const point = local(event),
-            dx = point.x - current.start.x,
-            dy = point.y - current.start.y
-          if (current.pan) {
-            store.setViewport({
-              ...current.viewport,
-              x: current.viewport.x + dx,
-              y: current.viewport.y + dy,
-            })
-            return
-          }
-          const positions: Record<string, Point> = {},
-            grid = snapshot.document.presentation.grid
-          if (current.resize) {
-            const rects = current.resize.ids
-              .map((resizeId) => current.scene.nodes[resizeId])
-              .filter((node) => node)
-              .map((node) => ({
-                x: node.x,
-                y: node.y,
-                width: node.width,
-                height: node.height,
-              }))
-            const resized = resizeRects(
-              rects,
-              current.resize.direction,
-              {
-                x: dx / current.viewport.zoom,
-                y: dy / current.viewport.zoom,
-              },
-              grid.snap ? grid.size : undefined,
-            )
-            const resizeCommands = resized.flatMap((rect, index) => {
-              const resizeId = current.resize!.ids[index]
-              return [
-                { type: 'nodes.move', positions: { [resizeId]: { x: rect.x, y: rect.y } } },
-                {
-                  type: 'node.resize',
-                  id: resizeId,
-                  size: { width: rect.width, height: rect.height },
-                },
-              ] as const
-            })
-            store.previewGesture([
-              { type: 'scene.set', scene: current.scene },
-              ...resizeCommands,
-            ])
-            return
-          }
-          for (const [id, start] of Object.entries(current.positions)) {
-            const x = start.x + dx / current.viewport.zoom,
-              y = start.y + dy / current.viewport.zoom
-            positions[id] = {
-              x: grid.snap ? Math.round(x / grid.size) * grid.size : x,
-              y: grid.snap ? Math.round(y / grid.size) * grid.size : y,
-            }
-          }
-          store.previewGesture([
-            { type: 'scene.set', scene: current.scene },
-            { type: 'nodes.move', positions },
-          ])
+          if (!marquee.current && !gesture.current) return
+          scheduleMove(local(event), event.pointerId)
         }}
         onPointerUp={(event) => finish(event)}
         onPointerCancel={(event) => finish(event, true)}
