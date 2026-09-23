@@ -183,8 +183,30 @@ function useEditorSnapshot() {
   const { store } = useEditor();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 }
-function useEditorSelector(select) {
-  return select(useEditorSnapshot());
+var shallowEqual = (a, b) => {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  const keysA = Object.keys(a), keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every(
+    (key) => Object.is(a[key], b[key])
+  );
+};
+function useEditorSelector(select, equals = Object.is) {
+  const { store } = useEditor();
+  const selectRef = useRef(select);
+  selectRef.current = select;
+  const equalsRef = useRef(equals);
+  equalsRef.current = equals;
+  const [value, setValue] = useState(() => select(store.getSnapshot()));
+  useEffect(() => {
+    const update = () => {
+      const next = selectRef.current(store.getSnapshot());
+      setValue((current) => equalsRef.current(next, current) ? current : next);
+    };
+    return store.subscribe(update);
+  }, [store]);
+  return value;
 }
 function useLabels() {
   const { locale } = useEditor();
@@ -219,7 +241,18 @@ function materialize(document) {
   };
 }
 function EditorToolbar() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({
+      tool: s.tool,
+      selection: s.selection,
+      document: s.document,
+      viewport: s.viewport,
+      canUndo: s.canUndo,
+      canRedo: s.canRedo,
+      dirty: s.dirty
+    }),
+    shallowEqual
+  ), t = useLabels();
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -387,14 +420,12 @@ function EditorSurface({
           (p) => p.id === current.port.portId ? { ...p, side: anchor.side, offset: anchor.offset } : p
         )
       };
-      const result = getAdapter(snapshot.document.spec.type).replaceNode(
-        snapshot.document.spec,
-        { diagramType: snapshot.document.spec.type, node: next }
-      );
+      const result = getAdapter(snapshot.document.spec.type).replaceNode(snapshot.document.spec, {
+        diagramType: snapshot.document.spec.type,
+        node: next
+      });
       if (!result.ok) return;
-      store.previewGesture([
-        { type: "spec.replace", spec: result.value, references: "reject" }
-      ]);
+      store.previewGesture([{ type: "spec.replace", spec: result.value, references: "reject" }]);
       return;
     }
     if (current.waypoint) {
@@ -1154,7 +1185,10 @@ function EditorSurface({
   ] });
 }
 function EditorInspector() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ selection: s.selection, document: s.document }),
+    shallowEqual
+  ), t = useLabels();
   const id = snapshot.selection.find((r) => r.kind === "node")?.id, node = nodesOf(snapshot.document.spec).find((n) => n.id === id);
   const [label, setLabel] = useState(""), [error, setError] = useState("");
   useEffect(() => {
@@ -1307,7 +1341,7 @@ function EditorInspector() {
   ] });
 }
 function EditorJsonPanel() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
   const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serializeDocument(snapshot.document);
   return /* @__PURE__ */ jsxs("details", { className: "adl-editor-json", children: [
     /* @__PURE__ */ jsx("summary", { children: t("Document JSON", "JSON del documento") }),
@@ -1545,7 +1579,10 @@ function EditorSelectionTools() {
   ] });
 }
 function EditorStructuredInspector() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ selection: s.selection, document: s.document }),
+    shallowEqual
+  ), t = useLabels();
   const type = snapshot.document.spec.type, ref = snapshot.selection.find((r) => r.kind === "node"), node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : void 0;
   const [error, setError] = useState("");
   if (!node) return null;
@@ -1604,9 +1641,7 @@ function EditorStructuredInspector() {
             value: field.key ?? "",
             onChange: (event) => {
               const key = event.target.value || void 0;
-              const fields = entity.fields.map(
-                (f, i) => i === index ? { ...f, key } : f
-              );
+              const fields = entity.fields.map((f, i) => i === index ? { ...f, key } : f);
               commitNode({ ...entity, fields }, "Set field key");
             },
             children: [
@@ -1721,11 +1756,7 @@ function EditorStructuredInspector() {
         removeNodeIds: []
       });
       if (result.ok)
-        dispatch(
-          store,
-          [{ type: "spec.replace", spec: result.value, references: "reject" }],
-          label
-        );
+        dispatch(store, [{ type: "spec.replace", spec: result.value, references: "reject" }], label);
       else setError(result.diagnostics.map((d) => d.code).join(", "));
     };
     return /* @__PURE__ */ jsxs("section", { "aria-label": t("Swimlane lanes", "Carriles"), children: [
@@ -1837,10 +1868,7 @@ function EditorStructuredInspector() {
             commitNode(
               {
                 ...graphNode,
-                ports: [
-                  ...ports,
-                  { id, side: "right", offset: 0.5, direction: "both" }
-                ]
+                ports: [...ports, { id, side: "right", offset: 0.5, direction: "both" }]
               },
               "Add port"
             );
@@ -2008,7 +2036,10 @@ function EditorRelations() {
   ] });
 }
 function EditorRoute() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ selection: s.selection, document: s.document }),
+    shallowEqual
+  ), t = useLabels();
   const ref = snapshot.selection.find((r) => r.kind === "edge"), edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : void 0;
   const [error, setError] = useState("");
   if (!edge || !edge.id || !freeTypes.has(snapshot.document.spec.type)) return null;
@@ -2120,7 +2151,10 @@ function useEditorStore(options) {
   return store;
 }
 function EditorOutline({ className }) {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ selection: s.selection, document: s.document }),
+    shallowEqual
+  ), t = useLabels();
   const nodes = nodesOf(snapshot.document.spec);
   const labels = new Map(nodes.map((n) => [n.id, n.label]));
   const sections = [
@@ -2185,6 +2219,7 @@ export {
   EditorStructuredInspector,
   EditorSurface,
   EditorToolbar,
+  shallowEqual,
   useEditor,
   useEditorSelector,
   useEditorSnapshot,

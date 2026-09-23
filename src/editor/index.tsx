@@ -70,10 +70,35 @@ export function useEditorSnapshot() {
   const { store } = useEditor()
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
 }
+/** Shallow equality for composite selector slices (selection/document pairs). */
+export const shallowEqual = <T,>(a: T, b: T): boolean => {
+  if (Object.is(a, b)) return true
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
+  const keysA = Object.keys(a as object),
+    keysB = Object.keys(b as object)
+  if (keysA.length !== keysB.length) return false
+  return keysA.every((key) =>
+    Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+  )
+}
 export function useEditorSelector<T>(
   select: (snapshot: ReturnType<EditorStore['getSnapshot']>) => T,
+  equals: (a: T, b: T) => boolean = Object.is,
 ): T {
-  return select(useEditorSnapshot())
+  const { store } = useEditor()
+  const selectRef = useRef(select)
+  selectRef.current = select
+  const equalsRef = useRef(equals)
+  equalsRef.current = equals
+  const [value, setValue] = useState<T>(() => select(store.getSnapshot()))
+  useEffect(() => {
+    const update = () => {
+      const next = selectRef.current(store.getSnapshot())
+      setValue((current) => (equalsRef.current(next, current) ? current : next))
+    }
+    return store.subscribe(update)
+  }, [store])
+  return value
 }
 function useLabels() {
   const { locale } = useEditor()
@@ -109,7 +134,18 @@ function materialize(document: DiagramDocument) {
 }
 export function EditorToolbar() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({
+        tool: s.tool,
+        selection: s.selection,
+        document: s.document,
+        viewport: s.viewport,
+        canUndo: s.canUndo,
+        canRedo: s.canRedo,
+        dirty: s.dirty,
+      }),
+      shallowEqual,
+    ),
     t = useLabels()
   return (
     <div
@@ -1176,7 +1212,10 @@ export function EditorSurface({
 }
 export function EditorInspector() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ selection: s.selection, document: s.document }),
+      shallowEqual,
+    ),
     t = useLabels()
   const id = snapshot.selection.find((r) => r.kind === 'node')?.id,
     node = nodesOf(snapshot.document.spec).find((n) => n.id === id)
@@ -1334,7 +1373,7 @@ export function EditorInspector() {
 }
 export function EditorJsonPanel() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual),
     t = useLabels()
   const text =
     snapshot.draft.kind === 'text' ? snapshot.draft.text : serializeDocument(snapshot.document)
@@ -1592,7 +1631,10 @@ export function EditorSelectionTools() {
 }
 export function EditorStructuredInspector() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ selection: s.selection, document: s.document }),
+      shallowEqual,
+    ),
     t = useLabels()
   const type = snapshot.document.spec.type,
     ref = snapshot.selection.find((r) => r.kind === 'node'),
@@ -2100,7 +2142,10 @@ export function EditorRelations() {
 
 export function EditorRoute() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ selection: s.selection, document: s.document }),
+      shallowEqual,
+    ),
     t = useLabels()
   const ref = snapshot.selection.find((r) => r.kind === 'edge'),
     edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : undefined
@@ -2231,7 +2276,10 @@ export function useEditorStore(options: StoreOptions): EditorStore {
 /** Keyboard-accessible authored entities; synthetic layout geometry is not listed. */
 export function EditorOutline({ className }: { className?: string }) {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ selection: s.selection, document: s.document }),
+      shallowEqual,
+    ),
     t = useLabels()
   const nodes = nodesOf(snapshot.document.spec)
   const labels = new Map(nodes.map((n) => [n.id, n.label]))
