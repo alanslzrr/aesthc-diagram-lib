@@ -79,3 +79,17 @@ body:has([data-theme='dark']) {
     font-size: 22px;
   }
 }
+.studio-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--adl-border);
+  border-radius: 6px;
+  background: var(--adl-card);
+}
+.studio-notice[role='alert'] {
+  border-color: color-mix(in srgb, var(--adl-branch) 40%, var(--adl-border));
+}

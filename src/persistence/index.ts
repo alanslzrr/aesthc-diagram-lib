@@ -19,6 +19,8 @@ export interface StorageAdapter {
     signal?: AbortSignal,
   ): Promise<SaveResult>
   remove(key: string, expectedToken: string, signal?: AbortSignal): Promise<Result<void>>
+  /** Remove stored data without validation or token checks; only for quarantined entries. */
+  purge(key: string, signal?: AbortSignal): Promise<Result<void>>
   subscribe?(key: string, listener: (token: string | null) => void): () => void
 }
 export function createMemoryStorage(): StorageAdapter {
@@ -52,6 +54,12 @@ export function createMemoryStorage(): StorageAdapter {
       emit(key, null)
       return success(undefined)
     },
+    async purge(key, signal) {
+      if (signal?.aborted) return failure('operation.aborted')
+      values.delete(key)
+      emit(key, null)
+      return success(undefined)
+    },
     subscribe(key, listener) {
       const set = listeners.get(key) ?? new Set()
       set.add(listener)
@@ -70,10 +78,16 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
   const available = () =>
     typeof window !== 'undefined' && typeof navigator !== 'undefined' && !!navigator.locks
   async function read(key: string): Promise<Result<StoredDocument | null>> {
+    let text: string
     try {
-      const text = window.localStorage.getItem(keyFor(key))
-      if (text === null) return success(null)
-      if (new TextEncoder().encode(text).length > 1048576 + 4096) return failure('storage.corrupt')
+      text = window.localStorage.getItem(keyFor(key)) ?? ''
+    } catch {
+      return failure('storage.denied')
+    }
+    if (text === '') return success(null)
+    try {
+      if (new TextEncoder().encode(text).length > 1048576 + 4096)
+        return failure('storage.corrupt')
       const envelope = JSON.parse(text)
       if (envelope?.schemaVersion !== 1 || typeof envelope.token !== 'string' || !envelope.token)
         return failure('storage.corrupt')
@@ -81,7 +95,7 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
       if (!parsed.ok) return failure('storage.corrupt')
       return success({ document: parsed.value.document, token: envelope.token })
     } catch {
-      return failure('storage.denied')
+      return failure('storage.corrupt')
     }
   }
   return {
@@ -133,6 +147,16 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
           window.localStorage.removeItem(keyFor(key))
           return success(undefined)
         })
+      } catch {
+        return failure('storage.denied')
+      }
+    },
+    async purge(key, signal) {
+      if (typeof window === 'undefined') return failure('storage.unavailable')
+      try {
+        if (signal?.aborted) return failure('operation.aborted')
+        window.localStorage.removeItem(keyFor(key))
+        return success(undefined)
       } catch {
         return failure('storage.denied')
       }

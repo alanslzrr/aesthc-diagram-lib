@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createDocument, createEditorStore, importDocument } from '@aesthc/diagram-lib/editor-core'
+import { createDocument, createEditorStore, importDocument, canonicalizeContent } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
 import {
   EditorRoot,
@@ -14,7 +14,7 @@ import {
 import { downloadArtifact, exportDocument } from '@aesthc/diagram-lib/export'
 import type { ExportFormat } from '@aesthc/diagram-lib/export'
 import { createLocalStorageAdapter, createAutosave } from '@aesthc/diagram-lib/persistence'
-import type { AutosaveState } from '@aesthc/diagram-lib/persistence'
+import type { AutosaveState, StoredDocument } from '@aesthc/diagram-lib/persistence'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 import '@aesthc/diagram-lib/editor.css'
@@ -75,6 +75,8 @@ function Workbench() {
     [autosave, setAutosave] = useState(false)
   const [format, setFormat] = useState<ExportFormat>('svg'),
     [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState<StoredDocument | null>(null)
+  const [quarantined, setQuarantined] = useState(false)
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
@@ -82,6 +84,22 @@ function Workbench() {
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
+  useEffect(() => {
+    let cancelled = false
+    void storage.load(snapshot.document.id).then((result) => {
+      if (cancelled || !result.ok) return
+      if (!result.value) return
+      if (canonicalizeContent(result.value.document) === canonicalizeContent(snapshot.document))
+        return
+      token.current = result.value.token
+      setDraft(result.value)
+    })
+    return () => {
+      cancelled = true
+    }
+    // Only the initial document identity matters; edits do not reopen the notice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot.document.id])
   useEffect(() => {
     if (!autosave) return
     const controller = createAutosave(store, storage, {
@@ -165,9 +183,11 @@ function Workbench() {
   async function load() {
     const result = await storage.load(snapshot.document.id)
     if (!result.ok) {
-      setMessage(result.diagnostics.map((d) => d.code).join(', '))
+      if (result.diagnostics.some((d) => d.code === 'storage.corrupt')) setQuarantined(true)
+      else setMessage(result.diagnostics.map((d) => d.code).join(', '))
       return
     }
+    setQuarantined(false)
     if (!result.value) {
       setMessage(t('No saved document.', 'No hay documento guardado.'))
       return
@@ -188,7 +208,62 @@ function Workbench() {
     })
     if (commit.status !== 'rejected') {
       token.current = result.value.token
+      setDraft(null)
       setMessage(t('Saved document loaded.', 'Documento guardado cargado.'))
+    }
+  }
+  async function saveAs() {
+    const name = window.prompt(t('Save a copy as…', 'Guardar una copia como…'))
+    if (!name) return
+    const slug = name.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 60)
+    if (!slug) {
+      setMessage(t('Save-as name is invalid.', 'El nombre de guardar como no es válido.'))
+      return
+    }
+    setSaving({ status: 'saving' })
+    const result = await storage.save(`saveas:${slug}`, snapshot.document, null)
+    setSaving(result.status === 'saved' ? { status: 'saved', token: result.token } : result)
+    setMessage(
+      result.status === 'saved'
+        ? t(`Saved a copy as ${slug}.`, `Copia guardada como ${slug}.`)
+        : t('Save-as failed.', 'Guardar como falló.'),
+    )
+  }
+  async function discardQuarantined() {
+    if (
+      !window.confirm(
+        t(
+          'Discard the corrupted copy? It cannot be opened and was never overwritten.',
+          '¿Descartar la copia corrupta? No se puede abrir y nunca se sobrescribió.',
+        ),
+      )
+    )
+      return
+    const result = await storage.purge(snapshot.document.id)
+    if (result.ok) {
+      setQuarantined(false)
+      setMessage(t('Corrupted copy discarded.', 'Copia corrupta descartada.'))
+    } else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+  }
+  async function restoreDraft() {
+    if (!draft) return
+    if (
+      store.getSnapshot().dirty &&
+      !window.confirm(
+        t(
+          'Replace unsaved changes with the recovered draft?',
+          '¿Sustituir los cambios sin guardar por el borrador recuperado?',
+        ),
+      )
+    )
+      return
+    const commit = store.replaceDocument(draft.document, {
+      expectedRevision: store.getSnapshot().document.revision,
+      history: 'reset',
+    })
+    if (commit.status !== 'rejected') {
+      setDraft(null)
+      setMessage(t('Draft restored.', 'Borrador restaurado.'))
     }
   }
   function imported(document: DiagramDocument) {
@@ -255,6 +330,9 @@ function Workbench() {
           <button type="button" onClick={() => void save()}>
             {t('Save locally', 'Guardar localmente')}
           </button>
+          <button type="button" onClick={() => void saveAs()}>
+            {t('Save as…', 'Guardar como…')}
+          </button>
           <button type="button" onClick={() => void load()}>
             {t('Load saved', 'Cargar guardado')}
           </button>
@@ -284,6 +362,31 @@ function Workbench() {
             {busy ? t('Exporting…', 'Exportando…') : t('Download', 'Descargar')}
           </button>
         </div>
+        {draft && (
+          <div className="studio-notice" role="status">
+            {t(
+              'A saved draft from a previous session is available.',
+              'Hay un borrador guardado de una sesión anterior.',
+            )}
+            <button type="button" onClick={() => void restoreDraft()}>
+              {t('Restore draft', 'Restaurar borrador')}
+            </button>
+            <button type="button" onClick={() => setDraft(null)}>
+              {t('Dismiss', 'Descartar aviso')}
+            </button>
+          </div>
+        )}
+        {quarantined && (
+          <div className="studio-notice" role="alert">
+            {t(
+              'A corrupted copy was found and was not overwritten. Load it is not possible; you can discard it explicitly.',
+              'Se encontró una copia corrupta y no se sobrescribió. No se puede cargar; puedes descartarla explícitamente.',
+            )}
+            <button type="button" onClick={() => void discardQuarantined()}>
+              {t('Discard corrupted copy', 'Descartar copia corrupta')}
+            </button>
+          </div>
+        )}
         {(message || saving.status !== 'idle') && (
           <div className="studio-message" role="status">
             {message}{' '}

@@ -533,3 +533,32 @@ test('Studio selects connections and edits manual routes through draggable waypo
   await page.getByRole('button', { name: /^Remove waypoint 1/ }).click()
   await expect(waypoints).toHaveCount(0)
 })
+
+test('Studio recovers drafts, quarantines corrupt copies and supports save-as', async ({
+  page,
+}) => {
+  await page.goto('/studio.html')
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await page.getByRole('button', { name: 'Order API', exact: true }).click()
+  await page.getByLabel('Label', { exact: true }).fill('Order API v2')
+  await page.getByRole('button', { name: 'Apply label' }).click()
+  await page.getByRole('button', { name: 'Save locally', exact: true }).click()
+  await expect(page.getByText('Saved on this device.', { exact: false })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Restore draft', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Restore draft', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Order API v2', exact: true })).toHaveCount(1)
+  page.on('dialog', (d) => void d.accept('Backup copy'))
+  await page.getByRole('button', { name: 'Save as…', exact: true }).click()
+  await expect(page.getByText('Saved a copy as Backup-copy', { exact: false })).toBeVisible()
+  await page.evaluate(() => {
+    localStorage.setItem('adl-document-v1:studio:studio-document', '{corrupt json')
+  })
+  await page.getByRole('button', { name: 'Load saved', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Discard corrupted copy', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Discard corrupted copy', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Discard corrupted copy', exact: true }),
+  ).toHaveCount(0)
+})

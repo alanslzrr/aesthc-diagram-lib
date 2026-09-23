@@ -39,6 +39,12 @@ function createMemoryStorage() {
       emit(key, null);
       return success(void 0);
     },
+    async purge(key, signal) {
+      if (signal?.aborted) return failure("operation.aborted");
+      values.delete(key);
+      emit(key, null);
+      return success(void 0);
+    },
     subscribe(key, listener) {
       const set = listeners.get(key) ?? /* @__PURE__ */ new Set();
       set.add(listener);
@@ -55,10 +61,16 @@ function createLocalStorageAdapter(namespace) {
   const keyFor = (key) => `adl-document-v1:${namespace}:${encodeURIComponent(key)}`;
   const available = () => typeof window !== "undefined" && typeof navigator !== "undefined" && !!navigator.locks;
   async function read(key) {
+    let text;
     try {
-      const text = window.localStorage.getItem(keyFor(key));
-      if (text === null) return success(null);
-      if (new TextEncoder().encode(text).length > 1048576 + 4096) return failure("storage.corrupt");
+      text = window.localStorage.getItem(keyFor(key)) ?? "";
+    } catch {
+      return failure("storage.denied");
+    }
+    if (text === "") return success(null);
+    try {
+      if (new TextEncoder().encode(text).length > 1048576 + 4096)
+        return failure("storage.corrupt");
       const envelope = JSON.parse(text);
       if (envelope?.schemaVersion !== 1 || typeof envelope.token !== "string" || !envelope.token)
         return failure("storage.corrupt");
@@ -66,7 +78,7 @@ function createLocalStorageAdapter(namespace) {
       if (!parsed.ok) return failure("storage.corrupt");
       return success({ document: parsed.value.document, token: envelope.token });
     } catch {
-      return failure("storage.denied");
+      return failure("storage.corrupt");
     }
   }
   return {
@@ -113,6 +125,16 @@ function createLocalStorageAdapter(namespace) {
           window.localStorage.removeItem(keyFor(key));
           return success(void 0);
         });
+      } catch {
+        return failure("storage.denied");
+      }
+    },
+    async purge(key, signal) {
+      if (typeof window === "undefined") return failure("storage.unavailable");
+      try {
+        if (signal?.aborted) return failure("operation.aborted");
+        window.localStorage.removeItem(keyFor(key));
+        return success(void 0);
       } catch {
         return failure("storage.denied");
       }

@@ -19,6 +19,8 @@ interface StorageAdapter {
     load(key: string, signal?: AbortSignal): Promise<Result<StoredDocument | null>>;
     save(key: string, document: DiagramDocument, expectedToken: string | null, signal?: AbortSignal): Promise<SaveResult>;
     remove(key: string, expectedToken: string, signal?: AbortSignal): Promise<Result<void>>;
+    /** Remove stored data without validation or token checks; only for quarantined entries. */
+    purge(key: string, signal?: AbortSignal): Promise<Result<void>>;
     subscribe?(key: string, listener: (token: string | null) => void): () => void;
 }
 declare function createMemoryStorage(): StorageAdapter;

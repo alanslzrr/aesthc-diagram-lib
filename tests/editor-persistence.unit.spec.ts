@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMemoryStorage, createAutosave } from '../src/persistence'
-import { createEditorStore, validateDocument } from '../src/editor-core'
+import { createEditorStore, validateDocument, createDocument } from '../src/editor-core'
 import fixture from './fixtures/editor/graph-document.json'
 function doc() {
   const r = validateDocument(structuredClone(fixture))
@@ -49,5 +49,46 @@ describe('persistence with explicit concurrency tokens', () => {
     autosave.dispose()
     s.dispose()
     vi.useRealTimers()
+  })
+})
+describe('storage quarantine', () => {
+  it('purges a key without validation so corrupt payloads can be discarded', async () => {
+    const memory = createMemoryStorage()
+    const document = createDocument(
+      {
+        type: 'graph',
+        caption: 'Quarantine',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'A', description: '' }],
+        edges: [],
+      } as never,
+      { id: 'quarantine', locale: 'en' },
+    )
+    if (!document.ok) throw Error('doc')
+    const saved = await memory.save('broken', document.value, null)
+    expect(saved.status).toBe('saved')
+    expect((await memory.load('broken')).ok).toBe(true)
+    expect((await memory.purge('broken')).ok).toBe(true)
+    const after = await memory.load('broken')
+    expect(after.ok && after.value).toBeNull()
+  })
+  it('purging one key never touches sibling keys', async () => {
+    const memory = createMemoryStorage()
+    const document = createDocument(
+      {
+        type: 'graph',
+        caption: 'Siblings',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'A', description: '' }],
+        edges: [],
+      } as never,
+      { id: 'siblings', locale: 'en' },
+    )
+    if (!document.ok) throw Error('doc')
+    await memory.save('one', document.value, null)
+    await memory.save('two', document.value, null)
+    await memory.purge('one')
+    expect((await memory.load('two')).ok && (await memory.load('two')).value?.token).toBeTruthy()
+    expect((await memory.load('one')).value).toBeNull()
   })
 })
