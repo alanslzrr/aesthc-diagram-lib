@@ -14,11 +14,21 @@ import type {
   DiagramDocument,
   EditorCommand,
   EditorStore,
+  GraphNode,
+  GraphPort,
   Locale,
   NodeInput,
   Point,
   RoutePlacement,
 } from '../editor-core/types'
+import type {
+  DiagramNode,
+  ErEntity,
+  PortSide,
+  SequenceParticipant,
+  SwimlaneLane,
+  TableField,
+} from '../types'
 import { getAdapter } from '../editor-core/adapters'
 import { edgesOf, freeTypes, nodesOf } from '../editor-core/model'
 import { isNodeLocked } from '../editor-core/commands'
@@ -197,6 +207,7 @@ export function EditorSurface({
       anchor?: 'source' | 'target'
       pointerWorld: Point
     }
+    port?: { nodeId: string; portId: string; pointerWorld: Point }
   } | null>(null)
   const marquee = useRef<{
     pointer: number
@@ -286,6 +297,32 @@ export function EditorSurface({
       dy = point.y - current.start.y,
       positions: Record<string, Point> = {},
       grid = snapshot.document.presentation.grid
+    if (current.port) {
+      const authored = nodesOf(snapshot.document.spec).find((n) => n.id === current.port!.nodeId)
+      const rect = current.scene.nodes[current.port.nodeId]
+      if (!authored || !rect) return
+      const graphNode = authored as GraphNode
+      const port = graphNode.ports?.find((p) => p.id === current.port!.portId)
+      if (!port) return
+      const world = {
+        x: current.port.pointerWorld.x + dx / current.viewport.zoom,
+        y: current.port.pointerWorld.y + dy / current.viewport.zoom,
+      }
+      const anchor = anchorFromPoint(world, rect)
+      const next = {
+        ...graphNode,
+        ports: (graphNode.ports ?? []).map((p) =>
+          p.id === current.port!.portId ? { ...p, side: anchor.side, offset: anchor.offset } : p,
+        ),
+      }
+      const result = getAdapter(snapshot.document.spec.type).replaceNode(snapshot.document.spec, {
+        diagramType: snapshot.document.spec.type,
+        node: next,
+      } as NodeInput)
+      if (!result.ok) return
+      store.previewGesture([{ type: 'spec.replace', spec: result.value, references: 'reject' }])
+      return
+    }
     if (current.waypoint) {
       const route = current.scene.routes[current.waypoint.edgeId]
       if (!route || route.mode !== 'manual') return
@@ -599,7 +636,7 @@ export function EditorSurface({
           if (marquee.current || gesture.current || (event.button !== 0 && event.button !== 1))
             return
           const target = (event.target as Element).closest(
-              '[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint]',
+              '[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port]',
             ),
             resizeId = target?.getAttribute('data-resize-node') ?? undefined,
             resizeSelection = target?.hasAttribute('data-resize-selection') ?? false,
@@ -609,9 +646,11 @@ export function EditorSurface({
             waypointAnchor =
               (target?.getAttribute('data-waypoint-anchor') as 'source' | 'target' | null) ??
               undefined,
-            edgeId = target?.getAttribute('data-hit-edge') ?? undefined
+            edgeId = target?.getAttribute('data-hit-edge') ?? undefined,
+            portNodeId = target?.getAttribute('data-port-node') ?? undefined,
+            portId = target?.getAttribute('data-port') ?? undefined
           const pan = snapshot.tool === 'hand' || event.button === 1 || spacePan.current
-          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge) {
+          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId) {
             event.preventDefault()
             svgRef.current?.focus()
             marquee.current = {
@@ -650,8 +689,35 @@ export function EditorSurface({
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
-                index: Number.isFinite(waypointIndex) ? waypointIndex : -1,
+                index: waypointIndex,
                 anchor: waypointAnchor,
+                pointerWorld: screenToWorld(startPoint, snapshot.viewport),
+              },
+            }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            return
+          }
+          if (portId && portNodeId && !pan) {
+            store.setSelection([{ kind: 'node' as const, id: portNodeId }])
+            if (
+              !store.beginGesture({
+                id: globalThis.crypto.randomUUID(),
+                label: 'Move port',
+                expectedRevision: snapshot.document.revision,
+              }).ok
+            )
+              return
+            const startPoint = local(event)
+            gesture.current = {
+              pointer: event.pointerId,
+              start: startPoint,
+              viewport: { ...snapshot.viewport },
+              positions: {},
+              scene: materialize(snapshot.document),
+              pan: false,
+              port: {
+                nodeId: portNodeId,
+                portId,
                 pointerWorld: screenToWorld(startPoint, snapshot.viewport),
               },
             }
@@ -1028,6 +1094,57 @@ export function EditorSurface({
                 </g>
               )
             })()}
+          {snapshot.selection.length === 1 &&
+            snapshot.selection[0].kind === 'node' &&
+            getAdapter(activeDoc.spec.type).capabilities.includes('ports') &&
+            (() => {
+              const id = snapshot.selection[0].id
+              const authored = nodesOf(activeDoc.spec).find((n) => n.id === id) as
+                GraphNode | undefined
+              const authoredRect = activeDoc.scene.nodes[id]
+              const laidOut = resolved.ok ? resolved.value.layout.nodeById[id] : undefined
+              const rect =
+                authoredRect ??
+                (laidOut
+                  ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h }
+                  : undefined)
+              const ports = authored?.ports ?? []
+              if (!rect || !ports.length) return null
+              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
+              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              return (
+                <g>
+                  {ports.map((port) => {
+                    const position = anchorPoint(rect, port)
+                    return (
+                      <g key={`port-${id}-${port.id}`}>
+                        <circle
+                          cx={position.x}
+                          cy={position.y}
+                          r={dot(5)}
+                          fill={palette.background}
+                          stroke={palette.cobalt}
+                          strokeWidth={1.5 / snapshot.viewport.zoom}
+                          pointerEvents="none"
+                        />
+                        <circle
+                          data-port={port.id}
+                          data-port-node={id}
+                          cx={position.x}
+                          cy={position.y}
+                          r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                          fill="transparent"
+                          style={{ cursor: 'crosshair' }}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`${t('Port', 'Puerto')}: ${port.id}`}
+                        />
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            })()}
           {selectionBox && (
             <rect
               data-marquee="true"
@@ -1168,6 +1285,7 @@ export function EditorInspector() {
         </>
       )}
       {node && free && <EditorNodeGeometry nodeId={node.id} />}
+      <EditorStructuredInspector />
       <EditorRelations />
       <EditorRoute />
       <h3>{t('Appearance', 'Apariencia')}</h3>
@@ -1472,6 +1590,335 @@ export function EditorSelectionTools() {
     </>
   )
 }
+export function EditorStructuredInspector() {
+  const { store } = useEditor(),
+    snapshot = useEditorSnapshot(),
+    t = useLabels()
+  const type = snapshot.document.spec.type,
+    ref = snapshot.selection.find((r) => r.kind === 'node'),
+    node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : undefined
+  const [error, setError] = useState('')
+  if (!node) return null
+  const commitNode = (next: NodeInput['node'], label: string) => {
+    const result = getAdapter(type).replaceNode(snapshot.document.spec, {
+      diagramType: type,
+      node: next,
+    } as NodeInput)
+    if (!result.ok) {
+      setError(result.diagnostics.map((d) => d.code).join(', '))
+      return
+    }
+    const commit = dispatch(
+      store,
+      [{ type: 'spec.replace', spec: result.value, references: 'reject' }],
+      label,
+    )
+    setError(commit.diagnostics.map((d) => d.code).join(', '))
+  }
+  if (type === 'er') {
+    const entity = node as ErEntity
+    return (
+      <section aria-label={t('Table fields', 'Campos de la tabla')}>
+        <h3>{t('Table fields', 'Campos de la tabla')}</h3>
+        <ol className="adl-editor-fields">
+          {entity.fields.map((field, index) => (
+            <li key={index}>
+              <input
+                aria-label={`${t('Field name', 'Nombre del campo')} ${index + 1}`}
+                value={field.name}
+                onChange={(event) => {
+                  const fields = entity.fields.map((f, i) =>
+                    i === index ? { ...f, name: event.target.value } : f,
+                  )
+                  commitNode({ ...entity, fields }, 'Rename field')
+                }}
+              />
+              <input
+                aria-label={`${t('Field type', 'Tipo del campo')} ${index + 1}`}
+                value={field.type ?? ''}
+                placeholder={t('type', 'tipo')}
+                onChange={(event) => {
+                  const fields = entity.fields.map((f, i) =>
+                    i === index ? { ...f, type: event.target.value || undefined } : f,
+                  )
+                  commitNode({ ...entity, fields }, 'Set field type')
+                }}
+              />
+              <select
+                aria-label={`${t('Field key', 'Clave del campo')} ${index + 1}`}
+                value={field.key ?? ''}
+                onChange={(event) => {
+                  const key = (event.target.value || undefined) as TableField['key']
+                  const fields = entity.fields.map((f, i) => (i === index ? { ...f, key } : f))
+                  commitNode({ ...entity, fields }, 'Set field key')
+                }}
+              >
+                <option value="">—</option>
+                <option value="pk">pk</option>
+                <option value="fk">fk</option>
+                <option value="unique">unique</option>
+              </select>
+              <button
+                type="button"
+                aria-label={`${t('Remove field', 'Quitar campo')} ${index + 1}`}
+                onClick={() =>
+                  commitNode(
+                    {
+                      ...entity,
+                      fields: entity.fields.filter(
+                        (field: TableField, fieldIndex: number) => fieldIndex !== index,
+                      ),
+                    },
+                    'Remove field',
+                  )
+                }
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          onClick={() =>
+            commitNode({ ...entity, fields: [...entity.fields, { name: '' }] }, 'Add field')
+          }
+        >
+          {t('Add field', 'Añadir campo')}
+        </button>
+        {error && <p role="alert">{error}</p>}
+      </section>
+    )
+  }
+  if (type === 'sequence') {
+    const participants = nodesOf(snapshot.document.spec) as SequenceParticipant[]
+    return (
+      <section aria-label={t('Participants', 'Participantes')}>
+        <h3>{t('Participants', 'Participantes')}</h3>
+        <ol>
+          {participants.map((participant) => (
+            <li key={participant.id}>
+              <span className="adl-editor-mono">{participant.label}</span>
+              <button
+                type="button"
+                disabled={participants.length <= 1}
+                aria-label={`${t('Remove participant', 'Quitar participante')}: ${participant.label}`}
+                onClick={() => {
+                  const result = getAdapter('sequence').removeNodes(snapshot.document.spec, [
+                    participant.id,
+                  ])
+                  if (result.ok)
+                    dispatch(
+                      store,
+                      [
+                        {
+                          type: 'spec.replace',
+                          spec: result.value,
+                          references: 'prune-references',
+                        },
+                      ],
+                      'Remove participant',
+                    )
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          onClick={() => {
+            const id = globalThis.crypto.randomUUID()
+            const result = getAdapter('sequence').insertNode(snapshot.document.spec, {
+              diagramType: 'sequence',
+              node: { id, label: t('New participant', 'Nuevo participante') },
+            } as NodeInput)
+            if (result.ok) {
+              dispatch(
+                store,
+                [{ type: 'spec.replace', spec: result.value, references: 'reject' }],
+                'Add participant',
+              )
+              store.setSelection([{ kind: 'node', id }])
+            }
+          }}
+        >
+          {t('Add participant', 'Añadir participante')}
+        </button>
+        {error && <p role="alert">{error}</p>}
+      </section>
+    )
+  }
+  if (type === 'swimlane') {
+    const spec = snapshot.document.spec
+    if (spec.type !== 'swimlane') return null
+    const swimNode = node as DiagramNode & { lane: string }
+    const laneId = swimNode.lane
+    const lanes = spec.lanes
+    const replaceLanes = (
+      nextLanes: SwimlaneLane[],
+      assignment: (
+        sourceLane: string,
+        nodeId: string,
+        swimNode: DiagramNode & { lane: string },
+      ) => string,
+      label: string,
+    ) => {
+      const nodes = nodesOf(spec) as Array<DiagramNode & { lane: string }>
+      const assignments: Record<string, string> = {}
+      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n)
+      const result = getAdapter('swimlane').editStructure(spec, {
+        type: 'lanes.replace',
+        lanes: nextLanes,
+        assignments,
+        removeNodeIds: [],
+      })
+      if (result.ok)
+        dispatch(store, [{ type: 'spec.replace', spec: result.value, references: 'reject' }], label)
+      else setError(result.diagnostics.map((d) => d.code).join(', '))
+    }
+    return (
+      <section aria-label={t('Swimlane lanes', 'Carriles')}>
+        <h3>{t('Swimlane lanes', 'Carriles')}</h3>
+        <label>
+          {t('Lane', 'Carril')}
+          <select
+            aria-label={t('Lane', 'Carril')}
+            value={laneId}
+            onChange={(event) =>
+              commitNode({ ...swimNode, lane: event.target.value } as typeof node, 'Assign lane')
+            }
+          >
+            {lanes.map((lane) => (
+              <option key={lane.id} value={lane.id}>
+                {lane.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ol>
+          {lanes.map((lane) => (
+            <li key={lane.id}>
+              <span className="adl-editor-mono">{lane.label}</span>
+              <button
+                type="button"
+                disabled={lanes.length <= 1}
+                aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
+                onClick={() => {
+                  const first = lanes.find((candidate) => candidate.id !== lane.id)!
+                  replaceLanes(
+                    lanes.filter((candidate) => candidate.id !== lane.id),
+                    (source) => (source === lane.id ? first.id : source),
+                    'Remove lane',
+                  )
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          onClick={() =>
+            replaceLanes(
+              [
+                ...lanes,
+                { id: globalThis.crypto.randomUUID(), label: t('New lane', 'Nuevo carril') },
+              ],
+              (source) => source,
+              'Add lane',
+            )
+          }
+        >
+          {t('Add lane', 'Añadir carril')}
+        </button>
+        {error && <p role="alert">{error}</p>}
+      </section>
+    )
+  }
+  if (type === 'graph' && (node as GraphNode).ports) {
+    const graphNode = node as GraphNode
+    const ports = graphNode.ports ?? []
+    return (
+      <section aria-label={t('Ports', 'Puertos')}>
+        <h3>{t('Ports', 'Puertos')}</h3>
+        <ol>
+          {ports.map((port, index) => (
+            <li key={port.id}>
+              <span className="adl-editor-mono">{port.id}</span>
+              <select
+                aria-label={`${t('Port side', 'Lado del puerto')} ${index + 1}`}
+                value={port.side}
+                onChange={(event) => {
+                  const next = ports.map((p, i) =>
+                    i === index ? { ...p, side: event.target.value as PortSide } : p,
+                  )
+                  commitNode({ ...graphNode, ports: next } as typeof node, 'Set port side')
+                }}
+              >
+                {['top', 'right', 'bottom', 'left'].map((side) => (
+                  <option key={side} value={side}>
+                    {side}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label={`${t('Port direction', 'Dirección del puerto')} ${index + 1}`}
+                value={port.direction}
+                onChange={(event) => {
+                  const next = ports.map((p, i) =>
+                    i === index
+                      ? { ...p, direction: event.target.value as GraphPort['direction'] }
+                      : p,
+                  )
+                  commitNode({ ...graphNode, ports: next } as typeof node, 'Set port direction')
+                }}
+              >
+                {['in', 'out', 'both'].map((direction) => (
+                  <option key={direction} value={direction}>
+                    {direction}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                aria-label={`${t('Remove port', 'Quitar puerto')} ${index + 1}`}
+                onClick={() =>
+                  commitNode(
+                    { ...graphNode, ports: ports.filter((_, i) => i !== index) } as typeof node,
+                    'Remove port',
+                  )
+                }
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          onClick={() => {
+            const id = globalThis.crypto.randomUUID()
+            commitNode(
+              {
+                ...graphNode,
+                ports: [...ports, { id, side: 'right', offset: 0.5, direction: 'both' }],
+              } as typeof node,
+              'Add port',
+            )
+          }}
+        >
+          {t('Add port', 'Añadir puerto')}
+        </button>
+        {error && <p role="alert">{error}</p>}
+      </section>
+    )
+  }
+  return null
+}
+
 export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
   const { store } = useEditor(),
     snapshot = useEditorSnapshot(),

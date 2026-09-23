@@ -369,6 +369,34 @@ function EditorSurface({
       return;
     }
     const dx = point.x - current.start.x, dy = point.y - current.start.y, positions = {}, grid = snapshot.document.presentation.grid;
+    if (current.port) {
+      const authored = nodesOf(snapshot.document.spec).find((n) => n.id === current.port.nodeId);
+      const rect = current.scene.nodes[current.port.nodeId];
+      if (!authored || !rect) return;
+      const graphNode = authored;
+      const port = graphNode.ports?.find((p) => p.id === current.port.portId);
+      if (!port) return;
+      const world = {
+        x: current.port.pointerWorld.x + dx / current.viewport.zoom,
+        y: current.port.pointerWorld.y + dy / current.viewport.zoom
+      };
+      const anchor = anchorFromPoint(world, rect);
+      const next = {
+        ...graphNode,
+        ports: (graphNode.ports ?? []).map(
+          (p) => p.id === current.port.portId ? { ...p, side: anchor.side, offset: anchor.offset } : p
+        )
+      };
+      const result = getAdapter(snapshot.document.spec.type).replaceNode(
+        snapshot.document.spec,
+        { diagramType: snapshot.document.spec.type, node: next }
+      );
+      if (!result.ok) return;
+      store.previewGesture([
+        { type: "spec.replace", spec: result.value, references: "reject" }
+      ]);
+      return;
+    }
     if (current.waypoint) {
       const route = current.scene.routes[current.waypoint.edgeId];
       if (!route || route.mode !== "manual") return;
@@ -657,10 +685,10 @@ function EditorSurface({
           if (marquee.current || gesture.current || event.button !== 0 && event.button !== 1)
             return;
           const target = event.target.closest(
-            "[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint]"
-          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node"), waypointEdge = target?.getAttribute("data-waypoint") ?? void 0, waypointIndex = Number(target?.getAttribute("data-waypoint-index") ?? "-1"), waypointAnchor = target?.getAttribute("data-waypoint-anchor") ?? void 0, edgeId = target?.getAttribute("data-hit-edge") ?? void 0;
+            "[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port]"
+          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node"), waypointEdge = target?.getAttribute("data-waypoint") ?? void 0, waypointIndex = Number(target?.getAttribute("data-waypoint-index") ?? "-1"), waypointAnchor = target?.getAttribute("data-waypoint-anchor") ?? void 0, edgeId = target?.getAttribute("data-hit-edge") ?? void 0, portNodeId = target?.getAttribute("data-port-node") ?? void 0, portId = target?.getAttribute("data-port") ?? void 0;
           const pan = snapshot.tool === "hand" || event.button === 1 || spacePan.current;
-          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge) {
+          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId) {
             event.preventDefault();
             svgRef.current?.focus();
             marquee.current = {
@@ -697,8 +725,33 @@ function EditorSurface({
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
-                index: Number.isFinite(waypointIndex) ? waypointIndex : -1,
+                index: waypointIndex,
                 anchor: waypointAnchor,
+                pointerWorld: screenToWorld(startPoint, snapshot.viewport)
+              }
+            };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            return;
+          }
+          if (portId && portNodeId && !pan) {
+            store.setSelection([{ kind: "node", id: portNodeId }]);
+            if (!store.beginGesture({
+              id: globalThis.crypto.randomUUID(),
+              label: "Move port",
+              expectedRevision: snapshot.document.revision
+            }).ok)
+              return;
+            const startPoint = local(event);
+            gesture.current = {
+              pointer: event.pointerId,
+              start: startPoint,
+              viewport: { ...snapshot.viewport },
+              positions: {},
+              scene: materialize(snapshot.document),
+              pan: false,
+              port: {
+                nodeId: portNodeId,
+                portId,
                 pointerWorld: screenToWorld(startPoint, snapshot.viewport)
               }
             };
@@ -1023,6 +1076,49 @@ function EditorSurface({
                   ] }, `anchor-${edge.id}-${kind}`))
                 ] });
               })(),
+              snapshot.selection.length === 1 && snapshot.selection[0].kind === "node" && getAdapter(activeDoc.spec.type).capabilities.includes("ports") && (() => {
+                const id = snapshot.selection[0].id;
+                const authored = nodesOf(activeDoc.spec).find((n) => n.id === id);
+                const authoredRect = activeDoc.scene.nodes[id];
+                const laidOut = resolved.ok ? resolved.value.layout.nodeById[id] : void 0;
+                const rect = authoredRect ?? (laidOut ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h } : void 0);
+                const ports = authored?.ports ?? [];
+                if (!rect || !ports.length) return null;
+                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
+                const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
+                return /* @__PURE__ */ jsx("g", { children: ports.map((port) => {
+                  const position = anchorPoint(rect, port);
+                  return /* @__PURE__ */ jsxs("g", { children: [
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        cx: position.x,
+                        cy: position.y,
+                        r: dot(5),
+                        fill: palette.background,
+                        stroke: palette.cobalt,
+                        strokeWidth: 1.5 / snapshot.viewport.zoom,
+                        pointerEvents: "none"
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        "data-port": port.id,
+                        "data-port-node": id,
+                        cx: position.x,
+                        cy: position.y,
+                        r: Math.max(16, 22 / snapshot.viewport.zoom),
+                        fill: "transparent",
+                        style: { cursor: "crosshair" },
+                        tabIndex: 0,
+                        role: "button",
+                        "aria-label": `${t("Port", "Puerto")}: ${port.id}`
+                      }
+                    )
+                  ] }, `port-${id}-${port.id}`);
+                }) });
+              })(),
               selectionBox && /* @__PURE__ */ jsx(
                 "rect",
                 {
@@ -1154,6 +1250,7 @@ function EditorInspector() {
       )
     ] }),
     node && free && /* @__PURE__ */ jsx(EditorNodeGeometry, { nodeId: node.id }),
+    /* @__PURE__ */ jsx(EditorStructuredInspector, {}),
     /* @__PURE__ */ jsx(EditorRelations, {}),
     /* @__PURE__ */ jsx(EditorRoute, {}),
     /* @__PURE__ */ jsx("h3", { children: t("Appearance", "Apariencia") }),
@@ -1446,6 +1543,315 @@ function EditorSelectionTools() {
     ),
     error && /* @__PURE__ */ jsx("span", { role: "alert", children: error })
   ] });
+}
+function EditorStructuredInspector() {
+  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const type = snapshot.document.spec.type, ref = snapshot.selection.find((r) => r.kind === "node"), node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : void 0;
+  const [error, setError] = useState("");
+  if (!node) return null;
+  const commitNode = (next, label) => {
+    const result = getAdapter(type).replaceNode(snapshot.document.spec, {
+      diagramType: type,
+      node: next
+    });
+    if (!result.ok) {
+      setError(result.diagnostics.map((d) => d.code).join(", "));
+      return;
+    }
+    const commit = dispatch(
+      store,
+      [{ type: "spec.replace", spec: result.value, references: "reject" }],
+      label
+    );
+    setError(commit.diagnostics.map((d) => d.code).join(", "));
+  };
+  if (type === "er") {
+    const entity = node;
+    return /* @__PURE__ */ jsxs("section", { "aria-label": t("Table fields", "Campos de la tabla"), children: [
+      /* @__PURE__ */ jsx("h3", { children: t("Table fields", "Campos de la tabla") }),
+      /* @__PURE__ */ jsx("ol", { className: "adl-editor-fields", children: entity.fields.map((field, index) => /* @__PURE__ */ jsxs("li", { children: [
+        /* @__PURE__ */ jsx(
+          "input",
+          {
+            "aria-label": `${t("Field name", "Nombre del campo")} ${index + 1}`,
+            value: field.name,
+            onChange: (event) => {
+              const fields = entity.fields.map(
+                (f, i) => i === index ? { ...f, name: event.target.value } : f
+              );
+              commitNode({ ...entity, fields }, "Rename field");
+            }
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "input",
+          {
+            "aria-label": `${t("Field type", "Tipo del campo")} ${index + 1}`,
+            value: field.type ?? "",
+            placeholder: t("type", "tipo"),
+            onChange: (event) => {
+              const fields = entity.fields.map(
+                (f, i) => i === index ? { ...f, type: event.target.value || void 0 } : f
+              );
+              commitNode({ ...entity, fields }, "Set field type");
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxs(
+          "select",
+          {
+            "aria-label": `${t("Field key", "Clave del campo")} ${index + 1}`,
+            value: field.key ?? "",
+            onChange: (event) => {
+              const key = event.target.value || void 0;
+              const fields = entity.fields.map(
+                (f, i) => i === index ? { ...f, key } : f
+              );
+              commitNode({ ...entity, fields }, "Set field key");
+            },
+            children: [
+              /* @__PURE__ */ jsx("option", { value: "", children: "\u2014" }),
+              /* @__PURE__ */ jsx("option", { value: "pk", children: "pk" }),
+              /* @__PURE__ */ jsx("option", { value: "fk", children: "fk" }),
+              /* @__PURE__ */ jsx("option", { value: "unique", children: "unique" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            "aria-label": `${t("Remove field", "Quitar campo")} ${index + 1}`,
+            onClick: () => commitNode(
+              {
+                ...entity,
+                fields: entity.fields.filter(
+                  (field2, fieldIndex) => fieldIndex !== index
+                )
+              },
+              "Remove field"
+            ),
+            children: "\xD7"
+          }
+        )
+      ] }, index)) }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: () => commitNode({ ...entity, fields: [...entity.fields, { name: "" }] }, "Add field"),
+          children: t("Add field", "A\xF1adir campo")
+        }
+      ),
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+    ] });
+  }
+  if (type === "sequence") {
+    const participants = nodesOf(snapshot.document.spec);
+    return /* @__PURE__ */ jsxs("section", { "aria-label": t("Participants", "Participantes"), children: [
+      /* @__PURE__ */ jsx("h3", { children: t("Participants", "Participantes") }),
+      /* @__PURE__ */ jsx("ol", { children: participants.map((participant) => /* @__PURE__ */ jsxs("li", { children: [
+        /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: participant.label }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            disabled: participants.length <= 1,
+            "aria-label": `${t("Remove participant", "Quitar participante")}: ${participant.label}`,
+            onClick: () => {
+              const result = getAdapter("sequence").removeNodes(snapshot.document.spec, [
+                participant.id
+              ]);
+              if (result.ok)
+                dispatch(
+                  store,
+                  [
+                    {
+                      type: "spec.replace",
+                      spec: result.value,
+                      references: "prune-references"
+                    }
+                  ],
+                  "Remove participant"
+                );
+            },
+            children: "\xD7"
+          }
+        )
+      ] }, participant.id)) }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            const id = globalThis.crypto.randomUUID();
+            const result = getAdapter("sequence").insertNode(snapshot.document.spec, {
+              diagramType: "sequence",
+              node: { id, label: t("New participant", "Nuevo participante") }
+            });
+            if (result.ok) {
+              dispatch(
+                store,
+                [{ type: "spec.replace", spec: result.value, references: "reject" }],
+                "Add participant"
+              );
+              store.setSelection([{ kind: "node", id }]);
+            }
+          },
+          children: t("Add participant", "A\xF1adir participante")
+        }
+      ),
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+    ] });
+  }
+  if (type === "swimlane") {
+    const spec = snapshot.document.spec;
+    if (spec.type !== "swimlane") return null;
+    const swimNode = node;
+    const laneId = swimNode.lane;
+    const lanes = spec.lanes;
+    const replaceLanes = (nextLanes, assignment, label) => {
+      const nodes = nodesOf(spec);
+      const assignments = {};
+      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n);
+      const result = getAdapter("swimlane").editStructure(spec, {
+        type: "lanes.replace",
+        lanes: nextLanes,
+        assignments,
+        removeNodeIds: []
+      });
+      if (result.ok)
+        dispatch(
+          store,
+          [{ type: "spec.replace", spec: result.value, references: "reject" }],
+          label
+        );
+      else setError(result.diagnostics.map((d) => d.code).join(", "));
+    };
+    return /* @__PURE__ */ jsxs("section", { "aria-label": t("Swimlane lanes", "Carriles"), children: [
+      /* @__PURE__ */ jsx("h3", { children: t("Swimlane lanes", "Carriles") }),
+      /* @__PURE__ */ jsxs("label", { children: [
+        t("Lane", "Carril"),
+        /* @__PURE__ */ jsx(
+          "select",
+          {
+            "aria-label": t("Lane", "Carril"),
+            value: laneId,
+            onChange: (event) => commitNode({ ...swimNode, lane: event.target.value }, "Assign lane"),
+            children: lanes.map((lane) => /* @__PURE__ */ jsx("option", { value: lane.id, children: lane.label }, lane.id))
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsx("ol", { children: lanes.map((lane) => /* @__PURE__ */ jsxs("li", { children: [
+        /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: lane.label }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            disabled: lanes.length <= 1,
+            "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
+            onClick: () => {
+              const first = lanes.find((candidate) => candidate.id !== lane.id);
+              replaceLanes(
+                lanes.filter((candidate) => candidate.id !== lane.id),
+                (source) => source === lane.id ? first.id : source,
+                "Remove lane"
+              );
+            },
+            children: "\xD7"
+          }
+        )
+      ] }, lane.id)) }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: () => replaceLanes(
+            [
+              ...lanes,
+              { id: globalThis.crypto.randomUUID(), label: t("New lane", "Nuevo carril") }
+            ],
+            (source) => source,
+            "Add lane"
+          ),
+          children: t("Add lane", "A\xF1adir carril")
+        }
+      ),
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+    ] });
+  }
+  if (type === "graph" && node.ports) {
+    const graphNode = node;
+    const ports = graphNode.ports ?? [];
+    return /* @__PURE__ */ jsxs("section", { "aria-label": t("Ports", "Puertos"), children: [
+      /* @__PURE__ */ jsx("h3", { children: t("Ports", "Puertos") }),
+      /* @__PURE__ */ jsx("ol", { children: ports.map((port, index) => /* @__PURE__ */ jsxs("li", { children: [
+        /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: port.id }),
+        /* @__PURE__ */ jsx(
+          "select",
+          {
+            "aria-label": `${t("Port side", "Lado del puerto")} ${index + 1}`,
+            value: port.side,
+            onChange: (event) => {
+              const next = ports.map(
+                (p, i) => i === index ? { ...p, side: event.target.value } : p
+              );
+              commitNode({ ...graphNode, ports: next }, "Set port side");
+            },
+            children: ["top", "right", "bottom", "left"].map((side) => /* @__PURE__ */ jsx("option", { value: side, children: side }, side))
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "select",
+          {
+            "aria-label": `${t("Port direction", "Direcci\xF3n del puerto")} ${index + 1}`,
+            value: port.direction,
+            onChange: (event) => {
+              const next = ports.map(
+                (p, i) => i === index ? { ...p, direction: event.target.value } : p
+              );
+              commitNode({ ...graphNode, ports: next }, "Set port direction");
+            },
+            children: ["in", "out", "both"].map((direction) => /* @__PURE__ */ jsx("option", { value: direction, children: direction }, direction))
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            "aria-label": `${t("Remove port", "Quitar puerto")} ${index + 1}`,
+            onClick: () => commitNode(
+              { ...graphNode, ports: ports.filter((_, i) => i !== index) },
+              "Remove port"
+            ),
+            children: "\xD7"
+          }
+        )
+      ] }, port.id)) }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            const id = globalThis.crypto.randomUUID();
+            commitNode(
+              {
+                ...graphNode,
+                ports: [
+                  ...ports,
+                  { id, side: "right", offset: 0.5, direction: "both" }
+                ]
+              },
+              "Add port"
+            );
+          },
+          children: t("Add port", "A\xF1adir puerto")
+        }
+      ),
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+    ] });
+  }
+  return null;
 }
 function EditorNodeGeometry({ nodeId }) {
   const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
@@ -1776,6 +2182,7 @@ export {
   EditorRoot,
   EditorRoute,
   EditorSelectionTools,
+  EditorStructuredInspector,
   EditorSurface,
   EditorToolbar,
   useEditor,

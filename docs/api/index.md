@@ -137,7 +137,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /editor
 
-`EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorSurface`, `EditorToolbar`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
+`EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorStructuredInspector`, `EditorSurface`, `EditorToolbar`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
 
 ### /graph
 

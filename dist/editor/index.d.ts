@@ -22,6 +22,7 @@ declare function EditorSurface({ ariaLabel, className, }: {
 declare function EditorInspector(): react.JSX.Element;
 declare function EditorJsonPanel(): react.JSX.Element;
 declare function EditorSelectionTools(): react.JSX.Element;
+declare function EditorStructuredInspector(): react.JSX.Element | null;
 declare function EditorNodeGeometry({ nodeId }: {
     nodeId: string;
 }): react.JSX.Element | null;
@@ -34,4 +35,4 @@ declare function EditorOutline({ className }: {
     className?: string;
 }): react.JSX.Element;
 
-export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorRoute, EditorSelectionTools, EditorSurface, EditorToolbar, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };
+export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorRoute, EditorSelectionTools, EditorStructuredInspector, EditorSurface, EditorToolbar, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };

@@ -66,6 +66,7 @@ inmutables de CI. No se ha ejecutado un mutation runner exhaustivo.
 | E06 | Superficie, marquee, resize de ocho direcciones y de selección múltiple, teclado, pinch, RAF por frame, scroll nativo/zoom modificado, touch prolongado y outline básico | Matriz completa de accesibilidad/gestos y benchmark de rendimiento |
 | E07 | CRUD/conexiones/inspector básicos; selección visual de conexiones y edición de rutas manuales (waypoints y anclas arrastrables, toggle auto/manual) | Inspector estructurado específico (ER/sequence/swimlane) y edición visual de puertos |
 | E08 | Multiselección, grupos, clipboard del sistema, align/distribute y paste estructurado con mapping de bandas (clamp o explícito) y carriles (label, luego índice, rechazo explícito) | Ampliar matriz de plataforma y casos de geometría |
+| E09 | Composición pública, ownership Strict Mode, outline integrado y tema/locale | Slots/configuración avanzada y selectores con suscripción granular |
 | E10 | Persistencia/auto-save/conflictos, recuperación de borradores, cuarentena de corruptos sin sobrescribir, save-as y reapertura de copias guardadas (list + open) | Escenarios de fallos de almacenamiento ampliados |
 | E11 | API estática/raster funcional | Paridad visual certificada, medición de fuentes y todas las fallas de plataforma |
 | E12 | Studio y consumidor externo funcionales | Cerrar dependencias M1 antes de declarar hito completo |

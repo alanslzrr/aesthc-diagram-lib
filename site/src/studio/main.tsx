@@ -44,6 +44,10 @@ const initial = createDocument(
         label: 'Order API',
         kind: 'Service',
         description: 'Validates and records orders.',
+        ports: [
+          { id: 'inbound', side: 'left', offset: 0.5, direction: 'in' },
+          { id: 'outbound', side: 'right', offset: 0.5, direction: 'out' },
+        ],
       },
       {
         id: 'database',
