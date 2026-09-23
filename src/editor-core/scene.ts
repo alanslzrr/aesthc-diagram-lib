@@ -2,6 +2,7 @@ import { nodeGeometry } from '../geometry/node'
 import { estimateTextWidth, type TextRole } from '../geometry/text'
 import { labelPillWidth, roundedPolyline } from '../layout'
 import type { PlacedNode, PlacedEdge } from '../layout'
+import type { PortSide } from '../types'
 import type {
   Diagnostic,
   DiagramDocument,
@@ -31,6 +32,48 @@ function anchor(node: PlacedNode, port: EndpointAnchor): Point {
           ? node.y + node.h
           : node.y + node.h * port.offset,
   }
+}
+
+/** World-space anchor position for an authored placement rect. */
+export function anchorPoint(rect: { x: number; y: number; width: number; height: number }, port: EndpointAnchor): Point {
+  return {
+    x:
+      port.side === 'left'
+        ? rect.x
+        : port.side === 'right'
+          ? rect.x + rect.width
+          : rect.x + rect.width * port.offset,
+    y:
+      port.side === 'top'
+        ? rect.y
+        : port.side === 'bottom'
+          ? rect.y + rect.height
+          : rect.y + rect.height * port.offset,
+  }
+}
+
+/** Nearest side and proportional offset for a world point around a placement rect. */
+export function anchorFromPoint(
+  point: Point,
+  rect: { x: number; y: number; width: number; height: number },
+): EndpointAnchor {
+  const clamp = (value: number) => Math.max(0, Math.min(1, value))
+  const candidates: Array<{ side: PortSide; offset: number; distance: number }> = [
+    { side: 'top', offset: clamp((point.x - rect.x) / rect.width), distance: Math.abs(point.y - rect.y) },
+    {
+      side: 'bottom',
+      offset: clamp((point.x - rect.x) / rect.width),
+      distance: Math.abs(point.y - (rect.y + rect.height)),
+    },
+    { side: 'left', offset: clamp((point.y - rect.y) / rect.height), distance: Math.abs(point.x - rect.x) },
+    {
+      side: 'right',
+      offset: clamp((point.y - rect.y) / rect.height),
+      distance: Math.abs(point.x - (rect.x + rect.width)),
+    },
+  ]
+  candidates.sort((a, b) => a.distance - b.distance)
+  return { side: candidates[0].side, offset: candidates[0].offset }
 }
 export function resolveDocument(
   document: DiagramDocument,

@@ -6,13 +6,15 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-J6DV6I5R.js";
+} from "../chunk-NRIFRYFP.js";
 import {
+  anchorFromPoint,
+  anchorPoint,
   createCanvasTextMeasurer,
   getAdapter,
   isNodeLocked,
   resolveDocument
-} from "../chunk-GGCCJ4RU.js";
+} from "../chunk-ZPWPL4YZ.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -21,6 +23,7 @@ import {
 import "../chunk-QVERY2JP.js";
 import {
   edgesOf,
+  freeTypes,
   nodesOf
 } from "../chunk-4NII3VRT.js";
 import "../chunk-UHROM3FO.js";
@@ -300,6 +303,10 @@ function EditorSurface({
     const ids = new Set(nodesOf(activeDoc.spec).map((n) => n.id));
     return resolved.ok ? resolved.value.layout.nodes.filter((n) => ids.has(n.id)) : [];
   }, [activeDoc.spec, resolved]);
+  const authoredEdges = useMemo(() => {
+    const ids = new Set(edgesOf(activeDoc.spec).map((e) => e.id));
+    return resolved.ok ? resolved.value.layout.edges.filter((e) => ids.has(e.id)) : [];
+  }, [activeDoc.spec, resolved]);
   function cancelMarquee() {
     if (!marquee.current) return false;
     store.setSelection([...marquee.current.selection]);
@@ -362,6 +369,35 @@ function EditorSurface({
       return;
     }
     const dx = point.x - current.start.x, dy = point.y - current.start.y, positions = {}, grid = snapshot.document.presentation.grid;
+    if (current.waypoint) {
+      const route = current.scene.routes[current.waypoint.edgeId];
+      if (!route || route.mode !== "manual") return;
+      const next = structuredClone(route);
+      const waypoint = current.waypoint;
+      if (waypoint.anchor) {
+        const edge = edgesOf(snapshot.document.spec).find((e) => e.id === waypoint.edgeId);
+        if (!edge) return;
+        const rect = current.scene.nodes[waypoint.anchor === "source" ? edge.from : edge.to];
+        if (!rect) return;
+        const world = {
+          x: waypoint.pointerWorld.x + dx / current.viewport.zoom,
+          y: waypoint.pointerWorld.y + dy / current.viewport.zoom
+        };
+        if (waypoint.anchor === "source") next.source = anchorFromPoint(world, rect);
+        else next.target = anchorFromPoint(world, rect);
+      } else {
+        const index = waypoint.index, initial = route.points[index];
+        if (!initial) return;
+        next.points = route.points.map(
+          (p, i) => i === index ? { x: initial.x + dx / current.viewport.zoom, y: initial.y + dy / current.viewport.zoom } : p
+        );
+      }
+      store.previewGesture([
+        { type: "scene.set", scene: current.scene },
+        { type: "route.set", id: waypoint.edgeId, route: next }
+      ]);
+      return;
+    }
     if (current.resize) {
       const rects = current.resize.ids.map((resizeId) => current.scene.nodes[resizeId]).filter((node) => node).map((node) => ({
         x: node.x,
@@ -618,10 +654,10 @@ function EditorSurface({
           if (marquee.current || gesture.current || event.button !== 0 && event.button !== 1)
             return;
           const target = event.target.closest(
-            "[data-hit-node], [data-resize-node], [data-resize-selection]"
-          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node");
+            "[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint]"
+          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node"), waypointEdge = target?.getAttribute("data-waypoint") ?? void 0, waypointIndex = Number(target?.getAttribute("data-waypoint-index") ?? "-1"), waypointAnchor = target?.getAttribute("data-waypoint-anchor") ?? void 0, edgeId = target?.getAttribute("data-hit-edge") ?? void 0;
           const pan = snapshot.tool === "hand" || event.button === 1 || spacePan.current;
-          if (!pan && !id && !resizeSelection) {
+          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge) {
             event.preventDefault();
             svgRef.current?.focus();
             marquee.current = {
@@ -638,6 +674,40 @@ function EditorSurface({
           event.preventDefault();
           svgRef.current?.focus();
           let resizeIds;
+          if (waypointEdge) {
+            const route = snapshot.document.scene.routes[waypointEdge];
+            if (!route || route.mode !== "manual") return;
+            store.setSelection([{ kind: "edge", id: waypointEdge }]);
+            if (!store.beginGesture({
+              id: globalThis.crypto.randomUUID(),
+              label: "Move waypoint",
+              expectedRevision: snapshot.document.revision
+            }).ok)
+              return;
+            const startPoint = local(event);
+            gesture.current = {
+              pointer: event.pointerId,
+              start: startPoint,
+              viewport: { ...snapshot.viewport },
+              positions: {},
+              scene: materialize(snapshot.document),
+              pan: false,
+              waypoint: {
+                edgeId: waypointEdge,
+                index: Number.isFinite(waypointIndex) ? waypointIndex : -1,
+                anchor: waypointAnchor,
+                pointerWorld: screenToWorld(startPoint, snapshot.viewport)
+              }
+            };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            return;
+          }
+          if (edgeId && !pan) {
+            store.setSelection(
+              event.shiftKey ? snapshot.selection.some((r) => r.kind === "edge" && r.id === edgeId) ? snapshot.selection.filter((r) => !(r.kind === "edge" && r.id === edgeId)) : [...snapshot.selection, { kind: "edge", id: edgeId }] : [{ kind: "edge", id: edgeId }]
+            );
+            return;
+          }
           if (resizeSelection) {
             resizeIds = snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
             if (resizeIds.length < 2 || resizeIds.some((nodeId) => isNodeLocked(snapshot.document, nodeId)))
@@ -711,6 +781,49 @@ function EditorSurface({
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
               /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } }),
+              authoredEdges.flatMap((e) => {
+                const points = e.routePoints ?? [];
+                const segments = [];
+                for (let i = 1; i < points.length; i++) {
+                  const [x1, y1] = points[i - 1], [x2, y2] = points[i];
+                  segments.push({
+                    x: Math.min(x1, x2) - 6,
+                    y: Math.min(y1, y2) - 6,
+                    width: Math.abs(x2 - x1) + 12,
+                    height: Math.abs(y2 - y1) + 12
+                  });
+                }
+                const hit = segments.length ? segments : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }];
+                return hit.map((segment, index) => {
+                  const selected = snapshot.selection.some((r) => r.kind === "edge" && r.id === e.id);
+                  return /* @__PURE__ */ jsx(
+                    "rect",
+                    {
+                      "data-hit-edge": e.id,
+                      x: segment.x,
+                      y: segment.y,
+                      width: segment.width,
+                      height: segment.height,
+                      rx: 6,
+                      fill: selected ? "rgba(0, 0, 0, 0.001)" : "rgba(0, 0, 0, 0.001)",
+                      stroke: selected ? activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt : "rgba(0, 0, 0, 0.001)",
+                      style: { cursor: "pointer" },
+                      tabIndex: 0,
+                      role: "button",
+                      "aria-label": `${t("Connection", "Conexi\xF3n")}: ${e.label ?? e.id}`,
+                      "aria-pressed": selected,
+                      onFocus: () => store.setSelection([{ kind: "edge", id: e.id }]),
+                      onKeyDown: (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          store.setSelection([{ kind: "edge", id: e.id }]);
+                        }
+                      }
+                    },
+                    `${e.id}-hit-${index}`
+                  );
+                });
+              }),
               authoredNodes.map((n) => /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
                 "rect",
                 {
@@ -822,6 +935,90 @@ function EditorSurface({
                     }
                   )
                 ] }, `resize-group-${handle.direction}`));
+              })(),
+              snapshot.selection.length === 1 && snapshot.selection[0].kind === "edge" && (() => {
+                const edge = authoredEdges.find((e) => e.id === snapshot.selection[0].id);
+                const route = edge ? activeDoc.scene.routes[edge.id] : void 0;
+                if (!edge || route?.mode !== "manual") return null;
+                const from = activeDoc.scene.nodes[edge.from] ?? {
+                  x: edge.startX,
+                  y: edge.startY,
+                  width: 0,
+                  height: 0
+                };
+                const to = activeDoc.scene.nodes[edge.to] ?? {
+                  x: edge.endX,
+                  y: edge.endY,
+                  width: 0,
+                  height: 0
+                };
+                const source = anchorPoint(from, route.source);
+                const target = anchorPoint(to, route.target);
+                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
+                const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
+                return /* @__PURE__ */ jsxs("g", { children: [
+                  route.points.map((p, index) => /* @__PURE__ */ jsxs("g", { children: [
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        cx: p.x,
+                        cy: p.y,
+                        r: dot(5),
+                        fill: palette.card,
+                        stroke: palette.cobalt,
+                        strokeWidth: 1 / snapshot.viewport.zoom,
+                        pointerEvents: "none"
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        "data-waypoint": edge.id,
+                        "data-waypoint-index": index,
+                        cx: p.x,
+                        cy: p.y,
+                        r: Math.max(16, 22 / snapshot.viewport.zoom),
+                        fill: "transparent",
+                        style: { cursor: "move" },
+                        tabIndex: 0,
+                        role: "button",
+                        "aria-label": `${t("Waypoint", "Punto intermedio")} ${index + 1}`
+                      }
+                    )
+                  ] }, `waypoint-${edge.id}-${index}`)),
+                  [
+                    ["source", source, route.source],
+                    ["target", target, route.target]
+                  ].map(([kind, position]) => /* @__PURE__ */ jsxs("g", { children: [
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        cx: position.x,
+                        cy: position.y,
+                        r: dot(6),
+                        fill: palette.background,
+                        stroke: palette.branch,
+                        strokeWidth: 1.5 / snapshot.viewport.zoom,
+                        pointerEvents: "none"
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(
+                      "circle",
+                      {
+                        "data-waypoint": edge.id,
+                        "data-waypoint-anchor": kind,
+                        cx: position.x,
+                        cy: position.y,
+                        r: Math.max(16, 22 / snapshot.viewport.zoom),
+                        fill: "transparent",
+                        style: { cursor: "crosshair" },
+                        tabIndex: 0,
+                        role: "button",
+                        "aria-label": `${t("Anchor", "Anclaje")} ${kind}`
+                      }
+                    )
+                  ] }, `anchor-${edge.id}-${kind}`))
+                ] });
               })(),
               selectionBox && /* @__PURE__ */ jsx(
                 "rect",
@@ -955,6 +1152,7 @@ function EditorInspector() {
     ] }),
     node && free && /* @__PURE__ */ jsx(EditorNodeGeometry, { nodeId: node.id }),
     /* @__PURE__ */ jsx(EditorRelations, {}),
+    /* @__PURE__ */ jsx(EditorRoute, {}),
     /* @__PURE__ */ jsx("h3", { children: t("Appearance", "Apariencia") }),
     /* @__PURE__ */ jsxs("label", { children: [
       t("Theme", "Tema"),
@@ -1400,6 +1598,98 @@ function EditorRelations() {
     error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
   ] });
 }
+function EditorRoute() {
+  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const ref = snapshot.selection.find((r) => r.kind === "edge"), edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : void 0;
+  const [error, setError] = useState("");
+  if (!edge || !edge.id || !freeTypes.has(snapshot.document.spec.type)) return null;
+  const edgeId = edge.id;
+  const route = snapshot.document.scene.routes[edgeId];
+  const manual = route?.mode === "manual" ? route : void 0;
+  const setRoute = (next, label) => {
+    const scene = materialize(snapshot.document);
+    const commit = dispatch(store, [
+      { type: "scene.set", scene },
+      { type: "route.set", id: edgeId, route: next }
+    ], label);
+    setError(commit.diagnostics.map((d) => d.code).join(", "));
+  };
+  const toManual = () => {
+    const result = resolveDocument(snapshot.document, { quality: "edit", requestId: "route-manual" });
+    if (!result.ok) {
+      setError(result.diagnostics.map((d) => d.code).join(", "));
+      return;
+    }
+    const placed = result.value.layout.edges.find((e) => e.id === edgeId);
+    if (!placed) return;
+    setRoute(
+      {
+        mode: "manual",
+        source: { side: placed.fromSide, offset: 0.5 },
+        target: { side: placed.toSide, offset: 0.5 },
+        points: (placed.routePoints ?? []).slice(1, -1).map(([x, y]) => ({ x, y })).filter((point, index, all) => {
+          const previous = all[index - 1];
+          return !previous || previous.x !== point.x || previous.y !== point.y;
+        }),
+        label: placed.label ? { x: placed.labelX, y: placed.labelY } : void 0
+      },
+      "Set manual route"
+    );
+  };
+  return /* @__PURE__ */ jsxs("section", { "aria-label": t("Connection route", "Ruta de la conexi\xF3n"), children: [
+    /* @__PURE__ */ jsx("h3", { children: t("Connection route", "Ruta de la conexi\xF3n") }),
+    /* @__PURE__ */ jsx("p", { className: "adl-editor-mono", children: edge.id }),
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        type: "button",
+        onClick: () => route?.mode === "manual" ? setRoute({ mode: "auto" }, "Set auto route") : toManual(),
+        children: route?.mode === "manual" ? t("Auto route", "Ruta autom\xE1tica") : t("Manual route", "Ruta manual")
+      }
+    ),
+    manual && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx("ol", { children: manual.points.map((point, index) => /* @__PURE__ */ jsxs("li", { children: [
+        /* @__PURE__ */ jsxs("span", { className: "adl-editor-mono", children: [
+          point.x.toFixed(0),
+          ", ",
+          point.y.toFixed(0)
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            "aria-label": `${t("Remove waypoint", "Quitar punto intermedio")} ${index + 1}`,
+            onClick: () => setRoute(
+              { ...manual, points: manual.points.filter((_, i) => i !== index) },
+              "Remove waypoint"
+            ),
+            children: "\xD7"
+          }
+        )
+      ] }, index)) }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            const points = manual.points;
+            const previous = points[points.length - 1];
+            const next = {
+              ...manual,
+              points: [
+                ...points,
+                previous ? { x: Math.round(previous.x + 24), y: Math.round(previous.y) } : { x: 0, y: 0 }
+              ]
+            };
+            setRoute(next, "Add waypoint");
+          },
+          children: t("Add waypoint", "A\xF1adir punto intermedio")
+        }
+      )
+    ] }),
+    error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+  ] });
+}
 function useEditorStore(options) {
   const [store] = useState(() => createEditorStore(options));
   const generation = useRef(0);
@@ -1474,6 +1764,7 @@ export {
   EditorOutline,
   EditorRelations,
   EditorRoot,
+  EditorRoute,
   EditorSelectionTools,
   EditorSurface,
   EditorToolbar,

@@ -361,6 +361,31 @@ function anchor(node, port) {
     y: port.side === "top" ? node.y : port.side === "bottom" ? node.y + node.h : node.y + node.h * port.offset
   };
 }
+function anchorPoint(rect, port) {
+  return {
+    x: port.side === "left" ? rect.x : port.side === "right" ? rect.x + rect.width : rect.x + rect.width * port.offset,
+    y: port.side === "top" ? rect.y : port.side === "bottom" ? rect.y + rect.height : rect.y + rect.height * port.offset
+  };
+}
+function anchorFromPoint(point, rect) {
+  const clamp = (value) => Math.max(0, Math.min(1, value));
+  const candidates = [
+    { side: "top", offset: clamp((point.x - rect.x) / rect.width), distance: Math.abs(point.y - rect.y) },
+    {
+      side: "bottom",
+      offset: clamp((point.x - rect.x) / rect.width),
+      distance: Math.abs(point.y - (rect.y + rect.height))
+    },
+    { side: "left", offset: clamp((point.y - rect.y) / rect.height), distance: Math.abs(point.x - rect.x) },
+    {
+      side: "right",
+      offset: clamp((point.y - rect.y) / rect.height),
+      distance: Math.abs(point.x - (rect.x + rect.width))
+    }
+  ];
+  candidates.sort((a, b) => a.distance - b.distance);
+  return { side: candidates[0].side, offset: candidates[0].offset };
+}
 function resolveDocument(document2, context) {
   if (context.signal?.aborted) return failure("operation.aborted");
   const checked = validateDocument(document2);
@@ -577,5 +602,7 @@ export {
   pruneReferences,
   applyCommand,
   createCanvasTextMeasurer,
+  anchorPoint,
+  anchorFromPoint,
   resolveDocument
 };

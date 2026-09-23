@@ -26,6 +26,7 @@ declare function EditorNodeGeometry({ nodeId }: {
     nodeId: string;
 }): react.JSX.Element | null;
 declare function EditorRelations(): react.JSX.Element | null;
+declare function EditorRoute(): react.JSX.Element | null;
 /** Own one store per mount; options are initial values, not controlled props. */
 declare function useEditorStore(options: StoreOptions): EditorStore;
 /** Keyboard-accessible authored entities; synthetic layout geometry is not listed. */
@@ -33,4 +34,4 @@ declare function EditorOutline({ className }: {
     className?: string;
 }): react.JSX.Element;
 
-export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorSelectionTools, EditorSurface, EditorToolbar, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };
+export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorRoute, EditorSelectionTools, EditorSurface, EditorToolbar, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };
