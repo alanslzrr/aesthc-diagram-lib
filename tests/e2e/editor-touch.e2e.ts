@@ -86,3 +86,32 @@ test('Space drag pans without moving nodes or creating undo entries', async ({
   expect(await node.getAttribute('x')).toBe(x)
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
 })
+
+test('long touch selects without dragging, opening callouts or committing edits', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium',
+    'CDP touch injection; other engines use pointer regression coverage',
+  )
+  await page.goto('/studio.html')
+  const surface = page.getByRole('group', { name: /^Editable diagram/ })
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const before = await node.getAttribute('x')
+  const box = await node.boundingBox()
+  if (!box) throw Error('node missing')
+  const cdp = await page.context().newCDPSession(page)
+  const cx = box.x + box.width / 2,
+    cy = box.y + box.height / 2
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: cx, y: cy, id: 1 }],
+  })
+  await page.waitForTimeout(700)
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect(node).toHaveAttribute('aria-pressed', 'true')
+  expect(await node.getAttribute('x')).toBe(before)
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  await cdp.detach()
+})
