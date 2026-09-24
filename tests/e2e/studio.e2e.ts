@@ -574,6 +574,45 @@ test('Studio recovers drafts, quarantines corrupt copies and supports save-as', 
   ).toHaveCount(0)
 })
 
+test('Studio relayout previews, applies in one undoable edit and cancels cleanly', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Mouse-specific drag; mobile controls covered separately')
+  await page.goto('/studio.html')
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const before = await node.getAttribute('x')
+  const box = await node.boundingBox()
+  if (!box) throw Error('node absent')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 400, box.y + box.height / 2 + 300, { steps: 5 })
+  await page.mouse.up()
+  expect(await node.getAttribute('x')).not.toBe(before)
+  await page.getByRole('button', { name: 'Re-layout', exact: true }).click()
+  await page.getByRole('button', { name: 'Apply relayout', exact: true }).click()
+  expect(await node.getAttribute('x')).toBe(before)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  expect(await node.getAttribute('x')).not.toBe(before)
+  await page.getByRole('button', { name: 'Redo', exact: true }).click()
+  expect(await node.getAttribute('x')).toBe(before)
+  const movedBox = await node.boundingBox()
+  if (!movedBox) throw Error('node absent after redo')
+  await page.mouse.move(movedBox.x + movedBox.width / 2, movedBox.y + movedBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(
+    movedBox.x + movedBox.width / 2 + 400,
+    movedBox.y + movedBox.height / 2 + 300,
+    { steps: 5 },
+  )
+  await page.mouse.up()
+  const moved = await node.getAttribute('x')
+  await page.getByRole('button', { name: 'Re-layout', exact: true }).click()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  expect(await node.getAttribute('x')).toBe(moved)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  expect(await node.getAttribute('x')).toBe(before)
+})
 test('Studio edits graph ports and ER table fields through the structured inspector', async ({
   page,
 }) => {
