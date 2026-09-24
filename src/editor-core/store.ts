@@ -1,19 +1,114 @@
 import type {
   ChangeSet,
   CommitResult,
+  Diagnostic,
   DiagramDocument,
   EditorCommand,
   EditorSnapshot,
   EditorStore,
   EntityRef,
+  Limits,
   StoreOptions,
   Transaction,
 } from './types'
 import { canonicalizeContent, importDocument } from './document'
 import { applyCommand } from './commands'
 import { edgesOf, nodesOf } from './model'
-import { failure, freezeData, inspectData, issue, limitsWith, success, validId } from './data'
-import { validateDocument } from './validation'
+import {
+  failure,
+  freezeData,
+  inspectData,
+  issue,
+  limitsWith,
+  pointer,
+  success,
+  validId,
+} from './data'
+import { validateDocument, validateEditorSpec } from './validation'
+
+/** Validates the changed payload of a trusted preview without revalidating the whole document. */
+function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagnostic[] {
+  const issues: Diagnostic[] = []
+  const finite = (value: unknown, path: string) => {
+    if (typeof value !== 'number' || !Number.isFinite(value))
+      issues.push({ ...issue('data.finite', path) })
+  }
+  const finitePoint = (point: { x: number; y: number }, path: string) => {
+    finite(point.x, `${path}/x`)
+    finite(point.y, `${path}/y`)
+  }
+  for (const command of commands) {
+    switch (command.type) {
+      case 'nodes.move':
+        for (const [id, point] of Object.entries(command.positions))
+          finitePoint(point, `/scene/nodes/${pointer(id)}`)
+        break
+      case 'node.resize':
+        finite(command.size.width, `/scene/nodes/${pointer(command.id)}/width`)
+        finite(command.size.height, `/scene/nodes/${pointer(command.id)}/height`)
+        if (
+          !Number.isFinite(command.size.width) ||
+          !Number.isFinite(command.size.height) ||
+          command.size.width <= 0 ||
+          command.size.height <= 0
+        )
+          issues.push({ ...issue('layout.range', `/scene/nodes/${pointer(command.id)}`) })
+        break
+      case 'route.set':
+        if (command.route.mode === 'auto') break
+        if (command.route.points.length > limits.maxRoutePoints)
+          issues.push({ ...issue('limit.route-points', `/scene/routes/${pointer(command.id)}`) })
+        for (const point of command.route.points) finitePoint(point, '/scene/routes')
+        if (command.route.label) finitePoint(command.route.label, '/scene/routes')
+        finite(command.route.source.offset, '/scene/routes')
+        finite(command.route.target.offset, '/scene/routes')
+        break
+      case 'scene.set':
+        for (const [id, placement] of Object.entries(command.scene.nodes)) {
+          const path = `/scene/nodes/${pointer(id)}`
+          finite(placement.x, `${path}/x`)
+          finite(placement.y, `${path}/y`)
+          finite(placement.width, `${path}/width`)
+          finite(placement.height, `${path}/height`)
+        }
+        for (const [edgeId, route] of Object.entries(command.scene.routes)) {
+          if (route.mode !== 'manual') continue
+          for (const point of route.points) finitePoint(point, `/scene/routes/${pointer(edgeId)}`)
+        }
+        break
+      case 'spec.replace': {
+        const checked = validateEditorSpec(command.spec, limits)
+        if (!checked.ok) return [...issues, ...checked.diagnostics]
+        break
+      }
+      default:
+        break
+    }
+  }
+  return issues
+}
+
+/** Content identity and byte size are stable per frozen document object; cache them. */
+const contentCache = new WeakMap<DiagramDocument, string>()
+const bytesCache = new WeakMap<DiagramDocument, number>()
+function contentOf(document: DiagramDocument): string {
+  let value = contentCache.get(document)
+  if (value === undefined) {
+    value = canonicalizeContent(document)
+    contentCache.set(document, value)
+  }
+  return value
+}
+function bytesOf(document: DiagramDocument): number {
+  let value = bytesCache.get(document)
+  if (value === undefined) {
+    // The canonical keeps revision 0; the true JSON differs only in the digits
+    // of the revision token, which is inconsequential for the history guard.
+    value = new TextEncoder().encode(contentOf(document)).length
+    bytesCache.set(document, value)
+  }
+  return value
+}
 
 /** Per-command invalidation so consumers skip unrelated recomputation. */
 function invalidationsFor(
@@ -174,20 +269,27 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       else break
     }
   }
-  function candidate(transaction: Transaction) {
+  function candidate(transaction: Transaction, skipValidation = false) {
     if (disposed) return failure<DiagramDocument>('store.disposed')
     if (!permissions.edit) return failure<DiagramDocument>('permission.edit')
-    const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 })
-    if (unsafe.length) return { ok: false as const, diagnostics: unsafe }
+    if (!skipValidation) {
+      const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 })
+      if (unsafe.length) return { ok: false as const, diagnostics: unsafe }
+    }
     if (!validId(transaction.id)) return failure<DiagramDocument>('id.invalid')
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure<DiagramDocument>('revision.stale')
+    if (skipValidation) {
+      const deltaIssues = validateCommandDeltas(transaction.commands, limits)
+      if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
+    }
     let doc = structuredClone(snapshot.document)
     for (const command of transaction.commands) {
       const result = applyCommand(doc, command)
       if (!result.ok) return result
       doc = result.value
     }
+    if (skipValidation) return success(doc)
     return validateDocument(doc, limits)
   }
   function publish(doc: DiagramDocument, commands: EditorCommand[]): CommitResult {
@@ -209,7 +311,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     notify({
       document: doc,
       selection,
-      dirty: canonicalizeContent(doc) !== saved,
+      dirty: contentOf(doc) !== saved,
       canUndo: past.length > 0,
       canRedo: future.length > 0,
       diagnostics: [],
@@ -242,13 +344,10 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       const result = candidate(transaction)
       if (!result.ok)
         return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
-      if (canonicalizeContent(result.value) === canonicalizeContent(snapshot.document))
-        return noop()
+      if (contentOf(result.value) === contentOf(snapshot.document)) return noop()
       if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
         return rejected('revision.overflow')
-      const entryBytes =
-        new TextEncoder().encode(JSON.stringify(snapshot.document)).length +
-        new TextEncoder().encode(JSON.stringify(result.value)).length
+      const entryBytes = bytesOf(snapshot.document) + bytesOf(result.value)
       if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
       past.push(snapshot.document)
       future = []
@@ -264,9 +363,9 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       })
       return success(undefined)
     },
-    previewGesture(commands) {
+    previewGesture(commands, options) {
       if (!gesture) return failure('gesture.missing')
-      const result = candidate({ ...gesture.transaction, commands })
+      const result = candidate({ ...gesture.transaction, commands }, options?.skipValidation)
       if (!result.ok) return result
       gesture.commands = structuredClone(commands)
       notify({
@@ -378,6 +477,10 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     },
     setTool(tool) {
       if (['select', 'hand', 'connect'].includes(tool)) notify({ tool })
+    },
+    setPermissions(next) {
+      Object.assign(permissions, next)
+      notify({})
     },
     replaceDocument(document, replaceOptions) {
       if (disposed || !permissions.edit)

@@ -392,7 +392,7 @@ export interface EditorStore {
   onCommit(listener: (result: Extract<CommitResult, { status: 'committed' }>) => void): () => void
   dispatch(transaction: Transaction): CommitResult
   beginGesture(transaction: Omit<Transaction, 'commands'>): Result<void>
-  previewGesture(commands: EditorCommand[]): Result<void>
+  previewGesture(commands: EditorCommand[], options?: { skipValidation?: boolean }): Result<void>
   commitGesture(): CommitResult
   cancelGesture(): void
   setTextDraft(text: string): void
@@ -403,6 +403,8 @@ export interface EditorStore {
   setSelection(selection: EntityRef[]): void
   setViewport(viewport: Viewport): void
   setTool(tool: EditorTool): void
+  /** Replace the runtime permission set; pending gestures are evaluated against the new policy. */
+  setPermissions(permissions: EditorPermissions): void
   replaceDocument(
     document: DiagramDocument,
     options: { expectedRevision: number; history: 'reset' },
