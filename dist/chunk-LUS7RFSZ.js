@@ -3,11 +3,11 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-DQZTWVVO.js";
+} from "./chunk-ZJ2KQFD7.js";
 import {
   canonicalizeContent,
   importDocument
-} from "./chunk-35B4QVKF.js";
+} from "./chunk-TO2IOO5N.js";
 import {
   edgesOf,
   failure,
@@ -17,12 +17,87 @@ import {
   issue,
   limitsWith,
   nodesOf,
+  pointer,
   success,
   validId,
-  validateDocument
-} from "./chunk-4NII3VRT.js";
+  validateDocument,
+  validateEditorSpec
+} from "./chunk-SO54APJD.js";
 
 // src/editor-core/store.ts
+function validateCommandDeltas(commands, limits) {
+  const issues = [];
+  const finite2 = (value, path) => {
+    if (typeof value !== "number" || !Number.isFinite(value))
+      issues.push({ ...issue("data.finite", path) });
+  };
+  const finitePoint = (point, path) => {
+    finite2(point.x, `${path}/x`);
+    finite2(point.y, `${path}/y`);
+  };
+  for (const command of commands) {
+    switch (command.type) {
+      case "nodes.move":
+        for (const [id, point] of Object.entries(command.positions))
+          finitePoint(point, `/scene/nodes/${pointer(id)}`);
+        break;
+      case "node.resize":
+        finite2(command.size.width, `/scene/nodes/${pointer(command.id)}/width`);
+        finite2(command.size.height, `/scene/nodes/${pointer(command.id)}/height`);
+        if (!Number.isFinite(command.size.width) || !Number.isFinite(command.size.height) || command.size.width <= 0 || command.size.height <= 0)
+          issues.push({ ...issue("layout.range", `/scene/nodes/${pointer(command.id)}`) });
+        break;
+      case "route.set":
+        if (command.route.mode === "auto") break;
+        if (command.route.points.length > limits.maxRoutePoints)
+          issues.push({ ...issue("limit.route-points", `/scene/routes/${pointer(command.id)}`) });
+        for (const point of command.route.points) finitePoint(point, "/scene/routes");
+        if (command.route.label) finitePoint(command.route.label, "/scene/routes");
+        finite2(command.route.source.offset, "/scene/routes");
+        finite2(command.route.target.offset, "/scene/routes");
+        break;
+      case "scene.set":
+        for (const [id, placement] of Object.entries(command.scene.nodes)) {
+          const path = `/scene/nodes/${pointer(id)}`;
+          finite2(placement.x, `${path}/x`);
+          finite2(placement.y, `${path}/y`);
+          finite2(placement.width, `${path}/width`);
+          finite2(placement.height, `${path}/height`);
+        }
+        for (const [edgeId, route] of Object.entries(command.scene.routes)) {
+          if (route.mode !== "manual") continue;
+          for (const point of route.points) finitePoint(point, `/scene/routes/${pointer(edgeId)}`);
+        }
+        break;
+      case "spec.replace": {
+        const checked = validateEditorSpec(command.spec, limits);
+        if (!checked.ok) return [...issues, ...checked.diagnostics];
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return issues;
+}
+var contentCache = /* @__PURE__ */ new WeakMap();
+var bytesCache = /* @__PURE__ */ new WeakMap();
+function contentOf(document) {
+  let value = contentCache.get(document);
+  if (value === void 0) {
+    value = canonicalizeContent(document);
+    contentCache.set(document, value);
+  }
+  return value;
+}
+function bytesOf(document) {
+  let value = bytesCache.get(document);
+  if (value === void 0) {
+    value = new TextEncoder().encode(contentOf(document)).length;
+    bytesCache.set(document, value);
+  }
+  return value;
+}
 function invalidationsFor(before, after, commands) {
   const set = /* @__PURE__ */ new Set();
   for (const command of commands) {
@@ -152,20 +227,27 @@ function createEditorStore(options) {
       else break;
     }
   }
-  function candidate(transaction) {
+  function candidate(transaction, skipValidation = false) {
     if (disposed) return failure("store.disposed");
     if (!permissions.edit) return failure("permission.edit");
-    const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 });
-    if (unsafe.length) return { ok: false, diagnostics: unsafe };
+    if (!skipValidation) {
+      const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 });
+      if (unsafe.length) return { ok: false, diagnostics: unsafe };
+    }
     if (!validId(transaction.id)) return failure("id.invalid");
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure("revision.stale");
+    if (skipValidation) {
+      const deltaIssues = validateCommandDeltas(transaction.commands, limits);
+      if (deltaIssues.length) return { ok: false, diagnostics: deltaIssues.slice(0, 100) };
+    }
     let doc = structuredClone(snapshot.document);
     for (const command of transaction.commands) {
       const result = applyCommand(doc, command);
       if (!result.ok) return result;
       doc = result.value;
     }
+    if (skipValidation) return success(doc);
     return validateDocument(doc, limits);
   }
   function publish(doc, commands) {
@@ -185,7 +267,7 @@ function createEditorStore(options) {
     notify({
       document: doc,
       selection,
-      dirty: canonicalizeContent(doc) !== saved,
+      dirty: contentOf(doc) !== saved,
       canUndo: past.length > 0,
       canRedo: future.length > 0,
       diagnostics: [],
@@ -218,11 +300,10 @@ function createEditorStore(options) {
       const result = candidate(transaction);
       if (!result.ok)
         return { status: "rejected", document: snapshot.document, diagnostics: result.diagnostics };
-      if (canonicalizeContent(result.value) === canonicalizeContent(snapshot.document))
-        return noop();
+      if (contentOf(result.value) === contentOf(snapshot.document)) return noop();
       if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
         return rejected("revision.overflow");
-      const entryBytes = new TextEncoder().encode(JSON.stringify(snapshot.document)).length + new TextEncoder().encode(JSON.stringify(result.value)).length;
+      const entryBytes = bytesOf(snapshot.document) + bytesOf(result.value);
       if (entryBytes > historyLimits.maxBytes) return rejected("history.capacity");
       past.push(snapshot.document);
       future = [];
@@ -238,9 +319,9 @@ function createEditorStore(options) {
       });
       return success(void 0);
     },
-    previewGesture(commands) {
+    previewGesture(commands, options2) {
       if (!gesture) return failure("gesture.missing");
-      const result = candidate({ ...gesture.transaction, commands });
+      const result = candidate({ ...gesture.transaction, commands }, options2?.skipValidation);
       if (!result.ok) return result;
       gesture.commands = structuredClone(commands);
       notify({
@@ -338,6 +419,10 @@ function createEditorStore(options) {
     },
     setTool(tool) {
       if (["select", "hand", "connect"].includes(tool)) notify({ tool });
+    },
+    setPermissions(next) {
+      Object.assign(permissions, next);
+      notify({});
     },
     replaceDocument(document, replaceOptions) {
       if (disposed || !permissions.edit)

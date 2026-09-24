@@ -4,12 +4,12 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "../chunk-DQZTWVVO.js";
+} from "../chunk-ZJ2KQFD7.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
   serializeDocument
-} from "../chunk-35B4QVKF.js";
+} from "../chunk-TO2IOO5N.js";
 import "../chunk-QVERY2JP.js";
 import {
   canonical,
@@ -17,12 +17,12 @@ import {
   issue,
   success,
   validateDocument
-} from "../chunk-4NII3VRT.js";
+} from "../chunk-SO54APJD.js";
 import "../chunk-UHROM3FO.js";
 import {
   escapeXml,
   renderSvg
-} from "../chunk-GZNL2GO6.js";
+} from "../chunk-E5BZUBD3.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
 import "../chunk-KDAWQGDC.js";
@@ -88,7 +88,7 @@ async function raster(svg, mime, width, height, signal) {
     return success(new Uint8Array(await blob.arrayBuffer()));
   } catch (error) {
     return failure(
-      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : "export.raster"
+      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : error instanceof Error && error.message === "export.image" ? "export.image" : "export.raster"
     );
   } finally {
     image.src = "";

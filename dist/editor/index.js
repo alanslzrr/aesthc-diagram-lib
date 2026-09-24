@@ -6,30 +6,31 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-SKXBVB5C.js";
+} from "../chunk-LUS7RFSZ.js";
 import {
   anchorFromPoint,
   anchorPoint,
   createCanvasTextMeasurer,
   getAdapter,
   isNodeLocked,
+  relayoutScene,
   resolveDocument
-} from "../chunk-DQZTWVVO.js";
+} from "../chunk-ZJ2KQFD7.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
   serializeDocument
-} from "../chunk-35B4QVKF.js";
+} from "../chunk-TO2IOO5N.js";
 import "../chunk-QVERY2JP.js";
 import {
   edgesOf,
   freeTypes,
   nodesOf
-} from "../chunk-4NII3VRT.js";
+} from "../chunk-SO54APJD.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-GZNL2GO6.js";
+} from "../chunk-E5BZUBD3.js";
 import {
   nodeGeometry
 } from "../chunk-YKPE23VO.js";
@@ -39,6 +40,8 @@ import "../chunk-KDAWQGDC.js";
 // src/editor/index.tsx
 import {
   createContext,
+  memo,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -224,6 +227,88 @@ function useLabels() {
   const { locale } = useEditor();
   return (en, es) => locale === "es" ? es : en;
 }
+var NodeHitRect = memo(function NodeHitRect2({
+  id,
+  x,
+  y,
+  width,
+  height,
+  label,
+  selected,
+  zoom,
+  stroke,
+  onSelect,
+  onKey
+}) {
+  return /* @__PURE__ */ jsx(
+    "rect",
+    {
+      "data-hit-node": id,
+      x,
+      y,
+      width,
+      height,
+      rx: 4,
+      fill: "transparent",
+      stroke: selected ? stroke : "none",
+      strokeWidth: 2 / zoom,
+      tabIndex: 0,
+      role: "button",
+      "aria-label": label,
+      "aria-pressed": selected,
+      onFocus: () => {
+        if (!selected) onSelect(id);
+      },
+      onKeyDown: (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onKey(id);
+        }
+      }
+    }
+  );
+});
+var EdgeHitRect = memo(function EdgeHitRect2({
+  id,
+  index,
+  x,
+  y,
+  width,
+  height,
+  selected,
+  zoom,
+  stroke,
+  label,
+  onSelect
+}) {
+  void zoom;
+  return /* @__PURE__ */ jsx(
+    "rect",
+    {
+      "data-hit-edge": id,
+      x,
+      y,
+      width,
+      height,
+      rx: 6,
+      fill: "rgba(0, 0, 0, 0.001)",
+      stroke: selected ? stroke : "rgba(0, 0, 0, 0.001)",
+      style: { cursor: "pointer" },
+      tabIndex: 0,
+      role: "button",
+      "aria-label": label,
+      "aria-pressed": selected,
+      onFocus: () => onSelect(id),
+      onKeyDown: (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(id);
+        }
+      }
+    },
+    `${id}-hit-${index}`
+  );
+});
 function dispatch(store, commands, label) {
   return store.dispatch({
     id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
@@ -233,7 +318,12 @@ function dispatch(store, commands, label) {
   });
 }
 function materialize(document) {
-  const result = resolveDocument(document, { quality: "edit", requestId: "gesture", measureText });
+  const result = resolveDocument(document, {
+    quality: "edit",
+    requestId: "gesture",
+    measureText,
+    skipValidation: true
+  });
   if (!result.ok) return document.scene;
   return {
     ...structuredClone(document.scene),
@@ -252,6 +342,10 @@ function materialize(document) {
     )
   };
 }
+function EditorStatus() {
+  const dirty = useEditorSelector((s) => s.dirty), t = useLabels();
+  return /* @__PURE__ */ jsx("span", { className: "adl-editor-status", role: "status", children: dirty ? t("Unsaved changes", "Cambios sin guardar") : t("No pending changes", "Sin cambios pendientes") });
+}
 function EditorToolbar() {
   const { store } = useEditor(), snapshot = useEditorSelector(
     (s) => ({
@@ -260,8 +354,7 @@ function EditorToolbar() {
       document: s.document,
       viewport: s.viewport,
       canUndo: s.canUndo,
-      canRedo: s.canRedo,
-      dirty: s.dirty
+      canRedo: s.canRedo
     }),
     shallowEqual
   ), t = useLabels();
@@ -321,8 +414,44 @@ function EditorToolbar() {
           }
         ),
         /* @__PURE__ */ jsx(EditorSelectionTools, {}),
-        /* @__PURE__ */ jsx("span", { className: "adl-editor-status", role: "status", children: snapshot.dirty ? t("Unsaved changes", "Cambios sin guardar") : t("No pending changes", "Sin cambios pendientes") })
+        /* @__PURE__ */ jsx(EditorRelayout, {}),
+        /* @__PURE__ */ jsx(EditorStatus, {})
       ]
+    }
+  );
+}
+function EditorRelayout() {
+  const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels(), transactionRef = useRef(null);
+  const previewing = snapshot.draft.kind === "gesture" && snapshot.draft.transactionId === transactionRef.current;
+  const apply = () => {
+    const current = store.getSnapshot();
+    if (!getAdapter(current.document.spec.type).capabilities.includes("move-free")) return;
+    const scene = relayoutScene(current.document);
+    if (!scene.ok) return;
+    const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+    if (!store.beginGesture({ id, label: "Re-layout", expectedRevision: current.document.revision }).ok)
+      return;
+    store.previewGesture([{ type: "scene.set", scene: scene.value }], { skipValidation: true });
+    transactionRef.current = id;
+  };
+  const confirm = () => {
+    store.commitGesture();
+    transactionRef.current = null;
+  };
+  const cancel = () => {
+    store.cancelGesture();
+    transactionRef.current = null;
+  };
+  return previewing ? /* @__PURE__ */ jsxs("span", { className: "adl-editor-relayout", children: [
+    /* @__PURE__ */ jsx("button", { type: "button", onClick: confirm, children: t("Apply relayout", "Aplicar reajuste") }),
+    /* @__PURE__ */ jsx("button", { type: "button", onClick: cancel, children: t("Cancel", "Cancelar") })
+  ] }) : /* @__PURE__ */ jsx(
+    "button",
+    {
+      type: "button",
+      onClick: apply,
+      disabled: !getAdapter(snapshot.document.spec.type).capabilities.includes("move-free"),
+      children: t("Re-layout", "Reajustar")
     }
   );
 }
@@ -334,16 +463,60 @@ function EditorSurface({
   const svgRef = useRef(null), [size, setSize] = useState({ width: 800, height: 600 });
   const activeDoc = snapshot.draft.kind === "gesture" ? snapshot.draft.preview : snapshot.document;
   const resolved = useMemo(
-    () => resolveDocument(activeDoc, { quality: "edit", requestId: instanceId, measureText }),
+    () => resolveDocument(activeDoc, {
+      quality: "edit",
+      requestId: instanceId,
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true
+    }),
     [activeDoc, instanceId]
   );
+  const [gestureEntities, setGestureEntities] = useState(null);
+  const gestureKey = gestureEntities ? `${[...gestureEntities.nodes].sort().join(",")}|${[...gestureEntities.edges].sort().join(",")}` : null;
+  const baselineCache = useRef(null);
+  const baseline = useMemo(() => {
+    if (!gestureEntities || !gestureKey) {
+      baselineCache.current = null;
+      return null;
+    }
+    const cacheKey = `${gestureKey}|${snapshot.document.revision}`;
+    if (baselineCache.current?.key === cacheKey) return baselineCache.current.markup;
+    const baseDoc = snapshot.document;
+    const baseResolved = resolveDocument(baseDoc, {
+      quality: "edit",
+      requestId: `${instanceId}-baseline`,
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true
+    });
+    if (!baseResolved.ok) return null;
+    const baselineMarkup = renderSceneMarkup(baseDoc, baseResolved.value, {
+      instanceId,
+      exclude: {
+        nodes: new Set(gestureEntities.nodes),
+        edges: new Set(gestureEntities.edges)
+      }
+    });
+    baselineCache.current = { key: cacheKey, markup: baselineMarkup };
+    return baselineMarkup;
+  }, [gestureEntities, gestureKey, snapshot.document, instanceId]);
+  const deltaMarkup = useMemo(() => {
+    if (!gestureEntities || !resolved.ok) return null;
+    return renderSceneMarkup(activeDoc, resolved.value, {
+      instanceId,
+      only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) }
+    });
+  }, [activeDoc, resolved, gestureEntities, instanceId]);
   const markup = useMemo(
-    () => resolved.ok ? renderSceneMarkup(activeDoc, resolved.value, { instanceId }) : "",
-    [activeDoc, resolved, instanceId]
+    () => gestureEntities ? "" : resolved.ok ? renderSceneMarkup(activeDoc, resolved.value, { instanceId }) : "",
+    [activeDoc, resolved, gestureEntities, instanceId]
   );
   const gesture = useRef(null);
   const marquee = useRef(null);
   const [selectionBox, setSelectionBox] = useState(null);
+  const [connectLine, setConnectLine] = useState(null);
+  const [connectSource, setConnectSource] = useState(null);
   const authoredNodes = useMemo(() => {
     const ids = new Set(nodesOf(activeDoc.spec).map((n) => n.id));
     return resolved.ok ? resolved.value.layout.nodes.filter((n) => ids.has(n.id)) : [];
@@ -396,10 +569,10 @@ function EditorSurface({
       );
       setSelectionBox(box);
       const selected = authoredNodes.filter((n) => intersectsMarquee(box, nodeGeometry(n).hit)).map((n) => ({ kind: "node", id: n.id }));
-      const baseline = selection.additive ? selection.selection : [];
+      const baseline2 = selection.additive ? selection.selection : [];
       store.setSelection([
-        ...baseline,
-        ...selected.filter((n) => !baseline.some((r) => r.kind === n.kind && r.id === n.id))
+        ...baseline2,
+        ...selected.filter((n) => !baseline2.some((r) => r.kind === n.kind && r.id === n.id))
       ]);
       return;
     }
@@ -411,6 +584,12 @@ function EditorSurface({
         x: current.viewport.x + point.x - current.start.x,
         y: current.viewport.y + point.y - current.start.y
       });
+      return;
+    }
+    if (current.connect) {
+      const world = screenToWorld(point, current.viewport), source = current.scene.nodes[current.connect.sourceId];
+      const anchor = source ? anchorPoint(source, { side: "right", offset: 0.5 }) : { x: 0, y: 0 };
+      setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y });
       return;
     }
     const dx = point.x - current.start.x, dy = point.y - current.start.y, positions = {}, grid = snapshot.document.presentation.grid;
@@ -437,7 +616,9 @@ function EditorSurface({
         node: next
       });
       if (!result.ok) return;
-      store.previewGesture([{ type: "spec.replace", spec: result.value, references: "reject" }]);
+      store.previewGesture([{ type: "spec.replace", spec: result.value, references: "reject" }], {
+        skipValidation: true
+      });
       return;
     }
     if (current.waypoint) {
@@ -466,10 +647,13 @@ function EditorSurface({
           } : p
         );
       }
-      store.previewGesture([
-        { type: "scene.set", scene: current.scene },
-        { type: "route.set", id: waypoint.edgeId, route: next }
-      ]);
+      store.previewGesture(
+        [
+          { type: "scene.set", scene: current.scene },
+          { type: "route.set", id: waypoint.edgeId, route: next }
+        ],
+        { skipValidation: true }
+      );
       return;
     }
     if (current.resize) {
@@ -499,7 +683,9 @@ function EditorSurface({
           }
         ];
       });
-      store.previewGesture([{ type: "scene.set", scene: current.scene }, ...resizeCommands]);
+      store.previewGesture([{ type: "scene.set", scene: current.scene }, ...resizeCommands], {
+        skipValidation: true
+      });
       return;
     }
     for (const [id, start] of Object.entries(current.positions)) {
@@ -509,10 +695,13 @@ function EditorSurface({
         y: grid.snap ? Math.round(y / grid.size) * grid.size : y
       };
     }
-    store.previewGesture([
-      { type: "scene.set", scene: current.scene },
-      { type: "nodes.move", positions }
-    ]);
+    store.previewGesture(
+      [
+        { type: "scene.set", scene: current.scene },
+        { type: "nodes.move", positions }
+      ],
+      { skipValidation: true }
+    );
   }
   const scheduleMove = (point, pointerId) => {
     pendingMove.current = point;
@@ -539,7 +728,8 @@ function EditorSurface({
           const current = resolveDocument(store.getSnapshot().document, {
             quality: "edit",
             requestId: "initial-fit",
-            measureText
+            measureText,
+            skipValidation: true
           });
           if (current.ok) {
             fitted.current = true;
@@ -601,6 +791,40 @@ function EditorSurface({
       return;
     }
     if (gesture.current?.pointer !== event.pointerId) return;
+    if (gesture.current.connect) {
+      if (cancel) store.cancelGesture();
+      else {
+        flushMove();
+        const viewport = store.getSnapshot().viewport, world = screenToWorld(local(event), viewport), sourceId = gesture.current.connect.sourceId, current = store.getSnapshot();
+        const target = authoredNodes.find((n) => {
+          if (n.id === sourceId) return false;
+          const hit = nodeGeometry(n).hit;
+          return world.x >= hit.x && world.x <= hit.x + hit.width && world.y >= hit.y && world.y <= hit.y + hit.height;
+        });
+        if (target) {
+          const adapter = getAdapter(current.document.spec.type);
+          const inserted = adapter.insertRelation(current.document.spec, {
+            diagramType: current.document.spec.type,
+            relation: {
+              id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+              from: sourceId,
+              to: target.id
+            }
+          });
+          if (inserted.ok)
+            store.previewGesture([
+              { type: "spec.replace", spec: inserted.value, references: "reject" }
+            ]);
+        }
+        store.commitGesture();
+      }
+      setConnectLine(null);
+      gesture.current = null;
+      setGestureEntities(null);
+      if (event.currentTarget.hasPointerCapture(event.pointerId))
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (!gesture.current.pan) {
       if (cancel) store.cancelGesture();
       else {
@@ -609,6 +833,7 @@ function EditorSurface({
       }
     }
     gesture.current = null;
+    setGestureEntities(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
   }
@@ -627,6 +852,56 @@ function EditorSurface({
         "Delete selection"
       );
   }
+  function connectKeyboard(from, to) {
+    const current = store.getSnapshot(), adapter = getAdapter(current.document.spec.type);
+    if (!adapter.capabilities.includes("connect")) return;
+    const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+    const inserted = adapter.insertRelation(current.document.spec, {
+      diagramType: current.document.spec.type,
+      relation: { id, from, to }
+    });
+    if (!inserted.ok) return;
+    dispatch(
+      store,
+      [{ type: "spec.replace", spec: inserted.value, references: "reject" }],
+      "Connect nodes"
+    );
+    store.setSelection([{ kind: "edge", id }]);
+  }
+  const connectKeyboardRef = useRef(connectKeyboard);
+  connectKeyboardRef.current = connectKeyboard;
+  const connectSourceRef = useRef(connectSource);
+  connectSourceRef.current = connectSource;
+  const incidentEdges = useCallback(
+    (nodeIds) => {
+      const spec = store.getSnapshot().document.spec;
+      return edgesOf(spec).filter((e) => e.from && e.to && (nodeIds.includes(e.from) || nodeIds.includes(e.to))).map((e) => e.id);
+    },
+    [store]
+  );
+  const selectEdge = useCallback(
+    (id) => store.setSelection([{ kind: "edge", id }]),
+    [store]
+  );
+  const selectNode = useCallback(
+    (id) => store.setSelection([{ kind: "node", id }]),
+    [store]
+  );
+  const handleNodeKey = useCallback(
+    (id) => {
+      const source = connectSourceRef.current;
+      if (source) {
+        if (source === id) setConnectSource(null);
+        else {
+          connectKeyboardRef.current(source, id);
+          setConnectSource(null);
+        }
+        return;
+      }
+      store.setSelection([{ kind: "node", id }]);
+    },
+    [store]
+  );
   return /* @__PURE__ */ jsxs("div", { className: `adl-editor-surface ${className ?? ""}`, children: [
     /* @__PURE__ */ jsx(
       "svg",
@@ -657,6 +932,8 @@ function EditorSurface({
               touches.current.clear();
             }
             spacePan.current = false;
+            setConnectSource(null);
+            setConnectLine(null);
             if (cancelMarquee()) {
               event.preventDefault();
               return;
@@ -728,10 +1005,11 @@ function EditorSurface({
           if (marquee.current || gesture.current || event.button !== 0 && event.button !== 1)
             return;
           const target = event.target.closest(
-            "[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port]"
-          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node"), waypointEdge = target?.getAttribute("data-waypoint") ?? void 0, waypointIndex = Number(target?.getAttribute("data-waypoint-index") ?? "-1"), waypointAnchor = target?.getAttribute("data-waypoint-anchor") ?? void 0, edgeId = target?.getAttribute("data-hit-edge") ?? void 0, portNodeId = target?.getAttribute("data-port-node") ?? void 0, portId = target?.getAttribute("data-port") ?? void 0;
+            "[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port], [data-connect-source]"
+          ), resizeId = target?.getAttribute("data-resize-node") ?? void 0, resizeSelection = target?.hasAttribute("data-resize-selection") ?? false, id = resizeId ?? target?.getAttribute("data-hit-node"), waypointEdge = target?.getAttribute("data-waypoint") ?? void 0, waypointIndex = Number(target?.getAttribute("data-waypoint-index") ?? "-1"), waypointAnchor = target?.getAttribute("data-waypoint-anchor") ?? void 0, edgeId = target?.getAttribute("data-hit-edge") ?? void 0, portNodeId = target?.getAttribute("data-port-node") ?? void 0, portId = target?.getAttribute("data-port") ?? void 0, connectSourceId = target?.getAttribute("data-connect-source") ?? void 0;
           const pan = snapshot.tool === "hand" || event.button === 1 || spacePan.current;
-          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId) {
+          if (connectSource && !connectSourceId) setConnectSource(null);
+          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId && !connectSourceId) {
             event.preventDefault();
             svgRef.current?.focus();
             marquee.current = {
@@ -758,6 +1036,7 @@ function EditorSurface({
               expectedRevision: snapshot.document.revision
             }).ok)
               return;
+            setGestureEntities({ nodes: [], edges: [waypointEdge] });
             const startPoint = local(event);
             gesture.current = {
               pointer: event.pointerId,
@@ -784,6 +1063,7 @@ function EditorSurface({
               expectedRevision: snapshot.document.revision
             }).ok)
               return;
+            setGestureEntities({ nodes: [], edges: [] });
             const startPoint = local(event);
             gesture.current = {
               pointer: event.pointerId,
@@ -798,6 +1078,31 @@ function EditorSurface({
                 pointerWorld: screenToWorld(startPoint, snapshot.viewport)
               }
             };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            return;
+          }
+          if (connectSourceId && !pan) {
+            store.setSelection([{ kind: "node", id: connectSourceId }]);
+            if (!store.beginGesture({
+              id: globalThis.crypto.randomUUID(),
+              label: "Connect",
+              expectedRevision: snapshot.document.revision
+            }).ok)
+              return;
+            const startPoint = local(event);
+            const scene2 = materialize(snapshot.document), source = scene2.nodes[connectSourceId];
+            const anchor = source ? anchorPoint(source, { side: "right", offset: 0.5 }) : { x: 0, y: 0 };
+            const startWorld = screenToWorld(startPoint, snapshot.viewport);
+            gesture.current = {
+              pointer: event.pointerId,
+              start: startPoint,
+              viewport: { ...snapshot.viewport },
+              positions: {},
+              scene: scene2,
+              pan: false,
+              connect: { sourceId: connectSourceId }
+            };
+            setConnectLine({ x1: anchor.x, y1: anchor.y, x2: startWorld.x, y2: startWorld.y });
             event.currentTarget.setPointerCapture(event.pointerId);
             return;
           }
@@ -831,6 +1136,8 @@ function EditorSurface({
             expectedRevision: snapshot.document.revision
           }).ok)
             return;
+          const draggedIds = resizeIds ?? Object.keys(positions);
+          setGestureEntities({ nodes: draggedIds, edges: incidentEdges(draggedIds) });
           gesture.current = {
             pointer: event.pointerId,
             start: local(event),
@@ -872,6 +1179,7 @@ function EditorSurface({
           if (gesture.current) {
             store.cancelGesture();
             gesture.current = null;
+            setGestureEntities(null);
           }
         },
         children: /* @__PURE__ */ jsxs(
@@ -879,7 +1187,10 @@ function EditorSurface({
           {
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
-              /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } }),
+              gestureEntities && baseline !== null ? /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: baseline } }),
+                /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: deltaMarkup ?? "" } })
+              ] }) : /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } }),
               authoredEdges.flatMap((e) => {
                 const points = e.routePoints ?? [];
                 const segments = [];
@@ -893,62 +1204,40 @@ function EditorSurface({
                   });
                 }
                 const hit = segments.length ? segments : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }];
-                return hit.map((segment, index) => {
-                  const selected = snapshot.selection.some((r) => r.kind === "edge" && r.id === e.id);
-                  return /* @__PURE__ */ jsx(
-                    "rect",
-                    {
-                      "data-hit-edge": e.id,
-                      x: segment.x,
-                      y: segment.y,
-                      width: segment.width,
-                      height: segment.height,
-                      rx: 6,
-                      fill: selected ? "rgba(0, 0, 0, 0.001)" : "rgba(0, 0, 0, 0.001)",
-                      stroke: selected ? activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt : "rgba(0, 0, 0, 0.001)",
-                      style: { cursor: "pointer" },
-                      tabIndex: 0,
-                      role: "button",
-                      "aria-label": `${t("Connection", "Conexi\xF3n")}: ${e.label ?? e.id}`,
-                      "aria-pressed": selected,
-                      onFocus: () => store.setSelection([{ kind: "edge", id: e.id }]),
-                      onKeyDown: (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          store.setSelection([{ kind: "edge", id: e.id }]);
-                        }
-                      }
-                    },
-                    `${e.id}-hit-${index}`
-                  );
-                });
+                const selected = snapshot.selection.some((r) => r.kind === "edge" && r.id === e.id);
+                const stroke = activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt;
+                return hit.map((segment, index) => /* @__PURE__ */ jsx(
+                  EdgeHitRect,
+                  {
+                    id: e.id,
+                    index,
+                    x: segment.x,
+                    y: segment.y,
+                    width: segment.width,
+                    height: segment.height,
+                    selected,
+                    zoom: snapshot.viewport.zoom,
+                    stroke,
+                    label: `${t("Connection", "Conexi\xF3n")}: ${e.label ?? e.id}`,
+                    onSelect: selectEdge
+                  },
+                  `${e.id}-hit-${index}`
+                ));
               }),
               authoredNodes.map((n) => /* @__PURE__ */ jsx("g", { children: /* @__PURE__ */ jsx(
-                "rect",
+                NodeHitRect,
                 {
-                  "data-hit-node": n.id,
+                  id: n.id,
                   x: nodeGeometry(n).hit.x,
                   y: nodeGeometry(n).hit.y,
                   width: nodeGeometry(n).hit.width,
                   height: nodeGeometry(n).hit.height,
-                  rx: 4,
-                  fill: "transparent",
-                  stroke: snapshot.selection.some((r) => r.kind === "node" && r.id === n.id) ? activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt : "none",
-                  strokeWidth: 2 / snapshot.viewport.zoom,
-                  tabIndex: 0,
-                  role: "button",
-                  "aria-label": n.label,
-                  "aria-pressed": snapshot.selection.some((r) => r.kind === "node" && r.id === n.id),
-                  onFocus: () => {
-                    if (!snapshot.selection.some((r) => r.kind === "node" && r.id === n.id))
-                      store.setSelection([{ kind: "node", id: n.id }]);
-                  },
-                  onKeyDown: (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      store.setSelection([{ kind: "node", id: n.id }]);
-                    }
-                  }
+                  label: n.label,
+                  selected: snapshot.selection.some((r) => r.kind === "node" && r.id === n.id),
+                  zoom: snapshot.viewport.zoom,
+                  stroke: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  onSelect: selectNode,
+                  onKey: handleNodeKey
                 }
               ) }, n.id)),
               snapshot.tool === "select" && snapshot.selection.length >= 1 && getAdapter(activeDoc.spec.type).capabilities.includes("resize") && (() => {
@@ -964,7 +1253,12 @@ function EditorSurface({
                 const apply = (direction, delta, step) => {
                   const scene = materialize(store.getSnapshot().document);
                   const ids = resizeTarget ? [resizeTarget] : snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
-                  const rects = ids.map((resizeId) => scene.nodes[resizeId]).filter((node) => node).map((node) => ({ x: node.x, y: node.y, width: node.width, height: node.height }));
+                  const rects = ids.map((resizeId) => scene.nodes[resizeId]).filter((node) => node).map((node) => ({
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height
+                  }));
                   const finalRects = resizeRects(rects, direction, {
                     x: delta.x * step,
                     y: delta.y * step
@@ -1163,6 +1457,83 @@ function EditorSurface({
                   ] }, `port-${id}-${port.id}`);
                 }) });
               })(),
+              snapshot.tool === "select" && snapshot.selection.length === 1 && snapshot.selection[0].kind === "node" && getAdapter(activeDoc.spec.type).capabilities.includes("connect") && !isNodeLocked(activeDoc, snapshot.selection[0].id) && (() => {
+                const id = snapshot.selection[0].id;
+                const authored = authoredNodes.find((n) => n.id === id);
+                const authoredRect = activeDoc.scene.nodes[id];
+                const laidOut = resolved.ok ? resolved.value.layout.nodeById[id] : void 0;
+                const rect = authoredRect ?? (laidOut ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h } : void 0);
+                if (!authored || !rect) return null;
+                const anchor = anchorPoint(rect, { side: "right", offset: 0.5 });
+                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
+                const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
+                return /* @__PURE__ */ jsxs("g", { children: [
+                  /* @__PURE__ */ jsx(
+                    "circle",
+                    {
+                      cx: anchor.x,
+                      cy: anchor.y,
+                      r: dot(5),
+                      fill: palette.background,
+                      stroke: palette.branch,
+                      strokeWidth: 1.5 / snapshot.viewport.zoom,
+                      pointerEvents: "none"
+                    }
+                  ),
+                  /* @__PURE__ */ jsx(
+                    "circle",
+                    {
+                      "data-connect-source": id,
+                      cx: anchor.x,
+                      cy: anchor.y,
+                      r: Math.max(16, 22 / snapshot.viewport.zoom),
+                      fill: "transparent",
+                      style: { cursor: "crosshair" },
+                      tabIndex: 0,
+                      role: "button",
+                      "aria-label": `${t("Connect", "Conectar")}: ${authored.label}`,
+                      onKeyDown: (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setConnectSource(id);
+                        }
+                      }
+                    }
+                  )
+                ] });
+              })(),
+              connectSource && (() => {
+                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
+                return /* @__PURE__ */ jsx("g", { pointerEvents: "none", children: authoredNodes.filter((n) => n.id !== connectSource).map((n) => /* @__PURE__ */ jsx(
+                  "rect",
+                  {
+                    x: nodeGeometry(n).hit.x,
+                    y: nodeGeometry(n).hit.y,
+                    width: nodeGeometry(n).hit.width,
+                    height: nodeGeometry(n).hit.height,
+                    rx: 4,
+                    fill: "none",
+                    stroke: palette.cobalt,
+                    strokeWidth: 1 / snapshot.viewport.zoom,
+                    strokeDasharray: "4 4"
+                  },
+                  `connect-target-${n.id}`
+                )) });
+              })(),
+              connectLine && /* @__PURE__ */ jsx(
+                "line",
+                {
+                  x1: connectLine.x1,
+                  y1: connectLine.y1,
+                  x2: connectLine.x2,
+                  y2: connectLine.y2,
+                  stroke: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  strokeWidth: 2 / snapshot.viewport.zoom,
+                  strokeDasharray: "4 4",
+                  pointerEvents: "none"
+                }
+              ),
               selectionBox && /* @__PURE__ */ jsx(
                 "rect",
                 {
@@ -1194,7 +1565,11 @@ function EditorSurface({
         children: t("Fit diagram", "Ajustar diagrama")
       }
     ),
-    !resolved.ok && /* @__PURE__ */ jsx("p", { role: "alert", children: resolved.diagnostics.map((d) => d.code).join(", ") })
+    !resolved.ok && /* @__PURE__ */ jsx("p", { role: "alert", children: resolved.diagnostics.map((d) => d.code).join(", ") }),
+    connectSource && /* @__PURE__ */ jsx("p", { role: "status", className: "adl-editor-connect-hint", children: t(
+      "Press Enter on a target node to connect, or Escape to cancel.",
+      "Pulsa Enter en un nodo destino para conectar, o Escape para cancelar."
+    ) })
   ] });
 }
 function EditorInspector() {
@@ -1355,7 +1730,8 @@ function EditorInspector() {
 }
 function EditorJsonPanel() {
   const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
-  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serializeDocument(snapshot.document);
+  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document]);
+  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized;
   return /* @__PURE__ */ jsxs("details", { className: "adl-editor-json", children: [
     /* @__PURE__ */ jsx("summary", { children: t("Document JSON", "JSON del documento") }),
     /* @__PURE__ */ jsx(
@@ -2074,7 +2450,8 @@ function EditorRoute() {
   const toManual = () => {
     const result = resolveDocument(snapshot.document, {
       quality: "edit",
-      requestId: "route-manual"
+      requestId: "route-manual",
+      skipValidation: true
     });
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(", "));
@@ -2229,6 +2606,7 @@ export {
   EditorRoot,
   EditorRoute,
   EditorSelectionTools,
+  EditorStatus,
   EditorStructuredInspector,
   EditorSurface,
   EditorToolbar,

@@ -6,20 +6,22 @@ import {
   screenToWorld,
   worldToScreen,
   zoomAt
-} from "../chunk-SKXBVB5C.js";
+} from "../chunk-LUS7RFSZ.js";
 import {
   getAdapter,
+  relayoutScene,
   resolveDocument
-} from "../chunk-DQZTWVVO.js";
+} from "../chunk-ZJ2KQFD7.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
   canonicalizeContent,
   createDocument,
   defaultPresentation,
+  exportLegacySpec,
   importDocument,
   serializeDocument
-} from "../chunk-35B4QVKF.js";
+} from "../chunk-TO2IOO5N.js";
 import "../chunk-QVERY2JP.js";
 import {
   DEFAULT_LIMITS,
@@ -29,7 +31,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "../chunk-4NII3VRT.js";
+} from "../chunk-SO54APJD.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
@@ -143,10 +145,12 @@ export {
   createEditorStore,
   createFragment,
   defaultPresentation,
+  exportLegacySpec,
   fitViewport,
   getAdapter,
   importDocument,
   pasteFragment,
+  relayoutScene,
   resolveDocument,
   screenToWorld,
   serializeDocument,

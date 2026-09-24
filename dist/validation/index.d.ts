@@ -1,4 +1,4 @@
-import { l as DiagramSpec } from '../layout-C6Gt2y8T.js';
+import { l as DiagramSpec } from '../layout-BFDKbm6N.js';
 import '../theme.js';
 
 interface ValidationIssue {

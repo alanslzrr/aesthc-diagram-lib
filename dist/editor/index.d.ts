@@ -1,4 +1,4 @@
-import { E as EditorStore, L as Locale, a as EditorSnapshot, S as StoreOptions } from '../layout-C6Gt2y8T.js';
+import { E as EditorStore, L as Locale, a as EditorSnapshot, S as StoreOptions } from '../layout-BFDKbm6N.js';
 import * as react from 'react';
 import { ReactNode } from 'react';
 import '../theme.js';
@@ -16,6 +16,7 @@ declare function useEditorSnapshot(): EditorSnapshot;
 /** Shallow equality for composite selector slices (selection/document pairs). */
 declare const shallowEqual: <T>(a: T, b: T) => boolean;
 declare function useEditorSelector<T>(select: (snapshot: ReturnType<EditorStore['getSnapshot']>) => T, equals?: (a: T, b: T) => boolean): T;
+declare function EditorStatus(): react.JSX.Element;
 declare function EditorToolbar(): react.JSX.Element;
 declare function EditorSurface({ ariaLabel, className, }: {
     ariaLabel?: string;
@@ -37,4 +38,4 @@ declare function EditorOutline({ className }: {
     className?: string;
 }): react.JSX.Element;
 
-export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorRoute, EditorSelectionTools, EditorStructuredInspector, EditorSurface, EditorToolbar, shallowEqual, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };
+export { EditorInspector, EditorJsonPanel, EditorNodeGeometry, EditorOutline, EditorRelations, EditorRoot, EditorRoute, EditorSelectionTools, EditorStatus, EditorStructuredInspector, EditorSurface, EditorToolbar, shallowEqual, useEditor, useEditorSelector, useEditorSnapshot, useEditorStore };

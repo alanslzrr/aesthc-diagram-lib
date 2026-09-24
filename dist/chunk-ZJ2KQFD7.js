@@ -4,7 +4,7 @@ import {
 } from "./chunk-VUW7SRON.js";
 import {
   createDocument
-} from "./chunk-35B4QVKF.js";
+} from "./chunk-TO2IOO5N.js";
 import {
   identifyEdges,
   labelPillWidth,
@@ -24,7 +24,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-4NII3VRT.js";
+} from "./chunk-SO54APJD.js";
 import {
   nodeGeometry
 } from "./chunk-YKPE23VO.js";
@@ -245,9 +245,10 @@ function applyCommand(doc, command) {
       const result = createDocument(command.spec, { id: doc.id, locale: doc.locale });
       if (!result.ok) return result;
       const next = nodesOf(result.value.spec), previous = nodesOf(doc.spec);
-      for (const id of new Set(next.map((n) => n.id))) {
+      for (const id of /* @__PURE__ */ new Set([...next.map((n) => n.id), ...previous.map((n) => n.id)])) {
         if (!isNodeLocked(doc, id)) continue;
         const before = previous.find((n) => n.id === id), after = next.find((n) => n.id === id);
+        if (!after) return failure("entity.locked", `/spec/${id}`, "locked node cannot be removed");
         if (before && after && JSON.stringify(before) !== JSON.stringify(after))
           return failure("entity.locked", `/spec/${id}`);
       }
@@ -316,6 +317,11 @@ function applyCommand(doc, command) {
         pruneReferences(doc);
         break;
       }
+      const keptMembers = new Set(group.nodeIds);
+      for (const child of doc.scene.groups.filter((g) => g.parentGroup === command.id))
+        child.nodeIds.forEach((id) => keptMembers.add(id));
+      if (group.locked || [...keptMembers].some((id) => isNodeLocked(doc, id)))
+        return failure("entity.locked");
       doc.scene.groups = doc.scene.groups.filter((g) => g.id !== command.id);
       doc.scene.groups.forEach((g) => {
         if (g.parentGroup === command.id) {
@@ -353,11 +359,19 @@ function createCanvasTextMeasurer() {
     return void 0;
   const context = document.createElement("canvas").getContext("2d");
   if (!context) return void 0;
+  const cache = /* @__PURE__ */ new Map();
+  const CACHE_LIMIT = 2e4;
   return (text, role) => {
     const length = Array.from(text).length;
     if (!length) return 0;
+    const key = `${role.size}|${role.family}|${role.tracking ?? 0}|${text}`;
+    const cached = cache.get(key);
+    if (cached !== void 0) return cached;
     context.font = `${role.size}px ${role.family === "Geist Mono" ? '"Geist Mono", monospace' : "Geist, sans-serif"}`;
-    return context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
+    const width = context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
+    if (cache.size >= CACHE_LIMIT) cache.clear();
+    cache.set(key, width);
+    return width;
   };
 }
 function toDataUrl(bytes) {
@@ -478,13 +492,13 @@ function pushTextOverflow(layout, document2, context, diagnostics) {
 }
 function resolveDocument(document2, context) {
   if (context.signal?.aborted) return failure("operation.aborted");
-  const checked = validateDocument(document2);
+  const checked = context.skipValidation ? success(document2) : validateDocument(document2);
   if (!checked.ok) return checked;
   const seed = getAdapter(document2.spec.type).seedLayout(document2.spec);
   if (!seed.ok) return seed;
   const layout = seed.value, diagnostics = [];
   if (!freeTypes.has(document2.spec.type)) {
-    pushTextOverflow(layout, document2, context, diagnostics);
+    if (!context.skipDiagnostics) pushTextOverflow(layout, document2, context, diagnostics);
     return success(
       {
         layout,
@@ -631,12 +645,13 @@ function resolveDocument(document2, context) {
     const extent = nodeTextExtent(n, document2, context);
     if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
       points.push([extent.left, n.y], [extent.right, n.y + n.h]);
-      diagnostics.push({
-        ...issue("quality.text-overflow", "/spec"),
-        severity: "warning",
-        subject: { kind: "node", id: n.id },
-        supportedFixes: ["resize", "shorten-text-manually"]
-      });
+      if (!context.skipDiagnostics)
+        diagnostics.push({
+          ...issue("quality.text-overflow", "/spec"),
+          severity: "warning",
+          subject: { kind: "node", id: n.id },
+          supportedFixes: ["resize", "shorten-text-manually"]
+        });
     }
   }
   for (const e of layout.edges) {
@@ -654,17 +669,96 @@ function resolveDocument(document2, context) {
   const width = points.reduce((bound, p) => Math.max(bound, p[0]), -Infinity) - x + padding, height = points.reduce((bound, p) => Math.max(bound, p[1]), -Infinity) - y + padding;
   layout.width = width;
   layout.height = height;
-  for (let i = 0; i < layout.nodes.length; i++) {
-    const a = layout.nodes[i];
-    for (let j = i + 1; j < layout.nodes.length; j++) {
-      const b = layout.nodes[j];
-      if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
-        diagnostics.push({
-          ...issue("quality.node-overlap", "/scene/nodes"),
-          severity: "warning",
-          subject: { kind: "node", id: a.id },
-          supportedFixes: ["move"]
-        });
+  if (!context.skipDiagnostics) {
+    for (let i = 0; i < layout.nodes.length; i++) {
+      const a = layout.nodes[i];
+      for (let j = i + 1; j < layout.nodes.length; j++) {
+        const b = layout.nodes[j];
+        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
+          diagnostics.push({
+            ...issue("quality.node-overlap", "/scene/nodes"),
+            severity: "warning",
+            subject: { kind: "node", id: a.id },
+            supportedFixes: ["move"]
+          });
+      }
+    }
+    const rects = new Map(
+      layout.nodes.map((n) => [n.id, { x: n.x, y: n.y, width: n.w, height: n.h }])
+    );
+    const overlaps = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    const cross = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    const segmentIntersects = (x1, y1, x2, y2, r) => {
+      const inside = x1 >= r.x && x1 <= r.x + r.width && y1 >= r.y && y1 <= r.y + r.height;
+      if (inside) return true;
+      const corners = [
+        [r.x, r.y],
+        [r.x + r.width, r.y],
+        [r.x + r.width, r.y + r.height],
+        [r.x, r.y + r.height]
+      ];
+      for (let i = 0; i < 4; i++) {
+        const [x3, y3] = corners[i], [x4, y4] = corners[(i + 1) % 4];
+        const d1 = cross(x3, y3, x4, y4, x1, y1), d2 = cross(x3, y3, x4, y4, x2, y2), d3 = cross(x1, y1, x2, y2, x3, y3), d4 = cross(x1, y1, x2, y2, x4, y4);
+        if ((d1 > 0 && d2 < 0 || d1 < 0 && d2 > 0) && (d3 > 0 && d4 < 0 || d3 < 0 && d4 > 0))
+          return true;
+      }
+      return false;
+    };
+    for (const e of layout.edges) {
+      const from = rects.get(e.from), to = rects.get(e.to);
+      const points2 = e.routePoints ?? [];
+      for (let i = 1; i < points2.length && from && to; i++) {
+        const [x1, y1] = points2[i - 1], [x2, y2] = points2[i];
+        for (const [id, rect] of rects) {
+          if (id === e.from || id === e.to) continue;
+          if (segmentIntersects(x1, y1, x2, y2, rect)) {
+            diagnostics.push({
+              ...issue("quality.edge-through-node", "/scene/routes"),
+              severity: "warning",
+              subject: { kind: "edge", id: e.id },
+              supportedFixes: ["move", "set-waypoints"]
+            });
+            break;
+          }
+        }
+      }
+      if (from && to) {
+        const eps = 2;
+        const touches = (p, r) => p.x >= r.x - eps && p.x <= r.x + r.width + eps && p.y >= r.y - eps && p.y <= r.y + r.height + eps && (Math.abs(p.x - r.x) <= eps || Math.abs(p.x - (r.x + r.width)) <= eps || Math.abs(p.y - r.y) <= eps || Math.abs(p.y - (r.y + r.height)) <= eps);
+        if (!touches({ x: e.startX, y: e.startY }, from) || !touches({ x: e.endX, y: e.endY }, to))
+          diagnostics.push({
+            ...issue("quality.edge-endpoint", "/scene/routes"),
+            severity: "warning",
+            subject: { kind: "edge", id: e.id },
+            supportedFixes: ["set-waypoints"]
+          });
+      }
+    }
+    const extents = new Map(
+      layout.nodes.map((n) => [n.id, nodeTextExtent(n, document2, context)])
+    );
+    for (const [id, extent] of extents) {
+      const a = rects.get(id);
+      if (!a) continue;
+      const labelRect = {
+        x: extent.left,
+        y: a.y,
+        width: extent.right - extent.left,
+        height: a.height
+      };
+      for (const [other, b] of rects) {
+        if (other === id || !a) continue;
+        if (overlaps(labelRect, b)) {
+          diagnostics.push({
+            ...issue("quality.label-collision", "/spec"),
+            severity: "warning",
+            subject: { kind: "node", id },
+            supportedFixes: ["resize", "move"]
+          });
+          break;
+        }
+      }
     }
   }
   if (context.signal?.aborted) return failure("operation.aborted");
@@ -672,6 +766,26 @@ function resolveDocument(document2, context) {
     { layout, worldBounds: { x, y, width, height }, origin: { x: -x, y: -y }, diagnostics },
     diagnostics
   );
+}
+function relayoutScene(document2) {
+  const checked = validateDocument(document2);
+  if (!checked.ok) return checked;
+  const scene = checked.value.scene;
+  if (!freeTypes.has(checked.value.spec.type)) return success(structuredClone(scene));
+  const seed = getAdapter(checked.value.spec.type).seedLayout(checked.value.spec);
+  if (!seed.ok) return seed;
+  const nodes = {};
+  for (const node of seed.value.nodes) {
+    const placement = scene.nodes[node.id];
+    nodes[node.id] = isNodeLocked(checked.value, node.id) ? placement ? { ...placement } : { x: node.x, y: node.y, width: node.w, height: node.h, locked: false } : { x: node.x, y: node.y, width: node.w, height: node.h, locked: placement?.locked ?? false };
+  }
+  return success({
+    mode: "manual",
+    nodes,
+    routes: structuredClone(scene.routes),
+    groups: structuredClone(scene.groups),
+    zOrder: [...scene.zOrder]
+  });
 }
 
 export {
@@ -683,5 +797,6 @@ export {
   createEmbeddedFontTextMeasurer,
   anchorPoint,
   anchorFromPoint,
-  resolveDocument
+  resolveDocument,
+  relayoutScene
 };

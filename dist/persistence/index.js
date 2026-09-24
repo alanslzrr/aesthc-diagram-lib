@@ -2,13 +2,13 @@ import {
   canonicalizeContent,
   importDocument,
   serializeDocument
-} from "../chunk-35B4QVKF.js";
+} from "../chunk-TO2IOO5N.js";
 import "../chunk-QVERY2JP.js";
 import {
   failure,
   success,
   validateDocument
-} from "../chunk-4NII3VRT.js";
+} from "../chunk-SO54APJD.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-TVEV5XLW.js";
 

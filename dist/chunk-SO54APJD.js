@@ -9910,6 +9910,7 @@ export {
   success,
   failure,
   validId,
+  pointer,
   limitsWith,
   inspectData,
   canonical,

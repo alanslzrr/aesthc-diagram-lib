@@ -2,7 +2,7 @@ import {
   escapeXml,
   renderSceneMarkup,
   renderSvg
-} from "../chunk-GZNL2GO6.js";
+} from "../chunk-E5BZUBD3.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
 import "../chunk-KDAWQGDC.js";

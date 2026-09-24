@@ -1,4 +1,4 @@
-import { F as FlowchartDiagramSpec, f as DiagramLayout, o as SequenceDiagramSpec, p as StateMachineDiagramSpec, q as ErDiagramSpec, T as TimelineDiagramSpec, r as SwimlaneDiagramSpec, l as DiagramSpec, e as LegacyBandSpec } from '../layout-C6Gt2y8T.js';
+import { F as FlowchartDiagramSpec, f as DiagramLayout, o as SequenceDiagramSpec, p as StateMachineDiagramSpec, q as ErDiagramSpec, T as TimelineDiagramSpec, r as SwimlaneDiagramSpec, l as DiagramSpec, e as LegacyBandSpec } from '../layout-BFDKbm6N.js';
 export { CanvasMetrics, PlacedBand, canvasMetrics, layoutBand } from './band.js';
 import '../theme.js';
 

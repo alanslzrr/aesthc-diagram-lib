@@ -12,7 +12,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-4NII3VRT.js";
+} from "./chunk-SO54APJD.js";
 import {
   validateLocalizedDiagram
 } from "./chunk-UHROM3FO.js";
@@ -135,11 +135,59 @@ function serializeDocument(document) {
 function canonicalizeContent(document) {
   return canonical({ ...document, revision: 0 });
 }
+function nonEmptyScene(document) {
+  const scene = document.scene, losses = [];
+  if (scene.mode !== "auto")
+    losses.push({ path: "/scene/mode", reason: "legacy spec has no scene mode" });
+  if (Object.keys(scene.nodes).length)
+    losses.push({
+      path: "/scene/nodes",
+      reason: "authored positions are not part of a legacy spec"
+    });
+  if (Object.keys(scene.routes).length)
+    losses.push({ path: "/scene/routes", reason: "manual routes are not part of a legacy spec" });
+  if (scene.groups.length)
+    losses.push({ path: "/scene/groups", reason: "groups are not part of a legacy spec" });
+  return losses;
+}
+function exportLegacySpec(document) {
+  const checked = validateDocument(document);
+  if (!checked.ok) return checked;
+  if (checked.value.spec.type === "graph")
+    return failure(
+      "conversion.unsupported",
+      "/spec",
+      "graph has no legacy spec export; convert explicitly instead"
+    );
+  const losses = [];
+  for (const loss of nonEmptyScene(checked.value)) losses.push(loss);
+  if (JSON.stringify(checked.value.presentation) !== JSON.stringify(defaultPresentation()))
+    losses.push({
+      path: "/presentation",
+      reason: "theme, grid and text scale are not part of a legacy spec"
+    });
+  if (Object.keys(checked.value.metadata.nodes).length || Object.keys(checked.value.metadata.edges).length || Object.keys(checked.value.metadata.visuals).length)
+    losses.push({
+      path: "/metadata",
+      reason: "node, edge and visual metadata are not part of a legacy spec"
+    });
+  if (checked.value.views.length)
+    losses.push({ path: "/views", reason: "named views are not part of a legacy spec" });
+  if (checked.value.story.length)
+    losses.push({ path: "/story", reason: "story steps are not part of a legacy spec" });
+  if (Object.keys(checked.value.extensions).length)
+    losses.push({ path: "/extensions", reason: "extensions are not part of a legacy spec" });
+  if (checked.value.revision !== 0)
+    losses.push({ path: "/revision", reason: "the legacy export does not carry a revision token" });
+  losses.push({ path: "/locale", reason: "the legacy export is not localized" });
+  return success({ spec: structuredClone(checked.value.spec), losses });
+}
 
 export {
   defaultPresentation,
   createDocument,
   importDocument,
   serializeDocument,
-  canonicalizeContent
+  canonicalizeContent,
+  exportLegacySpec
 };
