@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { resolveDocument } from '../src/editor-core/scene'
-import { createDocument, validateDocument } from '../src/editor-core'
+import { resolveDocument, relayoutScene } from '../src/editor-core/scene'
+import { createDocument, validateDocument, getAdapter } from '../src/editor-core'
+import type { GraphDiagramSpec, BandDiagramSpec } from '../src/types'
 import { CARD_TEXT_X } from '../src/theme'
 import fixture from './fixtures/editor/graph-document.json'
 function doc() {
@@ -126,5 +127,103 @@ describe('text extent diagnostics', () => {
     const subject = resolved.diagnostics.find((d) => d.subject?.id === 'b')
     expect(subject?.subject?.id).toBe('b')
     expect(resolved.value.worldBounds.width).toBe(resolved.value.layout.width)
+  })
+})
+
+describe('relayout with locked preservation', () => {
+  function graphDoc() {
+    const spec: GraphDiagramSpec = {
+      type: 'graph',
+      caption: 'Relayout',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'a', label: 'A', description: '' },
+        { id: 'b', label: 'B', description: '' },
+      ],
+      edges: [],
+    }
+    const made = createDocument(spec, { id: 'relayout', locale: 'en' })
+    if (!made.ok) throw Error('doc')
+    const doc = made.value
+    doc.scene.mode = 'manual'
+    doc.scene.nodes.a = { x: 500, y: 500, width: 140, height: 56, locked: true }
+    doc.scene.nodes.b = { x: 600, y: 500, width: 140, height: 56, locked: false }
+    return doc
+  }
+  it('moves unlocked nodes to the seed and keeps locked placements without mutating input', () => {
+    const doc = graphDoc()
+    const before = JSON.stringify(doc)
+    const seed = getAdapter('graph').seedLayout(doc.spec)
+    if (!seed.ok) throw Error('seed')
+    const expectedB = seed.value.nodes.find((n) => n.id === 'b')
+    if (!expectedB) throw Error('node')
+    const result = relayoutScene(doc)
+    if (!result.ok) throw Error(JSON.stringify(result.diagnostics))
+    expect(result.value.nodes.a).toEqual({ x: 500, y: 500, width: 140, height: 56, locked: true })
+    expect(result.value.nodes.b.x).toBe(expectedB.x)
+    expect(result.value.nodes.b.y).toBe(expectedB.y)
+    expect(result.value.mode).toBe('manual')
+    expect(result.value.routes).toEqual(doc.scene.routes)
+    expect(result.value.zOrder).toEqual(doc.scene.zOrder)
+    expect(JSON.stringify(doc)).toBe(before)
+  })
+  it('keeps the seed geometry for structured types whose placements are not authoritative', () => {
+    const spec: BandDiagramSpec = {
+      type: 'band',
+      caption: 'Band',
+      legend: { main: 'Main', branch: 'Branch' },
+      bands: [{ title: 'In' }, { title: 'Out' }],
+      nodes: [
+        { id: 'a', label: 'A', description: '', band: 0 },
+        { id: 'b', label: 'B', description: '', band: 1 },
+      ],
+      edges: [],
+    }
+    const made = createDocument(spec, { id: 'band', locale: 'en' })
+    if (!made.ok) throw Error('doc')
+    const result = relayoutScene(made.value)
+    if (!result.ok) throw Error('relayout')
+    expect(result.value).toEqual(made.value.scene)
+  })
+})
+describe('geometric quality diagnostics', () => {
+  function positioned(overlap: boolean) {
+    const d = doc()
+    if (d.spec.type !== 'graph') throw Error('fixture')
+    d.scene.nodes.a = { x: 0, y: 0, width: 140, height: 56, locked: false }
+    d.scene.nodes.b = {
+      x: overlap ? 40 : 400,
+      y: 0,
+      width: 140,
+      height: 56,
+      locked: false,
+    }
+    return d
+  }
+  it('T36.1 reports node overlap, edge-through-node and label collisions with fixes', () => {
+    const d = positioned(true)
+    if (d.spec.type !== 'graph') throw Error('fixture')
+    const result = resolveDocument(d, { quality: 'edit', requestId: 'quality' })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const codes = result.diagnostics.map((x) => x.code)
+    expect(codes).toContain('quality.node-overlap')
+    const route = result.value.layout.edges.find((e) => e.id === 'ab-primary')
+    expect(route).toBeTruthy()
+    const through = result.diagnostics.find((x) => x.code === 'quality.edge-through-node')
+    const collision = result.diagnostics.find((x) => x.code === 'quality.label-collision')
+    expect([through, collision].some(Boolean)).toBe(true)
+    for (const fix of (through ?? collision)?.supportedFixes ?? []) expect(fix).toBeTruthy()
+  })
+  it('T36.1 skips the geometric scans when diagnostics are not requested', () => {
+    const d = positioned(true)
+    const result = resolveDocument(d, {
+      quality: 'edit',
+      requestId: 'fast',
+      skipDiagnostics: true,
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.diagnostics.some((x) => x.code.startsWith('quality.'))).toBe(false)
   })
 })

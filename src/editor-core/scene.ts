@@ -16,6 +16,8 @@ import { failure, issue, success } from './data'
 import { getAdapter } from './adapters'
 import { freeTypes, edgesOf } from './model'
 import { validateDocument } from './validation'
+import { isNodeLocked } from './commands'
+import type { DiagramScene } from './types'
 
 function anchor(node: PlacedNode, port: EndpointAnchor): Point {
   return {
@@ -148,14 +150,14 @@ export function resolveDocument(
   context: ResolveContext,
 ): Result<ResolvedScene> {
   if (context.signal?.aborted) return failure('operation.aborted')
-  const checked = validateDocument(document)
+  const checked = context.skipValidation ? success(document) : validateDocument(document)
   if (!checked.ok) return checked
   const seed = getAdapter(document.spec.type).seedLayout(document.spec)
   if (!seed.ok) return seed
   const layout = seed.value,
     diagnostics: Diagnostic[] = []
   if (!freeTypes.has(document.spec.type)) {
-    pushTextOverflow(layout, document, context, diagnostics)
+    if (!context.skipDiagnostics) pushTextOverflow(layout, document, context, diagnostics)
     return success(
       {
         layout,
@@ -326,12 +328,13 @@ export function resolveDocument(
     const extent = nodeTextExtent(n, document, context)
     if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
       points.push([extent.left, n.y], [extent.right, n.y + n.h])
-      diagnostics.push({
-        ...issue('quality.text-overflow', '/spec'),
-        severity: 'warning',
-        subject: { kind: 'node', id: n.id },
-        supportedFixes: ['resize', 'shorten-text-manually'],
-      })
+      if (!context.skipDiagnostics)
+        diagnostics.push({
+          ...issue('quality.text-overflow', '/spec'),
+          severity: 'warning',
+          subject: { kind: 'node', id: n.id },
+          supportedFixes: ['resize', 'shorten-text-manually'],
+        })
     }
   }
   for (const e of layout.edges) {
@@ -351,17 +354,126 @@ export function resolveDocument(
     height = points.reduce((bound, p) => Math.max(bound, p[1]), -Infinity) - y + padding
   layout.width = width
   layout.height = height
-  for (let i = 0; i < layout.nodes.length; i++) {
-    const a = layout.nodes[i]
-    for (let j = i + 1; j < layout.nodes.length; j++) {
-      const b = layout.nodes[j]
-      if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
-        diagnostics.push({
-          ...issue('quality.node-overlap', '/scene/nodes'),
-          severity: 'warning',
-          subject: { kind: 'node', id: a.id },
-          supportedFixes: ['move'],
-        })
+  if (!context.skipDiagnostics) {
+    for (let i = 0; i < layout.nodes.length; i++) {
+      const a = layout.nodes[i]
+      for (let j = i + 1; j < layout.nodes.length; j++) {
+        const b = layout.nodes[j]
+        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
+          diagnostics.push({
+            ...issue('quality.node-overlap', '/scene/nodes'),
+            severity: 'warning',
+            subject: { kind: 'node', id: a.id },
+            supportedFixes: ['move'],
+          })
+      }
+    }
+    const rects = new Map(
+      layout.nodes.map((n) => [n.id, { x: n.x, y: n.y, width: n.w, height: n.h } as const]),
+    )
+    const overlaps = (
+      a: { x: number; y: number; width: number; height: number },
+      b: { x: number; y: number; width: number; height: number },
+    ) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+    const cross = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) =>
+      (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+    const segmentIntersects = (
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      r: { x: number; y: number; width: number; height: number },
+    ) => {
+      const inside = x1 >= r.x && x1 <= r.x + r.width && y1 >= r.y && y1 <= r.y + r.height
+      if (inside) return true
+      const corners = [
+        [r.x, r.y],
+        [r.x + r.width, r.y],
+        [r.x + r.width, r.y + r.height],
+        [r.x, r.y + r.height],
+      ]
+      for (let i = 0; i < 4; i++) {
+        const [x3, y3] = corners[i],
+          [x4, y4] = corners[(i + 1) % 4]
+        const d1 = cross(x3, y3, x4, y4, x1, y1),
+          d2 = cross(x3, y3, x4, y4, x2, y2),
+          d3 = cross(x1, y1, x2, y2, x3, y3),
+          d4 = cross(x1, y1, x2, y2, x4, y4)
+        if (
+          ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+          ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
+        )
+          return true
+      }
+      return false
+    }
+    for (const e of layout.edges) {
+      const from = rects.get(e.from),
+        to = rects.get(e.to)
+      const points = e.routePoints ?? []
+      for (let i = 1; i < points.length && from && to; i++) {
+        const [x1, y1] = points[i - 1],
+          [x2, y2] = points[i]
+        for (const [id, rect] of rects) {
+          if (id === e.from || id === e.to) continue
+          if (segmentIntersects(x1, y1, x2, y2, rect)) {
+            diagnostics.push({
+              ...issue('quality.edge-through-node', '/scene/routes'),
+              severity: 'warning',
+              subject: { kind: 'edge', id: e.id },
+              supportedFixes: ['move', 'set-waypoints'],
+            })
+            break
+          }
+        }
+      }
+      if (from && to) {
+        const eps = 2
+        const touches = (
+          p: { x: number; y: number },
+          r: { x: number; y: number; width: number; height: number },
+        ) =>
+          p.x >= r.x - eps &&
+          p.x <= r.x + r.width + eps &&
+          p.y >= r.y - eps &&
+          p.y <= r.y + r.height + eps &&
+          (Math.abs(p.x - r.x) <= eps ||
+            Math.abs(p.x - (r.x + r.width)) <= eps ||
+            Math.abs(p.y - r.y) <= eps ||
+            Math.abs(p.y - (r.y + r.height)) <= eps)
+        if (!touches({ x: e.startX, y: e.startY }, from) || !touches({ x: e.endX, y: e.endY }, to))
+          diagnostics.push({
+            ...issue('quality.edge-endpoint', '/scene/routes'),
+            severity: 'warning',
+            subject: { kind: 'edge', id: e.id },
+            supportedFixes: ['set-waypoints'],
+          })
+      }
+    }
+    const extents = new Map(
+      layout.nodes.map((n) => [n.id, nodeTextExtent(n, document, context)] as const),
+    )
+    for (const [id, extent] of extents) {
+      const a = rects.get(id)
+      if (!a) continue
+      const labelRect = {
+        x: extent.left,
+        y: a.y,
+        width: extent.right - extent.left,
+        height: a.height,
+      }
+      for (const [other, b] of rects) {
+        if (other === id || !a) continue
+        if (overlaps(labelRect, b)) {
+          diagnostics.push({
+            ...issue('quality.label-collision', '/spec'),
+            severity: 'warning',
+            subject: { kind: 'node', id },
+            supportedFixes: ['resize', 'move'],
+          })
+          break
+        }
+      }
     }
   }
   if (context.signal?.aborted) return failure('operation.aborted')
@@ -369,4 +481,36 @@ export function resolveDocument(
     { layout, worldBounds: { x, y, width, height }, origin: { x: -x, y: -y }, diagnostics },
     diagnostics,
   )
+}
+
+/**
+ * Recomputes authored placements from the seed layout. Unlocked free-layout nodes
+ * move to their seeded geometry; locked nodes and their groups keep their current
+ * position. Structured types keep their seed geometry (scene placements are not
+ * authoritative for them) and are returned unchanged. Routes, groups and zOrder
+ * are preserved. The input document is never mutated.
+ */
+export function relayoutScene(document: DiagramDocument): Result<DiagramScene> {
+  const checked = validateDocument(document)
+  if (!checked.ok) return checked
+  const scene = checked.value.scene
+  if (!freeTypes.has(checked.value.spec.type)) return success(structuredClone(scene))
+  const seed = getAdapter(checked.value.spec.type).seedLayout(checked.value.spec)
+  if (!seed.ok) return seed
+  const nodes: DiagramScene['nodes'] = {}
+  for (const node of seed.value.nodes) {
+    const placement = scene.nodes[node.id]
+    nodes[node.id] = isNodeLocked(checked.value, node.id)
+      ? placement
+        ? { ...placement }
+        : { x: node.x, y: node.y, width: node.w, height: node.h, locked: false }
+      : { x: node.x, y: node.y, width: node.w, height: node.h, locked: placement?.locked ?? false }
+  }
+  return success({
+    mode: 'manual',
+    nodes,
+    routes: structuredClone(scene.routes),
+    groups: structuredClone(scene.groups),
+    zOrder: [...scene.zOrder],
+  })
 }

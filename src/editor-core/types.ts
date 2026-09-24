@@ -313,6 +313,18 @@ export interface ResolveContext {
   signal?: AbortSignal
   /** Real typographic measurer (e.g. canvas-backed). Falls back to a conservative estimate when absent. */
   measureText?: TextMeasurer
+  /**
+   * Skip the internal document validation when the caller owns the trust boundary
+   * (store-produced snapshots and previews are validated before they reach the renderer).
+   * Public and exported paths must not set this; their input is untrusted.
+   */
+  skipValidation?: boolean
+  /**
+   * Skip warning diagnostics (overlap scan and text overflow) when no consumer
+   * renders them. Geometry and bounds stay exact; only the O(n²) overlap scan
+   * and overflow pushes are dropped. Publish/export paths must not set this.
+   */
+  skipDiagnostics?: boolean
 }
 
 export type EditorCommand =
