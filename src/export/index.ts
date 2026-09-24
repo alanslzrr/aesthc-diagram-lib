@@ -103,7 +103,9 @@ async function raster(
     return failure(
       error instanceof Error && error.message === 'operation.aborted'
         ? 'operation.aborted'
-        : 'export.raster',
+        : error instanceof Error && error.message === 'export.image'
+          ? 'export.image'
+          : 'export.raster',
     )
   } finally {
     image.src = ''

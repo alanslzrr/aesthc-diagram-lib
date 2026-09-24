@@ -128,4 +128,38 @@ describe('export failure and limit paths', () => {
       expect(svg).toMatch(/data-node-id="a"/)
     }
   })
+  it('rejects JSON selection scopes and induces edges and groups into the raster scope', async () => {
+    const d = doc()
+    const json = await exportDocument(d, {
+      ...options,
+      format: 'json',
+      scope: { type: 'selection', selection: [{ kind: 'node', id: 'a' }] },
+    })
+    expect(json.ok).toBe(false)
+    if (!json.ok) expect(json.diagnostics.map((x) => x.code)).toContain('export.scope')
+    const edge = await exportDocument(d, {
+      ...options,
+      scope: { type: 'selection', selection: [{ kind: 'edge', id: 'ab-primary' }] },
+    })
+    expect(edge.ok).toBe(true)
+    if (edge.ok) {
+      const svg = new TextDecoder().decode(edge.value.bytes)
+      expect(svg).toMatch(/data-node-id="a"/)
+      expect(svg).toMatch(/data-node-id="b"/)
+    }
+    const group = doc()
+    group.scene.groups = [
+      { id: 'g', label: 'Group', kind: 'visual', nodeIds: ['a', 'b'], locked: false },
+    ]
+    const grouped = await exportDocument(group, {
+      ...options,
+      scope: { type: 'selection', selection: [{ kind: 'group', id: 'g' }] },
+    })
+    expect(grouped.ok).toBe(true)
+    if (grouped.ok) {
+      const svg = new TextDecoder().decode(grouped.value.bytes)
+      expect(svg).toMatch(/data-node-id="a"/)
+      expect(svg).toMatch(/data-node-id="b"/)
+    }
+  })
 })
