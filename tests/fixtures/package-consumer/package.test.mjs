@@ -222,6 +222,67 @@ test('editor core, graph and canonical export work from the installed package', 
   store.dispose()
 })
 
+test('editor entry and core extensions resolve from the installed package', async () => {
+  const editor = await import('@aesthc/diagram-lib/editor')
+  for (const name of [
+    'EditorRoot',
+    'EditorSurface',
+    'EditorToolbar',
+    'EditorInspector',
+    'EditorOutline',
+    'EditorStatus',
+    'useEditorStore',
+  ])
+    assert.equal(typeof editor[name], 'function', `missing editor export ${name}`)
+  const { createDocument, exportLegacySpec, relayoutScene, createEditorStore } =
+    await import('@aesthc/diagram-lib/editor-core')
+  const flowchart = createDocument(
+    {
+      type: 'flowchart',
+      caption: 'Legacy export',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'a', label: 'A', description: '' }],
+      edges: [],
+    },
+    { id: 'legacy-consumer', locale: 'en' },
+  )
+  assert.equal(flowchart.ok, true)
+  const exported = exportLegacySpec(flowchart.value)
+  assert.equal(exported.ok, true)
+  assert.equal(exported.value.spec.type, 'flowchart')
+  assert.equal(exported.value.losses[0].path, '/locale')
+  const graph = createDocument(
+    {
+      type: 'graph',
+      caption: 'Relayout',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'a', label: 'A', description: '' },
+        { id: 'b', label: 'B', description: '' },
+      ],
+      edges: [],
+    },
+    { id: 'relayout-consumer', locale: 'en' },
+  )
+  assert.equal(graph.ok, true)
+  const relaid = relayoutScene(graph.value)
+  assert.equal(relaid.ok, true)
+  assert.equal(relaid.value.mode, 'manual')
+  const store = createEditorStore({
+    document: graph.value,
+    permissions: { edit: true, save: true, export: true },
+  })
+  store.setPermissions({ edit: false, save: true, export: true })
+  const blocked = store.dispatch({
+    id: 'blocked',
+    label: 'Move',
+    expectedRevision: 0,
+    commands: [{ type: 'nodes.move', positions: { a: { x: 10, y: 10 } } }],
+  })
+  assert.equal(blocked.status, 'rejected')
+  store.dispose()
+})
+
 test('structured replacements require exhaustive mappings in the installed package', async () => {
   const { createDocument, createEditorStore, getAdapter } =
     await import('@aesthc/diagram-lib/editor-core')
