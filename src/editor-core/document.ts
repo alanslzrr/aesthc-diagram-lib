@@ -1,5 +1,6 @@
 import { identifyEdges } from '../layout'
 import { validateLocalizedDiagram } from '../validation'
+import type { DiagramSpec } from '../types'
 import type {
   DiagramDocument,
   EditorSpec,
@@ -134,4 +135,67 @@ export function serializeDocument(document: DiagramDocument): string {
 /** Revision is a concurrency token, not authored content or the dirty-state baseline. */
 export function canonicalizeContent(document: DiagramDocument): string {
   return canonical({ ...document, revision: 0 })
+}
+export interface LegacySpecExport {
+  spec: DiagramSpec
+  losses: Array<{ path: string; reason: string }>
+}
+function nonEmptyScene(document: DiagramDocument): Array<{ path: string; reason: string }> {
+  const scene = document.scene,
+    losses: Array<{ path: string; reason: string }> = []
+  if (scene.mode !== 'auto')
+    losses.push({ path: '/scene/mode', reason: 'legacy spec has no scene mode' })
+  if (Object.keys(scene.nodes).length)
+    losses.push({
+      path: '/scene/nodes',
+      reason: 'authored positions are not part of a legacy spec',
+    })
+  if (Object.keys(scene.routes).length)
+    losses.push({ path: '/scene/routes', reason: 'manual routes are not part of a legacy spec' })
+  if (scene.groups.length)
+    losses.push({ path: '/scene/groups', reason: 'groups are not part of a legacy spec' })
+  return losses
+}
+/**
+ * The legacy DiagramSpec export keeps explicit edge identities but cannot carry
+ * scene geometry, presentation, metadata, views, story or extensions. The receipt
+ * lists exactly the non-default content a legacy consumer would lose; the input
+ * document is never mutated. Graph documents have no legacy spec shape; use the
+ * reverse `convertToGraph` when bridging in the other direction.
+ */
+export function exportLegacySpec(document: DiagramDocument): Result<LegacySpecExport> {
+  const checked = validateDocument(document)
+  if (!checked.ok) return checked
+  if (checked.value.spec.type === 'graph')
+    return failure(
+      'conversion.unsupported',
+      '/spec',
+      'graph has no legacy spec export; convert explicitly instead',
+    )
+  const losses: Array<{ path: string; reason: string }> = []
+  for (const loss of nonEmptyScene(checked.value)) losses.push(loss)
+  if (JSON.stringify(checked.value.presentation) !== JSON.stringify(defaultPresentation()))
+    losses.push({
+      path: '/presentation',
+      reason: 'theme, grid and text scale are not part of a legacy spec',
+    })
+  if (
+    Object.keys(checked.value.metadata.nodes).length ||
+    Object.keys(checked.value.metadata.edges).length ||
+    Object.keys(checked.value.metadata.visuals).length
+  )
+    losses.push({
+      path: '/metadata',
+      reason: 'node, edge and visual metadata are not part of a legacy spec',
+    })
+  if (checked.value.views.length)
+    losses.push({ path: '/views', reason: 'named views are not part of a legacy spec' })
+  if (checked.value.story.length)
+    losses.push({ path: '/story', reason: 'story steps are not part of a legacy spec' })
+  if (Object.keys(checked.value.extensions).length)
+    losses.push({ path: '/extensions', reason: 'extensions are not part of a legacy spec' })
+  if (checked.value.revision !== 0)
+    losses.push({ path: '/revision', reason: 'the legacy export does not carry a revision token' })
+  losses.push({ path: '/locale', reason: 'the legacy export is not localized' })
+  return success({ spec: structuredClone(checked.value.spec) as DiagramSpec, losses })
 }

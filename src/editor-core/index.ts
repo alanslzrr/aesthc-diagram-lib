@@ -5,6 +5,7 @@ export {
   serializeDocument,
   canonicalizeContent,
   defaultPresentation,
+  exportLegacySpec,
 } from './document'
 export { validateDocument, validateEditorSpec, DEFAULT_LIMITS } from './validation'
 export { createEditorStore } from './store'
