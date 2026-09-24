@@ -151,6 +151,17 @@ function materialize(document: DiagramDocument) {
     ),
   }
 }
+export function EditorStatus() {
+  const dirty = useEditorSelector((s) => s.dirty),
+    t = useLabels()
+  return (
+    <span className="adl-editor-status" role="status">
+      {dirty
+        ? t('Unsaved changes', 'Cambios sin guardar')
+        : t('No pending changes', 'Sin cambios pendientes')}
+    </span>
+  )
+}
 export function EditorToolbar() {
   const { store } = useEditor(),
     snapshot = useEditorSelector(
@@ -161,7 +172,6 @@ export function EditorToolbar() {
         viewport: s.viewport,
         canUndo: s.canUndo,
         canRedo: s.canRedo,
-        dirty: s.dirty,
       }),
       shallowEqual,
     ),
@@ -218,11 +228,7 @@ export function EditorToolbar() {
         +
       </button>
       <EditorSelectionTools />
-      <span className="adl-editor-status" role="status">
-        {snapshot.dirty
-          ? t('Unsaved changes', 'Cambios sin guardar')
-          : t('No pending changes', 'Sin cambios pendientes')}
-      </span>
+      <EditorStatus />
     </div>
   )
 }

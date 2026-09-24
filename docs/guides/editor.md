@@ -15,7 +15,8 @@ Import `@aesthc/diagram-lib/editor.css` once. Wrap controls in an `adl-editor` e
 ```tsx
 import { type DiagramDocument } from '@aesthc/diagram-lib/editor-core'
 import {
-  EditorRoot, EditorToolbar, EditorSurface, EditorInspector, EditorJsonPanel, EditorOutline, useEditorStore,
+  EditorRoot, EditorToolbar, EditorSurface, EditorInspector, EditorJsonPanel, EditorOutline,
+  EditorStatus, useEditorStore,
 } from '@aesthc/diagram-lib/editor'
 import '@aesthc/diagram-lib/editor.css'
 
@@ -38,6 +39,13 @@ export function Editor({ document }: { document: DiagramDocument }) {
   )
 }
 ```
+
+The editor is composable by slots: `EditorSurface` is the only required interactive component.
+Place `EditorToolbar`, `EditorInspector`, `EditorOutline`, `EditorJsonPanel` and `EditorStatus`
+where the layout needs them, or omit any of them — the surface and store work without chrome.
+`EditorStatus` renders the dirty/saved state as a live region and is embedded in the toolbar by
+default, so rendering it twice is unnecessary. Custom chrome can read the same slices through
+`useEditorSelector`, so hosts do not need boolean props to configure the built-in panels.
 
 A store captures its initial document; later host changes must use `replaceDocument` with the current revision. This explicitly resets history. Do not recreate the store on every keystroke.
 
