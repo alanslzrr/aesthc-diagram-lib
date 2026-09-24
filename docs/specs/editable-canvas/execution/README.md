@@ -59,16 +59,16 @@ inmutables de CI. No se ha ejecutado un mutation runner exhaustivo.
 |---|---|---|
 | E00 | Baseline y harness ejecutados | Matriz bundled y visual legacy íntegramente aprobados |
 | E01 | Implementada y probada | Revisión final de contratos del candidato |
-| E02 | Implementada; N/N+1 en once límites y preflight adversarial | Completar todas las combinaciones del catálogo |
-| E03 | Adapters y conversión implementados | Expandir matriz CRUD completa, reorder semántico y remapeos |
-| E04 | Store funcional y testeado; mutation manual | Más interleavings, invalidaciones granulares y benchmark |
+| E02 | Implementada; N/N+1 en once límites, trust boundary (getters, ciclos, unsafe keys, hostiles) y JSON fidelity | Completar combinaciones del catálogo no cubiertas por `editor-validation`/`editor-limits` |
+| E03 | Adapters, conversión y matriz CRUD/reorder de los siete tipos | Mapeos exhaustivos, poda de relaciones y `convertToGraph` con receipt de pérdidas implementados | Matriz de conversión E2E (T53.2) y combinaciones CRUD restantes |
+| E04 | Store funcional; change sets granulares con endpoints en topología, `affected` por comando e invalidaciones layout/graph/style/views | Más interleavings y benchmark de 1000 nodos/memoria |
 | E05 | Primitives/estilos alineados con el legado (rx, dashes, pills, tablas, estado, muted, kinds); medición pluggable con provider canvas en editor/export y fuentes embebidas en export; overflow medido también para tipos estructurados | Certificación visual con Chromium fijado y shaping de fuentes definitivo; matriz bundled completa |
 | E06 | Superficie, marquee, resize de ocho direcciones y de selección múltiple, teclado, pinch, RAF por frame, scroll nativo/zoom modificado, touch prolongado y outline básico | Matriz completa de accesibilidad/gestos y benchmark de rendimiento |
-| E07 | CRUD/conexiones/inspector básicos; selección visual de conexiones y edición de rutas manuales (waypoints y anclas arrastrables, toggle auto/manual) | Inspector estructurado específico (ER/sequence/swimlane) y edición visual de puertos |
-| E08 | Multiselección, grupos, clipboard del sistema, align/distribute y paste estructurado con mapping de bandas (clamp o explícito) y carriles (label, luego índice, rechazo explícito) | Ampliar matriz de plataforma y casos de geometría |
-| E09 | Composición pública, ownership Strict Mode, outline integrado y tema/locale | Slots/configuración avanzada y selectores con suscripción granular |
+| E07 | CRUD/conexiones/inspector básicos; selección visual de conexiones, rutas manuales (waypoints y anclas arrastrables, toggle auto/manual) e inspectores estructurados (ER fields, participantes, carriles y puertos con edición visual) | Aceptación completa: IME, reconexiones por teclado/touch, drop inválido y cancelaciones |
+| E08 | Multiselección, grupos, clipboard del sistema, align/distribute y paste estructurado con mapping de bandas (clamp o explícito) y carriles (label→índice→rechazo, con regresión de primer carril no coincidente) | Ampliar matriz de plataforma y casos de geometría |
+| E09 | Composición pública, ownership Strict Mode, outline integrado, tema/locale y selectores granulares (`useEditorSelector` con caché por store/select y bail-out por igualdad) | Slots/configuración avanzada de componentes |
 | E10 | Persistencia/auto-save/conflictos, recuperación de borradores, cuarentena de corruptos sin sobrescribir, save-as y reapertura de copias guardadas (list + open) | Escenarios de fallos de almacenamiento ampliados |
-| E11 | API estática/raster funcional | Paridad visual certificada, medición de fuentes y todas las fallas de plataforma |
+| E11 | API estática/raster funcional; fallos de fuentes (inválidas/required/fallback con familias aisladas), escalas/píxeles, publish por overflow y scope de selección | Paridad visual certificada y fallas de raster en navegador |
 | E12 | Studio y consumidor externo funcionales | Cerrar dependencias M1 antes de declarar hito completo |
 | E13 | Graph queries implementadas | Viewer semántico y sus controles |
 | E14 | Contrato persistible validado | Lenses, vistas UI, stories, minimap y presentación |
@@ -82,6 +82,32 @@ inmutables de CI. No se ha ejecutado un mutation runner exhaustivo.
 | E22 | Pendiente | Diff exacto semántico/presentación |
 | E23 | Datos evidence validados | Verificador trusted y validación deployment profile |
 | E24 | Pendiente | Playback finito y WebM, abort/cleanup/decodificación |
+
+## Trazabilidad remapeada (2026-09-24)
+
+Los 71 archivos propuestos de los catálogos eran destinos de implementación; 56 de ellos no existen
+porque la cobertura real vive en otros archivos. Se remapeó `traceability.json` (status `mapped`):
+cada uno de los 112 escenarios tiene ahora `coverage` (`implemented`/`partial`/`missing`),
+`implementedIn` (archivo real verificado en disco) y `result` (evidencia observada). `file` sigue
+siendo el destino propuesto del spec. `verify-spec.mjs` valida el remapeo y regenera los catálogos.
+
+Resumen por estado: **50 implementados, 24 parciales, 38 sin cobertura localizada** (2026-09-24,
+`node docs/specs/editable-canvas/verify-spec.mjs` PASS). Los 38 `missing` y los detalles de los
+24 `partial` están enumerados por escenario en `test-catalog.md`.
+
+Gaps reales de M1 identificados por el remapeo (escenarios sin cobertura localizada o parciales):
+
+- **E02/E03/E04:** T03.2 (loss report legacy vs serialize), T04.1/T05.2/T31.2 parciales,
+  T53.2 (conversión E2E), interleavings y benchmark.
+- **E05/E06:** T07.2 (CSS scale/DPR), T15.2 (relayout preview), T08.1 middle pan, T09.1 discriminación de IDs.
+- **E07/E08/E09:** T16.1 IME, T17.2 teclado/touch, T20.x ungroup/group-move, T21.x presentation
+  tokens y dos canvas, T22.2 (store controlado por host).
+- **E10/E11:** T26.1 QuotaExceeded/descarga, T28.2 reparseo XML, T29.2/T36.1 fallas de raster en browser.
+- **E19:** T44.2 (zoom 200%, secuestro de atajos), T45.x matriz 360/768/1440, T46.1 benchmark 1000 nodos.
+- **M2/M3:** todo E13–E18, E22, E23 y E24 (excepto queries, budgets, release, docs y tarball ya cubiertos).
+
+No se declara M1 cerrado: el remapeo enlaza escenarios con evidencia, pero los `partial`/`missing`
+anteriores siguen siendo trabajo pendiente real.
 
 ## Limitaciones que no deben ocultarse
 
@@ -451,3 +477,198 @@ trazabilidad requisito→prueba→resultado.
 Gates tras las correcciones: `pnpm check` PASS (304 unit, 12 tarball), frameworks
 Vite/Next (incluye StrictMode) PASS, tarball React 18 PASS (12), E2E completo
 144 passed / 14 skipped.
+
+## Continuación M1: trazabilidad remapeada, E09 y benchmark (2026-09-24)
+
+Sin cerrar M1. Responde al paso concreto de remapear la trazabilidad antes de declarar M1.
+
+- **Trazabilidad**: `traceability.json` pasa de `proposed-not-implemented` a `mapped`. Los 56
+  archivos propuestos inexistentes no eran 56 funcionalidades faltantes: cada uno de los 112
+  escenarios ahora declara `coverage` (`implemented`/`partial`/`missing`), `implementedIn`
+  (archivo real verificado en disco) y `result` (evidencia observada). `verify-spec.mjs` valida
+  el remapeo y regenera los catálogos. Resumen: **51 implementados, 24 parciales, 37 sin
+  cobertura localizada**. Los gaps reales quedan enumerados por escenario en `test-catalog.md`
+  y en la sección de trazabilidad de este informe.
+- **E09**: `EditorStatus` exportado como componente standalone (completa la composición
+  Root/Surface/Toolbar/Inspector/Outline/Status de 03-architecture) y reutilizado por el
+  toolbar. `tests/editor-presentation.unit.spec.ts` (archivo propuesto ahora real) cubre
+  validación estricta de `textScale` 0.75–1.5, `grid.size` 4–64 y `padding` 0–256, geometría
+  que respeta el scale y aislamiento de paletas entre documentos (render y export usan el
+  tema del documento, no uno global). T21.1 pasa a implementado.
+- **E09/E11 perf**: `tests/editor-performance.unit.spec.ts` con dataset determinista fijo
+  100/200 y 1000/2000 (5 warmups + 30 muestras, p95). Node22: validate 1.6/15.9ms, resolve
+  3.1/104ms, commit 2.9/26.9ms, bfs 0.07/5.2ms, export 5/122ms — todos por debajo de los
+  targets de 06-tdd. `tests/e2e/editor-performance.e2e.ts` mide drag en browser sobre 1000
+  nodos (Chrome153 macOS, evidencia complementaria): pointer-gap p95 **51.6ms**, 0 long
+  frames >100ms; el target de 33.3ms queda para el runner de referencia con Chromium fijado.
+  El frame de drag no cierra T46.1, pero la evidencia local queda registrada y el harness
+  no cambia el dataset para pasar.
+
+### Gates de esta continuación
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check`, Node22.23.2/pnpm10.29.3 | PASS: **311 unit en 38 archivos, 12 tarball**, lint/formato/iconos/schemas/docs/tipos/build/site/budgets |
+| E2E completo Chrome153 + Pixel7, puerto 42816 | **146 passed, 14 skipped** (incluye benchmark de drag 1000 nodos en desktop; móvil lo salta) |
+| Visual legacy | No re-ejecutado en esta continuación; el diff de 6 píxeles quedó resuelto en la sesión anterior |
+| `node docs/specs/editable-canvas/verify-spec.mjs` | PASS: cobertura mapeada 51/24/37, `git diff --check` limpio |
+| Perf unit | 2/2 PASS con p95 registrados; drag browser 1/1 PASS (p95 51.6ms, 0 long frames) |
+
+Budgets gzip: studio 163988/179200, landing 176669/179200, docs 105173/179200; paquete
+738837 packed / 199 archivos. Logs: `/tmp/adl-check-final2.log`, `/tmp/adl-m1-e2e-results`,
+`/tmp/adl-perf-results`, `/tmp/adl-perf2-results`. Siguen pendientes los binarios
+Firefox/WebKit/Chromium fijado, el frame target del runner de referencia y todos los `partial`
+y `missing` enumerados en la sección de trazabilidad. Reintento `playwright install` en esta
+continuación: BLOCKED de nuevo descargando Chrome for Testing153 (chromium v1243) por timeout
+de red (`/tmp/adl-browser-retry2.log`); Chrome instalado sigue siendo evidencia complementaria.
+
+## Continuación M1: cierre de escenarios parciales y perf corregido (2026-09-24)
+
+Implementación end-to-end de los bloques de cierre M1 aprobados (handles, features, segunda
+instancia y frame p95 con gate de referencia). Sin commits ni publicación.
+
+- **T03.2**: `exportLegacySpec(document)` nuevo en editor-core: devuelve el spec legado con los
+  IDs conservados y un receipt de pérdidas exacto (`/scene/*`, `/presentation`, `/metadata`,
+  `/views`, `/story`, `/extensions`, `/revision`, `/locale` solo cuando hay contenido no
+  transferible); graph se rechaza con `conversion.unsupported`. `serializeDocument` sigue siendo
+  el round-trip sin pérdidas.
+- **T15.2**: `relayoutScene(document)` recomputa posiciones desde el seed conservando nodos
+  locked/grupos; UI «Re-layout» en el toolbar con preview transaccional, Apply en un commit
+  undoable y Cancel sin cambios.
+- **T17.2**: connection handles en canvas para tipos con `connect`: handle en el nodo
+  seleccionado, drag→release sobre un destino crea una relación en un commit undoable, drop en
+  fondo cancela sin cambios, y modo teclado (Enter en el handle → Enter en el destino, Escape
+  cancela). `export.image` ahora se distingue de `export.raster` en la exportación raster.
+- **T20.2**: `group.remove` (keep) rechaza si el grupo o cualquier miembro descendiente está
+  locked; tras unlock mantiene coords/IDs y undo exacto.
+- **T22.2**: `store.setPermissions(next)` para permiso de edición en runtime; el ejemplo
+  frameworks añade una segunda instancia controlada por el host (temas opuestos, `replaceDocument`
+  externo con history reset) que cubre T13.2, T21.2 y T22.2 en Vite/Next + StrictMode.
+- **T46.1 corregido**: el p95 de 51,6 ms anterior era el **intervalo entre `pointermove`**, no el
+  tiempo entre frames. El harness ahora mide el **p95 de deltas de `requestAnimationFrame`**
+  durante un drag sostenido de 1000 nodos: **frame p95 366,7 ms con 63 long frames >100 ms**
+  (Chrome153 macOS). La aserción de **33,3 ms queda separada y solo se activa en el runner de
+  referencia** (CI con Chromium del lockfile o `PERF_REFERENCE=1`); local reporta con un techo de
+  regresión documentado. El per-frame `resolveDocument`+`validateDocument` del escena de 1000
+  nodos supera el target en todas las plataformas medidas: **T46.1 sigue parcial** y exige la
+  optimización E19 (worker/incremental) antes de cerrar. El benchmark de algoritmos (unit) sigue
+  separado y cumple los targets (validate 15,9 / resolve 104 / commit 26,9 / bfs 5,2 / export 122 ms
+  a 1000 nodos, mediana de p95 para amortiguar ruido de workers).
+- **E2E nuevos**: `editor-export-failures` (reparseo XML, fallos de raster y disclosure),
+  `editor-viewport` (DPR 2, CSS scale, middle-pan, discriminación de IDs), `editor-connections`,
+  `editor-accessibility` (atajos y zoom 200 %) y `editor-design` (matriz 360/768/1440 × en/es).
+  `editor-performance` mide frames. Cierres unit en document/validation/store/persistence/export.
+
+### Gates de esta continuación
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check`, Node22.23.2/pnpm10.29.3 | PASS: **331 unit en 38 archivos, 13 tarball**, lint/formato/iconos/schemas/docs/tipos/build/site/budgets (studio 165221/179200) |
+| E2E completo Chrome153 + Pixel7, puerto 42876 | **179 passed, 21 skipped** (0 fallos) |
+| Frameworks Vite 7.3.6 / Next 15.5.25 (tarball) | PASS: dos instancias aisladas, temas opuestos, permisos runtime, replace externo con history reset |
+| Tarball React (NodeNext/Bundler) | 13 tests PASS, incluido el entry `@aesthc/diagram-lib/editor` y `exportLegacySpec`/`relayoutScene`/`setPermissions` |
+| Perf frame p95 (Chrome153 macOS) | 366,7 ms reportado; gate 33,3 ms aserrado solo en runner de referencia |
+| `verify-spec.mjs` | PASS: **75 implementados, 5 parciales, 32 sin cobertura localizada** |
+
+Pendientes anteriores a M2 (por hito, sin moverlos implícitamente): **T16.1 (E07, M1) parcial** — la
+composición IME no está verificada end-to-end; **T53.2 (E03, M0) sin cobertura** — la API
+`convertToGraph` no sustituye el flujo de usuario en Studio; **T55.2 (E02, M0) sin cobertura** —
+seguridad transversal con dependencia funcional del HTML export (E16). Los parciales de M2 son
+T31.2/T36.1/T44.1/T46.1, y los 31 `missing` restantes son M2/M3. Los totales de cobertura
+(75/5/32) son correctos; la clasificación por hito anterior a este párrafo no lo era.
+
+## Continuación M1: IME, conversión, seguridad y rendimiento (2026-09-24)
+
+Sin commits ni publicación. Orden: corregir estado → IME/conversión → seguridad → rendimiento → parciales.
+
+- **Estado corregido**: los pendientes anteriores a M2 eran T16.1 (M1, parcial), T53.2 (M0, sin
+  cobertura) y T55.2 (M0, sin cobertura); el párrafo anterior los había clasificado mal.
+- **T16.1 cerrado**: `tests/e2e/editor-crud.e2e.ts` — composición IME (CDP `imeSetComposition` +
+  `insertText`) sin commits intermedios en label y JSON, confirmación única, composición sin
+  confirmar que no persiste nada, texto literal sin ejecutar markup y borrador sin commit.
+- **T53.2 cerrado**: acción «Convert to graph» en Studio con explicación de pérdidas y
+  confirmación; cancel conserva documento/borrador/copia guardada; accept abre un documento nuevo
+  (history reset, token nuevo) y la copia original se puede recargar intacta.
+- **T55.2 parcial→parcial con evidencia**: almacenamiento forjado en cuarentena sin ejecución ni
+  fuga de token, imports hostiles literales y `url.scheme` rechazado antes de layout, sin logs
+  privados. Queda registrada la dependencia funcional del HTML export (CSP/offline, E16) — el
+  escenario NO se declara terminado.
+- **Rendimiento (T46.1 sigue parcial, con optimizaciones reales)**: perfilado por fase del frame
+  de drag 1000 nodos (Chrome153 macOS):
+  - preview del store: 28 ms → **3 ms** (`previewGesture` con `skipValidation` para comandos de
+    escena del propio editor; el commit final valida completo; se eliminó el `inspectData` del
+    camino de preview confiado).
+  - resolución geométrica: 187 ms → **111 ms** (caché LRU de medición tipográfica en el
+    measurer canvas, acotada y compartida solo entre resolves del editor; el export usa su
+    measurer embebido y no se contamina).
+  - `EditorJsonPanel` ya no serializa el documento (2 MB) por frame durante gestos.
+  - markup por frame: 836 KB → **~10 KB** (render incremental `only`/`exclude` por entidad con
+    baseline memoizado por gesto).
+  - diagnóstico O(N²) de solapes fuera del camino de preview (`skipDiagnostics`; bounds y
+    geometría intactos; publish conserva los diagnósticos).
+  - Desglose residual por frame: preview 3 + resolve 111 + markup <2 = ~115 ms JS; el resto
+    (~300 ms) es commit React/paint del SVG. El frame p95 local se mantiene ~420 ms: **el
+    target de 33,3 ms exige el resolver incremental de E19** (reusar geometría no afectada +
+    reducir el árbol React), trabajo documentado y pendiente. No se subió el umbral ni se redujo
+    el dataset; el gate de referencia (CI/`PERF_REFERENCE=1`) sigue asertando 33,3 ms.
+- **Parciales M2 cerrados**: T31.2 (maxHops/truncamiento/grupos), T36.1 (node-overlap,
+  edge-through-node, label-collision, edge-endpoint con supportedFixes y publish bloqueado),
+  T44.1 (flujo completo solo-teclado crear→editar→mover→conectar→borrar→undo→guardar→exportar;
+  el test detectó y fijó un bug real: el foco de un nodo seleccionaba una referencia edge tras
+  el refactor de memo).
+
+### Gates de esta continuación
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check`, Node22.23.2/pnpm10.29.3 | PASS: **335 unit en 38 archivos, 13 tarball**, todos los gates; studio 167787/179200 |
+| E2E completo Chrome153 + Pixel7, puerto 42918 | **197 passed, 21 skipped** (0 fallos) |
+| Perf unit (mediana de p95, 1000 nodos) | validate 15,9 / resolve 104 / commit 26,9 / bfs 5,2 / export 122 ms — targets cumplidos |
+| Perf frame (Chrome153 macOS) | desglose 3+111+<2 ms JS; frame p95 ~420 ms; gate 33,3 ms en runner de referencia |
+| `verify-spec.mjs` | PASS: **80 implementados, 2 parciales (T46.1, T55.2), 30 missing (M2/M3)** |
+
+Los 30 `missing` restantes son M2 (E13–E21) y M3 (E22–E24). T55.2 y T46.1 quedan parciales con su
+dependencia y su gate registrados; no se declaran cerrados.
+
+## Correcciones de integridad y benchmark corregido (2026-09-24)
+
+Respuesta al veredicto de auditoría (3 problemas de integridad + 2 limitaciones del benchmark).
+
+- **Preview inválido (alta)**: `previewGesture(..., { skipValidation: true })` ya no publica
+  deltas inválidos. `candidate` valida siempre los deltas (`validateCommandDeltas`): valores
+  finitos en `nodes.move`/`node.resize`/`scene.set`/rutas manuales, `layout.range` para tamaños
+  no positivos, `limit.route-points`, y `validateEditorSpec` para `spec.replace`. Un rechazo
+  conserva el último preview válido (el draft no se notifica). Regresiones: NaN rechazado con
+  `data.finite` y preview anterior intacto; rutas sobredimensionadas y specs rotos rechazados.
+- **Eliminación de bloqueados (alta)**: `spec.replace` comprueba ahora los IDs anteriores y los
+  resultantes; un nodo bloqueado (o miembro de grupo bloqueado) no puede eliminarse, ni siquiera
+  con `references: 'prune-references'`. Regresión con lock directo y lock heredado de grupo.
+- **Baseline obsoleto (media)**: la caché del baseline del render incluye la revisión del
+  documento en su clave y se limpia al terminar el gesto; contenido modificado entre gestos
+  (rename de otro nodo, tema) ya no reutiliza markup anterior. Regresión E2E: drag → rename →
+  drag con el nuevo label visible durante el preview.
+- **Benchmark corregido (media)**: el commit alterna posiciones (`(x+1) % 16`) y exige
+  `committed` — ya no mide no-ops; el export espera cada `exportDocument` y verifica el
+  artefacto. La corrección destapó dos realidades: el export de 1000 nodos fallaba siempre con
+  `export.pixels` (el seed de layoutFlowchart producía bounds de 4352×27208; el dataset del
+  benchmark ahora usa la cuadrícula determinista 180×80, bounds ~7300×2100) y el commit real
+  superaba 50 ms por tres serializaciones de 2 MB por operación. Se añadió caché de contenido y
+  bytes por identidad de documento (WeakMap) en el store. **Cifras comparables corregidas**
+  (mediana de p95, 1000 nodos): validate 15,7 ms, resolve 108,3 ms, **commit 48,2 ms (≤50)**,
+  bfs 5,7 ms, **export 272,6 ms (≤3000)** — todas las medidas son operaciones reales y
+  completas.
+
+### Gates de esta corrección
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check`, Node22.23.2/pnpm10.29.3 | PASS: **338 unit en 38 archivos, 13 tarball**, todos los gates |
+| E2E completo Chrome153 + Pixel7, puerto 42922 | **198 passed, 22 skipped** (incluye la regresión de baseline) |
+| Frameworks Vite 7.3.6 / Next 15.5.25 | PASS |
+| Visual legacy | 4/4 PASS |
+| `verify-spec.mjs` | 80 implementados / 2 parciales (T46.1, T55.2) / 30 missing |
+
+Pendiente tras el veredicto, sin cambios de estado: T46.1 requiere el resolver incremental y la
+reducción del trabajo React/SVG (frame local ~420 ms vs 33,3 ms de referencia); los tests IME
+usan CDP sin alternativa Firefox/WebKit (portabilidad pendiente junto a la descarga de binarios);
+T55.2 sigue parcial y visible hasta E16 (CSP/offline).
