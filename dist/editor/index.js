@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-TDOMHFX7.js";
+} from "../chunk-SKXBVB5C.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -14,7 +14,7 @@ import {
   getAdapter,
   isNodeLocked,
   resolveDocument
-} from "../chunk-WVQ2HMNC.js";
+} from "../chunk-DQZTWVVO.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -198,15 +198,27 @@ function useEditorSelector(select, equals = Object.is) {
   selectRef.current = select;
   const equalsRef = useRef(equals);
   equalsRef.current = equals;
-  const [value, setValue] = useState(() => select(store.getSnapshot()));
+  const cache = useRef(void 0);
+  const [, setTick] = useState(0);
   useEffect(() => {
     const update = () => {
       const next = selectRef.current(store.getSnapshot());
-      setValue((current) => equalsRef.current(next, current) ? current : next);
+      const current = cache.current?.value;
+      if (current === void 0 || !equalsRef.current(next, current)) {
+        cache.current = { store, select: selectRef.current, value: next };
+        setTick((tick) => tick + 1);
+      }
     };
+    update();
     return store.subscribe(update);
   }, [store]);
-  return value;
+  const cached = cache.current;
+  if (!cached || cached.store !== store || cached.select !== select) {
+    const next = select(store.getSnapshot());
+    cache.current = { store, select, value: next };
+    return next;
+  }
+  return cached.value;
 }
 function useLabels() {
   const { locale } = useEditor();
@@ -1109,6 +1121,7 @@ function EditorSurface({
               })(),
               snapshot.selection.length === 1 && snapshot.selection[0].kind === "node" && getAdapter(activeDoc.spec.type).capabilities.includes("ports") && (() => {
                 const id = snapshot.selection[0].id;
+                if (isNodeLocked(activeDoc, id)) return null;
                 const authored = nodesOf(activeDoc.spec).find((n) => n.id === id);
                 const authoredRect = activeDoc.scene.nodes[id];
                 const laidOut = resolved.ok ? resolved.value.layout.nodeById[id] : void 0;
@@ -1811,7 +1824,7 @@ function EditorStructuredInspector() {
       error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
     ] });
   }
-  if (type === "graph" && node.ports) {
+  if (type === "graph") {
     const graphNode = node;
     const ports = graphNode.ports ?? [];
     return /* @__PURE__ */ jsxs("section", { "aria-label": t("Ports", "Puertos"), children: [

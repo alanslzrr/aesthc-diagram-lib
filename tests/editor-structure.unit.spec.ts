@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { createDocument, getAdapter } from '../src/editor-core'
+import { applyCommand } from '../src/editor-core/commands'
+import { validateDocument } from '../src/editor-core'
 import type { DiagramSpec } from '../src/types'
 import type { StructuralEdit } from '../src/editor-core/types'
 import legacy from './fixtures/editor/legacy-specs.json'
+import graphFixture from './fixtures/editor/graph-document.json'
+function doc() {
+  const r = validateDocument(structuredClone(graphFixture))
+  if (!r.ok) throw Error('fixture')
+  return r.value
+}
 
 describe.each(['band', 'swimlane'] as const)('%s structural mapping', (type) => {
   const created = createDocument(legacy[type] as DiagramSpec, { id: 'structure', locale: 'en' })
@@ -69,5 +77,34 @@ describe.each(['band', 'swimlane'] as const)('%s structural mapping', (type) => 
     if (op.type === 'bands.replace') op.assignments.b = 99
     if (op.type === 'lanes.replace') op.assignments.b = 'missing'
     expect(adapter.editStructure(spec, op).ok).toBe(false)
+  })
+})
+describe('locked node protection', () => {
+  it('rejects spec replaces that mutate a locked node and allows untouched ones', () => {
+    const d = doc()
+    d.scene.nodes.a.locked = true
+    const lockedSpec = structuredClone(d.spec)
+    if (lockedSpec.type === 'graph') {
+      const target = lockedSpec.nodes.find((n) => n.id === 'a')
+      if (target) target.label = 'Mutated'
+    }
+    const rejected = applyCommand(structuredClone(d), {
+      type: 'spec.replace',
+      spec: lockedSpec as never,
+      references: 'reject',
+    })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) expect(rejected.diagnostics.map((x) => x.code)).toContain('entity.locked')
+    const untouched = structuredClone(d.spec)
+    if (untouched.type === 'graph') {
+      const other = untouched.nodes.find((n) => n.id === 'b')
+      if (other) other.label = 'Fine'
+    }
+    const accepted = applyCommand(structuredClone(d), {
+      type: 'spec.replace',
+      spec: untouched as never,
+      references: 'reject',
+    })
+    expect(accepted.ok).toBe(true)
   })
 })

@@ -244,6 +244,13 @@ function applyCommand(doc, command) {
     case "spec.replace": {
       const result = createDocument(command.spec, { id: doc.id, locale: doc.locale });
       if (!result.ok) return result;
+      const next = nodesOf(result.value.spec), previous = nodesOf(doc.spec);
+      for (const id of new Set(next.map((n) => n.id))) {
+        if (!isNodeLocked(doc, id)) continue;
+        const before = previous.find((n) => n.id === id), after = next.find((n) => n.id === id);
+        if (before && after && JSON.stringify(before) !== JSON.stringify(after))
+          return failure("entity.locked", `/spec/${id}`);
+      }
       doc.spec = result.value.spec;
       if (command.references === "prune-references") pruneReferences(doc);
       else {
@@ -361,8 +368,10 @@ function toDataUrl(bytes) {
 function createEmbeddedFontTextMeasurer(sans, mono) {
   if (typeof document === "undefined" || typeof document.createElement !== "function")
     return void 0;
+  const nonce = Math.random().toString(36).slice(2, 10);
+  const sansFamily = `adl-export-${nonce}-sans`, monoFamily = `adl-export-${nonce}-mono`;
   const style = document.createElement("style");
-  style.textContent = `@font-face{font-family:"Geist";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(${toDataUrl(mono)}) format("woff2")}`;
+  style.textContent = `@font-face{font-family:"${sansFamily}";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"${monoFamily}";src:url(${toDataUrl(mono)}) format("woff2")}`;
   document.head.appendChild(style);
   const context = document.createElement("canvas").getContext("2d");
   let disposed = false;
@@ -371,15 +380,17 @@ function createEmbeddedFontTextMeasurer(sans, mono) {
       if (disposed) return estimateTextWidth(text, role);
       const length = Array.from(text).length;
       if (!length) return 0;
-      context.font = `${role.size}px ${role.family === "Geist Mono" ? '"Geist Mono", monospace' : "Geist, sans-serif"}`;
+      context.font = `${role.size}px ${role.family === "Geist Mono" ? `"${monoFamily}"` : `"${sansFamily}"`}`;
       return context.measureText(text).width + (length - 1) * (role.tracking ?? 0);
     },
     async ready() {
-      if (disposed || typeof document === "undefined" || !document.fonts) return;
-      await Promise.allSettled([
-        document.fonts.load('16px "Geist"'),
-        document.fonts.load('16px "Geist Mono"')
-      ]);
+      if (disposed || typeof document === "undefined" || !document.fonts) return false;
+      const loaded = (family) => document.fonts.load(`16px "${family}"`).then(
+        () => true,
+        () => false
+      );
+      const [sansOk, monoOk] = await Promise.all([loaded(sansFamily), loaded(monoFamily)]);
+      return sansOk && monoOk;
     },
     dispose() {
       disposed = true;

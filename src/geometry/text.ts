@@ -49,18 +49,18 @@ function toDataUrl(bytes: Uint8Array): string {
 
 export interface FontMeasurer {
   measure: TextMeasurer
-  /** Wait until the embedded faces are ready for canvas measurement. */
-  ready(): Promise<void>
+  /** True only when the embedded faces actually loaded for measurement. */
+  ready(): Promise<boolean>
   /** Remove the scoped @font-face declarations. */
   dispose(): void
 }
 
 /**
  * Measures with the exact font bytes that will be embedded in the artifact,
- * registered through a scoped @font-face so the DOM document is not altered
- * permanently. Returns `undefined` outside a DOM. Without this, canvas
- * measurement would use whatever host font happens to be loaded, which may
- * differ from the embedded bytes.
+ * registered through a scoped @font-face with per-export family names so the
+ * host document and concurrent exports cannot interfere. Returns `undefined`
+ * outside a DOM. `ready()` resolves true only when both faces are usable;
+ * callers decide how to treat a failed load according to their font policy.
  */
 export function createEmbeddedFontTextMeasurer(
   sans: Uint8Array,
@@ -68,8 +68,11 @@ export function createEmbeddedFontTextMeasurer(
 ): FontMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
+  const nonce = Math.random().toString(36).slice(2, 10)
+  const sansFamily = `adl-export-${nonce}-sans`,
+    monoFamily = `adl-export-${nonce}-mono`
   const style = document.createElement('style')
-  style.textContent = `@font-face{font-family:"Geist";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(${toDataUrl(mono)}) format("woff2")}`
+  style.textContent = `@font-face{font-family:"${sansFamily}";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"${monoFamily}";src:url(${toDataUrl(mono)}) format("woff2")}`
   document.head.appendChild(style)
   const context = document.createElement('canvas').getContext('2d')
   let disposed = false
@@ -82,16 +85,19 @@ export function createEmbeddedFontTextMeasurer(
             const length = Array.from(text).length
             if (!length) return 0
             context.font = `${role.size}px ${
-              role.family === 'Geist Mono' ? '"Geist Mono", monospace' : 'Geist, sans-serif'
+              role.family === 'Geist Mono' ? `"${monoFamily}"` : `"${sansFamily}"`
             }`
             return context.measureText(text).width + (length - 1) * (role.tracking ?? 0)
           },
     async ready() {
-      if (disposed || typeof document === 'undefined' || !document.fonts) return
-      await Promise.allSettled([
-        document.fonts.load('16px "Geist"'),
-        document.fonts.load('16px "Geist Mono"'),
-      ])
+      if (disposed || typeof document === 'undefined' || !document.fonts) return false
+      const loaded = (family: string) =>
+        document.fonts.load(`16px "${family}"`).then(
+          () => true,
+          () => false,
+        )
+      const [sansOk, monoOk] = await Promise.all([loaded(sansFamily), loaded(monoFamily)])
+      return sansOk && monoOk
     },
     dispose() {
       disposed = true

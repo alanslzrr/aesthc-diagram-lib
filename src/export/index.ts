@@ -184,7 +184,15 @@ export async function exportDocument(
       if (!result.ok) return result
       fonts = result.value
       measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono)
-      if (measurer) await measurer.ready()
+      if (measurer) {
+        const embeddedReady = await measurer.ready()
+        if (!embeddedReady) {
+          measurer.dispose()
+          measurer = undefined
+          if (options.fontPolicy === 'required') return failure('export.font-missing')
+          diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
+        }
+      }
     } else if (options.fontPolicy === 'fallback')
       diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
     else return failure('export.font-missing')

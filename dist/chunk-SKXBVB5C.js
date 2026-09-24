@@ -3,7 +3,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-WVQ2HMNC.js";
+} from "./chunk-DQZTWVVO.js";
 import {
   canonicalizeContent,
   importDocument
@@ -51,12 +51,17 @@ function invalidationsFor(before, after, commands) {
         break;
     }
   }
-  const topology = (doc) => `${nodesOf(doc.spec).map((n) => n.id).join(",")}|${edgesOf(doc.spec).map((e) => e.id).sort().join(",")}`;
+  const topology = (doc) => `${nodesOf(doc.spec).map((n) => n.id).join(",")}|${edgesOf(doc.spec).map((e) => `${e.id}:${e.from}->${e.to}`).sort().join(",")}`;
   if (topology(before) !== topology(after)) set.add("graph");
-  if (!commands.length) set.add("graph"), set.add("style"), set.add("views");
+  if (!commands.length) {
+    set.add("graph");
+    set.add("style");
+    set.add("views");
+    set.add("layout");
+  }
   return [...set];
 }
-function affectedFor(commands) {
+function affectedFor(before, after, commands) {
   const affected = [];
   for (const command of commands) {
     switch (command.type) {
@@ -72,8 +77,31 @@ function affectedFor(commands) {
       case "route.set":
         affected.push({ kind: "edge", id: command.id });
         break;
+      case "group.upsert":
+        affected.push({ kind: "group", id: command.group.id });
+        break;
+      case "group.remove":
+        affected.push({ kind: "group", id: command.id });
+        break;
     }
   }
+  if (affected.length) return affected;
+  const signature = (node) => `${node.id}|${JSON.stringify(node)}`;
+  const nodesBefore = new Map(nodesOf(before.spec).map((n) => [n.id, n])), nodesAfter = new Map(nodesOf(after.spec).map((n) => [n.id, n]));
+  for (const [id, node] of nodesAfter) {
+    const previous = nodesBefore.get(id);
+    if (!previous || signature(previous) !== signature(node)) affected.push({ kind: "node", id });
+  }
+  for (const id of nodesBefore.keys()) if (!nodesAfter.has(id)) affected.push({ kind: "node", id });
+  const edgeId = (edge) => edge.id ?? `${edge.from}->${edge.to}`;
+  const edgesBefore = new Map(edgesOf(before.spec).map((e) => [edgeId(e), e])), edgesAfter = new Map(edgesOf(after.spec).map((e) => [edgeId(e), e]));
+  const edgeKey = (edge) => `${edge.from}->${edge.to}|${edge.label ?? ""}|${edge.variant ?? ""}`;
+  for (const [id, edge] of edgesAfter) {
+    const previous = edgesBefore.get(id);
+    if (!previous || edgeKey(previous) !== edgeKey(edge)) affected.push({ kind: "edge", id });
+  }
+  for (const id of edgesBefore.keys()) if (!edgesAfter.has(id)) affected.push({ kind: "edge", id });
+  if (!affected.length) for (const id of nodesAfter.keys()) affected.push({ kind: "node", id });
   return affected;
 }
 function createEditorStore(options) {
@@ -149,7 +177,7 @@ function createEditorStore(options) {
       (ref) => (ref.kind === "node" ? nodeIds : ref.kind === "edge" ? edgeIds : groupIds).has(ref.id)
     );
     const changes = {
-      affected: affectedFor(commands),
+      affected: affectedFor(before, doc, commands),
       invalidates: invalidationsFor(before, doc, commands)
     };
     gesture = void 0;

@@ -57,6 +57,15 @@ export function applyCommand(
     case 'spec.replace': {
       const result = createDocument(command.spec, { id: doc.id, locale: doc.locale })
       if (!result.ok) return result
+      const next = nodesOf(result.value.spec),
+        previous = nodesOf(doc.spec)
+      for (const id of new Set(next.map((n) => n.id))) {
+        if (!isNodeLocked(doc, id)) continue
+        const before = previous.find((n) => n.id === id),
+          after = next.find((n) => n.id === id)
+        if (before && after && JSON.stringify(before) !== JSON.stringify(after))
+          return failure('entity.locked', `/spec/${id}`)
+      }
       doc.spec = result.value.spec
       if (command.references === 'prune-references') pruneReferences(doc)
       else {

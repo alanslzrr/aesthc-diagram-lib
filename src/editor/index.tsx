@@ -90,15 +90,34 @@ export function useEditorSelector<T>(
   selectRef.current = select
   const equalsRef = useRef(equals)
   equalsRef.current = equals
-  const [value, setValue] = useState<T>(() => select(store.getSnapshot()))
+  const cache = useRef<
+    | {
+        store: EditorStore
+        select: (snapshot: ReturnType<EditorStore['getSnapshot']>) => T
+        value: T
+      }
+    | undefined
+  >(undefined)
+  const [, setTick] = useState(0)
   useEffect(() => {
     const update = () => {
       const next = selectRef.current(store.getSnapshot())
-      setValue((current) => (equalsRef.current(next, current) ? current : next))
+      const current = cache.current?.value
+      if (current === undefined || !equalsRef.current(next, current)) {
+        cache.current = { store, select: selectRef.current, value: next }
+        setTick((tick) => tick + 1)
+      }
     }
+    update()
     return store.subscribe(update)
   }, [store])
-  return value
+  const cached = cache.current
+  if (!cached || cached.store !== store || cached.select !== select) {
+    const next = select(store.getSnapshot())
+    cache.current = { store, select, value: next }
+    return next
+  }
+  return cached.value
 }
 function useLabels() {
   const { locale } = useEditor()
@@ -1135,6 +1154,7 @@ export function EditorSurface({
             getAdapter(activeDoc.spec.type).capabilities.includes('ports') &&
             (() => {
               const id = snapshot.selection[0].id
+              if (isNodeLocked(activeDoc, id)) return null
               const authored = nodesOf(activeDoc.spec).find((n) => n.id === id) as
                 GraphNode | undefined
               const authoredRect = activeDoc.scene.nodes[id]
@@ -1880,7 +1900,7 @@ export function EditorStructuredInspector() {
       </section>
     )
   }
-  if (type === 'graph' && (node as GraphNode).ports) {
+  if (type === 'graph') {
     const graphNode = node as GraphNode
     const ports = graphNode.ports ?? []
     return (

@@ -225,3 +225,51 @@ describe('granular change sets', () => {
     store.dispose()
   })
 })
+describe('change set regressions', () => {
+  it('invalidates graph when an edge reconnects without changing its id', () => {
+    const store = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const changes: string[][] = []
+    const affected: string[][] = []
+    store.onCommit((result) => {
+      changes.push([...result.changes.invalidates])
+      affected.push(result.changes.affected.map((r) => `${r.kind}:${r.id}`))
+    })
+    const spec = structuredClone(doc().spec)
+    if (spec.type === 'graph') {
+      const edge = spec.edges.find((e) => e.id === 'ad')
+      if (edge) edge.to = 'isolated'
+    }
+    const r = store.dispatch({
+      id: 'reconnect',
+      label: 'reconnect',
+      expectedRevision: 0,
+      commands: [{ type: 'spec.replace', spec: spec as never, references: 'reject' }],
+    })
+    expect(r.status).toBe('committed')
+    expect(changes.at(-1)).toContain('graph')
+    expect(affected.at(-1)).toContain('edge:ad')
+    store.dispose()
+  })
+  it('invalidates layout when undo restores geometry', () => {
+    const store = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const changes: string[][] = []
+    store.onCommit((result) => changes.push([...result.changes.invalidates]))
+    store.dispatch({
+      id: 'm',
+      label: 'move',
+      expectedRevision: 0,
+      commands: [{ type: 'nodes.move', positions: { a: { x: 50, y: 50 } } }],
+    })
+    const undone = store.undo()
+    expect(undone.status).toBe('committed')
+    expect(changes.at(-1)).toContain('layout')
+    expect(changes.at(-1)).toContain('graph')
+    store.dispose()
+  })
+})
