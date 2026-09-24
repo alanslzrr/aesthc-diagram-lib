@@ -40,4 +40,29 @@ describe('authored directed graph queries', () => {
     expect(result.ok).toBe(false)
     expect(result.diagnostics.some((issue) => issue.code === 'graph.unknown-node')).toBe(true)
   })
+
+  it('T31.2 reports truncation when the hop limit cuts reachable scope', () => {
+    const bounded = findReach(graph(), 'a', 'downstream', 1)
+    if (!bounded.ok) throw new Error(JSON.stringify(bounded.diagnostics))
+    expect(bounded.value.truncated).toBe(true)
+    expect(bounded.value.depth.b).toBe(1)
+    const full = findReach(graph(), 'a', 'downstream')
+    if (!full.ok) throw new Error(JSON.stringify(full.diagnostics))
+    expect(full.value.truncated).toBe(false)
+    const zero = findReach(graph(), 'a', 'downstream', 0)
+    if (!zero.ok) throw new Error(JSON.stringify(zero.diagnostics))
+    expect(zero.value.nodeIds).toEqual(['a'])
+    expect(zero.value.truncated).toBe(true)
+  })
+
+  it('T31.2 group membership never invents connectivity between members', () => {
+    const result = validateDocument(structuredClone(fixture))
+    if (!result.ok) throw new Error('fixture')
+    result.value.scene.groups = [
+      { id: 'g', label: 'Group', kind: 'visual', nodeIds: ['a', 'isolated'], locked: false },
+    ]
+    const route = findRoute(graphSnapshot(result.value), 'a', 'isolated')
+    if (!route.ok) throw new Error(JSON.stringify(route.diagnostics))
+    expect(route.value.status).toBe('unreachable')
+  })
 })
