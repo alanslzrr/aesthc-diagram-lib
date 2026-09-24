@@ -25,19 +25,31 @@ export const estimateTextWidth: TextMeasurer = (text, role) => {
  * outside a DOM so callers keep the conservative fallback instead of guessing.
  * Widths are only exact once the Geist families are loaded; before that the
  * browser substitutes a fallback face and the result stays a lower bound.
+ * Results are cached per (size, family, tracking, text) so repeated scene
+ * resolutions during drag gestures do not re-measure every label; the cache is
+ * bounded and dropped wholesale when full, never evicting stale widths that
+ * could silently change geometry.
  */
 export function createCanvasTextMeasurer(): TextMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
   const context = document.createElement('canvas').getContext('2d')
   if (!context) return undefined
+  const cache = new Map<string, number>()
+  const CACHE_LIMIT = 20000
   return (text, role) => {
     const length = Array.from(text).length
     if (!length) return 0
+    const key = `${role.size}|${role.family}|${role.tracking ?? 0}|${text}`
+    const cached = cache.get(key)
+    if (cached !== undefined) return cached
     context.font = `${role.size}px ${
       role.family === 'Geist Mono' ? '"Geist Mono", monospace' : 'Geist, sans-serif'
     }`
-    return context.measureText(text).width + (length - 1) * (role.tracking ?? 0)
+    const width = context.measureText(text).width + (length - 1) * (role.tracking ?? 0)
+    if (cache.size >= CACHE_LIMIT) cache.clear()
+    cache.set(key, width)
+    return width
   }
 }
 
