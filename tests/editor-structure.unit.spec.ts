@@ -107,4 +107,35 @@ describe('locked node protection', () => {
     })
     expect(accepted.ok).toBe(true)
   })
+  it('rejects removing a locked node through prune-references', () => {
+    const d = doc()
+    d.scene.nodes.a.locked = true
+    const pruned = structuredClone(d.spec)
+    if (pruned.type === 'graph') {
+      pruned.nodes = pruned.nodes.filter((n) => n.id !== 'a')
+      pruned.edges = pruned.edges.filter((e) => e.from !== 'a' && e.to !== 'a')
+    }
+    const rejected = applyCommand(structuredClone(d), {
+      type: 'spec.replace',
+      spec: pruned as never,
+      references: 'prune-references',
+    })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) expect(rejected.diagnostics.map((x) => x.code)).toContain('entity.locked')
+    const d2 = doc()
+    d2.scene.groups = [{ id: 'g', label: 'Group', kind: 'visual', nodeIds: ['b'], locked: true }]
+    const pruned2 = structuredClone(d2.spec)
+    if (pruned2.type === 'graph') {
+      pruned2.nodes = pruned2.nodes.filter((n) => n.id !== 'b')
+      pruned2.edges = pruned2.edges.filter((e) => e.from !== 'b' && e.to !== 'b')
+    }
+    const groupLocked = applyCommand(structuredClone(d2), {
+      type: 'spec.replace',
+      spec: pruned2 as never,
+      references: 'prune-references',
+    })
+    expect(groupLocked.ok).toBe(false)
+    if (!groupLocked.ok)
+      expect(groupLocked.diagnostics.map((x) => x.code)).toContain('entity.locked')
+  })
 })

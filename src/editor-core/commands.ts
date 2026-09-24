@@ -59,10 +59,11 @@ export function applyCommand(
       if (!result.ok) return result
       const next = nodesOf(result.value.spec),
         previous = nodesOf(doc.spec)
-      for (const id of new Set(next.map((n) => n.id))) {
+      for (const id of new Set([...next.map((n) => n.id), ...previous.map((n) => n.id)])) {
         if (!isNodeLocked(doc, id)) continue
         const before = previous.find((n) => n.id === id),
           after = next.find((n) => n.id === id)
+        if (!after) return failure('entity.locked', `/spec/${id}`, 'locked node cannot be removed')
         if (before && after && JSON.stringify(before) !== JSON.stringify(after))
           return failure('entity.locked', `/spec/${id}`)
       }
@@ -133,6 +134,11 @@ export function applyCommand(
         pruneReferences(doc)
         break
       }
+      const keptMembers = new Set(group.nodeIds)
+      for (const child of doc.scene.groups.filter((g) => g.parentGroup === command.id))
+        child.nodeIds.forEach((id) => keptMembers.add(id))
+      if (group.locked || [...keptMembers].some((id) => isNodeLocked(doc, id)))
+        return failure('entity.locked')
       doc.scene.groups = doc.scene.groups.filter((g) => g.id !== command.id)
       doc.scene.groups.forEach((g) => {
         if (g.parentGroup === command.id) {
