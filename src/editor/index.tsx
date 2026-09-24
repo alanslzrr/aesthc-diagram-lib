@@ -1,6 +1,8 @@
 'use client'
 import {
   createContext,
+  memo,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -9,7 +11,11 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react'
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  ReactNode,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
 import type {
   DiagramDocument,
   EditorCommand,
@@ -32,7 +38,7 @@ import type {
 import { getAdapter } from '../editor-core/adapters'
 import { edgesOf, freeTypes, nodesOf } from '../editor-core/model'
 import { isNodeLocked } from '../editor-core/commands'
-import { resolveDocument, anchorPoint, anchorFromPoint } from '../editor-core/scene'
+import { resolveDocument, relayoutScene, anchorPoint, anchorFromPoint } from '../editor-core/scene'
 import { fitViewport, zoomAt, screenToWorld } from '../editor-core/viewport'
 import { serializeDocument } from '../editor-core/document'
 import { renderSceneMarkup } from '../render'
@@ -123,6 +129,112 @@ function useLabels() {
   const { locale } = useEditor()
   return (en: string, es: string) => (locale === 'es' ? es : en)
 }
+interface NodeHitRectProps {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  label: string
+  selected: boolean
+  zoom: number
+  stroke: string
+  onSelect: (id: string) => void
+  onKey: (id: string) => void
+}
+const NodeHitRect = memo(function NodeHitRect({
+  id,
+  x,
+  y,
+  width,
+  height,
+  label,
+  selected,
+  zoom,
+  stroke,
+  onSelect,
+  onKey,
+}: NodeHitRectProps) {
+  return (
+    <rect
+      data-hit-node={id}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={4}
+      fill="transparent"
+      stroke={selected ? stroke : 'none'}
+      strokeWidth={2 / zoom}
+      tabIndex={0}
+      role="button"
+      aria-label={label}
+      aria-pressed={selected}
+      onFocus={() => {
+        if (!selected) onSelect(id)
+      }}
+      onKeyDown={(event: ReactKeyboardEvent<SVGRectElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onKey(id)
+        }
+      }}
+    />
+  )
+})
+interface EdgeHitRectProps {
+  id: string
+  index: number
+  x: number
+  y: number
+  width: number
+  height: number
+  selected: boolean
+  zoom: number
+  stroke: string
+  label: string
+  onSelect: (id: string) => void
+}
+const EdgeHitRect = memo(function EdgeHitRect({
+  id,
+  index,
+  x,
+  y,
+  width,
+  height,
+  selected,
+  zoom,
+  stroke,
+  label,
+  onSelect,
+}: EdgeHitRectProps) {
+  void zoom
+  return (
+    <rect
+      key={`${id}-hit-${index}`}
+      data-hit-edge={id}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={6}
+      fill="rgba(0, 0, 0, 0.001)"
+      stroke={selected ? stroke : 'rgba(0, 0, 0, 0.001)'}
+      style={{ cursor: 'pointer' }}
+      tabIndex={0}
+      role="button"
+      aria-label={label}
+      aria-pressed={selected}
+      onFocus={() => onSelect(id)}
+      onKeyDown={(event: ReactKeyboardEvent<SVGRectElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect(id)
+        }
+      }}
+    />
+  )
+})
 function dispatch(store: EditorStore, commands: EditorCommand[], label: string) {
   return store.dispatch({
     id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
@@ -132,7 +244,12 @@ function dispatch(store: EditorStore, commands: EditorCommand[], label: string) 
   })
 }
 function materialize(document: DiagramDocument) {
-  const result = resolveDocument(document, { quality: 'edit', requestId: 'gesture', measureText })
+  const result = resolveDocument(document, {
+    quality: 'edit',
+    requestId: 'gesture',
+    measureText,
+    skipValidation: true,
+  })
   if (!result.ok) return document.scene
   return {
     ...structuredClone(document.scene),
@@ -228,8 +345,57 @@ export function EditorToolbar() {
         +
       </button>
       <EditorSelectionTools />
+      <EditorRelayout />
       <EditorStatus />
     </div>
+  )
+}
+function EditorRelayout() {
+  const { store } = useEditor(),
+    snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual),
+    t = useLabels(),
+    transactionRef = useRef<string | null>(null)
+  const previewing =
+    snapshot.draft.kind === 'gesture' && snapshot.draft.transactionId === transactionRef.current
+  const apply = () => {
+    const current = store.getSnapshot()
+    if (!getAdapter(current.document.spec.type).capabilities.includes('move-free')) return
+    const scene = relayoutScene(current.document)
+    if (!scene.ok) return
+    const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
+    if (
+      !store.beginGesture({ id, label: 'Re-layout', expectedRevision: current.document.revision })
+        .ok
+    )
+      return
+    store.previewGesture([{ type: 'scene.set', scene: scene.value }], { skipValidation: true })
+    transactionRef.current = id
+  }
+  const confirm = () => {
+    store.commitGesture()
+    transactionRef.current = null
+  }
+  const cancel = () => {
+    store.cancelGesture()
+    transactionRef.current = null
+  }
+  return previewing ? (
+    <span className="adl-editor-relayout">
+      <button type="button" onClick={confirm}>
+        {t('Apply relayout', 'Aplicar reajuste')}
+      </button>
+      <button type="button" onClick={cancel}>
+        {t('Cancel', 'Cancelar')}
+      </button>
+    </span>
+  ) : (
+    <button
+      type="button"
+      onClick={apply}
+      disabled={!getAdapter(snapshot.document.spec.type).capabilities.includes('move-free')}
+    >
+      {t('Re-layout', 'Reajustar')}
+    </button>
   )
 }
 export function EditorSurface({
@@ -247,12 +413,65 @@ export function EditorSurface({
     [size, setSize] = useState({ width: 800, height: 600 })
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
   const resolved = useMemo(
-    () => resolveDocument(activeDoc, { quality: 'edit', requestId: instanceId, measureText }),
+    () =>
+      resolveDocument(activeDoc, {
+        quality: 'edit',
+        requestId: instanceId,
+        measureText,
+        skipValidation: true,
+        skipDiagnostics: true,
+      }),
     [activeDoc, instanceId],
   )
+  const [gestureEntities, setGestureEntities] = useState<{
+    nodes: string[]
+    edges: string[]
+  } | null>(null)
+  const gestureKey = gestureEntities
+    ? `${[...gestureEntities.nodes].sort().join(',')}|${[...gestureEntities.edges].sort().join(',')}`
+    : null
+  const baselineCache = useRef<{ key: string; markup: string } | null>(null)
+  const baseline = useMemo(() => {
+    if (!gestureEntities || !gestureKey) {
+      baselineCache.current = null
+      return null
+    }
+    const cacheKey = `${gestureKey}|${snapshot.document.revision}`
+    if (baselineCache.current?.key === cacheKey) return baselineCache.current.markup
+    const baseDoc = snapshot.document
+    const baseResolved = resolveDocument(baseDoc, {
+      quality: 'edit',
+      requestId: `${instanceId}-baseline`,
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true,
+    })
+    if (!baseResolved.ok) return null
+    const baselineMarkup = renderSceneMarkup(baseDoc, baseResolved.value, {
+      instanceId,
+      exclude: {
+        nodes: new Set(gestureEntities.nodes),
+        edges: new Set(gestureEntities.edges),
+      },
+    })
+    baselineCache.current = { key: cacheKey, markup: baselineMarkup }
+    return baselineMarkup
+  }, [gestureEntities, gestureKey, snapshot.document, instanceId])
+  const deltaMarkup = useMemo(() => {
+    if (!gestureEntities || !resolved.ok) return null
+    return renderSceneMarkup(activeDoc, resolved.value, {
+      instanceId,
+      only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) },
+    })
+  }, [activeDoc, resolved, gestureEntities, instanceId])
   const markup = useMemo(
-    () => (resolved.ok ? renderSceneMarkup(activeDoc, resolved.value, { instanceId }) : ''),
-    [activeDoc, resolved, instanceId],
+    () =>
+      gestureEntities
+        ? ''
+        : resolved.ok
+          ? renderSceneMarkup(activeDoc, resolved.value, { instanceId })
+          : '',
+    [activeDoc, resolved, gestureEntities, instanceId],
   )
   const gesture = useRef<{
     pointer: number
@@ -269,6 +488,7 @@ export function EditorSurface({
       pointerWorld: Point
     }
     port?: { nodeId: string; portId: string; pointerWorld: Point }
+    connect?: { sourceId: string }
   } | null>(null)
   const marquee = useRef<{
     pointer: number
@@ -279,6 +499,13 @@ export function EditorSurface({
     moved: boolean
   } | null>(null)
   const [selectionBox, setSelectionBox] = useState<ReturnType<typeof marqueeBounds> | null>(null)
+  const [connectLine, setConnectLine] = useState<{
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  } | null>(null)
+  const [connectSource, setConnectSource] = useState<string | null>(null)
   const authoredNodes = useMemo(() => {
     const ids = new Set(nodesOf(activeDoc.spec).map((n) => n.id))
     return resolved.ok ? resolved.value.layout.nodes.filter((n) => ids.has(n.id)) : []
@@ -354,6 +581,13 @@ export function EditorSurface({
       })
       return
     }
+    if (current.connect) {
+      const world = screenToWorld(point, current.viewport),
+        source = current.scene.nodes[current.connect.sourceId]
+      const anchor = source ? anchorPoint(source, { side: 'right', offset: 0.5 }) : { x: 0, y: 0 }
+      setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y })
+      return
+    }
     const dx = point.x - current.start.x,
       dy = point.y - current.start.y,
       positions: Record<string, Point> = {},
@@ -381,7 +615,9 @@ export function EditorSurface({
         node: next,
       } as NodeInput)
       if (!result.ok) return
-      store.previewGesture([{ type: 'spec.replace', spec: result.value, references: 'reject' }])
+      store.previewGesture([{ type: 'spec.replace', spec: result.value, references: 'reject' }], {
+        skipValidation: true,
+      })
       return
     }
     if (current.waypoint) {
@@ -413,10 +649,13 @@ export function EditorSurface({
             : p,
         )
       }
-      store.previewGesture([
-        { type: 'scene.set', scene: current.scene },
-        { type: 'route.set', id: waypoint.edgeId, route: next },
-      ])
+      store.previewGesture(
+        [
+          { type: 'scene.set', scene: current.scene },
+          { type: 'route.set', id: waypoint.edgeId, route: next },
+        ],
+        { skipValidation: true },
+      )
       return
     }
     if (current.resize) {
@@ -449,7 +688,9 @@ export function EditorSurface({
           },
         ] as const
       })
-      store.previewGesture([{ type: 'scene.set', scene: current.scene }, ...resizeCommands])
+      store.previewGesture([{ type: 'scene.set', scene: current.scene }, ...resizeCommands], {
+        skipValidation: true,
+      })
       return
     }
     for (const [id, start] of Object.entries(current.positions)) {
@@ -460,10 +701,13 @@ export function EditorSurface({
         y: grid.snap ? Math.round(y / grid.size) * grid.size : y,
       }
     }
-    store.previewGesture([
-      { type: 'scene.set', scene: current.scene },
-      { type: 'nodes.move', positions },
-    ])
+    store.previewGesture(
+      [
+        { type: 'scene.set', scene: current.scene },
+        { type: 'nodes.move', positions },
+      ],
+      { skipValidation: true },
+    )
   }
   const scheduleMove = (point: Point, pointerId: number) => {
     pendingMove.current = point
@@ -491,6 +735,7 @@ export function EditorSurface({
             quality: 'edit',
             requestId: 'initial-fit',
             measureText,
+            skipValidation: true,
           })
           if (current.ok) {
             fitted.current = true
@@ -553,6 +798,48 @@ export function EditorSurface({
       return
     }
     if (gesture.current?.pointer !== event.pointerId) return
+    if (gesture.current.connect) {
+      if (cancel) store.cancelGesture()
+      else {
+        flushMove()
+        const viewport = store.getSnapshot().viewport,
+          world = screenToWorld(local(event), viewport),
+          sourceId = gesture.current.connect.sourceId,
+          current = store.getSnapshot()
+        const target = authoredNodes.find((n) => {
+          if (n.id === sourceId) return false
+          const hit = nodeGeometry(n).hit
+          return (
+            world.x >= hit.x &&
+            world.x <= hit.x + hit.width &&
+            world.y >= hit.y &&
+            world.y <= hit.y + hit.height
+          )
+        })
+        if (target) {
+          const adapter = getAdapter(current.document.spec.type)
+          const inserted = adapter.insertRelation(current.document.spec, {
+            diagramType: current.document.spec.type,
+            relation: {
+              id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+              from: sourceId,
+              to: target.id,
+            },
+          } as RelationInput)
+          if (inserted.ok)
+            store.previewGesture([
+              { type: 'spec.replace', spec: inserted.value, references: 'reject' },
+            ])
+        }
+        store.commitGesture()
+      }
+      setConnectLine(null)
+      gesture.current = null
+      setGestureEntities(null)
+      if (event.currentTarget.hasPointerCapture(event.pointerId))
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      return
+    }
     if (!gesture.current.pan) {
       if (cancel) store.cancelGesture()
       else {
@@ -561,6 +848,7 @@ export function EditorSurface({
       }
     }
     gesture.current = null
+    setGestureEntities(null)
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId)
   }
@@ -580,6 +868,59 @@ export function EditorSurface({
         'Delete selection',
       )
   }
+  function connectKeyboard(from: string, to: string) {
+    const current = store.getSnapshot(),
+      adapter = getAdapter(current.document.spec.type)
+    if (!adapter.capabilities.includes('connect')) return
+    const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
+    const inserted = adapter.insertRelation(current.document.spec, {
+      diagramType: current.document.spec.type,
+      relation: { id, from, to },
+    } as RelationInput)
+    if (!inserted.ok) return
+    dispatch(
+      store,
+      [{ type: 'spec.replace', spec: inserted.value, references: 'reject' }],
+      'Connect nodes',
+    )
+    store.setSelection([{ kind: 'edge', id }])
+  }
+  const connectKeyboardRef = useRef(connectKeyboard)
+  connectKeyboardRef.current = connectKeyboard
+  const connectSourceRef = useRef(connectSource)
+  connectSourceRef.current = connectSource
+  const incidentEdges = useCallback(
+    (nodeIds: string[]) => {
+      const spec = store.getSnapshot().document.spec
+      return edgesOf(spec)
+        .filter((e) => e.from && e.to && (nodeIds.includes(e.from) || nodeIds.includes(e.to)))
+        .map((e) => e.id!)
+    },
+    [store],
+  )
+  const selectEdge = useCallback(
+    (id: string) => store.setSelection([{ kind: 'edge' as const, id }]),
+    [store],
+  )
+  const selectNode = useCallback(
+    (id: string) => store.setSelection([{ kind: 'node' as const, id }]),
+    [store],
+  )
+  const handleNodeKey = useCallback(
+    (id: string) => {
+      const source = connectSourceRef.current
+      if (source) {
+        if (source === id) setConnectSource(null)
+        else {
+          connectKeyboardRef.current(source, id)
+          setConnectSource(null)
+        }
+        return
+      }
+      store.setSelection([{ kind: 'node' as const, id }])
+    },
+    [store],
+  )
   return (
     <div className={`adl-editor-surface ${className ?? ''}`}>
       <svg
@@ -615,6 +956,8 @@ export function EditorSurface({
               touches.current.clear()
             }
             spacePan.current = false
+            setConnectSource(null)
+            setConnectLine(null)
             if (cancelMarquee()) {
               event.preventDefault()
               return
@@ -697,7 +1040,7 @@ export function EditorSurface({
           if (marquee.current || gesture.current || (event.button !== 0 && event.button !== 1))
             return
           const target = (event.target as Element).closest(
-              '[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port]',
+              '[data-hit-node], [data-resize-node], [data-resize-selection], [data-hit-edge], [data-waypoint], [data-port], [data-connect-source]',
             ),
             resizeId = target?.getAttribute('data-resize-node') ?? undefined,
             resizeSelection = target?.hasAttribute('data-resize-selection') ?? false,
@@ -709,9 +1052,19 @@ export function EditorSurface({
               undefined,
             edgeId = target?.getAttribute('data-hit-edge') ?? undefined,
             portNodeId = target?.getAttribute('data-port-node') ?? undefined,
-            portId = target?.getAttribute('data-port') ?? undefined
+            portId = target?.getAttribute('data-port') ?? undefined,
+            connectSourceId = target?.getAttribute('data-connect-source') ?? undefined
           const pan = snapshot.tool === 'hand' || event.button === 1 || spacePan.current
-          if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId) {
+          if (connectSource && !connectSourceId) setConnectSource(null)
+          if (
+            !pan &&
+            !id &&
+            !resizeSelection &&
+            !edgeId &&
+            !waypointEdge &&
+            !portId &&
+            !connectSourceId
+          ) {
             event.preventDefault()
             svgRef.current?.focus()
             marquee.current = {
@@ -740,6 +1093,7 @@ export function EditorSurface({
               }).ok
             )
               return
+            setGestureEntities({ nodes: [], edges: [waypointEdge] })
             const startPoint = local(event)
             gesture.current = {
               pointer: event.pointerId,
@@ -768,6 +1122,7 @@ export function EditorSurface({
               }).ok
             )
               return
+            setGestureEntities({ nodes: [], edges: [] })
             const startPoint = local(event)
             gesture.current = {
               pointer: event.pointerId,
@@ -782,6 +1137,36 @@ export function EditorSurface({
                 pointerWorld: screenToWorld(startPoint, snapshot.viewport),
               },
             }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            return
+          }
+          if (connectSourceId && !pan) {
+            store.setSelection([{ kind: 'node' as const, id: connectSourceId }])
+            if (
+              !store.beginGesture({
+                id: globalThis.crypto.randomUUID(),
+                label: 'Connect',
+                expectedRevision: snapshot.document.revision,
+              }).ok
+            )
+              return
+            const startPoint = local(event)
+            const scene = materialize(snapshot.document),
+              source = scene.nodes[connectSourceId]
+            const anchor = source
+              ? anchorPoint(source, { side: 'right', offset: 0.5 })
+              : { x: 0, y: 0 }
+            const startWorld = screenToWorld(startPoint, snapshot.viewport)
+            gesture.current = {
+              pointer: event.pointerId,
+              start: startPoint,
+              viewport: { ...snapshot.viewport },
+              positions: {},
+              scene,
+              pan: false,
+              connect: { sourceId: connectSourceId },
+            }
+            setConnectLine({ x1: anchor.x, y1: anchor.y, x2: startWorld.x, y2: startWorld.y })
             event.currentTarget.setPointerCapture(event.pointerId)
             return
           }
@@ -844,6 +1229,8 @@ export function EditorSurface({
             }).ok
           )
             return
+          const draggedIds = resizeIds ?? Object.keys(positions)
+          setGestureEntities({ nodes: draggedIds, edges: incidentEdges(draggedIds) })
           gesture.current = {
             pointer: event.pointerId,
             start: local(event),
@@ -888,6 +1275,7 @@ export function EditorSurface({
           if (gesture.current) {
             store.cancelGesture()
             gesture.current = null
+            setGestureEntities(null)
           }
         }}
       >
@@ -895,7 +1283,14 @@ export function EditorSurface({
           transform={`translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`}
         >
           {/* Markup is generated exclusively by the internal escaped SVG serializer, never imported HTML. */}
-          <g dangerouslySetInnerHTML={{ __html: markup }} />
+          {gestureEntities && baseline !== null ? (
+            <>
+              <g dangerouslySetInnerHTML={{ __html: baseline }} />
+              <g dangerouslySetInnerHTML={{ __html: deltaMarkup ?? '' }} />
+            </>
+          ) : (
+            <g dangerouslySetInnerHTML={{ __html: markup }} />
+          )}
           {authoredEdges.flatMap((e) => {
             const points = e.routePoints ?? []
             const segments: Array<{ x: number; y: number; width: number; height: number }> = []
@@ -912,69 +1307,39 @@ export function EditorSurface({
             const hit = segments.length
               ? segments
               : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }]
-            return hit.map((segment, index) => {
-              const selected = snapshot.selection.some((r) => r.kind === 'edge' && r.id === e.id)
-              return (
-                <rect
-                  key={`${e.id}-hit-${index}`}
-                  data-hit-edge={e.id}
-                  x={segment.x}
-                  y={segment.y}
-                  width={segment.width}
-                  height={segment.height}
-                  rx={6}
-                  fill={selected ? 'rgba(0, 0, 0, 0.001)' : 'rgba(0, 0, 0, 0.001)'}
-                  stroke={
-                    selected
-                      ? activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt
-                      : 'rgba(0, 0, 0, 0.001)'
-                  }
-                  style={{ cursor: 'pointer' }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${t('Connection', 'Conexión')}: ${e.label ?? e.id}`}
-                  aria-pressed={selected}
-                  onFocus={() => store.setSelection([{ kind: 'edge', id: e.id }])}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      store.setSelection([{ kind: 'edge', id: e.id }])
-                    }
-                  }}
-                />
-              )
-            })
+            const selected = snapshot.selection.some((r) => r.kind === 'edge' && r.id === e.id)
+            const stroke = activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt
+            return hit.map((segment, index) => (
+              <EdgeHitRect
+                key={`${e.id}-hit-${index}`}
+                id={e.id}
+                index={index}
+                x={segment.x}
+                y={segment.y}
+                width={segment.width}
+                height={segment.height}
+                selected={selected}
+                zoom={snapshot.viewport.zoom}
+                stroke={stroke}
+                label={`${t('Connection', 'Conexión')}: ${e.label ?? e.id}`}
+                onSelect={selectEdge}
+              />
+            ))
           })}
           {authoredNodes.map((n) => (
             <g key={n.id}>
-              <rect
-                data-hit-node={n.id}
+              <NodeHitRect
+                id={n.id}
                 x={nodeGeometry(n).hit.x}
                 y={nodeGeometry(n).hit.y}
                 width={nodeGeometry(n).hit.width}
                 height={nodeGeometry(n).hit.height}
-                rx={4}
-                fill="transparent"
-                stroke={
-                  snapshot.selection.some((r) => r.kind === 'node' && r.id === n.id)
-                    ? activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt
-                    : 'none'
-                }
-                strokeWidth={2 / snapshot.viewport.zoom}
-                tabIndex={0}
-                role="button"
-                aria-label={n.label}
-                aria-pressed={snapshot.selection.some((r) => r.kind === 'node' && r.id === n.id)}
-                onFocus={() => {
-                  if (!snapshot.selection.some((r) => r.kind === 'node' && r.id === n.id))
-                    store.setSelection([{ kind: 'node', id: n.id }])
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    store.setSelection([{ kind: 'node', id: n.id }])
-                  }
-                }}
+                label={n.label}
+                selected={snapshot.selection.some((r) => r.kind === 'node' && r.id === n.id)}
+                zoom={snapshot.viewport.zoom}
+                stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+                onSelect={selectNode}
+                onKey={handleNodeKey}
               />
             </g>
           ))}
@@ -1004,7 +1369,12 @@ export function EditorSurface({
                 const rects = ids
                   .map((resizeId) => scene.nodes[resizeId])
                   .filter((node) => node)
-                  .map((node) => ({ x: node.x, y: node.y, width: node.width, height: node.height }))
+                  .map((node) => ({
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height,
+                  }))
                 const finalRects = resizeRects(rects, direction, {
                   x: delta.x * step,
                   y: delta.y * step,
@@ -1207,6 +1577,93 @@ export function EditorSurface({
                 </g>
               )
             })()}
+          {snapshot.tool === 'select' &&
+            snapshot.selection.length === 1 &&
+            snapshot.selection[0].kind === 'node' &&
+            getAdapter(activeDoc.spec.type).capabilities.includes('connect') &&
+            !isNodeLocked(activeDoc, snapshot.selection[0].id) &&
+            (() => {
+              const id = snapshot.selection[0].id
+              const authored = authoredNodes.find((n) => n.id === id)
+              const authoredRect = activeDoc.scene.nodes[id]
+              const laidOut = resolved.ok ? resolved.value.layout.nodeById[id] : undefined
+              const rect =
+                authoredRect ??
+                (laidOut
+                  ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h }
+                  : undefined)
+              if (!authored || !rect) return null
+              const anchor = anchorPoint(rect, { side: 'right', offset: 0.5 })
+              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
+              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              return (
+                <g>
+                  <circle
+                    cx={anchor.x}
+                    cy={anchor.y}
+                    r={dot(5)}
+                    fill={palette.background}
+                    stroke={palette.branch}
+                    strokeWidth={1.5 / snapshot.viewport.zoom}
+                    pointerEvents="none"
+                  />
+                  <circle
+                    data-connect-source={id}
+                    cx={anchor.x}
+                    cy={anchor.y}
+                    r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                    fill="transparent"
+                    style={{ cursor: 'crosshair' }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${t('Connect', 'Conectar')}: ${authored.label}`}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setConnectSource(id)
+                      }
+                    }}
+                  />
+                </g>
+              )
+            })()}
+          {connectSource &&
+            (() => {
+              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
+              return (
+                <g pointerEvents="none">
+                  {authoredNodes
+                    .filter((n) => n.id !== connectSource)
+                    .map((n) => (
+                      <rect
+                        key={`connect-target-${n.id}`}
+                        x={nodeGeometry(n).hit.x}
+                        y={nodeGeometry(n).hit.y}
+                        width={nodeGeometry(n).hit.width}
+                        height={nodeGeometry(n).hit.height}
+                        rx={4}
+                        fill="none"
+                        stroke={palette.cobalt}
+                        strokeWidth={1 / snapshot.viewport.zoom}
+                        strokeDasharray="4 4"
+                      />
+                    ))}
+                </g>
+              )
+            })()}
+          {connectLine && (
+            <line
+              x1={connectLine.x1}
+              y1={connectLine.y1}
+              x2={connectLine.x2}
+              y2={connectLine.y2}
+              stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              strokeWidth={2 / snapshot.viewport.zoom}
+              strokeDasharray="4 4"
+              pointerEvents="none"
+            />
+          )}
           {selectionBox && (
             <rect
               data-marquee="true"
@@ -1233,6 +1690,14 @@ export function EditorSurface({
         {t('Fit diagram', 'Ajustar diagrama')}
       </button>
       {!resolved.ok && <p role="alert">{resolved.diagnostics.map((d) => d.code).join(', ')}</p>}
+      {connectSource && (
+        <p role="status" className="adl-editor-connect-hint">
+          {t(
+            'Press Enter on a target node to connect, or Escape to cancel.',
+            'Pulsa Enter en un nodo destino para conectar, o Escape para cancelar.',
+          )}
+        </p>
+      )}
     </div>
   )
 }
@@ -1401,8 +1866,8 @@ export function EditorJsonPanel() {
   const { store } = useEditor(),
     snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual),
     t = useLabels()
-  const text =
-    snapshot.draft.kind === 'text' ? snapshot.draft.text : serializeDocument(snapshot.document)
+  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document])
+  const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
   return (
     <details className="adl-editor-json">
       <summary>{t('Document JSON', 'JSON del documento')}</summary>
@@ -2197,6 +2662,7 @@ export function EditorRoute() {
     const result = resolveDocument(snapshot.document, {
       quality: 'edit',
       requestId: 'route-manual',
+      skipValidation: true,
     })
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(', '))

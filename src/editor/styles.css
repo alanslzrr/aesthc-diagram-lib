@@ -84,6 +84,16 @@
   bottom: 16px;
   left: 16px;
 }
+.adl-editor-connect-hint {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--adl-border);
+  border-radius: 4px;
+  background: var(--adl-card);
+}
 .adl-editor-inspector {
   overflow: auto;
   border-left: 1px solid var(--adl-border);
