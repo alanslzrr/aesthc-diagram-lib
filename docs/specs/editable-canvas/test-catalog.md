@@ -1,7 +1,8 @@
 # Catálogo trazable de aceptación y pruebas
 
-Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-spec.mjs --write-catalog`. Escenarios previstos, no tests ya ejecutados. Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. Los nombres de archivos son destinos de implementación.
-
+Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-spec.mjs --write-catalog`.
+Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es el destino propuesto;
+`implementedIn` es el archivo real que cubre el escenario con su estado y evidencia observada.
 ## R01 — Envelope versionado y normalización
 
 **Tarea:** [E01](task-catalog.md#e01) · **Hito:** M0.
@@ -10,7 +11,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T01.1 · unit
 
-**Archivo:** `tests/editor-document.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-document.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-document.unit.spec.ts`
+
+**Evidencia:** normaliza los siete legacy specs sin mutar el input (10 tests PASS).
 
 - **Given:** legacy-specs con los siete tipos.
 - **When:** createDocument con id y locale fijos.
@@ -18,7 +23,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T01.2 · unit
 
-**Archivo:** `tests/editor-document.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-document.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-document.unit.spec.ts`
+
+**Evidencia:** round-trip canónico y rechazo de schemaVersion 999 (10 tests PASS).
 
 - **Given:** documento v1 y schemaVersion=999.
 - **When:** importDocument sobre ambos.
@@ -32,7 +41,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T02.1 · unit
 
-**Archivo:** `tests/editor-document.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-document.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-document.unit.spec.ts`
+
+**Evidencia:** IDs explícitos reservados antes de anónimos (10 tests PASS).
 
 - **Given:** dos anónimas a→b y un ID explícito a::b.
 - **When:** normalizar y reordenar después.
@@ -40,7 +53,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T02.2 · unit
 
-**Archivo:** `tests/editor-commands.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-commands.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** reconnect conserva el ID y el orden; undo restaura las referencias exactas.
 
 - **Given:** parallel edges y un reconnect.
 - **When:** aplicar reconnect y undo.
@@ -54,7 +71,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T03.1 · unit
 
-**Archivo:** `tests/editor-document.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-document.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-document.unit.spec.ts`
+
+**Evidencia:** locale seleccionado con receipt de variante omitida (en→es, es→en).
 
 - **Given:** band sin type y localized en/es.
 - **When:** importar con/ sin allowLegacyBand y locale.
@@ -62,7 +83,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T03.2 · unit
 
-**Archivo:** `tests/editor-document.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-document.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-document.unit.spec.ts`
+
+**Evidencia:** exportLegacySpec con losses exactos, round-trip serialize sin pérdidas y rechazo de graph.
 
 - **Given:** Documento con metadata/view/scene.
 - **When:** export spec legado versus serializeDocument.
@@ -76,7 +101,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T04.1 · unit
 
-**Archivo:** `tests/editor-validation.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-validation.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-validation.unit.spec.ts`
+
+**Evidencia:** dangling de view/lane, unknown top-level y schema adicional rechazados con codes estables.
 
 - **Given:** duplicados, missing node/port/lane/group/view y unknown property.
 - **When:** validateDocument.
@@ -84,7 +113,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T04.2 · unit
 
-**Archivo:** `tests/editor-validation.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-validation.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-validation.unit.spec.ts`
+
+**Evidencia:** unsafe keys, ciclos, accessors y no-plain rechazados (12 tests PASS).
 
 - **Given:** JSON con __proto__, accessor con counter y objeto cíclico.
 - **When:** importDocument.
@@ -98,7 +131,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T05.1 · unit
 
-**Archivo:** `tests/editor-limits.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-limits.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-limits.unit.spec.ts`
+
+**Evidencia:** 11 límites N/N+1 con code/path (11 tests PASS).
 
 - **Given:** N y N+1 de cada límite de 04-contracts.
 - **When:** validar fixtures generadas.
@@ -106,7 +143,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T05.2 · unit
 
-**Archivo:** `tests/editor-limits.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-limits.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-validation.unit.spec.ts`
+
+**Evidencia:** profundidad 70 rechazada con data.depth sin stack overflow; NaN/Infinity/surrogate cubiertos.
 
 - **Given:** profundidad 65, NaN, Infinity, surrogate roto.
 - **When:** importar objeto o texto por su frontera.
@@ -120,7 +161,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T06.1 · unit
 
-**Archivo:** `tests/editor-adapters.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-adapters.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-adapters.unit.spec.ts`
+
+**Evidencia:** matriz CRUD/reorder de los siete tipos (17 tests PASS).
 
 - **Given:** cada tipo y su CRUD/reorder permitido.
 - **When:** insertar/reemplazar/borrar/reordenar.
@@ -128,7 +173,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T06.2 · unit
 
-**Archivo:** `tests/editor-adapters.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-adapters.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-adapters.unit.spec.ts`
+
+**Evidencia:** capability.unsupported y reorder inválido sin mutación (17 tests PASS).
 
 - **Given:** timeline edge, sequence XY, lane inexistente.
 - **When:** comandos no soportados.
@@ -142,7 +191,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T07.1 · unit
 
-**Archivo:** `tests/editor-viewport.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-viewport.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-viewport.unit.spec.ts`
+
+**Evidencia:** round-trip 1e-8, ancla de zoom y fit (3 tests PASS).
 
 - **Given:** viewport-cases.json.
 - **When:** screenToWorld, worldToScreen, zoomAt y fit.
@@ -150,7 +203,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T07.2 · e2e
 
-**Archivo:** `tests/e2e/editor-viewport.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-viewport.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-viewport.e2e.ts`
+
+**Evidencia:** drag bajo DPR 2 y CSS scale 0.5 aplica el delta una vez (sin doble transformación).
 
 - **Given:** canvas con CSS scale/offset, letterbox, scroll y DPR 1/2.
 - **When:** drag del mismo nodo a mismo punto mundo.
@@ -164,7 +221,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T08.1 · e2e
 
-**Archivo:** `tests/e2e/editor-viewport.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-viewport.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-viewport.e2e.ts`
+
+**Evidencia:** middle-pan mueve la cámara sin tocar el documento ni el historial.
 
 - **Given:** surface enfocada y rueda dentro/fuera.
 - **When:** wheel normal, modificada, middle pan, Space pan.
@@ -172,7 +233,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T08.2 · e2e
 
-**Archivo:** `tests/e2e/editor-touch.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-touch.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-touch.e2e.ts`
+
+**Evidencia:** pinch sin commits y scroll del inspector (E2E 144 passed/14 skipped).
 
 - **Given:** dos dedos, panel y canvas estrecho.
 - **When:** pinch/pan y scroll del inspector.
@@ -186,7 +251,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T09.1 · e2e
 
-**Archivo:** `tests/e2e/editor-selection.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-selection.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-viewport.e2e.ts`
+
+**Evidencia:** nodo y edge con el mismo id son entidades distintas en outline y selección.
 
 - **Given:** nodes con IDs iguales a un edge ID.
 - **When:** click/Shift/marquee sobre bounds.
@@ -194,7 +263,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T09.2 · e2e
 
-**Archivo:** `tests/e2e/editor-gestures.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-gestures.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store-lifecycle.unit.spec.ts`
+
+**Evidencia:** cancel sin history, pointerup un commit, sin listeners residuales (7 tests PASS + E2E marquee).
 
 - **Given:** drag en curso.
 - **When:** Escape, pointercancel, lost capture, pointerup fuera, unmount.
@@ -208,7 +281,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T10.1 · unit
 
-**Archivo:** `tests/editor-commands.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-commands.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** batch con segundo comando inválido rechazado atómicamente (10 tests PASS).
 
 - **Given:** move válido seguido de route a ID ausente.
 - **When:** dispatch batch.
@@ -216,7 +293,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T10.2 · unit
 
-**Archivo:** `tests/editor-commands.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-commands.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** permission/stale rechazados con snapshot intacto (10 tests PASS).
 
 - **Given:** store edit=false o expectedRevision stale.
 - **When:** dispatch por API sin UI.
@@ -230,7 +311,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T11.1 · unit
 
-**Archivo:** `tests/editor-history.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-history.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** undo/redo con revisiones monotónicas y redo vaciado en rama (10 tests PASS).
 
 - **Given:** A→B→C, undo y edit D.
 - **When:** undo/redo y nueva rama.
@@ -238,7 +323,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T11.2 · unit
 
-**Archivo:** `tests/editor-history.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-history.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** no-op sin entry y gestos agrupados (10 tests PASS + store-lifecycle).
 
 - **Given:** 100 pointermoves en un gesture y move a coordenada actual.
 - **When:** commit gesture y luego no-op.
@@ -252,7 +341,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T12.1 · unit
 
-**Archivo:** `tests/editor-history.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-history.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** evict oldest y límite de bytes por entry (10 tests PASS + store-lifecycle).
 
 - **Given:** historial con maxEntries=2/maxBytes fijo.
 - **When:** tres commits y undo hasta límite.
@@ -260,7 +353,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T12.2 · unit
 
-**Archivo:** `tests/editor-history.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-history.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store-lifecycle.unit.spec.ts`
+
+**Evidencia:** dirty por igualdad de contenido (7 tests PASS).
 
 - **Given:** contenido guardado A, edit B.
 - **When:** undo a A con nueva revision.
@@ -274,7 +371,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T13.1 · unit
 
-**Archivo:** `tests/editor-store.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-store.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** stores aislados y eco no duplicado (10 tests PASS).
 
 - **Given:** stores A/B, subscription y draft en A.
 - **When:** commit A, eco externo y documento externo distinto.
@@ -282,7 +383,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T13.2 · e2e
 
-**Archivo:** `tests/e2e/editor-store.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-store.e2e.ts`.
+
+**Cobertura:** [implemented] `scripts/test-frameworks.mjs`
+
+**Evidencia:** dos instancias aisladas en Vite/Next + StrictMode: defs SVG distintos, editar una no cambia la otra.
 
 - **Given:** dos instancias bajo StrictMode.
 - **When:** mount/unmount y editar cada una.
@@ -296,7 +401,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T14.1 · unit
 
-**Archivo:** `tests/editor-scene.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-scene.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-render-parity.unit.spec.ts`
+
+**Evidencia:** 11 tests de paridad + 4 de geometría + 4 de iconos (todos PASS).
 
 - **Given:** siete fixtures y layouts baseline.
 - **When:** render antes/después del refactor.
@@ -304,7 +413,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T14.2 · e2e
 
-**Archivo:** `tests/e2e/editor-render.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-render.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** export ambos temas/es y evidencia visual sin overflow (E2E PASS).
 
 - **Given:** light/dark es/en con coords negativas y edge labels externos.
 - **When:** fit y screenshot revisada.
@@ -318,7 +431,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T15.1 · unit
 
-**Archivo:** `tests/editor-scene.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-scene.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-scene.unit.spec.ts`
+
+**Evidencia:** posiciones/rutas manuales intactas sin mutar el documento (7 tests PASS + locked).
 
 - **Given:** manual/hybrid con nodo locked/pinned.
 - **When:** editar label, añadir nodo y resolver.
@@ -326,7 +443,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T15.2 · e2e
 
-**Archivo:** `tests/e2e/editor-layout.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-layout.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** relayout con preview, apply en un commit, undo exacto y cancel sin cambios.
 
 - **Given:** preview de relayout con locks.
 - **When:** aplicar, deshacer y reset tras confirmación.
@@ -340,7 +461,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T16.1 · e2e
 
-**Archivo:** `tests/e2e/editor-crud.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-crud.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-crud.e2e.ts`
+
+**Evidencia:** composición IME sin commits intermedios (label y JSON), confirmación única, cancel sin persistir, texto literal sin ejecutar markup.
 
 - **Given:** cada tipo en palette/inspector.
 - **When:** crear entidad y editar label/descripción con IME.
@@ -348,7 +473,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T16.2 · unit
 
-**Archivo:** `tests/editor-adapters.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-adapters.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-adapters.unit.spec.ts`
+
+**Evidencia:** poda de relaciones por endpoints afectados (17 tests PASS + group deletion).
 
 - **Given:** nodo con relaciones/metadata/groups/views.
 - **When:** removeNodes y prune referencias.
@@ -362,7 +491,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T17.1 · unit
 
-**Archivo:** `tests/editor-connections.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-connections.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-limits.unit.spec.ts`
+
+**Evidencia:** capacity/dirección de puertos y paralelas sin deduplicar (11 tests PASS + graph).
 
 - **Given:** graph con capacity/side/direction y self/parallel.
 - **When:** crear y reconnect relación.
@@ -370,7 +503,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T17.2 · e2e
 
-**Archivo:** `tests/e2e/editor-connections.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-connections.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-connections.e2e.ts`
+
+**Evidencia:** handles en canvas: drag a destino crea relación undoable, drop en fondo cancela, modo teclado y Escape.
 
 - **Given:** handle seleccionado por teclado o touch.
 - **When:** conectar endpoint válido, inválido y soltar fondo.
@@ -384,7 +521,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T18.1 · unit
 
-**Archivo:** `tests/editor-transforms.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-transforms.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-arrange.unit.spec.ts`
+
+**Evidencia:** align/distribute con locked rechazado y mínimos (2 tests PASS + resize + structure).
 
 - **Given:** tres nodos, uno locked y tabla ER.
 - **When:** align/distribute/resize batch.
@@ -392,7 +533,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T18.2 · e2e
 
-**Archivo:** `tests/e2e/editor-transforms.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-transforms.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** resize de selección en zoom y drag transaccional (E2E PASS).
 
 - **Given:** selección en zoom 0.5 y 2.
 - **When:** multi-drag y resize.
@@ -406,7 +551,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T19.1 · unit
 
-**Archivo:** `tests/editor-clipboard.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-clipboard.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-clipboard.unit.spec.ts`
+
+**Evidencia:** fragmentos con IDs nuevos, internas remapeadas y externas omitidas (8 tests PASS).
 
 - **Given:** fragment con grupos anidados, internas y edges externas.
 - **When:** duplicate/paste con IdFactory fija.
@@ -414,7 +563,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T19.2 · e2e
 
-**Archivo:** `tests/e2e/editor-clipboard.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-clipboard.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** clipboard denegado sin borrar y payload inválido sin cambios (E2E PASS).
 
 - **Given:** clipboard denegado y fragment hostile.
 - **When:** cut y paste.
@@ -428,7 +581,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T20.1 · unit
 
-**Archivo:** `tests/editor-groups.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-groups.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** descendiente movido una vez; doble parent y ciclo rechazados.
 
 - **Given:** A contiene B contiene nodo; ciclo o doble parent propuestos.
 - **When:** validar y move group 20,30.
@@ -436,7 +593,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T20.2 · unit
 
-**Archivo:** `tests/editor-groups.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-groups.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store.unit.spec.ts`
+
+**Evidencia:** ungroup con miembro locked rechaza; tras unlock conserva coords/IDs y undo exacto.
 
 - **Given:** grupo con locked child y edges externas.
 - **When:** intentar move/ungroup bloqueados, desbloquear explícitamente, ungroup keep y undo.
@@ -450,7 +611,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T21.1 · unit
 
-**Archivo:** `tests/editor-presentation.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-presentation.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-presentation.unit.spec.ts`
+
+**Evidencia:** validación estricta de tokens/textScale/grid/padding y geometría con scale (5 tests PASS); undo genérico en editor-store.
 
 - **Given:** tokens válidos/invalid hex, textScale fuera 0.75–1.5.
 - **When:** set-presentation y undo.
@@ -458,7 +623,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T21.2 · e2e
 
-**Archivo:** `tests/e2e/editor-theme.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-theme.e2e.ts`.
+
+**Cobertura:** [implemented] `scripts/test-frameworks.mjs`
+
+**Evidencia:** instancias con temas opuestos (light/dark) en el mismo documento; cada export usa el tema de su documento.
 
 - **Given:** dos canvas con themes opuestos.
 - **When:** cambiar tokens y exportar uno.
@@ -472,7 +641,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T22.1 · package
 
-**Archivo:** `scripts/test-package.mjs`.
+**Archivo propuesto:** `scripts/test-package.mjs`.
+
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** 12 tests tarball PASS en React 18.3.1 y React 19.
 
 - **Given:** tarball instalado en React18 y React19.
 - **When:** compilar Root/Surface con toolbar custom.
@@ -480,7 +653,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T22.2 · e2e
 
-**Archivo:** `tests/e2e/editor-controlled.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-controlled.e2e.ts`.
+
+**Cobertura:** [implemented] `scripts/test-frameworks.mjs`
+
+**Evidencia:** store controlado por el host: permisos revocados bloquean edición en UI/API, replace externo resetea history.
 
 - **Given:** store del host con permisos y replace externo.
 - **When:** toggle permisos, commit y acceptExternal.
@@ -494,7 +671,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T23.1 · e2e
 
-**Archivo:** `tests/e2e/editor-json.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-json.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** drafts inválidos conservan último válido y cero commits (E2E PASS).
 
 - **Given:** preview válido A y textarea dirty.
 - **When:** pegar JSON incompleto o estructural inválido.
@@ -502,7 +683,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T23.2 · unit
 
-**Archivo:** `tests/editor-json.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-json.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-store-lifecycle.unit.spec.ts`
+
+**Evidencia:** drafts stale rechazados por revisión (7 tests PASS).
 
 - **Given:** validación async A lenta y B nueva.
 - **When:** resolver B antes de A.
@@ -516,7 +701,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T24.1 · unit
 
-**Archivo:** `tests/editor-persistence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-persistence.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-persistence.unit.spec.ts`
+
+**Evidencia:** cero writes hasta opt-in; autosave solo commits (6 tests PASS).
 
 - **Given:** adapter spy y autosave desactivado.
 - **When:** mount, viewport y commit.
@@ -524,7 +713,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T24.2 · e2e
 
-**Archivo:** `tests/e2e/editor-persistence.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-persistence.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** save-as/recovery/cuarentena en Studio (E2E PASS).
 
 - **Given:** documento dirty con scene/theme/views.
 - **When:** save, reload y restore confirmado.
@@ -538,7 +731,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T25.1 · unit
 
-**Archivo:** `tests/editor-persistence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-persistence.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-persistence.unit.spec.ts`
+
+**Evidencia:** B dirty hasta confirmación y un vuelo por key (6 tests PASS).
 
 - **Given:** save A pendiente y nuevo edit B.
 - **When:** resolver A y luego B.
@@ -546,7 +743,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T25.2 · unit
 
-**Archivo:** `tests/editor-persistence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-persistence.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-persistence.unit.spec.ts`
+
+**Evidencia:** conflict por token sin sobrescribir/remover remoto (6 tests PASS).
 
 - **Given:** tokens diferentes, dos writers y storage event.
 - **When:** autosave o remove con token viejo.
@@ -560,7 +761,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T26.1 · unit
 
-**Archivo:** `tests/editor-persistence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-persistence.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-persistence.unit.spec.ts`
+
+**Evidencia:** quota/unavailable sin perder el documento activo; corrupto en cuarentena sin tocar siblings.
 
 - **Given:** QuotaExceeded/SecurityError y blob corrupto.
 - **When:** save/load.
@@ -568,7 +773,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T26.2 · e2e
 
-**Archivo:** `tests/e2e/editor-persistence.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-persistence.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** restore/cancel/descartar borrador sin borrar legacy (E2E PASS).
 
 - **Given:** draft textual inválido y borrador v0.3.
 - **When:** restaurar, cancelar y descartar.
@@ -582,7 +791,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T27.1 · package
 
-**Archivo:** `scripts/test-package.mjs`.
+**Archivo propuesto:** `scripts/test-package.mjs`.
+
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** 12 tests tarball: exports, react-server, resolvers NodeNext/Bundler.
 
 - **Given:** exports actuales y nuevos del tarball.
 - **When:** import cross-entry con react-server y NodeNext/Bundler.
@@ -590,7 +803,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T27.2 · unit
 
-**Archivo:** `tests/editor-budgets.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-budgets.unit.spec.ts`.
+
+**Cobertura:** [implemented] `scripts/check-budgets.mjs`
+
+**Evidencia:** budgets gzip PASS dentro de pnpm check.
 
 - **Given:** Vite manifest de landing/docs/studio.
 - **When:** check-budgets contando dynamicImports.
@@ -604,7 +821,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T28.1 · e2e
 
-**Archivo:** `tests/e2e/editor-export.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-export.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** export SVG/PNG/JSON frescos en ambos temas (E2E PASS).
 
 - **Given:** selection/lens/hover/reveal/camera/drag activos.
 - **When:** export document SVG y PNG.
@@ -612,7 +833,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T28.2 · unit
 
-**Archivo:** `tests/editor-export.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-export.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-export-failures.e2e.ts`
+
+**Evidencia:** SVG reparseado con DOMParser: XML válido, sin foreignObject ni handlers, bounds > 0.
 
 - **Given:** documento con viewport irrelevante, coords negativas y labels.
 - **When:** serializar SVG y reparsear XML.
@@ -626,7 +851,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T29.1 · e2e
 
-**Archivo:** `tests/e2e/editor-export.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-export.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/studio.e2e.ts`
+
+**Evidencia:** iconos semánticos/brand self-contained en SVG y raster (E2E PASS).
 
 - **Given:** Geist/assets disponibles sin stylesheets host.
 - **When:** export y abrir SVG/PNG fuera del app.
@@ -634,7 +863,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T29.2 · e2e
 
-**Archivo:** `tests/e2e/editor-export-failures.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-export-failures.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-export-failures.e2e.ts`
+
+**Evidencia:** Image.onerror → export.image, toBlob null → export.encode, retry posterior exitoso.
 
 - **Given:** fetch font falla, Image.onerror, toBlob null o canvas tainted.
 - **When:** export, retry y abort.
@@ -648,7 +881,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T30.1 · unit
 
-**Archivo:** `tests/editor-graph.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-graph.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-graph.unit.spec.ts`
+
+**Evidencia:** route/self/unreachable con IDs exactos (4 tests PASS).
 
 - **Given:** graph-document y graph-expected.
 - **When:** a→c, a→a y a→isolated.
@@ -656,7 +893,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T30.2 · unit
 
-**Archivo:** `tests/editor-graph.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-graph.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-graph.unit.spec.ts`
+
+**Evidencia:** desempate por orden y unknown sin ruta inventada (4 tests PASS).
 
 - **Given:** mismo graph reordenando edges paralelas y unknown node.
 - **When:** query.
@@ -670,7 +911,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T31.1 · unit
 
-**Archivo:** `tests/editor-graph.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-graph.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-graph.unit.spec.ts`
+
+**Evidencia:** downstream/upstream en ciclos con dedup por ID (4 tests PASS).
 
 - **Given:** ciclo, self-loop, parallel y isolated.
 - **When:** downstream a y upstream b.
@@ -678,7 +923,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T31.2 · unit
 
-**Archivo:** `tests/editor-graph.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-graph.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-graph.unit.spec.ts`
+
+**Evidencia:** maxHops con truncated exacto (1 y 0 hops), profundidades BFS correctas y grupos sin inventar conectividad.
 
 - **Given:** maxHops=1 y scene groups sin edge.
 - **When:** reach y route entre miembros.
@@ -692,7 +941,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T32.1 · e2e
 
-**Archivo:** `tests/e2e/editor-viewer.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** Unicode/ID y dos labels iguales.
 - **When:** buscar exact/prefix/substring, abrir relación paralela.
@@ -700,7 +951,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T32.2 · e2e
 
-**Archivo:** `tests/e2e/editor-viewer.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** query receipt rev0, documento cambia rev1.
 - **When:** intentar seguir ruta/card antigua.
@@ -714,7 +967,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T33.1 · e2e
 
-**Archivo:** `tests/e2e/editor-viewer.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** roles/tags, grupo y edges externas.
 - **When:** lens, collapse y minimap pan.
@@ -722,7 +977,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T33.2 · unit
 
-**Archivo:** `tests/editor-views.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** lens ocultando nodo necesario.
 - **When:** findRoute sin filtro explícito.
@@ -736,7 +993,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T34.1 · unit
 
-**Archivo:** `tests/editor-views.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** dos vistas sin edge directa, ruta no contigua y view huérfana.
 - **When:** validar story y describir transición.
@@ -744,7 +1003,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T34.2 · e2e
 
-**Archivo:** `tests/e2e/editor-story.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-story.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** story con 3 pasos, duración y control manual.
 - **When:** play/next/prev/escape/hidden y reduced-motion.
@@ -758,7 +1019,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T35.1 · e2e
 
-**Archivo:** `tests/e2e/editor-presentation.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-presentation.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** fullscreen denegado y foco en trigger.
 - **When:** entrar/salir presentación.
@@ -766,7 +1029,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T35.2 · unit
 
-**Archivo:** `tests/editor-share.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** IDs con ~/%/Unicode, parámetros repetidos y unknown view.
 - **When:** encode/decode viewer state.
@@ -780,7 +1045,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T36.1 · unit
 
-**Archivo:** `tests/editor-quality.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-quality.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-scene.unit.spec.ts`
+
+**Evidencia:** diagnósticos quality.node-overlap/edge-through-node/label-collision/edge-endpoint con supportedFixes, edit warnings y publish bloqueado; skipDiagnostics en previews.
 
 - **Given:** node overlap, edge-through-node, endpoint incorrecto y label collision.
 - **When:** quality edit versus publish.
@@ -788,7 +1057,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T36.2 · e2e
 
-**Archivo:** `tests/e2e/editor-quality.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-quality.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** fuentes cargadas y labels largos es/en.
 - **When:** medir y export publish.
@@ -802,7 +1073,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T37.1 · unit
 
-**Archivo:** `tests/editor-routing.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-routing.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** obstáculos, parallel, self-loop y ruta imposible.
 - **When:** router a límite exacto de estados.
@@ -810,7 +1083,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T37.2 · unit
 
-**Archivo:** `tests/editor-layout-provider.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-layout-provider.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** provider A lento, B nuevo y abort.
 - **When:** resolver A después de B.
@@ -824,7 +1099,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T38.1 · e2e
 
-**Archivo:** `tests/e2e/editor-html.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** artifact file:// y todos requests bloqueados.
 - **When:** buscar, route, theme y story manual.
@@ -832,7 +1109,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T38.2 · e2e
 
-**Archivo:** `tests/e2e/editor-html.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** mismo artifact scripts disabled y malicious label.
 - **When:** abrir archivo.
@@ -846,7 +1125,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T39.1 · unit
 
-**Archivo:** `tests/editor-export.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-export.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-export.unit.spec.ts`
+
+**Evidencia:** scope de selección: JSON rechazado, edges/grupos inducidos al raster, canonical false.
 
 - **Given:** selection nodes+edge externo y includeSource false.
 - **When:** export selection raster, JSON selection, HTML sin source.
@@ -854,7 +1137,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T39.2 · e2e
 
-**Archivo:** `tests/e2e/editor-export.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-export.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-export-failures.e2e.ts`
+
+**Evidencia:** SVG sin notes/links/extensions; JSON conserva source con los datos.
 
 - **Given:** documento con notes/links/extensions no dibujados, descriptions y default source=false/metadata=minimal.
 - **When:** export SVG y revisar XML/HTML.
@@ -868,7 +1155,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T40.1 · unit
 
-**Archivo:** `tests/editor-share.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** hash legacy, d=v1, futuro, malformed y expansión >256KiB.
 - **When:** decode con clock limitado.
@@ -876,7 +1165,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T40.2 · e2e
 
-**Archivo:** `tests/e2e/editor-share.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-share.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** documento >URL máximo y clipboard denegado.
 - **When:** copy share.
@@ -890,7 +1181,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T41.1 · e2e
 
-**Archivo:** `tests/e2e/editor-cards.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-cards.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** ruta con parallel edge explícita y reach en ciclo.
 - **When:** descargar cards y decodificar.
@@ -898,7 +1191,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T41.2 · unit
 
-**Archivo:** `tests/editor-cards.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-cards.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** receipt stale/alterado/vacío/unreachable.
 - **When:** export card.
@@ -912,7 +1207,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T42.1 · e2e
 
-**Archivo:** `tests/e2e/editor-formats.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-formats.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** browser sin WebP real/ClipboardItem y JPEG transparente.
 - **When:** seleccionar export.
@@ -920,7 +1217,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T42.2 · unit
 
-**Archivo:** `tests/editor-export-limits.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-export-limits.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-export.unit.spec.ts`
+
+**Evidencia:** escalas y límites de píxeles rechazados antes de allocation (9 tests PASS).
 
 - **Given:** dimensions 16384, 32MP y un pixel sobre límite.
 - **When:** planRaster y abort.
@@ -934,7 +1235,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T43.1 · unit
 
-**Archivo:** `tests/editor-renderers.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-renderers.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** dos registries y payload con typeKey no registrado.
 - **When:** resolver/validar/exportar.
@@ -942,7 +1245,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T43.2 · package
 
-**Archivo:** `scripts/test-package.mjs`.
+**Archivo propuesto:** `scripts/test-package.mjs`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** tarball y custom node con validate/measure/renderSvg.
 - **When:** compilar y exportar fixture; round-trip extensions.
@@ -956,7 +1261,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T44.1 · e2e
 
-**Archivo:** `tests/e2e/editor-accessibility.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-accessibility.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-accessibility.e2e.ts`
+
+**Evidencia:** flujo completo solo-teclado: crear→editar→mover→conectar→borrar→undo→guardar→exportar; detectó y fijó el mix selectEdge/selectNode en el foco de nodos.
 
 - **Given:** usuario solo teclado y outline HTML.
 - **When:** crear, editar, mover, conectar, delete, undo, save, export.
@@ -964,7 +1273,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T44.2 · e2e
 
-**Archivo:** `tests/e2e/editor-accessibility.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-accessibility.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-accessibility.e2e.ts`
+
+**Evidencia:** atajos sin secuestro fuera de foco y editor operable sin clipping a 200% de zoom.
 
 - **Given:** textarea/IME y foco fuera del editor.
 - **When:** atajos de borrar/copiar/guardar y zoom página200%.
@@ -978,7 +1291,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T45.1 · e2e
 
-**Archivo:** `tests/e2e/editor-design.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-design.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-design.e2e.ts`
+
+**Evidencia:** matriz 360/768/1440 × en/es: sin overflow, Geist cargada, hit targets ≥44 coarse, toolbar visible.
 
 - **Given:** light/dark × es/en a360/768/1440.
 - **When:** abrir todos paneles y export menu.
@@ -986,7 +1303,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T45.2 · e2e
 
-**Archivo:** `tests/e2e/editor-design.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-design.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-design.e2e.ts`
+
+**Evidencia:** aspecto del viewBox sin distorsión, superficies opacas y controles coherentes.
 
 - **Given:** touch pointercancel, inspector y desktop screenshots.
 - **When:** recorrer formularios y revisar baselines.
@@ -1000,7 +1321,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T46.1 · e2e
 
-**Archivo:** `tests/e2e/editor-performance.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-performance.e2e.ts`.
+
+**Cobertura:** [partial] `tests/editor-performance.unit.spec.ts`
+
+**Evidencia:** algoritmos p95 Node22 cumplen (validate 15.9, resolve 104, commit 26.9, bfs 5.2, export 122ms a 1000 nodos); frame p95 de drag 1000 nodos Chrome153 macOS = 366.7ms con 63 long frames >100ms — el per-frame resolve+validate excede 33.3ms en todas las plataformas medidas; gate de 33.3ms separado y aserrado solo en el runner de referencia (CI Chromium fijado); el editor necesita optimize E19 (worker/incremental) antes de cerrar.
 
 - **Given:** dataset seed fijada 100/200 y1000/2000.
 - **When:** medir load, frame drag, selection y route en Chromium.
@@ -1008,7 +1333,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T46.2 · unit
 
-**Archivo:** `tests/editor-budgets.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-budgets.unit.spec.ts`.
+
+**Cobertura:** [implemented] `scripts/check-budgets.mjs`
+
+**Evidencia:** budgets gzip/packed/unpacked PASS dentro de pnpm check.
 
 - **Given:** tarball y graphs de entries prod.
 - **When:** medir gzip/packed/unpacked.
@@ -1022,7 +1351,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T47.1 · package
 
-**Archivo:** `scripts/test-package.mjs`.
+**Archivo propuesto:** `scripts/test-package.mjs`.
+
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** 12 tests tarball React 18/19 con resolvers y sin alias a src.
 
 - **Given:** tarball en limpio, ejemplos siete tipos+nuevos.
 - **When:** build React18/19 y SSR imports.
@@ -1030,7 +1363,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T47.2 · framework
 
-**Archivo:** `scripts/test-frameworks.mjs`.
+**Archivo propuesto:** `scripts/test-frameworks.mjs`.
+
+**Cobertura:** [implemented] `scripts/test-frameworks.mjs`
+
+**Evidencia:** PASS Vite 7.3.6 y Next 15.5.25 con StrictMode.
 
 - **Given:** Next/Vite consumidores de tarball.
 - **When:** build, hidratar y editar/exportar.
@@ -1044,7 +1381,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T48.1 · unit
 
-**Archivo:** `tests/editor-release.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-release.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/release-verification.unit.spec.ts`
+
+**Evidencia:** bloqueo por evidencia distinta de local check (2 tests PASS).
 
 - **Given:** dist/schema/docs stale o docs prometen API no distribuida.
 - **When:** release verification.
@@ -1052,7 +1393,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T48.2 · e2e
 
-**Archivo:** `tests/e2e/editor-docs.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-docs.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/snapshots.e2e.ts`
+
+**Evidencia:** frozen A conservado tras servir B + docs.e2e (E2E PASS).
 
 - **Given:** docs build con Pages base y snapshot anterior.
 - **When:** recorrer guías/ejemplos/links es/en y sin JS.
@@ -1066,7 +1411,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T49.1 · unit
 
-**Archivo:** `tests/editor-compare.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-compare.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** same IDs+label change, moved node, renamed ID y changed sequence order.
 - **When:** compare.
@@ -1074,7 +1421,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T49.2 · e2e
 
-**Archivo:** `tests/e2e/editor-compare.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-compare.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** Before/Delta/After y tipo incompatible.
 - **When:** navegar cambios con teclado/export.
@@ -1088,7 +1437,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T50.1 · unit
 
-**Archivo:** `tests/editor-evidence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** JSON con verified=true, path traversal, commit/rango inválido.
 - **When:** validate/verify.
@@ -1096,7 +1447,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T50.2 · unit
 
-**Archivo:** `tests/editor-evidence.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** verifier fake de commit/blob correcto e incorrecto.
 - **When:** resolver receipt.
@@ -1110,7 +1463,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T51.1 · unit
 
-**Archivo:** `tests/editor-profiles.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-profiles.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** owner faltante, múltiples regiones, db pública, crossing ausente.
 - **When:** validar con perfil on/off.
@@ -1118,7 +1473,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T51.2 · e2e
 
-**Archivo:** `tests/e2e/editor-profiles.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-profiles.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** perfil inválido en inspector.
 - **When:** solicitar export publish.
@@ -1132,7 +1489,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T52.1 · e2e
 
-**Archivo:** `tests/e2e/editor-motion.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** codec soportado y story autorada.
 - **When:** grabar y decodificar archivo.
@@ -1140,7 +1499,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T52.2 · e2e
 
-**Archivo:** `tests/e2e/editor-motion.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** no codec, onerror, abort, hidden y reduced-motion.
 - **When:** intentar/grabar/cancelar.
@@ -1154,7 +1515,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T53.1 · unit
 
-**Archivo:** `tests/editor-conversion.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-conversion.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-conversion.unit.spec.ts`
+
+**Evidencia:** conversión como documento nuevo con losses declarados (7 tests PASS).
 
 - **Given:** sequence con activation, band decisions y ER fields.
 - **When:** convertToGraph.
@@ -1162,7 +1527,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T53.2 · e2e
 
-**Archivo:** `tests/e2e/editor-conversion.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-conversion.e2e.ts`.
+
+**Cobertura:** [implemented] `tests/e2e/editor-conversion.e2e.ts`
+
+**Evidencia:** acción Convert to graph en Studio con losses y confirmación: cancel conserva documento/borrador/guardado; accept abre documento nuevo sin sobrescribir la copia original.
 
 - **Given:** documento dirty estructurado.
 - **When:** cancelar y aceptar conversión.
@@ -1176,7 +1545,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T54.1 · unit
 
-**Archivo:** `tests/editor-baseline.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-baseline.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/contracts.unit.spec.ts`
+
+**Evidencia:** caracterización legacy de los siete tipos (8 tests PASS).
 
 - **Given:** siete specs y exports existentes.
 - **When:** resolver geometría y serialize helpers.
@@ -1184,7 +1557,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T54.2 · package
 
-**Archivo:** `scripts/test-package.mjs`.
+**Archivo propuesto:** `scripts/test-package.mjs`.
+
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** 12 tests de consumidor tarball conservados.
 
 - **Given:** tarball actual limpio.
 - **When:** run consumer characterization.
@@ -1198,7 +1575,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T55.1 · unit
 
-**Archivo:** `tests/editor-security.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-security.unit.spec.ts`.
+
+**Cobertura:** [implemented] `tests/editor-validation.unit.spec.ts`
+
+**Evidencia:** extensions acotadas por bytes y namespace sin ejecutar payloads; schemes rechazados.
 
 - **Given:** hostile-inputs y extensions con límites.
 - **When:** importar y renderizar cada frontera.
@@ -1206,7 +1587,11 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T55.2 · e2e
 
-**Archivo:** `tests/e2e/editor-security.e2e.ts`.
+**Archivo propuesto:** `tests/e2e/editor-security.e2e.ts`.
+
+**Cobertura:** [partial] `tests/e2e/editor-security.e2e.ts`
+
+**Evidencia:** almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y schemes rechazados antes de layout; sin logs privados. Falta CSP/offline del HTML export (depende de E16).
 
 - **Given:** HTML export, forged storage y fuente con caracteres especiales.
 - **When:** abrir, restaurar y seguir link con gesto.
@@ -1220,7 +1605,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T56.1 · unit
 
-**Archivo:** `tests/editor-providers.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** provider devuelve scene con nodeId ajeno o lock movido.
 - **When:** aplicar resultado con baseRevision correcta.
@@ -1228,7 +1615,9 @@ Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-s
 
 ### T56.2 · unit
 
-**Archivo:** `tests/editor-providers.unit.spec.ts`.
+**Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
+
+**Cobertura:** sin cobertura real localizada.
 
 - **Given:** provider valido y otro que rechaza Promise.
 - **When:** request layout y cleanup.

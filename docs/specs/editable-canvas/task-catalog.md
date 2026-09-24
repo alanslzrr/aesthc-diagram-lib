@@ -1,11 +1,12 @@
 # Catálogo ejecutable de tareas
 
-Generado desde `traceability.json`. Archivos propuestos, no necesariamente existentes. Todos los estados iniciales son **pendiente de implementación**. El orden numérico es topológico; se puede trabajar secuencialmente sin resolver dependencias implícitas.
+Generado desde `traceability.json`. `files` son destinos propuestos; la cobertura real de cada escenario
+se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados por tarea según `coverage`.
 
 <a id="e00"></a>
 ## E00 — Caracterizar baseline y harness
 
-**Hito:** M0 · **Depende de:** ninguna · **Estado:** pendiente.
+**Hito:** M0 · **Depende de:** ninguna · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R54.
 
@@ -23,7 +24,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e01"></a>
 ## E01 — Documento versionado e identidad
 
-**Hito:** M0 · **Depende de:** E00 · **Estado:** pendiente.
+**Hito:** M0 · **Depende de:** E00 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R01, R02, R03.
 
@@ -42,7 +43,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e02"></a>
 ## E02 — Schemas, límites y diagnósticos
 
-**Hito:** M0 · **Depende de:** E01 · **Estado:** pendiente.
+**Hito:** M0 · **Depende de:** E01 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
 
 **Requisitos:** R04, R05, R55.
 
@@ -63,7 +64,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e03"></a>
 ## E03 — Adapters semánticos y capabilities
 
-**Hito:** M0 · **Depende de:** E02 · **Estado:** pendiente.
+**Hito:** M0 · **Depende de:** E02 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R06, R53.
 
@@ -81,7 +82,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e04"></a>
 ## E04 — Store, transacciones e historial
 
-**Hito:** M0 · **Depende de:** E02, E03 · **Estado:** pendiente.
+**Hito:** M0 · **Depende de:** E02, E03 · **Cobertura:** 8 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R10, R11, R12, R13.
 
@@ -99,7 +100,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e05"></a>
 ## E05 — Resolved scene y SVG compartido
 
-**Hito:** M1 · **Depende de:** E03 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E03 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R14, R15.
 
@@ -118,7 +119,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e06"></a>
 ## E06 — Surface y viewport accesible
 
-**Hito:** M1 · **Depende de:** E04, E05 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E04, E05 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R07, R08, R09.
 
@@ -137,7 +138,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e07"></a>
 ## E07 — CRUD, conexión e inspector semántico
 
-**Hito:** M1 · **Depende de:** E06 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E06 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R16, R17, R23.
 
@@ -155,7 +156,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e08"></a>
 ## E08 — Multiselección, clipboard y grupos
 
-**Hito:** M1 · **Depende de:** E07 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E07 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R18, R19, R20.
 
@@ -174,7 +175,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e09"></a>
 ## E09 — Composición React y configuración scoped
 
-**Hito:** M1 · **Depende de:** E07 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E07 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R21, R22.
 
@@ -193,7 +194,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e10"></a>
 ## E10 — Persistencia, import y autosave
 
-**Hito:** M1 · **Depende de:** E04 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E04 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R24, R25, R26.
 
@@ -211,7 +212,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e11"></a>
 ## E11 — API pública JSON/SVG/PNG
 
-**Hito:** M1 · **Depende de:** E05, E09 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E05, E09 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R28, R29, R39.
 
@@ -230,7 +231,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e12"></a>
 ## E12 — Studio aislado y primer paquete consumidor
 
-**Hito:** M1 · **Depende de:** E08, E09, E10, E11 · **Estado:** pendiente.
+**Hito:** M1 · **Depende de:** E08, E09, E10, E11 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R27.
 
@@ -251,7 +252,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e13"></a>
 ## E13 — Graph queries y viewer semántico
 
-**Hito:** M2 · **Depende de:** E03, E05, E09 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E03, E05, E09 · **Cobertura:** 4 implementado / 0 parcial / 2 sin localizar.
 
 **Requisitos:** R30, R31, R32.
 
@@ -270,7 +271,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e14"></a>
 ## E14 — Lenses, vistas, story y presentación
 
-**Hito:** M2 · **Depende de:** E13, E06 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E13, E06 · **Cobertura:** 0 implementado / 0 parcial / 6 sin localizar.
 
 **Requisitos:** R33, R34, R35.
 
@@ -289,7 +290,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e15"></a>
 ## E15 — Calidad geométrica y layout asíncrono
 
-**Hito:** M2 · **Depende de:** E05, E04 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E05, E04 · **Cobertura:** 1 implementado / 0 parcial / 3 sin localizar.
 
 **Requisitos:** R36, R37.
 
@@ -307,7 +308,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e16"></a>
 ## E16 — HTML viewer autónomo
 
-**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
 
 **Requisitos:** R38.
 
@@ -325,7 +326,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e17"></a>
 ## E17 — Shares, cards y capacidades raster
 
-**Hito:** M2 · **Depende de:** E11, E13, E14 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E11, E13, E14 · **Cobertura:** 1 implementado / 0 parcial / 5 sin localizar.
 
 **Requisitos:** R40, R41, R42.
 
@@ -344,7 +345,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e18"></a>
 ## E18 — Extensibilidad por instancia
 
-**Hito:** M2 · **Depende de:** E09, E11, E15 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E09, E11, E15 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
 
 **Requisitos:** R43, R56.
 
@@ -362,7 +363,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e19"></a>
 ## E19 — Gates a11y, performance y matriz browser
 
-**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
 
 **Requisitos:** R44, R45, R46.
 
@@ -380,7 +381,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e20"></a>
 ## E20 — Migración y consumidores reales
 
-**Hito:** M2 · **Depende de:** E19 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E19 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R47.
 
@@ -401,7 +402,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e21"></a>
 ## E21 — Cierre del candidato y evidencia release
 
-**Hito:** M2 · **Depende de:** E19, E20 · **Estado:** pendiente.
+**Hito:** M2 · **Depende de:** E19, E20 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R48.
 
@@ -420,7 +421,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e22"></a>
 ## E22 — Comparación exacta Before/Delta/After
 
-**Hito:** M3 · **Depende de:** E21 · **Estado:** pendiente.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
 
 **Requisitos:** R49.
 
@@ -438,7 +439,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e23"></a>
 ## E23 — Evidencia y perfil deployment
 
-**Hito:** M3 · **Depende de:** E21 · **Estado:** pendiente.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
 
 **Requisitos:** R50, R51.
 
@@ -456,7 +457,7 @@ Generado desde `traceability.json`. Archivos propuestos, no necesariamente exist
 <a id="e24"></a>
 ## E24 — Trace finito y WebM
 
-**Hito:** M3 · **Depende de:** E21 · **Estado:** pendiente.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
 
 **Requisitos:** R52.
 

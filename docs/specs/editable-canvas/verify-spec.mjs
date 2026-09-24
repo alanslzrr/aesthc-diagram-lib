@@ -11,7 +11,7 @@ const root = resolve(directory, '../../..')
 const read = (name) => readFileSync(join(directory, name), 'utf8')
 const data = JSON.parse(read('traceability.json'))
 assert.equal(data.schemaVersion, 1)
-assert.equal(data.status, 'proposed-not-implemented')
+assert.equal(data.status, 'mapped')
 assert.equal(data.tasks.length, 25)
 assert.equal(data.requirements.length, 56)
 const tasks = new Map(data.tasks.map((task) => [task.id, task]))
@@ -56,6 +56,22 @@ for (const requirement of data.requirements) {
     assert(/^(tests\/|scripts\/)/.test(test.file) && !test.file.split('/').includes('..'))
     for (const field of ['given', 'when', 'then'])
       assert(test[field]?.trim(), `${test.id}: missing ${field}`)
+    assert(['implemented', 'partial', 'missing'].includes(test.coverage), `${test.id}: coverage`)
+    if (test.coverage === 'missing') {
+      assert(test.implementedIn === undefined, `${test.id}: no implementedIn for missing`)
+      assert(test.result === undefined, `${test.id}: no result for missing`)
+    } else {
+      assert(
+        /^(tests\/|scripts\/)/.test(test.implementedIn) &&
+          !test.implementedIn.split('/').includes('..'),
+        `${test.id}: implementedIn path`,
+      )
+      assert(
+        existsSync(join(directory, '../../..', test.implementedIn)),
+        `${test.id}: implementedIn ${test.implementedIn} does not exist`,
+      )
+      assert(test.result?.trim(), `${test.id}: missing result`)
+    }
   }
 }
 assert.equal(tests.size, 112)
@@ -64,8 +80,9 @@ assert.equal(assigned.size, tasks.size, 'Task without acceptance requirements')
 const testCatalog = [
   '# Catálogo trazable de aceptación y pruebas',
   '',
-  'Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-spec.mjs --write-catalog`. Escenarios previstos, no tests ya ejecutados. Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. Los nombres de archivos son destinos de implementación.',
-  '',
+  'Generado desde `traceability.json` por `node docs/specs/editable-canvas/verify-spec.mjs --write-catalog`.',
+  'Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es el destino propuesto;',
+  '`implementedIn` es el archivo real que cubre el escenario con su estado y evidencia observada.',
   ...data.requirements.flatMap((requirement) => [
     `## ${requirement.id} — ${requirement.title}`,
     '',
@@ -76,8 +93,17 @@ const testCatalog = [
     ...requirement.tests.flatMap((test) => [
       `### ${test.id} · ${test.layer}`,
       '',
-      `**Archivo:** \`${test.file}\`.`,
+      `**Archivo propuesto:** \`${test.file}\`.`,
       '',
+      `**Cobertura:** ${
+        test.coverage === 'missing'
+          ? 'sin cobertura real localizada.'
+          : `[${test.coverage}] \`${test.implementedIn}\``
+      }`,
+      '',
+      ...(test.coverage === 'missing'
+        ? []
+        : [`**Evidencia:** ${test.result}.`, '']),
       `- **Given:** ${test.given}.`,
       `- **When:** ${test.when}.`,
       `- **Then:** ${test.then}.`,
@@ -88,29 +114,39 @@ const testCatalog = [
 const taskCatalog = [
   '# Catálogo ejecutable de tareas',
   '',
-  'Generado desde `traceability.json`. Archivos propuestos, no necesariamente existentes. Todos los estados iniciales son **pendiente de implementación**. El orden numérico es topológico; se puede trabajar secuencialmente sin resolver dependencias implícitas.',
+  'Generado desde `traceability.json`. `files` son destinos propuestos; la cobertura real de cada escenario',
+  'se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados por tarea según `coverage`.',
   '',
-  ...data.tasks.flatMap((task) => [
-    `<a id="${task.id.toLowerCase()}"></a>`,
-    `## ${task.id} — ${task.title}`,
-    '',
-    `**Hito:** ${task.milestone} · **Depende de:** ${task.dependsOn.join(', ') || 'ninguna'} · **Estado:** pendiente.`,
-    '',
-    `**Requisitos:** ${data.requirements
+  ...data.tasks.flatMap((task) => {
+    const tests = data.requirements
       .filter((requirement) => requirement.task === task.id)
-      .map((requirement) => requirement.id)
-      .join(', ')}.`,
-    '',
-    '**Archivos destino:**',
-    ...task.files.map((path) => `- \`${path}\``),
-    '',
-    `1. **RED:** ${task.red}`,
-    `2. **GREEN:** ${task.green}`,
-    `3. **REFACTOR:** ${task.refactor}`,
-    '',
-    `**Cierre verificable:** ${task.done}`,
-    '',
-  ]),
+      .flatMap((requirement) => requirement.tests)
+    const counts = tests.reduce(
+      (acc, test) => ((acc[test.coverage] += 1), acc),
+      { implemented: 0, partial: 0, missing: 0 },
+    )
+    return [
+      `<a id="${task.id.toLowerCase()}"></a>`,
+      `## ${task.id} — ${task.title}`,
+      '',
+      `**Hito:** ${task.milestone} · **Depende de:** ${task.dependsOn.join(', ') || 'ninguna'} · **Cobertura:** ${counts.implemented} implementado / ${counts.partial} parcial / ${counts.missing} sin localizar.`,
+      '',
+      `**Requisitos:** ${data.requirements
+        .filter((requirement) => requirement.task === task.id)
+        .map((requirement) => requirement.id)
+        .join(', ')}.`,
+      '',
+      '**Archivos destino:**',
+      ...task.files.map((path) => `- \`${path}\``),
+      '',
+      `1. **RED:** ${task.red}`,
+      `2. **GREEN:** ${task.green}`,
+      `3. **REFACTOR:** ${task.refactor}`,
+      '',
+      `**Cierre verificable:** ${task.done}`,
+      '',
+    ]
+  }),
 ].join('\n')
 for (const [name, content] of [
   ['test-catalog.md', testCatalog],
@@ -196,9 +232,16 @@ for (const name of readdirSync(directory).filter((entry) => entry.endsWith('.md'
     assert(existsSync(resolve(directory, path)), `${name}: missing local link ${href}`)
   }
 }
+const summary = data.requirements.flatMap((requirement) => requirement.tests).reduce(
+  (acc, test) => ((acc[test.coverage] += 1), acc),
+  { implemented: 0, partial: 0, missing: 0 },
+)
 process.stdout.write(
   `Spec OK: ${tasks.size} tasks, ${ids.size} requirements, ${tests.size} scenarios, 7 legacy specs, 1 proposed graph document, ${seeds.length} syntax-checked seed suites.\n`,
 )
 process.stdout.write(
-  'This verifies specification integrity and fixture structure, not implementation coverage or behavioral RED/GREEN tests.\n',
+  `Coverage mapped: ${summary.implemented} implemented, ${summary.partial} partial, ${summary.missing} missing (files on disk verified).\n`,
+)
+process.stdout.write(
+  'This verifies specification integrity and fixture structure, not behavioral RED/GREEN tests.\n',
 )
