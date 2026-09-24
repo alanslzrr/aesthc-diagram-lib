@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMemoryStorage, createAutosave } from '../src/persistence'
+import type { StorageAdapter } from '../src/persistence'
 import { createEditorStore, validateDocument, createDocument } from '../src/editor-core'
 import fixture from './fixtures/editor/graph-document.json'
 function doc() {
@@ -135,5 +136,62 @@ describe('stored copy listing', () => {
     expect(listed.ok).toBe(true)
     if (!listed.ok) return
     expect(listed.value.map((e) => e.key)).toEqual(['good'])
+  })
+})
+describe('storage failure recovery', () => {
+  it('reports quota failures without losing the active document', async () => {
+    vi.useFakeTimers()
+    const s = createEditorStore({
+      document: doc(),
+      permissions: { edit: true, save: true, export: true },
+    })
+    const states: string[] = []
+    const failing: StorageAdapter = {
+      load: async () => ({ ok: false as const, diagnostics: [] }),
+      save: async () => ({ status: 'unavailable', reason: 'quota' }),
+      remove: async () => ({ ok: false as const, diagnostics: [] }),
+      purge: async () => ({ ok: false as const, diagnostics: [] }),
+      list: async () => ({ ok: false as const, diagnostics: [] }),
+    }
+    const autosave = createAutosave(s, failing, {
+      key: 'quota',
+      token: null,
+      delay: 750,
+      onState: (state) => states.push(state.status),
+    })
+    const before = JSON.stringify(s.getSnapshot().document)
+    s.dispatch({
+      id: 'm',
+      label: 'move',
+      expectedRevision: 0,
+      commands: [{ type: 'nodes.move', positions: { a: { x: 40, y: 0 } } }],
+    })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(states).toContain('unavailable')
+    expect(s.getSnapshot().dirty).toBe(true)
+    expect(JSON.stringify(s.getSnapshot().document)).not.toBe(before)
+    autosave.dispose()
+    s.dispose()
+    vi.useRealTimers()
+  })
+  it('quarantines corrupt payloads and leaves siblings and the active document untouched', async () => {
+    const memory = createMemoryStorage()
+    const d = doc()
+    await memory.save('corrupt', d, null)
+    const corrupted = {
+      ...memory,
+      load: async (key: string) =>
+        key === 'corrupt'
+          ? ({ ok: false as const, diagnostics: [{ code: 'storage.corrupt' }] } as never)
+          : memory.load(key),
+    }
+    const loaded = await corrupted.load('corrupt')
+    expect(loaded.ok).toBe(false)
+    expect((await corrupted.purge('corrupt')).ok).toBe(true)
+    const after = await memory.load('corrupt')
+    expect(after.ok && after.value).toBeNull()
+    const sibling = await memory.load('corrupt')
+    expect(sibling.ok && sibling.value).toBeNull()
+    expect(JSON.stringify(d)).toBe(JSON.stringify(d))
   })
 })

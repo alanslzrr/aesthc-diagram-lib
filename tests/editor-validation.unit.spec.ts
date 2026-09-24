@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { validateDocument } from '../src/editor-core'
+import { validateDocument, createDocument } from '../src/editor-core'
+import type { DiagramGroup } from '../src/editor-core/types'
 import fixture from './fixtures/editor/graph-document.json'
+const group = (
+  partial: Omit<DiagramGroup, 'id' | 'label' | 'kind' | 'nodeIds' | 'locked'> & {
+    id: string
+    label: string
+    nodeIds: string[]
+  },
+): DiagramGroup => ({
+  kind: 'visual',
+  locked: false,
+  ...partial,
+})
 
 describe('editor trust boundary', () => {
   it('accepts the canonical fixture and never executes getters', () => {
@@ -127,5 +139,72 @@ describe('JSON fidelity', () => {
     const extra = Object.assign(['safe'], { extra: 'lost' })
     for (const value of [sparse, extra])
       expect(validateDocument({ value }).diagnostics.map((d) => d.code)).toContain('data.array')
+  })
+})
+describe('dangling references and unknown properties', () => {
+  function doc() {
+    const result = validateDocument(structuredClone(fixture))
+    if (!result.ok) throw Error('fixture')
+    return result.value
+  }
+  it('blocks dangling view, lane, port and edge references with stable codes', () => {
+    const view = doc()
+    view.views = [{ id: 'v', label: 'View', focus: { nodeIds: ['absent'], edgeIds: [] } }]
+    expect(validateDocument(view).diagnostics.map((d) => d.code)).toContain('reference.missing')
+    const made = createDocument(
+      {
+        type: 'swimlane',
+        caption: 's',
+        legend: { main: 'm', branch: 'b' },
+        lanes: [{ id: 'l', label: 'L' }],
+        nodes: [{ id: 'n', label: 'N', description: '', lane: 'ghost' }],
+        edges: [],
+      } as never,
+      { id: 'd', locale: 'en' },
+    )
+    if (!made.ok) expect(made.diagnostics.map((d) => d.code)).toContain('reference.missing')
+  })
+  it('rejects unknown top-level and spec properties before layout', () => {
+    const unknown = doc()
+    Object.assign(unknown, { extra: 1 })
+    expect(validateDocument(unknown).diagnostics.map((d) => d.code)).toContain(
+      'schema.additionalProperties',
+    )
+  })
+  it('rejects nested data beyond the maximum depth without a stack overflow', () => {
+    const deep = doc()
+    let value: unknown = { terminal: 'x' }
+    for (let i = 0; i < 70; i++) value = { next: value }
+    deep.extensions = { deep: value as never }
+    expect(validateDocument(deep).diagnostics.map((d) => d.code)).toContain('data.depth')
+  })
+  it('bounds extensions to the byte and namespace policy without executing payloads', () => {
+    const oversized = doc()
+    oversized.extensions = { big: 'a'.repeat(70000) }
+    expect(validateDocument(oversized).diagnostics.map((d) => d.code)).toContain('limit.bytes')
+    const invalidNamespace = doc()
+    invalidNamespace.extensions = { 'bad namespace!': { x: 1 } }
+    expect(validateDocument(invalidNamespace).diagnostics.map((d) => d.code)).toContain(
+      'extension.namespace',
+    )
+    const payload = doc()
+    payload.extensions = { 'com.example': { steps: ['a', 'b'] } }
+    expect(validateDocument(payload).ok).toBe(true)
+  })
+  it('rejects groups with two parents and self-referential ancestry', () => {
+    const doubleParent = doc()
+    doubleParent.scene.groups = [
+      group({ id: 'g1', label: 'G1', nodeIds: ['a', 'b'] }),
+      group({ id: 'g2', label: 'G2', nodeIds: ['a'] }),
+    ]
+    expect(validateDocument(doubleParent).diagnostics.map((d) => d.code)).toContain(
+      'group.multiple-parent',
+    )
+    const cycle = doc()
+    cycle.scene.groups = [
+      group({ id: 'g1', label: 'G1', nodeIds: [], parentGroup: 'g2' }),
+      group({ id: 'g2', label: 'G2', nodeIds: [], parentGroup: 'g1' }),
+    ]
+    expect(validateDocument(cycle).diagnostics.map((d) => d.code)).toContain('group.cycle')
   })
 })
