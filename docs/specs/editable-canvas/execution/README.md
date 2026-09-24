@@ -427,3 +427,27 @@ Gates: `pnpm check` PASS (301 unit, 12 tarball); E2E completo 144 passed/14 skip
 Pendiente M1: matriz de accesibilidad E06, casos de plataforma E08/E10, cierre de
 aceptación E12, Chromium fijado/Firefox/WebKit, benchmark 1000 nodos y revisión de
 trazabilidad requisito→prueba→resultado.
+
+## Correcciones del tercer veredicto (2026-09-24)
+
+- E04 change sets: la topología ahora incluye endpoints (`id:from->to`), de modo que
+  reconectar un edge conservando su ID invalida `graph` (regresión añadida). Undo/redo
+  y replaceDocument invalidan las cuatro áreas incluida `layout`. `affected` deja de ser
+  vacío para spec.replace/grupos: diff de contenido de nodos, endpoints/label/variant de
+  edges y refs de grupo, con fallback conservador a todos los nodos.
+- E09 selector: `useEditorSelector` ahora deriva el slice en render con caché por
+  (store, select) y notificación con bail-out por igualdad — recalcula al cambiar el
+  store del proveedor, al cambiar la función select y reconcilia el hueco
+  render→suscripción. Verificado en StrictMode (Vite/Next) y React 18/19.
+- E07 bloqueos: `spec.replace` rechaza mutaciones de nodos bloqueados (`entity.locked`)
+  comparando el contenido del nodo antes/después. Los handles de puertos se ocultan para
+  nodos bloqueados y la sección de puertos aparece para todo nodo graph, incluso sin
+  puertos previos (flujo para añadir el primero).
+- E11 fuentes: nombres de familia únicos por exportación (`adl-export-<nonce>-sans|mono`)
+  para no interferir con el host ni exportaciones simultáneas; `ready()` resuelve true
+  solo si ambas caras cargaron; con política `required` un fallo de carga falla la
+  exportación y con `fallback` se emite el warning y se mide con las fuentes del host.
+
+Gates tras las correcciones: `pnpm check` PASS (304 unit, 12 tarball), frameworks
+Vite/Next (incluye StrictMode) PASS, tarball React 18 PASS (12), E2E completo
+144 passed / 14 skipped.
