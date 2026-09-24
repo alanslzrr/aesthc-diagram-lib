@@ -5,7 +5,9 @@ import {
   createEditorStore,
   importDocument,
   canonicalizeContent,
+  convertToGraph,
 } from '@aesthc/diagram-lib/editor-core'
+import type { ConversionReceipt } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
 import {
   EditorRoot,
@@ -87,6 +89,10 @@ function Workbench() {
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
   const [copies, setCopies] = useState<StoredEntry[]>([])
+  const [conversion, setConversion] = useState<{
+    document: DiagramDocument
+    losses: ConversionReceipt['losses']
+  } | null>(null)
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
@@ -204,6 +210,36 @@ function Workbench() {
     } finally {
       setBusy(false)
     }
+  }
+  function requestConversion() {
+    const current = store.getSnapshot().document
+    if (current.spec.type === 'graph') return
+    const converted = convertToGraph(current, { id: globalThis.crypto.randomUUID() })
+    if (!converted.ok) {
+      setMessage(converted.diagnostics.map((d) => d.code).join(', '))
+      return
+    }
+    setConversion({ document: converted.value.document, losses: converted.value.losses })
+  }
+  function confirmConversion() {
+    if (!conversion) return
+    const commit = store.replaceDocument(conversion.document, {
+      expectedRevision: store.getSnapshot().document.revision,
+      history: 'reset',
+    })
+    if (commit.status === 'rejected') {
+      setMessage(commit.diagnostics.map((d) => d.code).join(', '))
+      return
+    }
+    token.current = null
+    setDraft(null)
+    setConversion(null)
+    setMessage(
+      t(
+        'Converted to a new graph document. The original saved copy is untouched.',
+        'Convertido a un documento graph nuevo. La copia guardada original no se toca.',
+      ),
+    )
   }
   async function save() {
     if (autosave && saveController.current) {
@@ -425,7 +461,43 @@ function Workbench() {
           <button type="button" disabled={busy} onClick={() => void exportFile()}>
             {busy ? t('Exporting…', 'Exportando…') : t('Download', 'Descargar')}
           </button>
+          <button
+            type="button"
+            disabled={snapshot.document.spec.type === 'graph'}
+            onClick={requestConversion}
+          >
+            {t('Convert to graph', 'Convertir a graph')}
+          </button>
         </div>
+        {conversion && (
+          <div className="studio-notice" role="alert">
+            <strong>
+              {t(
+                `Convert to a new graph document? ${conversion.losses.length} field${
+                  conversion.losses.length === 1 ? '' : 's'
+                } will not transfer.`,
+                `¿Convertir a un documento graph nuevo? ${conversion.losses.length} campo${
+                  conversion.losses.length === 1 ? '' : 's'
+                } no se transferirá${conversion.losses.length === 1 ? '' : 'n'}.`,
+              )}
+            </strong>
+            {conversion.losses.length > 0 && (
+              <ul>
+                {conversion.losses.map((loss) => (
+                  <li key={loss.path}>
+                    <code>{loss.path}</code> — {loss.reason}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button type="button" onClick={confirmConversion}>
+              {t('Confirm conversion', 'Confirmar conversión')}
+            </button>
+            <button type="button" onClick={() => setConversion(null)}>
+              {t('Cancel', 'Cancelar')}
+            </button>
+          </div>
+        )}
         {draft && (
           <div className="studio-notice" role="status">
             {t(
