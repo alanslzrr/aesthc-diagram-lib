@@ -1,0 +1,82 @@
+import { test, expect } from '@playwright/test'
+
+test('T44.1 the full editing workflow runs with the keyboard alone', async ({ page }) => {
+  await page.goto('/studio.html')
+  await page.getByText('Diagram outline', { exact: true }).click()
+  const outline = page.getByRole('region', { name: 'Diagram outline', exact: true })
+  const order = outline.getByRole('button', { name: 'Select node: Order API', exact: true })
+  await order.focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Add node', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  const label = page.getByLabel('Label', { exact: true })
+  await label.focus()
+  await label.fill('Keyboard node')
+  await page.getByRole('button', { name: 'Apply label', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  const node = page.getByRole('button', { name: 'Keyboard node', exact: true })
+  await expect(node).toBeVisible()
+  await node.focus()
+  const before = await node.getAttribute('x')
+  await page.keyboard.press('ArrowRight')
+  expect(await node.getAttribute('x')).not.toBe(before)
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+  const handle = page.getByRole('button', { name: 'Connect: Keyboard node', exact: true })
+  await handle.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Press Enter on a target node', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Order API', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Existing connections', { exact: false })).toBeVisible()
+  await node.focus()
+  await page.keyboard.press('Delete')
+  await expect(page.getByRole('button', { name: 'Keyboard node', exact: true })).toHaveCount(0)
+  await page.getByRole('group', { name: /^Editable diagram/ }).focus()
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.getByRole('button', { name: 'Keyboard node', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Save locally', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Saved on this device.', { exact: false })).toBeVisible()
+  const format = page.getByLabel('Export format')
+  await format.focus()
+  await page.keyboard.press('ArrowDown')
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await downloadPromise
+  await expect(page.getByText('Exported revision', { exact: false })).toBeVisible()
+})
+
+test('T44.2 editor shortcuts do not hijack keys while focus is outside the canvas', async ({
+  page,
+}) => {
+  await page.goto('/studio.html')
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  await node.click()
+  await page.getByLabel('Language').focus()
+  for (const key of ['Delete', 'Backspace', 'ControlOrMeta+c', 'ControlOrMeta+s']) {
+    await page.keyboard.press(key)
+  }
+  await expect(node).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+})
+
+test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({ page }) => {
+  await page.goto('/studio.html')
+  await page.evaluate(() => {
+    ;(document.body.style as unknown as Record<string, string>).zoom = '200%'
+  })
+  const noOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth + 2,
+  )
+  expect(noOverflow).toBe(true)
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const box = await node.boundingBox()
+  expect(box).toBeTruthy()
+  if (box) expect(box.y + box.height).toBeGreaterThan(0)
+  const surface = page.getByRole('group', { name: /^Editable diagram/ })
+  const surfaceBox = await surface.boundingBox()
+  expect(surfaceBox).toBeTruthy()
+  if (surfaceBox) expect(surfaceBox.width).toBeGreaterThan(200)
+})
