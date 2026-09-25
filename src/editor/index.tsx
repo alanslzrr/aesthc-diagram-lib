@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -492,6 +493,7 @@ const SceneHits = memo(function SceneHits({
 
 const BaselineLayer = memo(function BaselineLayer({
   markup,
+  hidden,
   width,
   height,
   x,
@@ -499,14 +501,37 @@ const BaselineLayer = memo(function BaselineLayer({
   zoom,
 }: {
   markup: string
+  hidden: { nodes: string[]; edges: string[] } | null
   width: number
   height: number
   x: number
   y: number
   zoom: number
 }) {
+  const root = useRef<SVGSVGElement>(null)
+  useLayoutEffect(() => {
+    if (!hidden || !root.current) return
+    const nodeIds = new Set(hidden.nodes),
+      edgeIds = new Set(hidden.edges)
+    const elements = [
+      ...root.current.querySelectorAll<SVGElement>(
+        '[data-node-id], [data-edge-id], [data-edge-label]',
+      ),
+    ].filter(
+      (element) =>
+        nodeIds.has(element.getAttribute('data-node-id') ?? '') ||
+        edgeIds.has(
+          element.getAttribute('data-edge-id') ?? element.getAttribute('data-edge-label') ?? '',
+        ),
+    )
+    for (const element of elements) element.style.visibility = 'hidden'
+    return () => {
+      for (const element of elements) element.style.removeProperty('visibility')
+    }
+  }, [hidden, markup])
   return (
     <svg
+      ref={root}
       aria-hidden="true"
       width="100%"
       height="100%"
@@ -563,36 +588,13 @@ export function EditorSurface({
     nodes: string[]
     edges: string[]
   } | null>(null)
-  const gestureKey = gestureEntities
-    ? `${[...gestureEntities.nodes].sort().join(',')}|${[...gestureEntities.edges].sort().join(',')}`
-    : null
-  const baselineCache = useRef<{ key: string; markup: string } | null>(null)
-  const baseline = useMemo(() => {
-    if (!gestureEntities || !gestureKey) {
-      baselineCache.current = null
-      return null
-    }
-    const cacheKey = `${gestureKey}|${snapshot.document.revision}`
-    if (baselineCache.current?.key === cacheKey) return baselineCache.current.markup
-    const baseDoc = snapshot.document
-    const baseResolved = resolveDocument(baseDoc, {
-      quality: 'edit',
-      requestId: `${instanceId}-baseline`,
-      measureText,
-      skipValidation: true,
-      skipDiagnostics: true,
-    })
-    if (!baseResolved.ok) return null
-    const baselineMarkup = renderSceneMarkup(baseDoc, baseResolved.value, {
-      instanceId,
-      exclude: {
-        nodes: new Set(gestureEntities.nodes),
-        edges: new Set(gestureEntities.edges),
-      },
-    })
-    baselineCache.current = { key: cacheKey, markup: baselineMarkup }
-    return baselineMarkup
-  }, [gestureEntities, gestureKey, snapshot.document, instanceId])
+  const baseline = useMemo(
+    () =>
+      committedResolved.ok
+        ? renderSceneMarkup(snapshot.document, committedResolved.value, { instanceId })
+        : '',
+    [snapshot.document, committedResolved, instanceId],
+  )
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null
     return renderSceneMarkup(activeDoc, resolved.value, {
@@ -600,15 +602,6 @@ export function EditorSurface({
       only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) },
     })
   }, [activeDoc, resolved, gestureEntities, instanceId])
-  const markup = useMemo(
-    () =>
-      gestureEntities
-        ? ''
-        : resolved.ok
-          ? renderSceneMarkup(activeDoc, resolved.value, { instanceId })
-          : '',
-    [activeDoc, resolved, gestureEntities, instanceId],
-  )
   const gesture = useRef<{
     pointer: number
     start: Point
@@ -1072,16 +1065,15 @@ export function EditorSurface({
   )
   return (
     <div className={`adl-editor-surface ${className ?? ''}`}>
-      {gestureEntities && baseline !== null && (
-        <BaselineLayer
-          markup={baseline}
-          width={size.width}
-          height={size.height}
-          x={snapshot.viewport.x}
-          y={snapshot.viewport.y}
-          zoom={snapshot.viewport.zoom}
-        />
-      )}
+      <BaselineLayer
+        markup={baseline}
+        hidden={gestureEntities}
+        width={size.width}
+        height={size.height}
+        x={snapshot.viewport.x}
+        y={snapshot.viewport.y}
+        zoom={snapshot.viewport.zoom}
+      />
       <svg
         style={{ position: 'relative' }}
         ref={svgRef}
@@ -1282,7 +1274,7 @@ export function EditorSurface({
               }).ok
             )
               return
-            setGestureEntities({ nodes: [], edges: [] })
+            setGestureEntities({ nodes: [portNodeId], edges: incidentEdges([portNodeId]) })
             const startPoint = local(event)
             gesture.current = {
               pointer: event.pointerId,
@@ -1443,11 +1435,7 @@ export function EditorSurface({
           transform={`translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`}
         >
           {/* Markup is generated exclusively by the internal escaped SVG serializer, never imported HTML. */}
-          {gestureEntities && baseline !== null ? (
-            <SceneMarkup markup={deltaMarkup ?? ''} />
-          ) : (
-            <SceneMarkup markup={markup} />
-          )}
+          <SceneMarkup markup={deltaMarkup ?? ''} />
           <g pointerEvents={gestureEntities ? 'none' : undefined}>
             <SceneHits
               nodes={hitBaseline.nodes}

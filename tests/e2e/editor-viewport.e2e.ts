@@ -103,10 +103,16 @@ test('the gesture baseline refreshes after content changes between drags', async
   const api = page.getByRole('button', { name: 'Order API', exact: true })
   const box = await api.boundingBox()
   if (!box) throw Error('node absent')
+  const staticNode = await page
+    .locator('[data-node-id]')
+    .filter({ hasText: 'Email worker' })
+    .elementHandle()
+  if (!staticNode) throw Error('static geometry absent')
   const drag = async (steps: number) => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width / 2 + steps, box.y + box.height / 2, { steps: 4 })
+    expect(await staticNode.evaluate((node) => node.isConnected)).toBe(true)
     await page.mouse.up()
   }
   await drag(80)
