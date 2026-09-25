@@ -326,7 +326,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e17"></a>
 ## E17 — Shares, cards y capacidades raster
 
-**Hito:** M2 · **Depende de:** E11, E13, E14 · **Cobertura:** 1 implementado / 0 parcial / 5 sin localizar.
+**Hito:** M2 · **Depende de:** E11, E13, E14 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R40, R41, R42.
 

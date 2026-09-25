@@ -1,5 +1,5 @@
-import { B as BandDiagramSpec, b as LegacyBandSpec, P as PlacedNode, D as DiagramLayout } from '../layout-dln3eGv4.js';
-export { c as DiagramDecision, d as DiagramNode, e as EdgeVariant, f as PortSide } from '../layout-dln3eGv4.js';
+import { B as BandDiagramSpec, b as LegacyBandSpec, P as PlacedNode, D as DiagramLayout } from '../layout-Bw-QA7sy.js';
+export { c as DiagramDecision, d as DiagramNode, e as EdgeVariant, f as PortSide } from '../layout-Bw-QA7sy.js';
 import '../theme.js';
 
 type BandSpecInput = BandDiagramSpec | LegacyBandSpec;

@@ -7,8 +7,9 @@ import {
   searchNodes
 } from "../chunk-23MOXLIZ.js";
 import {
-  downloadArtifact
-} from "../chunk-RER43UVE.js";
+  downloadArtifact,
+  exportCard
+} from "../chunk-AUK774CG.js";
 import {
   resolveDocument
 } from "../chunk-EAOYH4UI.js";
@@ -869,6 +870,20 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     artifact.receipt.bytes = artifact.bytes.byteLength;
     downloadArtifact(artifact, "query.svg");
   }
+  async function exportCardPng() {
+    if (!query || stale || !scene.ok) return;
+    const artifact = await exportCard(document2, {
+      query: {
+        documentId: document2.id,
+        revision: document2.revision,
+        nodeIds: [...query.result.nodeIds],
+        edgeIds: [...query.result.edgeIds],
+        label: summary ?? ""
+      }
+    });
+    if (!artifact.ok) return;
+    downloadArtifact(artifact.value, "card.png");
+  }
   function zoomBy(factor) {
     setCamera((current) => ({
       ...current,
@@ -1166,6 +1181,15 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
               disabled: !query || stale || !scene.ok || !!storyFocus,
               "aria-describedby": stale ? "adl-viewer-stale" : void 0,
               children: t("Export query SVG", "Exportar SVG de la consulta")
+            }
+          ),
+          /* @__PURE__ */ jsx4(
+            "button",
+            {
+              type: "button",
+              onClick: () => void exportCardPng(),
+              disabled: !query || stale || !scene.ok || !!storyFocus,
+              children: t("Export card PNG", "Exportar card PNG")
             }
           ),
           /* @__PURE__ */ jsx4("span", { id: "adl-viewer-stale", hidden: true, children: t("Export requires a current query.", "La exportaci\xF3n requiere una consulta vigente.") })

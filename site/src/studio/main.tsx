@@ -19,9 +19,17 @@ import {
   useEditorSelector,
   shallowEqual,
 } from '@aesthc/diagram-lib/editor'
-import { downloadArtifact, exportDocument } from '@aesthc/diagram-lib/export'
-import type { ExportFormat } from '@aesthc/diagram-lib/export'
-import { createLocalStorageAdapter, createAutosave } from '@aesthc/diagram-lib/persistence'
+import {
+  downloadArtifact,
+  exportDocument,
+  probeExportCapabilities,
+} from '@aesthc/diagram-lib/export'
+import type { ExportFormat, ProbedExportCapabilities } from '@aesthc/diagram-lib/export'
+import {
+  createLocalStorageAdapter,
+  createAutosave,
+  encodeShareDocument,
+} from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
@@ -90,6 +98,7 @@ function Workbench() {
     [autosave, setAutosave] = useState(false)
   const [format, setFormat] = useState<ExportFormat>('svg'),
     [quality, setQuality] = useState<'edit' | 'publish'>('edit'),
+    [capabilities, setCapabilities] = useState<ProbedExportCapabilities | null>(null),
     [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
@@ -136,6 +145,9 @@ function Workbench() {
     document.documentElement.lang = locale
   }, [locale])
   useEffect(() => {
+    setCapabilities(probeExportCapabilities())
+  }, [])
+  useEffect(() => {
     let cancelled = false
     void storage.load(snapshot.document.id).then((result) => {
       if (cancelled || !result.ok) return
@@ -175,6 +187,39 @@ function Workbench() {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [snapshot.dirty])
+  async function share() {
+    setMessage('')
+    const encoded = await encodeShareDocument(snapshot.document)
+    if (!encoded.ok) {
+      setMessage(
+        t(
+          'The share link exceeds the URL limit. Download JSON instead.',
+          'El enlace para compartir supera el límite de URL. Descarga JSON en su lugar.',
+        ),
+      )
+      return
+    }
+    if (!navigator.clipboard?.writeText) {
+      setMessage(
+        t(
+          'The clipboard is unavailable. Download JSON instead.',
+          'El portapapeles no está disponible. Descarga JSON en su lugar.',
+        ),
+      )
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(`${location.origin}${location.pathname}#${encoded.value}`)
+      setMessage(t('Share link copied.', 'Enlace copiado.'))
+    } catch {
+      setMessage(
+        t(
+          'The clipboard was denied. Download JSON instead.',
+          'El portapapeles fue denegado. Descarga JSON en su lugar.',
+        ),
+      )
+    }
+  }
   async function exportFile() {
     setBusy(true)
     setMessage('')
@@ -458,7 +503,20 @@ function Workbench() {
               onChange={(e) => setFormat(e.target.value as ExportFormat)}
             >
               {['json', 'svg', 'png', 'jpeg', 'webp'].map((f) => (
-                <option key={f} value={f}>
+                <option
+                  key={f}
+                  value={f}
+                  disabled={
+                    capabilities !== null &&
+                    (f === 'webp'
+                      ? !capabilities.webp
+                      : f === 'png'
+                        ? !capabilities.png
+                        : f === 'jpeg'
+                          ? !capabilities.jpeg
+                          : false)
+                  }
+                >
                   {f.toUpperCase()}
                 </option>
               ))}
@@ -475,6 +533,9 @@ function Workbench() {
               <option value="publish">{t('Publish', 'Publicación')}</option>
             </select>
           </label>
+          <button type="button" onClick={() => void share()}>
+            {t('Share link', 'Enlace para compartir')}
+          </button>
           <button type="button" disabled={busy} onClick={() => void exportFile()}>
             {busy ? t('Exporting…', 'Exportando…') : t('Download', 'Descargar')}
           </button>

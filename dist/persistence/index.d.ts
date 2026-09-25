@@ -1,5 +1,42 @@
-import { g as DiagramDocument, R as Result, E as EditorStore } from '../layout-dln3eGv4.js';
+import { g as DiagramDocument, j as Result, E as EditorStore } from '../layout-Bw-QA7sy.js';
 import '../theme.js';
+
+/** Bounded share envelopes: `d=` carries a versioned document, `s=` stays
+ * readable for legacy spec links. Expansion and time are capped; every reader
+ * is released, even on abort. */
+declare const SHARE_LIMITS: {
+    encoded: number;
+    expanded: number;
+    timeoutMs: number;
+    version: number;
+};
+interface ShareDecodeOptions {
+    clock?: () => number;
+    timeoutMs?: number;
+    limits?: {
+        encoded: number;
+        expanded: number;
+    };
+}
+interface DecodedShare {
+    document: DiagramDocument;
+    source: 'd' | 's';
+    version: number;
+}
+/** Encodes the canonical document. Returns `share.too-large`/`share.too-long`
+ * instead of producing an ambiguous link; callers offer a JSON download. */
+declare function encodeShareDocument(input: DiagramDocument, options?: {
+    limits?: {
+        encoded: number;
+        expanded: number;
+    };
+}): Promise<Result<string>>;
+/**
+ * Decodes a `d=` document or an `s=` legacy spec link. Malformed input,
+ * unsupported future versions, expansion bombs and timeouts are rejected
+ * without inventing a document.
+ */
+declare function decodeShareDocument(hash: string, options?: ShareDecodeOptions): Promise<Result<DecodedShare>>;
 
 interface StoredDocument {
     document: DiagramDocument;
@@ -57,4 +94,4 @@ declare function createAutosave(store: EditorStore, adapter: StorageAdapter, opt
     dispose(): void;
 };
 
-export { type AutosaveState, type SaveResult, type StorageAdapter, type StoredDocument, type StoredEntry, createAutosave, createLocalStorageAdapter, createMemoryStorage };
+export { type AutosaveState, type DecodedShare, SHARE_LIMITS, type SaveResult, type ShareDecodeOptions, type StorageAdapter, type StoredDocument, type StoredEntry, createAutosave, createLocalStorageAdapter, createMemoryStorage, decodeShareDocument, encodeShareDocument };

@@ -20,8 +20,61 @@ import {
 } from "./chunk-6NELNSRC.js";
 import {
   escapeXml,
+  renderSceneMarkup,
   renderSvg
 } from "./chunk-FE2JPGPT.js";
+
+// src/export/raster.ts
+async function rasterizeSvg(svg, mime, width, height, signal) {
+  if (typeof document === "undefined" || typeof Image === "undefined")
+    return failure("export.environment");
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) return failure("export.context");
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })), image = new Image();
+  try {
+    await new Promise((resolve, reject) => {
+      const abort = () => {
+        cleanup();
+        reject(Error("operation.aborted"));
+      };
+      const cleanup = () => {
+        image.onload = null;
+        image.onerror = null;
+        signal?.removeEventListener("abort", abort);
+      };
+      image.onload = () => {
+        cleanup();
+        resolve();
+      };
+      image.onerror = () => {
+        cleanup();
+        reject(Error("export.image"));
+      };
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
+      else image.src = url;
+    });
+    if (signal?.aborted) return failure("operation.aborted");
+    context.drawImage(image, 0, 0, width, height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, 0.92));
+    if (signal?.aborted) return failure("operation.aborted");
+    if (!blob) return failure("export.encode");
+    if (blob.type !== mime) return failure("export.mime");
+    return success(new Uint8Array(await blob.arrayBuffer()));
+  } catch (error) {
+    return failure(
+      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : error instanceof Error && error.message === "export.image" ? "export.image" : "export.raster"
+    );
+  } finally {
+    image.src = "";
+    URL.revokeObjectURL(url);
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
 
 // src/assets/fonts/notices.json
 var notices_default = [
@@ -129,6 +182,123 @@ function exportDocumentHtml(input, options) {
   });
 }
 
+// src/export/cards.ts
+var CARD_WIDTH = 1200;
+var CARD_HEIGHT = 630;
+function validateCardQuery(document2, query) {
+  if (!query) return success(null);
+  if (query.documentId !== document2.id || query.revision !== document2.revision)
+    return failure("query.stale");
+  if (query.nodeIds.length === 0 && query.edgeIds.length === 0) return failure("query.invalid");
+  const nodeIds = new Set(nodesOf(document2.spec).map((node) => node.id));
+  const edgeIds = new Set(edgesOf(document2.spec).map((edge) => edge.id));
+  if (query.nodeIds.some((id) => !nodeIds.has(id))) return failure("reference.missing");
+  if (query.edgeIds.some((id) => !edgeIds.has(id))) return failure("reference.missing");
+  return success({
+    nodes: new Set(query.nodeIds),
+    edges: new Set(query.edgeIds),
+    label: query.label ?? ""
+  });
+}
+function cardSvg(input, options = {}) {
+  const checked = validateDocument(input);
+  if (!checked.ok) return checked;
+  const document2 = checked.value;
+  const query = validateCardQuery(document2, options.query);
+  if (!query.ok) return query;
+  const theme = options.theme ?? document2.presentation.theme.mode;
+  const palette = document2.presentation.theme[theme];
+  const resolved = resolveDocument(document2, {
+    quality: "edit",
+    requestId: "card",
+    measureText: createCanvasTextMeasurer() ?? estimateTextWidth
+  });
+  if (!resolved.ok) return resolved;
+  const layout = resolved.value.layout;
+  const padding = options.padding ?? 40;
+  const scale = Math.min(
+    (CARD_WIDTH - padding * 2) / layout.width,
+    (CARD_HEIGHT - padding * 2) / layout.height
+  );
+  const tx = (CARD_WIDTH - layout.width * scale) / 2;
+  const ty = (CARD_HEIGHT - layout.height * scale) / 2;
+  const markup = renderSceneMarkup(document2, resolved.value, {
+    instanceId: "card",
+    theme,
+    highlight: query.value ? { nodes: query.value.nodes, edges: query.value.edges } : void 0
+  });
+  const highlightStyle = query.value ? `<style>[data-query-highlight="true"]>rect,[data-query-highlight="true"]>circle{stroke:${palette.cobalt};stroke-width:2.5}[data-query-highlight="true"]>text{fill:${palette.cobalt}}[data-query-highlight="true"]>path{stroke:${palette.cobalt} !important;stroke-width:3}</style>` : "";
+  const caption = query.value?.label ? `<text x="${padding}" y="${padding - 12}" font-family="Geist, sans-serif" font-size="16" fill="${palette.mutedForeground}">${escapeXml(query.value.label)}</text>` : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escapeXml(document2.spec.caption)}"><title>${escapeXml(document2.spec.caption)}</title>${highlightStyle}<rect width="100%" height="100%" fill="${palette.background}"/>${caption}<g transform="translate(${tx} ${ty}) scale(${scale})"><g transform="translate(${resolved.value.origin.x} ${resolved.value.origin.y})">${markup}</g></g></svg>`;
+  return success({ svg, canonical: !query.value });
+}
+async function exportCard(input, options = {}) {
+  const svg = cardSvg(input, options);
+  if (!svg.ok) return svg;
+  const bytes = await rasterizeSvg(
+    svg.value.svg,
+    "image/png",
+    CARD_WIDTH,
+    CARD_HEIGHT,
+    options.signal
+  );
+  if (!bytes.ok) return bytes;
+  return success({
+    bytes: bytes.value,
+    receipt: {
+      documentId: input.id,
+      revision: input.revision,
+      format: "png",
+      mimeType: "image/png",
+      bytes: bytes.value.byteLength,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      scope: "document",
+      canonical: svg.value.canonical,
+      sourceIncluded: false,
+      verified: false,
+      diagnostics: []
+    }
+  });
+}
+
+// src/export/capabilities.ts
+function probeExportCapabilities() {
+  const base = getExportCapabilities();
+  let webp = false;
+  if (typeof document !== "undefined") {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 2;
+      canvas.height = 2;
+      webp = canvas.toDataURL("image/webp").startsWith("data:image/webp");
+      canvas.width = 0;
+      canvas.height = 0;
+    } catch {
+      webp = false;
+    }
+  }
+  return {
+    png: base.png,
+    jpeg: base.jpeg,
+    webp,
+    html: base.html,
+    clipboardText: base.clipboardText,
+    clipboardPng: base.clipboardPng,
+    print: base.print,
+    webmMimeType: base.webmMimeType
+  };
+}
+function supportedFormats(capabilities) {
+  return [
+    "json",
+    "svg",
+    ...capabilities.png ? ["png"] : [],
+    ...capabilities.jpeg ? ["jpeg"] : [],
+    ...capabilities.webp ? ["webp"] : []
+  ];
+}
+
 // src/export/index.ts
 function base642(bytes) {
   let raw = "";
@@ -142,56 +312,6 @@ function fontCss2(fonts) {
   return success(
     `/* ${escapeXml(notices_default.join("\n"))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base642(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base642(fonts.mono)}) format("woff2")}`
   );
-}
-async function raster(svg, mime, width, height, signal) {
-  if (typeof document === "undefined" || typeof Image === "undefined")
-    return failure("export.environment");
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) return failure("export.context");
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })), image = new Image();
-  try {
-    await new Promise((resolve, reject) => {
-      const abort = () => {
-        cleanup();
-        reject(Error("operation.aborted"));
-      };
-      const cleanup = () => {
-        image.onload = null;
-        image.onerror = null;
-        signal?.removeEventListener("abort", abort);
-      };
-      image.onload = () => {
-        cleanup();
-        resolve();
-      };
-      image.onerror = () => {
-        cleanup();
-        reject(Error("export.image"));
-      };
-      signal?.addEventListener("abort", abort, { once: true });
-      if (signal?.aborted) abort();
-      else image.src = url;
-    });
-    if (signal?.aborted) return failure("operation.aborted");
-    context.drawImage(image, 0, 0, width, height);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, 0.92));
-    if (signal?.aborted) return failure("operation.aborted");
-    if (!blob) return failure("export.encode");
-    if (blob.type !== mime) return failure("export.mime");
-    return success(new Uint8Array(await blob.arrayBuffer()));
-  } catch (error) {
-    return failure(
-      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : error instanceof Error && error.message === "export.image" ? "export.image" : "export.raster"
-    );
-  } finally {
-    image.src = "";
-    URL.revokeObjectURL(url);
-    canvas.width = 0;
-    canvas.height = 0;
-  }
 }
 async function exportDocument(input, options) {
   if (options.signal?.aborted) return failure("operation.aborted");
@@ -298,7 +418,7 @@ async function exportDocument(input, options) {
       );
       bytes = new TextEncoder().encode(svg);
     } else {
-      const result = await raster(svg, mimeType, width, height, options.signal);
+      const result = await rasterizeSvg(svg, mimeType, width, height, options.signal);
       if (!result.ok) return result;
       bytes = result.value;
     }
@@ -372,6 +492,13 @@ async function copyArtifact(artifact) {
 
 export {
   exportDocumentHtml,
+  CARD_WIDTH,
+  CARD_HEIGHT,
+  validateCardQuery,
+  cardSvg,
+  exportCard,
+  probeExportCapabilities,
+  supportedFormats,
   exportDocument,
   getExportCapabilities,
   downloadArtifact,

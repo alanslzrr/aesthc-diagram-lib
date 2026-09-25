@@ -151,11 +151,11 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /export
 
-`ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `copyArtifact`, `downloadArtifact`, `exportDocument`, `exportDocumentHtml`, `getExportCapabilities`
+`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `ProbedExportCapabilities`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportDocument`, `exportDocumentHtml`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`
 
 ### /persistence
 
-`AutosaveState`, `SaveResult`, `StorageAdapter`, `StoredDocument`, `StoredEntry`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`
+`AutosaveState`, `DecodedShare`, `SHARE_LIMITS`, `SaveResult`, `ShareDecodeOptions`, `StorageAdapter`, `StoredDocument`, `StoredEntry`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`, `decodeShareDocument`, `encodeShareDocument`
 
 ### /render
 

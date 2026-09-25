@@ -4,7 +4,7 @@ import type { DiagramDocument, EntityRef, Locale, Viewport } from '../editor-cor
 import { resolveDocument } from '../editor-core/scene'
 import { findReach, findRoute, graphSnapshot } from '../graph'
 import { renderSvg } from '../render'
-import { downloadArtifact } from '../export'
+import { downloadArtifact, exportCard } from '../export'
 import type { ExportArtifact } from '../export'
 import { Finder } from './Finder'
 import { Inspector } from './Inspector'
@@ -298,6 +298,20 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     }
     artifact.receipt.bytes = artifact.bytes.byteLength
     downloadArtifact(artifact, 'query.svg')
+  }
+  async function exportCardPng() {
+    if (!query || stale || !scene.ok) return
+    const artifact = await exportCard(document, {
+      query: {
+        documentId: document.id,
+        revision: document.revision,
+        nodeIds: [...query.result.nodeIds],
+        edgeIds: [...query.result.edgeIds],
+        label: summary ?? '',
+      },
+    })
+    if (!artifact.ok) return
+    downloadArtifact(artifact.value, 'card.png')
   }
   function zoomBy(factor: number) {
     setCamera((current) => ({
@@ -642,6 +656,13 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
             aria-describedby={stale ? 'adl-viewer-stale' : undefined}
           >
             {t('Export query SVG', 'Exportar SVG de la consulta')}
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportCardPng()}
+            disabled={!query || stale || !scene.ok || !!storyFocus}
+          >
+            {t('Export card PNG', 'Exportar card PNG')}
           </button>
           <span id="adl-viewer-stale" hidden>
             {t('Export requires a current query.', 'La exportación requiere una consulta vigente.')}

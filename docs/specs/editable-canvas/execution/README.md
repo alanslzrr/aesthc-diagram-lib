@@ -34,7 +34,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E14 | M2 | 6/0/0 | Lenses (roles/tags) con dimming sin tocar topología, collapse con proxies ligados a IDs originales, minimapa con navegación de cámara, story finita con owner único y reducción de movimiento, presentación con fallback y codec de estado viewer | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E15 | M2 | 3/0/0 | Diagnósticos publish, **router A* ortogonal acotado** y **layout asíncrono latest-wins** | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
-| E17 | M2 | 1/0/5 | Límites raster y capacidades (T42.2) | Codec `d=`/`v=`, cards 1200×630 y formatos negociados |
+| E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
 | E18 | M2 | 0/0/4 | — | Registro de renderers por instancia y layout provider explícito |
 | E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
 | E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next | Matriz completa de superficies M2 en consumidores |
@@ -188,6 +188,25 @@ Cierra T38.1, T38.2 y completa T55.2 (cobertura 94 implementados / 1 parcial / 1
 - **Gates locales**: E2E T38.1/T38.2 PASS en chromium (file:// con 0 red, 0 storage, fuentes
   activas, búsqueda/ruta/story/tema operativos; scripts deshabilitados muestran el fallback;
   labels hostiles no ejecutan), tarball PASS, budgets PASS (paquete 930 KB packed), unit 357.
+
+## Continuación M2: shares, cards y formatos E17 (2026-09-25)
+
+Cierra T40.1, T40.2, T41.1, T41.2 y T42.1 (cobertura 99 implementados / 1 parcial / 12 missing).
+
+- **`src/persistence/share.ts`**: codec público `d=` con documento canónico comprimido
+  (deflate-raw + base64url) y lectura legacy `s=`. Expansión ≤256 KiB, timeout con reloj
+  inyectable, versión futura rechazada, reader siempre liberado; el encoder devuelve
+  `share.too-long` en lugar de un enlace ambiguo. La UI del Studio ofrece descarga JSON local y
+  nunca anuncia éxito falso (portapapeles denegado incluido).
+- **`src/export/cards.ts`**: card 1200×630 con fit del grafo completo y highlight por IDs
+  exactos (paralelas individuales); `validateCardQuery` rechaza receipts stale/alterados/vacíos;
+  `canonical=false` con consulta y sin highlights en la canónica; raster compartido con el
+  pipeline de export (`src/export/raster.ts`).
+- **`src/export/capabilities.ts`**: probe real de WebP por codificación y formatos soportados;
+  el Studio deshabilita lo no soportado y un WebP que devuelve PNG falla con `export.mime`
+  (nunca se renombra un PNG); JPEG transparente sigue rechazándose con `export.alpha`.
+- **Gates locales**: unit 362 PASS, tarball PASS, budgets PASS (studio 172.4 KiB, viewer
+  140.1 KiB), E2E E17 7/7 PASS en chromium.
 
 ## Implementación disponible
 

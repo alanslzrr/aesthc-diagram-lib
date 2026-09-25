@@ -1183,7 +1183,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-share.unit.spec.ts`
+
+**Evidencia:** codec público d= (documento canónico comprimido deflate-raw en base64url) y lectura legacy s= de specs; rechazo explícito de versión futura (share.future), malformado (share.malformed), bomba de expansión >256KiB (share.expansion) y timeout con reloj inyectado (share.timeout), liberando siempre el reader; el encoder rechaza sobredimensionados (share.too-long) sin enlace ambiguo (unit PASS).
 
 - **Given:** hash legacy, d=v1, futuro, malformed y expansión >256KiB.
 - **When:** decode con clock limitado.
@@ -1193,7 +1195,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-share.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-share.e2e.ts`
+
+**Evidencia:** documento con enlace por encima del límite: la UI ofrece descarga JSON local, no anuncia éxito y no realiza peticiones fuera del host; portapapeles denegado: mensaje de JSON alternativo sin éxito falso (E2E chromium PASS).
 
 - **Given:** documento >URL máximo y clipboard denegado.
 - **When:** copy share.
@@ -1209,7 +1213,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-cards.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-cards.e2e.ts`
+
+**Evidencia:** cards de ruta con relación paralela explícita y de alcance en ciclo: PNG descargado y decodificado a 1200×630; el SVG de card incluye todo el grafo (todos los node IDs), marca solo los edge IDs exactos (ab-1 sí, ab-2 no) y canonical=false; la card canónica no lleva highlights (E2E chromium PASS).
 
 - **Given:** ruta con parallel edge explícita y reach en ciclo.
 - **When:** descargar cards y decodificar.
@@ -1219,7 +1225,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-cards.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-cards.unit.spec.ts`
+
+**Evidencia:** validateCardQuery rechaza receipt stale (revisión distinta), alterado (documentId ajeno o IDs inexistentes) y vacío (query.invalid) sin fallback engañoso; la card canónica sigue sin highlights y la consulta marca IDs exactos de paralelas (unit 2/2 PASS).
 
 - **Given:** receipt stale/alterado/vacío/unreachable.
 - **When:** export card.
@@ -1235,7 +1243,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-formats.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-formats.e2e.ts`
+
+**Evidencia:** sin WebP real (toDataURL devuelve PNG) el formato queda deshabilitado con PNG/JPEG habilitados; una codificación WebP que devuelve PNG falla con export.mime y no descarga ni anuncia éxito; JPEG con fondo transparente se rechaza con export.alpha sin cambiar el fondo en silencio (E2E chromium 3/3 PASS).
 
 - **Given:** browser sin WebP real/ClipboardItem y JPEG transparente.
 - **When:** seleccionar export.
