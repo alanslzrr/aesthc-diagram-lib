@@ -163,7 +163,12 @@ test('T52.2 reduced motion, missing codecs and cancellation never report a false
   await importFixture(page)
   const exportButton = page.getByRole('button', { name: 'Export WebM', exact: true })
   await expect(exportButton).toBeDisabled()
-  await expect(exportButton).toHaveAttribute('title', 'Reduced motion: recording is disabled.')
+  // Engines without a WebM codec report unavailable; supported engines report
+  // reduced motion. Either way recording is disabled and never a false success.
+  await expect(exportButton).toHaveAttribute(
+    'title',
+    /Reduced motion: recording is disabled\.|WebM is unavailable in this browser\./,
+  )
   await expect(page.getByText('Reduced motion: static navigation.')).toBeVisible()
 })
 
