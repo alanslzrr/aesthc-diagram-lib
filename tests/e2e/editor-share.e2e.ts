@@ -100,3 +100,34 @@ test('T40.2 a denied clipboard falls back to the JSON download message without a
   await expect(page.getByText('The clipboard was denied. Download JSON instead.')).toBeVisible()
   await expect(page.getByText('Share link copied.')).toHaveCount(0)
 })
+
+test('T40.2 a shared link opens the shared document in a fresh context', async ({ browser }) => {
+  const context = await browser.newContext({
+    permissions: ['clipboard-read', 'clipboard-write'],
+  })
+  const page = await context.newPage()
+  await page.goto('/studio.html')
+  await importDocument(page, documentJson(['Audit shared node', 'Neighbour node']))
+  await expect(page.getByRole('button', { name: 'Node 0', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Share link', exact: true }).click()
+  await expect(page.getByText('Share link copied.')).toBeVisible()
+  const url = await page.evaluate(() => navigator.clipboard.readText())
+  expect(url).toContain('#d=')
+  // Fresh context and page: no storage, no previous state.
+  const freshContext = await browser.newContext()
+  const freshPage = await freshContext.newPage()
+  await freshPage.goto(url)
+  await expect(freshPage.getByText('Shared document loaded.')).toBeVisible()
+  await expect(freshPage.getByRole('button', { name: 'Node 0', exact: true })).toBeVisible()
+  // An unreadable link keeps the local document and reports it.
+  const brokenContext = await browser.newContext()
+  const brokenPage = await brokenContext.newPage()
+  await brokenPage.goto(url.split('#')[0] + '#d=zbroken')
+  await expect(
+    brokenPage.getByText('The shared link could not be read. Showing the local document.'),
+  ).toBeVisible()
+  await expect(brokenPage.getByRole('button', { name: 'Order API', exact: true })).toBeVisible()
+  await context.close()
+  await freshContext.close()
+  await brokenContext.close()
+})

@@ -28,6 +28,7 @@ import type { ExportFormat, ProbedExportCapabilities } from '@aesthc/diagram-lib
 import {
   createLocalStorageAdapter,
   createAutosave,
+  decodeShareDocument,
   encodeShareDocument,
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
@@ -146,6 +147,39 @@ function Workbench() {
   }, [locale])
   useEffect(() => {
     setCapabilities(probeExportCapabilities())
+  }, [])
+  useEffect(() => {
+    // A shared link is read once on mount, validated before replacing the
+    // document, and never overwrites a saved copy.
+    const hash = location.hash
+    if (!/^#(d|s)=/.test(hash)) return
+    let cancelled = false
+    void decodeShareDocument(hash).then((decoded) => {
+      if (cancelled) return
+      if (!decoded.ok) {
+        setMessage(
+          t(
+            'The shared link could not be read. Showing the local document.',
+            'No se pudo leer el enlace compartido. Se muestra el documento local.',
+          ),
+        )
+        return
+      }
+      const commit = store.replaceDocument(decoded.value.document, {
+        expectedRevision: store.getSnapshot().document.revision,
+        history: 'reset',
+      })
+      if (commit.status !== 'rejected') {
+        token.current = null
+        setMessage(t('Shared document loaded.', 'Documento compartido cargado.'))
+      } else {
+        setMessage(commit.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+    // Only the initial link matters; later edits do not re-read the hash.
   }, [])
   useEffect(() => {
     let cancelled = false
