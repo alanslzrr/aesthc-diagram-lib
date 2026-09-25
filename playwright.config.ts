@@ -28,6 +28,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile-chromium',
+      testIgnore: '**/editor-performance.e2e.ts',
       use: {
         ...devices['Pixel 7'],
         ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
@@ -35,13 +36,37 @@ export default defineConfig({
     },
     {
       name: 'chromium',
+      testIgnore: '**/editor-performance.e2e.ts',
       use: {
         ...devices['Desktop Chrome'],
         ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
       },
     },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'webkit' } },
+    {
+      name: 'firefox',
+      testIgnore: '**/editor-performance.e2e.ts',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      testIgnore: '**/editor-performance.e2e.ts',
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'mobile',
+      testIgnore: '**/editor-performance.e2e.ts',
+      use: { ...devices['iPhone 13'], defaultBrowserType: 'webkit' },
+    },
+    {
+      name: 'performance',
+      testMatch: '**/editor-performance.e2e.ts',
+      // Run the unchanged frame budget only after functional workers release the CPU.
+      dependencies: ['mobile-chromium', 'chromium', 'firefox', 'webkit', 'mobile'],
+      workers: 1,
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
+      },
+    },
   ],
 })

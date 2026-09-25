@@ -737,3 +737,11 @@ inspector on every preview. Paint was not the dominant phase in this capture.
 
 The isolated `test:perf` remains part of `pnpm check`. No budgets, datasets or required CI
 steps were weakened. Remote verification of the resulting commit remains required.
+
+A pooled strict-browser run subsequently exposed borderline frames (33.4 ms). The frame
+benchmark now has a mandatory `performance` project that depends on all five functional
+projects and uses one worker. `pnpm test:e2e` still runs it, with the same 33.3 ms assertion.
+Static hit targets are memoized separately from gesture targets; already materialized
+manual scenes no longer submit a redundant `scene.set` on every move. Placement updates
+copy only touched records while retaining structural validation. Three consecutive local
+strict repetitions passed after these changes; final CI remains the acceptance evidence.
