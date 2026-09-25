@@ -16,7 +16,8 @@ import {
   EditorInspector,
   EditorJsonPanel,
   EditorOutline,
-  useEditorSnapshot,
+  useEditorSelector,
+  shallowEqual,
 } from '@aesthc/diagram-lib/editor'
 import { downloadArtifact, exportDocument } from '@aesthc/diagram-lib/export'
 import type { ExportFormat } from '@aesthc/diagram-lib/export'
@@ -79,7 +80,10 @@ const store = createEditorStore({
 })
 const storage = createLocalStorageAdapter('studio')
 function Workbench() {
-  const snapshot = useEditorSnapshot(),
+  const snapshot = useEditorSelector(
+      (state) => ({ document: state.document, dirty: state.dirty }),
+      shallowEqual,
+    ),
     [locale, setLocale] = useState<Locale>('en'),
     [message, setMessage] = useState(''),
     [saving, setSaving] = useState<AutosaveState>({ status: 'idle' }),

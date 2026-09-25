@@ -72,7 +72,8 @@ export function EditorRoot({
   locale: Locale
   children: ReactNode
 }) {
-  return <Context.Provider value={{ store, locale }}>{children}</Context.Provider>
+  const value = useMemo(() => ({ store, locale }), [store, locale])
+  return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export function useEditor() {
   const context = useContext(Context)
