@@ -1746,7 +1746,9 @@
           "given": "dos registries y payload con typeKey no registrado",
           "when": "resolver/validar/exportar",
           "then": "no carga remota; renderer.unsupported; otra instancia intacta",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-renderers.unit.spec.ts",
+          "result": "registries por instancia: typeKey desconocido reporta renderer.unsupported sin cargar código (fetch jamás invocado), duplicados rechazados, instancias aisladas (la segunda no ve el registro de la primera), payloads JSON puros sin callbacks serializados, validación del renderer y medición determinista antes de renderizar SVG canónico (unit 2/2 PASS)"
         },
         {
           "id": "T43.2",
@@ -1755,7 +1757,9 @@
           "given": "tarball y custom node con validate/measure/renderSvg",
           "when": "compilar y exportar fixture; round-trip extensions",
           "then": "tipos públicos suficientes, datos conservados sin callbacks serializados",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-package.mjs",
+          "result": "examples/custom-node.tsx compila contra el tarball (NodeNext/Bundler) usando createRendererRegistry/renderCustomNode y createLayoutProviderRegistry/runRegisteredLayout; los tipos públicos bastan y el payload viaja como JSON sin registrar código (tarball PASS en React 18/19)"
         }
       ]
     },
@@ -2116,7 +2120,9 @@
           "given": "provider devuelve scene con nodeId ajeno o lock movido",
           "when": "aplicar resultado con baseRevision correcta",
           "then": "rechazo semántico, sin side effects ni history parcial",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-providers.unit.spec.ts",
+          "result": "provider registrado que devuelve nodeId ajeno o mueve un nodo locked: rechazo semántico (reference.missing/entity.locked) con el documento de entrada intacto, sin side effects ni historial parcial; provider desconocido rechaza con provider.unknown (unit PASS)"
         },
         {
           "id": "T56.2",
@@ -2125,7 +2131,9 @@
           "given": "provider valido y otro que rechaza Promise",
           "when": "request layout y cleanup",
           "then": "aplicar un commit; error aislado conserva last-good y puede reintentar",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-providers.unit.spec.ts",
+          "result": "provider válido aplica exactamente un documento nuevo conservando pins; provider que rechaza queda aislado (provider.failed) manteniendo last-good y permitiendo retry exitoso; un requestId viejo nunca publica (provider.stale) (unit 2/2 PASS)"
         }
       ]
     }

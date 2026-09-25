@@ -19,3 +19,17 @@ export { routeOrthogonal } from './router'
 export type { OrthogonalRouteRequest, RouteObstacle, RoutedPath } from './router'
 export { applyLayoutResult, createLayoutProvider, runLayoutProvider } from './layout-provider'
 export type { LayoutProvider, LayoutProviderResult } from './layout-provider'
+export { createRendererRegistry, renderCustomNode, validateCustomPayload } from './renderers'
+export type {
+  CustomNodePayload,
+  CustomNodeRenderer,
+  CustomRenderContext,
+  RendererRegistry,
+} from './renderers'
+export { createLayoutProviderRegistry, runRegisteredLayout } from './providers'
+export type {
+  LayoutProviderRegistry,
+  RegisteredLayoutOptions,
+  RegisteredLayoutOutcome,
+  RegisteredLayoutProvider,
+} from './providers'

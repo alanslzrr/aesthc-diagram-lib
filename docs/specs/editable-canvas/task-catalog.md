@@ -345,7 +345,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e18"></a>
 ## E18 — Extensibilidad por instancia
 
-**Hito:** M2 · **Depende de:** E09, E11, E15 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
+**Hito:** M2 · **Depende de:** E09, E11, E15 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R43, R56.
 

@@ -153,4 +153,96 @@ declare function createLayoutProvider(requestId: string, baseRevision: number, w
     aborted: boolean;
 }) => Promise<DiagramScene>): LayoutProvider;
 
-export { CommitResult, type ConversionReceipt, DEFAULT_LIMITS, DiagramDocument, DiagramFragment, DiagramScene, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, ImportOptions, ImportReceipt, type LayoutProvider, type LayoutProviderResult, Limits, type OrthogonalRouteRequest, Point, Presentation, Rect, ResolveContext, ResolvedScene, Result, type RouteObstacle, type RoutedPath, Size, StoreOptions, Transaction, TypeAdapter, Viewport, applyLayoutResult, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, createLayoutProvider, defaultPresentation, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, resolveDocument, routeOrthogonal, runLayoutProvider, screenToWorld, serializeDocument, validateDocument, validateEditorSpec, worldToScreen, zoomAt };
+/** Custom node payload: JSON data plus a typeKey. Code never travels in the
+ * payload; the trusted per-instance registry holds the behavior. */
+interface CustomNodePayload {
+    typeKey: string;
+    data: unknown;
+}
+interface CustomRenderContext {
+    theme: 'light' | 'dark';
+    palette: {
+        background: string;
+        foreground: string;
+        card: string;
+        border: string;
+        muted: string;
+    };
+    x: number;
+    y: number;
+}
+interface CustomNodeRenderer<T = unknown> {
+    typeKey: string;
+    validate(data: unknown): Result<T>;
+    /** Deterministic box for layout and export. */
+    measure(data: T, role: {
+        fontSize: number;
+    }): {
+        width: number;
+        height: number;
+    };
+    /** Canonical SVG fragment for the node, escaped by the renderer. */
+    renderSvg(data: T, context: CustomRenderContext): string;
+}
+interface RendererRegistry {
+    register<T>(renderer: CustomNodeRenderer<T>): Result<void>;
+    resolve(typeKey: string): CustomNodeRenderer | undefined;
+    typeKeys(): string[];
+}
+/** Local, trusted and per-instance: nothing is loaded from a payload, a URL or
+ * a global singleton. Unknown typeKeys resolve to `undefined` and consumers
+ * report `renderer.unsupported`. */
+declare function createRendererRegistry(): RendererRegistry;
+declare function validateCustomPayload(registry: RendererRegistry, payload: unknown): Result<{
+    renderer: CustomNodeRenderer;
+    data: unknown;
+}>;
+/** Measures with the registered renderer and renders the canonical SVG
+ * fragment. An unsupported typeKey is reported before any rendering. */
+declare function renderCustomNode(registry: RendererRegistry, payload: unknown, context: CustomRenderContext & {
+    fontSize: number;
+}): Result<{
+    svg: string;
+    width: number;
+    height: number;
+    typeKey: string;
+}>;
+
+/** Explicitly registered async layout provider. Registration is per instance;
+ * a provider is never discovered from the document or the network. */
+interface RegisteredLayoutProvider {
+    id: string;
+    run(input: {
+        document: DiagramDocument;
+        requestId: string;
+        signal: AbortSignal;
+    }): Promise<DiagramScene>;
+}
+interface LayoutProviderRegistry {
+    register(provider: RegisteredLayoutProvider): Result<void>;
+    get(id: string): RegisteredLayoutProvider | undefined;
+    ids(): string[];
+}
+declare function createLayoutProviderRegistry(): LayoutProviderRegistry;
+interface RegisteredLayoutOptions {
+    expectedRevision: number;
+    /** Latest issued request id; an older request never publishes. */
+    latestRequestId: () => string;
+    requestId?: string;
+    signal?: AbortSignal;
+}
+interface RegisteredLayoutOutcome {
+    status: 'applied' | 'rejected';
+    document: DiagramDocument;
+    diagnostics: string[];
+}
+/**
+ * Runs a registered provider under the strict apply contract: the requestId
+ * must be the latest, the baseRevision must match, foreign node ids are
+ * rejected and locked nodes can never move. Rejections are isolated: the input
+ * document is returned untouched (last-good) so the caller can retry with
+ * another provider or the same one.
+ */
+declare function runRegisteredLayout(document: DiagramDocument, registry: LayoutProviderRegistry, providerId: string, options: RegisteredLayoutOptions): Promise<Result<RegisteredLayoutOutcome>>;
+
+export { CommitResult, type ConversionReceipt, type CustomNodePayload, type CustomNodeRenderer, type CustomRenderContext, DEFAULT_LIMITS, DiagramDocument, DiagramFragment, DiagramScene, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, ImportOptions, ImportReceipt, type LayoutProvider, type LayoutProviderRegistry, type LayoutProviderResult, Limits, type OrthogonalRouteRequest, Point, Presentation, Rect, type RegisteredLayoutOptions, type RegisteredLayoutOutcome, type RegisteredLayoutProvider, type RendererRegistry, ResolveContext, ResolvedScene, Result, type RouteObstacle, type RoutedPath, Size, StoreOptions, Transaction, TypeAdapter, Viewport, applyLayoutResult, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, createLayoutProvider, createLayoutProviderRegistry, createRendererRegistry, defaultPresentation, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, renderCustomNode, resolveDocument, routeOrthogonal, runLayoutProvider, runRegisteredLayout, screenToWorld, serializeDocument, validateCustomPayload, validateDocument, validateEditorSpec, worldToScreen, zoomAt };

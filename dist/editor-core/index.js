@@ -312,6 +312,111 @@ function createLayoutProvider(requestId, baseRevision, work) {
     }
   };
 }
+
+// src/editor-core/renderers.ts
+function createRendererRegistry() {
+  const renderers = /* @__PURE__ */ new Map();
+  return {
+    register(renderer) {
+      if (!renderer.typeKey || typeof renderer.validate !== "function")
+        return failure("renderer.invalid");
+      if (renderers.has(renderer.typeKey)) return failure("renderer.duplicate");
+      renderers.set(renderer.typeKey, renderer);
+      return success(void 0);
+    },
+    resolve(typeKey) {
+      return renderers.get(typeKey);
+    },
+    typeKeys() {
+      return [...renderers.keys()];
+    }
+  };
+}
+function validateCustomPayload(registry, payload) {
+  if (!payload || typeof payload !== "object") return failure("renderer.invalid");
+  const candidate = payload;
+  if (typeof candidate.typeKey !== "string" || !candidate.typeKey)
+    return failure("renderer.invalid");
+  const renderer = registry.resolve(candidate.typeKey);
+  if (!renderer) return failure("renderer.unsupported");
+  const checked = renderer.validate(candidate.data);
+  if (!checked.ok) return checked;
+  return success({ renderer, data: checked.value });
+}
+function renderCustomNode(registry, payload, context) {
+  const validated = validateCustomPayload(registry, payload);
+  if (!validated.ok) return validated;
+  const size = validated.value.renderer.measure(validated.value.data, {
+    fontSize: context.fontSize
+  });
+  if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0)
+    return failure("renderer.measure");
+  const svg = validated.value.renderer.renderSvg(validated.value.data, context);
+  if (typeof svg !== "string" || !svg.trim()) return failure("renderer.empty");
+  return success({
+    svg,
+    width: size.width,
+    height: size.height,
+    typeKey: validated.value.renderer.typeKey
+  });
+}
+
+// src/editor-core/providers.ts
+function createLayoutProviderRegistry() {
+  const providers = /* @__PURE__ */ new Map();
+  return {
+    register(provider) {
+      if (!provider.id || typeof provider.run !== "function") return failure("provider.invalid");
+      if (providers.has(provider.id)) return failure("provider.duplicate");
+      providers.set(provider.id, provider);
+      return success(void 0);
+    },
+    get(id) {
+      return providers.get(id);
+    },
+    ids() {
+      return [...providers.keys()];
+    }
+  };
+}
+async function runRegisteredLayout(document, registry, providerId, options) {
+  const provider = registry.get(providerId);
+  if (!provider) return failure("provider.unknown");
+  const requestId = options.requestId ?? `${providerId}:${document.revision}`;
+  const controller = new AbortController();
+  options.signal?.addEventListener("abort", () => controller.abort(), { once: true });
+  let scene;
+  try {
+    scene = await provider.run({
+      document,
+      requestId,
+      signal: controller.signal
+    });
+  } catch (error) {
+    return success({
+      status: "rejected",
+      document,
+      diagnostics: [
+        error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : "provider.failed"
+      ]
+    });
+  }
+  if (options.signal?.aborted) return failure("operation.aborted");
+  if (requestId !== options.latestRequestId())
+    return success({ status: "rejected", document, diagnostics: ["provider.stale"] });
+  const applied = applyLayoutResult(
+    document,
+    { requestId, baseRevision: options.expectedRevision, scene },
+    { expectedRevision: options.expectedRevision }
+  );
+  if (!applied.ok)
+    return success({
+      status: "rejected",
+      document,
+      diagnostics: applied.diagnostics.map((diagnostic) => diagnostic.code)
+    });
+  return success({ status: "applied", document: applied.value, diagnostics: [] });
+}
 export {
   DEFAULT_LIMITS,
   applyLayoutResult,
@@ -322,6 +427,8 @@ export {
   createEditorStore,
   createFragment,
   createLayoutProvider,
+  createLayoutProviderRegistry,
+  createRendererRegistry,
   defaultPresentation,
   exportLegacySpec,
   fitViewport,
@@ -329,11 +436,14 @@ export {
   importDocument,
   pasteFragment,
   relayoutScene,
+  renderCustomNode,
   resolveDocument,
   routeOrthogonal,
   runLayoutProvider,
+  runRegisteredLayout,
   screenToWorld,
   serializeDocument,
+  validateCustomPayload,
   validateDocument,
   validateEditorSpec,
   worldToScreen,

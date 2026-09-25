@@ -1273,7 +1273,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-renderers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-renderers.unit.spec.ts`
+
+**Evidencia:** registries por instancia: typeKey desconocido reporta renderer.unsupported sin cargar código (fetch jamás invocado), duplicados rechazados, instancias aisladas (la segunda no ve el registro de la primera), payloads JSON puros sin callbacks serializados, validación del renderer y medición determinista antes de renderizar SVG canónico (unit 2/2 PASS).
 
 - **Given:** dos registries y payload con typeKey no registrado.
 - **When:** resolver/validar/exportar.
@@ -1283,7 +1285,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `scripts/test-package.mjs`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** examples/custom-node.tsx compila contra el tarball (NodeNext/Bundler) usando createRendererRegistry/renderCustomNode y createLayoutProviderRegistry/runRegisteredLayout; los tipos públicos bastan y el payload viaja como JSON sin registrar código (tarball PASS en React 18/19).
 
 - **Given:** tarball y custom node con validate/measure/renderSvg.
 - **When:** compilar y exportar fixture; round-trip extensions.
@@ -1643,7 +1647,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-providers.unit.spec.ts`
+
+**Evidencia:** provider registrado que devuelve nodeId ajeno o mueve un nodo locked: rechazo semántico (reference.missing/entity.locked) con el documento de entrada intacto, sin side effects ni historial parcial; provider desconocido rechaza con provider.unknown (unit PASS).
 
 - **Given:** provider devuelve scene con nodeId ajeno o lock movido.
 - **When:** aplicar resultado con baseRevision correcta.
@@ -1653,7 +1659,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-providers.unit.spec.ts`
+
+**Evidencia:** provider válido aplica exactamente un documento nuevo conservando pins; provider que rechaza queda aislado (provider.failed) manteniendo last-good y permitiendo retry exitoso; un requestId viejo nunca publica (provider.stale) (unit 2/2 PASS).
 
 - **Given:** provider valido y otro que rechaza Promise.
 - **When:** request layout y cleanup.

@@ -35,7 +35,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E15 | M2 | 3/0/0 | Diagnósticos publish, **router A* ortogonal acotado** y **layout asíncrono latest-wins** | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
-| E18 | M2 | 0/0/4 | — | Registro de renderers por instancia y layout provider explícito |
+| E18 | M2 | 4/0/0 | **Renderers custom por instancia y providers de layout registrados** con aislamiento, rechazo y retry | T43.1, T43.2, T56.1 y T56.2 cerrados |
 | E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
 | E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next | Matriz completa de superficies M2 en consumidores |
 | E21 | M2 | 2/0/0 | Release verification y snapshots de docs | Gates M2 que aún no certifican funcionalidades inexistentes; candidato y changelog |
@@ -207,6 +207,21 @@ Cierra T40.1, T40.2, T41.1, T41.2 y T42.1 (cobertura 99 implementados / 1 parcia
   (nunca se renombra un PNG); JPEG transparente sigue rechazándose con `export.alpha`.
 - **Gates locales**: unit 362 PASS, tarball PASS, budgets PASS (studio 172.4 KiB, viewer
   140.1 KiB), E2E E17 7/7 PASS en chromium.
+
+## Continuación M2: extensibilidad por instancia E18 (2026-09-25)
+
+Cierra T43.1, T43.2, T56.1 y T56.2 (cobertura 103 implementados / 1 parcial / 8 missing; los 8
+restantes son M3).
+
+- **`src/editor-core/renderers.ts`**: registro trusted por instancia (`createRendererRegistry`),
+  payload JSON con `typeKey`, validación/medición/render SVG canónico y rechazo
+  `renderer.unsupported` sin cargar código remoto; duplicados rechazados e instancias aisladas.
+- **`src/editor-core/providers.ts`**: providers registrados explícitamente
+  (`createLayoutProviderRegistry`) ejecutados bajo el contrato latest-wins + baseRevision +
+  locked/IDs ajenos, con errores aislados, last-good intacto y retry.
+- **`examples/custom-node.tsx`**: ejemplo externo compilado contra el tarball (renderer metric-card
+  y provider slow-grid) en React 18/19 y resolvers NodeNext/Bundler.
+- **Gates locales**: unit 367 PASS (5 nuevos), tarball PASS, budgets PASS, E2E sin regresiones.
 
 ## Implementación disponible
 
