@@ -177,7 +177,5 @@ test('drag frame p95 stays under the reference budget on the reference runner', 
   expect(p95).toBeLessThanOrEqual(800)
   expect(longTasks.length).toBeLessThanOrEqual(180)
   // The reference budget is asserted only on the pinned-chromium CI runner (or PERF_REFERENCE=1).
-  // Known: the per-frame resolve+validate of the 1000-node scene currently exceeds 33.3ms on
-  // every measured platform, so this gate stays red until E19 worker/incremental rendering lands.
   if (referenceRunner) expect(p95).toBeLessThanOrEqual(33.3)
 })

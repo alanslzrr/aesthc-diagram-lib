@@ -249,6 +249,7 @@ function materialize(document: DiagramDocument) {
     requestId: 'gesture',
     measureText,
     skipValidation: true,
+    skipDiagnostics: true,
   })
   if (!result.ok) return document.scene
   return {
@@ -398,6 +399,11 @@ function EditorRelayout() {
     </button>
   )
 }
+// Keep the static SVG subtree out of React's innerHTML update path during gestures.
+const SceneMarkup = memo(function SceneMarkup({ markup }: { markup: string }) {
+  return <g dangerouslySetInnerHTML={{ __html: markup }} />
+})
+
 export function EditorSurface({
   ariaLabel,
   className,
@@ -1285,11 +1291,11 @@ export function EditorSurface({
           {/* Markup is generated exclusively by the internal escaped SVG serializer, never imported HTML. */}
           {gestureEntities && baseline !== null ? (
             <>
-              <g dangerouslySetInnerHTML={{ __html: baseline }} />
-              <g dangerouslySetInnerHTML={{ __html: deltaMarkup ?? '' }} />
+              <SceneMarkup markup={baseline} />
+              <SceneMarkup markup={deltaMarkup ?? ''} />
             </>
           ) : (
-            <g dangerouslySetInnerHTML={{ __html: markup }} />
+            <SceneMarkup markup={markup} />
           )}
           {authoredEdges.flatMap((e) => {
             const points = e.routePoints ?? []
@@ -1898,7 +1904,10 @@ export function EditorJsonPanel() {
 
 export function EditorSelectionTools() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ document: s.document, selection: s.selection }),
+      shallowEqual,
+    ),
     t = useLabels()
   const fragment = useRef<DiagramFragment | null>(null),
     [hasCopy, setHasCopy] = useState(false),
@@ -2454,9 +2463,13 @@ export function EditorStructuredInspector() {
 
 export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ document: s.document, selection: s.selection }),
+      shallowEqual,
+    ),
     t = useLabels()
-  const placement = materialize(snapshot.document).nodes[nodeId]
+  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document])
+  const placement = scene.nodes[nodeId]
   const [values, setValues] = useState({ x: '0', y: '0', width: '240', height: '64' }),
     [error, setError] = useState('')
   useEffect(() => {
@@ -2526,7 +2539,10 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
 }
 export function EditorRelations() {
   const { store } = useEditor(),
-    snapshot = useEditorSnapshot(),
+    snapshot = useEditorSelector(
+      (s) => ({ document: s.document, selection: s.selection }),
+      shallowEqual,
+    ),
     t = useLabels()
   const nodes = nodesOf(snapshot.document.spec),
     [from, setFrom] = useState(''),
