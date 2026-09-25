@@ -404,6 +404,85 @@ const SceneMarkup = memo(function SceneMarkup({ markup }: { markup: string }) {
   return <g dangerouslySetInnerHTML={{ __html: markup }} />
 })
 
+const SceneHits = memo(function SceneHits({
+  nodes,
+  edges,
+  selection,
+  zoom,
+  color,
+  connectionLabel,
+  selectEdge,
+  selectNode,
+  handleNodeKey,
+}: {
+  nodes: import('../layout').PlacedNode[]
+  edges: import('../layout').PlacedEdge[]
+  selection: ReturnType<EditorStore['getSnapshot']>['selection']
+  zoom: number
+  color: string
+  connectionLabel: string
+  selectEdge: (id: string) => void
+  selectNode: (id: string) => void
+  handleNodeKey: (id: string) => void
+}) {
+  return (
+    <>
+      {edges.flatMap((e) => {
+        const points = e.routePoints ?? []
+        const segments: Array<{ x: number; y: number; width: number; height: number }> = []
+        for (let i = 1; i < points.length; i++) {
+          const [x1, y1] = points[i - 1],
+            [x2, y2] = points[i]
+          segments.push({
+            x: Math.min(x1, x2) - 6,
+            y: Math.min(y1, y2) - 6,
+            width: Math.abs(x2 - x1) + 12,
+            height: Math.abs(y2 - y1) + 12,
+          })
+        }
+        const hit = segments.length
+          ? segments
+          : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }]
+        const selected = selection.some((r) => r.kind === 'edge' && r.id === e.id)
+        const stroke = color
+        return hit.map((segment, index) => (
+          <EdgeHitRect
+            key={`${e.id}-hit-${index}`}
+            id={e.id}
+            index={index}
+            x={segment.x}
+            y={segment.y}
+            width={segment.width}
+            height={segment.height}
+            selected={selected}
+            zoom={zoom}
+            stroke={stroke}
+            label={`${connectionLabel}: ${e.label ?? e.id}`}
+            onSelect={selectEdge}
+          />
+        ))
+      })}
+      {nodes.map((n) => (
+        <g key={n.id}>
+          <NodeHitRect
+            id={n.id}
+            x={nodeGeometry(n).hit.x}
+            y={nodeGeometry(n).hit.y}
+            width={nodeGeometry(n).hit.width}
+            height={nodeGeometry(n).hit.height}
+            label={n.label}
+            selected={selection.some((r) => r.kind === 'node' && r.id === n.id)}
+            zoom={zoom}
+            stroke={color}
+            onSelect={selectNode}
+            onKey={handleNodeKey}
+          />
+        </g>
+      ))}
+    </>
+  )
+})
+
 export function EditorSurface({
   ariaLabel,
   className,
@@ -418,16 +497,29 @@ export function EditorSurface({
   const svgRef = useRef<SVGSVGElement>(null),
     [size, setSize] = useState({ width: 800, height: 600 })
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
-  const resolved = useMemo(
+  const committedResolved = useMemo(
     () =>
-      resolveDocument(activeDoc, {
+      resolveDocument(snapshot.document, {
         quality: 'edit',
         requestId: instanceId,
         measureText,
         skipValidation: true,
         skipDiagnostics: true,
       }),
-    [activeDoc, instanceId],
+    [snapshot.document, instanceId],
+  )
+  const resolved = useMemo(
+    () =>
+      activeDoc === snapshot.document
+        ? committedResolved
+        : resolveDocument(activeDoc, {
+            quality: 'edit',
+            requestId: instanceId,
+            measureText,
+            skipValidation: true,
+            skipDiagnostics: true,
+          }),
+    [activeDoc, snapshot.document, committedResolved, instanceId],
   )
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]
@@ -520,6 +612,20 @@ export function EditorSurface({
     const ids = new Set(edgesOf(activeDoc.spec).map((e) => e.id))
     return resolved.ok ? resolved.value.layout.edges.filter((e) => ids.has(e.id)) : []
   }, [activeDoc.spec, resolved])
+  const hitBaseResolved = gestureEntities ? committedResolved : resolved
+  const hitBaseline = useMemo(() => {
+    const scene = hitBaseResolved.ok ? hitBaseResolved.value.layout : null
+    const nodeIds = new Set(nodesOf(snapshot.document.spec).map((node) => node.id))
+    const edgeIds = new Set(edgesOf(snapshot.document.spec).map((edge) => edge.id))
+    return {
+      nodes: (scene?.nodes ?? []).filter(
+        (node) => nodeIds.has(node.id) && !gestureEntities?.nodes.includes(node.id),
+      ),
+      edges: (scene?.edges ?? []).filter(
+        (edge) => edgeIds.has(edge.id) && !gestureEntities?.edges.includes(edge.id),
+      ),
+    }
+  }, [hitBaseResolved, snapshot.document.spec, gestureEntities])
   function cancelMarquee() {
     if (!marquee.current) return false
     store.setSelection([...marquee.current.selection])
@@ -594,6 +700,11 @@ export function EditorSurface({
       setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y })
       return
     }
+    const sceneCommands: EditorCommand[] =
+      snapshot.document.scene.mode === 'manual' &&
+      Object.keys(snapshot.document.scene.nodes).length === nodesOf(snapshot.document.spec).length
+        ? []
+        : [{ type: 'scene.set', scene: current.scene }]
     const dx = point.x - current.start.x,
       dy = point.y - current.start.y,
       positions: Record<string, Point> = {},
@@ -656,10 +767,7 @@ export function EditorSurface({
         )
       }
       store.previewGesture(
-        [
-          { type: 'scene.set', scene: current.scene },
-          { type: 'route.set', id: waypoint.edgeId, route: next },
-        ],
+        [...sceneCommands, { type: 'route.set', id: waypoint.edgeId, route: next }],
         { skipValidation: true },
       )
       return
@@ -694,7 +802,7 @@ export function EditorSurface({
           },
         ] as const
       })
-      store.previewGesture([{ type: 'scene.set', scene: current.scene }, ...resizeCommands], {
+      store.previewGesture([...sceneCommands, ...resizeCommands], {
         skipValidation: true,
       })
       return
@@ -707,13 +815,9 @@ export function EditorSurface({
         y: grid.snap ? Math.round(y / grid.size) * grid.size : y,
       }
     }
-    store.previewGesture(
-      [
-        { type: 'scene.set', scene: current.scene },
-        { type: 'nodes.move', positions },
-      ],
-      { skipValidation: true },
-    )
+    store.previewGesture([...sceneCommands, { type: 'nodes.move', positions }], {
+      skipValidation: true,
+    })
   }
   const scheduleMove = (point: Point, pointerId: number) => {
     pendingMove.current = point
@@ -1297,58 +1401,30 @@ export function EditorSurface({
           ) : (
             <SceneMarkup markup={markup} />
           )}
-          {authoredEdges.flatMap((e) => {
-            const points = e.routePoints ?? []
-            const segments: Array<{ x: number; y: number; width: number; height: number }> = []
-            for (let i = 1; i < points.length; i++) {
-              const [x1, y1] = points[i - 1],
-                [x2, y2] = points[i]
-              segments.push({
-                x: Math.min(x1, x2) - 6,
-                y: Math.min(y1, y2) - 6,
-                width: Math.abs(x2 - x1) + 12,
-                height: Math.abs(y2 - y1) + 12,
-              })
-            }
-            const hit = segments.length
-              ? segments
-              : [{ x: e.startX - 6, y: e.startY - 6, width: 12, height: 12 }]
-            const selected = snapshot.selection.some((r) => r.kind === 'edge' && r.id === e.id)
-            const stroke = activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt
-            return hit.map((segment, index) => (
-              <EdgeHitRect
-                key={`${e.id}-hit-${index}`}
-                id={e.id}
-                index={index}
-                x={segment.x}
-                y={segment.y}
-                width={segment.width}
-                height={segment.height}
-                selected={selected}
-                zoom={snapshot.viewport.zoom}
-                stroke={stroke}
-                label={`${t('Connection', 'Conexión')}: ${e.label ?? e.id}`}
-                onSelect={selectEdge}
-              />
-            ))
-          })}
-          {authoredNodes.map((n) => (
-            <g key={n.id}>
-              <NodeHitRect
-                id={n.id}
-                x={nodeGeometry(n).hit.x}
-                y={nodeGeometry(n).hit.y}
-                width={nodeGeometry(n).hit.width}
-                height={nodeGeometry(n).hit.height}
-                label={n.label}
-                selected={snapshot.selection.some((r) => r.kind === 'node' && r.id === n.id)}
-                zoom={snapshot.viewport.zoom}
-                stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
-                onSelect={selectNode}
-                onKey={handleNodeKey}
-              />
-            </g>
-          ))}
+          <SceneHits
+            nodes={hitBaseline.nodes}
+            edges={hitBaseline.edges}
+            selection={snapshot.selection}
+            zoom={snapshot.viewport.zoom}
+            color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+            connectionLabel={t('Connection', 'Conexión')}
+            selectEdge={selectEdge}
+            selectNode={selectNode}
+            handleNodeKey={handleNodeKey}
+          />
+          {gestureEntities && (
+            <SceneHits
+              nodes={authoredNodes.filter((node) => gestureEntities.nodes.includes(node.id))}
+              edges={authoredEdges.filter((edge) => gestureEntities.edges.includes(edge.id))}
+              selection={snapshot.selection}
+              zoom={snapshot.viewport.zoom}
+              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              connectionLabel={t('Connection', 'Conexión')}
+              selectEdge={selectEdge}
+              selectNode={selectNode}
+              handleNodeKey={handleNodeKey}
+            />
+          )}
           {snapshot.tool === 'select' &&
             snapshot.selection.length >= 1 &&
             getAdapter(activeDoc.spec.type).capabilities.includes('resize') &&
