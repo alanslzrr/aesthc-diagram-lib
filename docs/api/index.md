@@ -19,11 +19,13 @@ The package is ESM. Always use declared exports rather than internal files.
 | `/styles.css` | Generated stylesheet, imported once by the host |
 | `/editor-core` | Opt-in versioned document, validation, adapters, immutable store, scene and viewport math |
 | `/editor` | React editor composition: root, surface, toolbar, inspector and JSON draft panel |
+| `/viewer` | Read-only semantic viewer: finder, inspector, route/reach highlight with receipt-bound queries |
 | `/graph` | Authored directed route and reach queries with stable edge identities |
 | `/export` | Snapshot-based JSON/SVG/PNG/JPEG/WebP export; explicit fonts and side effects |
 | `/persistence` | Memory storage, Web-Locks local storage and opt-in autosave |
 | `/render` | Pure escaped SVG renderer for resolved editor scenes |
 | `/editor.css` | Opt-in editor control styles; does not change legacy canvas styles |
+| `/viewer.css` | Opt-in viewer control styles for the read-only semantic surface |
 | `/fonts/*` | Packaged Geist Sans/Mono WOFF2 assets for same-origin loading and export embedding |
 
 ## Canvas contract
@@ -139,9 +141,13 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 `EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorStatus`, `EditorStructuredInspector`, `EditorSurface`, `EditorToolbar`, `shallowEqual`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
 
+### /viewer
+
+`DiagramViewer`, `DiagramViewerProps`, `ExportQuerySvgOptions`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `ViewerQueryState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `searchNodes`
+
 ### /graph
 
-`GraphFilter`, `GraphSnapshot`, `ReachResult`, `RouteResult`, `findReach`, `findRoute`, `graphSnapshot`
+`GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `findReach`, `findRoute`, `graphSnapshot`, `relationsOf`, `searchNodes`
 
 ### /export
 

@@ -5,7 +5,8 @@
   "type": "module",
   "sideEffects": [
     "./dist/styles.css",
-    "./dist/editor.css"
+    "./dist/editor.css",
+    "./dist/viewer.css"
   ],
   "files": [
     "dist",
@@ -85,6 +86,10 @@
       "types": "./dist/editor/index.d.ts",
       "default": "./dist/editor/index.js"
     },
+    "./viewer": {
+      "types": "./dist/viewer/index.d.ts",
+      "default": "./dist/viewer/index.js"
+    },
     "./graph": {
       "types": "./dist/graph/index.d.ts",
       "default": "./dist/graph/index.js"
@@ -102,6 +107,7 @@
       "default": "./dist/render/index.js"
     },
     "./editor.css": "./dist/editor.css",
+    "./viewer.css": "./dist/viewer.css",
     "./fonts/*": "./dist/fonts/*"
   },
   "scripts": {

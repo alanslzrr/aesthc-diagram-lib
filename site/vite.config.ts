@@ -65,6 +65,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         studio: fileURLToPath(new URL('./studio.html', import.meta.url)),
+        viewer: fileURLToPath(new URL('./viewer.html', import.meta.url)),
         playground: fileURLToPath(new URL('./index.html', import.meta.url)),
         docs: fileURLToPath(new URL('./docs.html', import.meta.url)),
       },

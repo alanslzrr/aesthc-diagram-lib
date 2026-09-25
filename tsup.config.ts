@@ -7,6 +7,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'editor-core/index': 'src/editor-core/index.ts',
     'editor/index': 'src/editor/index.tsx',
+    'viewer/index': 'src/viewer/index.tsx',
     'graph/index': 'src/graph/index.ts',
     'export/index': 'src/export/index.ts',
     'persistence/index': 'src/persistence/index.ts',

@@ -16,9 +16,11 @@ export function publicExportInventory(manifest: {
             file: resolve(
               subpath === './editor'
                 ? 'src/editor/index.tsx'
-                : subpath === './icons'
-                  ? 'src/brand-icons/index.tsx'
-                  : target.types.replace('./dist/', 'src/').replace(/\.d\.ts$/, '.ts'),
+                : subpath === './viewer'
+                  ? 'src/viewer/index.tsx'
+                  : subpath === './icons'
+                    ? 'src/brand-icons/index.tsx'
+                    : target.types.replace('./dist/', 'src/').replace(/\.d\.ts$/, '.ts'),
             ),
           },
         ],
