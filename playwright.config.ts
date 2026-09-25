@@ -65,6 +65,8 @@ export default defineConfig({
       workers: 1,
       use: {
         ...devices['Desktop Chrome'],
+        // Continuous trace screenshots distort animation timing; failure screenshots remain enabled.
+        trace: 'off',
         ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
       },
     },

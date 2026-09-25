@@ -125,6 +125,10 @@ test('drag frame p95 stays under the reference budget on the reference runner', 
   })
   const xBefore = Number(await target.getAttribute('x'))
   const cdp = await page.context().newCDPSession(page)
+  if (process.env.PERF_PROFILE) {
+    await cdp.send('Profiler.enable')
+    await cdp.send('Profiler.start')
+  }
   const startX = box.x + box.width / 2,
     startY = box.y + box.height / 2
   await cdp.send('Input.dispatchMouseEvent', {
@@ -155,6 +159,13 @@ test('drag frame p95 stays under the reference budget on the reference runner', 
     button: 'left',
     clickCount: 1,
   })
+  if (process.env.PERF_PROFILE) {
+    const { profile } = await cdp.send('Profiler.stop')
+    await test.info().attach('gesture-cpu-profile', {
+      body: JSON.stringify(profile),
+      contentType: 'application/json',
+    })
+  }
   await cdp.detach()
   const xAfter = Number(await target.getAttribute('x'))
   expect(xAfter).not.toBe(xBefore)
@@ -170,6 +181,17 @@ test('drag frame p95 stays under the reference budget on the reference runner', 
   const p95 = Number(
     sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))].toFixed(6),
   )
+  await test.info().attach('frame-metrics', {
+    body: JSON.stringify({
+      environment,
+      frames,
+      p95,
+      nodeCount: 1000,
+      edgeCount: 2000,
+      budgetMs: 33.3,
+    }),
+    contentType: 'application/json',
+  })
   const longTasks = settled.filter((delta) => delta > 100)
   console.log(
     `frame p95 ${p95.toFixed(1)}ms over ${settled.length} frames; long frames >100ms: ${longTasks.length} ` +
