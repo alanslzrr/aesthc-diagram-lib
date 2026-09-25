@@ -36,7 +36,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
 | E18 | M2 | 4/0/0 | **Renderers custom por instancia y providers de layout registrados** con aislamiento, rechazo y retry | T43.1, T43.2, T56.1 y T56.2 cerrados |
-| E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
+| E19 | M2 | 6/0/0 | Gates a11y, temas/locales, budgets, frame/long-tasks, raster 2048² y memoria de 50 ciclos **certificados en el runner de referencia de CI** | Accesibilidad con lector de pantalla queda como paso manual documentado, no reclamado |
 | E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next; documentación M2 publicada (viewer, extending, shares, offline HTML) | Pendiente solo la matriz cross-browser de CI (binarios fijados) |
 | E21 | M2 | 2/0/0 | Release verification, snapshots, changelog M2 y evidencia del candidato | Publicación npm/tags requieren autorización específica |
 | E22 | M3 | 2/0/0 | **Comparación exacta Before/Delta/After** por ID, sin inferir renames, con receipt JSON | T49.1 y T49.2 cerrados |
@@ -237,10 +237,15 @@ completa sobre el commit de esta sesión:
 | Frame p95 (drag 10 s) | 16.7-16.8 ms, 0 long tasks >100 ms |
 | `verify-spec.mjs` | PASS: 25 tareas, 56 requisitos, 112 escenarios, 103 implementados / 1 parcial / 8 missing (M3) |
 
-**No certificado en esta sesión (no ocultado):** Chromium fijado del lockfile, Firefox, WebKit y
-los runners de referencia de CI (frame/memoria) siguen pendientes de los binarios/entorno;
-la revisión humana de accesibilidad (lector de pantalla, foco/contraste/reflow) sigue en
-`a11y-checklist.md`; no se publicó npm ni se crearon tags/releases.
+**Certificación en CI (PR #26, run 36193178009):** los tres jobs quedaron verdes — `Contracts and
+package` (pnpm check + matriz de navegadores fijados Chromium/Firefox/WebKit/móvil + frameworks +
+visual), `Node 20.19 / React 18.3.1 consumer` y `Reference frame budget` (frame p95 del drag de
+10 s, long tasks >100 ms, raster 2048² y memoria de 50 ciclos en el runner de referencia). Con
+esa evidencia `T46.1` pasa a implementado (112/0/0) y la matriz cross-browser queda certificada.
+
+**Aún pendiente y no reclamado:** la revisión humana de accesibilidad (lector de pantalla,
+foco/contraste/reflow) sigue registrada en `a11y-checklist.md` como paso manual de persona; no se
+publicó npm ni se crearon tags/releases.
 
 Documentación M2 publicada: `docs/guides/viewer.md`, `docs/guides/extending.md`, ampliación de
 `share-export.md`/`editor.md`/`migration.md` y entrada de changelog.

@@ -363,7 +363,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e19"></a>
 ## E19 — Gates a11y, performance y matriz browser
 
-**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
+**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R44, R45, R46.
 

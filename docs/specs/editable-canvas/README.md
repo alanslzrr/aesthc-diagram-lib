@@ -2,7 +2,7 @@
 
 > Ejecución aprobada por el usuario. Implementación en curso: consulta [el informe de ejecución](execution/README.md). La trazabilidad mapea cada escenario a su prueba real (`implementedIn`) con estado y evidencia; `file` sigue siendo el destino propuesto.
 
-**Estado:** especificación aprobada; implementación parcial en curso. La trazabilidad distingue 80 escenarios implementados, 2 parciales y 30 sin cobertura localizada (fecha 2026-09-25). Los parciales son `T46.1` (protocolo completo de rendimiento/memoria de E19) y `T55.2` (CSP/offline del HTML export, dependiente de E16). Los contratos describen el destino completo, no solo los exports disponibles. No se ha publicado esta evolución.
+**Estado:** especificación aprobada; implementación completa y certificada en CI (fecha 2026-09-25). La trazabilidad distingue **112 escenarios implementados, 0 parciales y 0 sin cobertura localizada**. Los contratos describen el destino completo, no solo los exports disponibles. La certificación cross-browser (Chromium/Firefox/WebKit/móvil), el runner de referencia de rendimiento/memoria y los consumidores React 18/19 quedaron verdes en CI (PR #26). La revisión humana con lector de pantalla permanece como paso manual documentado. No se ha publicado esta evolución.
 **Fecha:** 2026-09-22. **Responsable de aprobación:** mantenedor de `@aesthc/diagram-lib`.
 **Baseline local:** `cdf37a87c94f9ea17f29c62f45e2128bec627763`, paquete `0.3.0`, canal candidate.
 **Referencia auditada:** Archify `1bb61c69538e37d80793b25843f620e55469f3a2`, development `2.17.0-dev.1`.
