@@ -672,3 +672,68 @@ Pendiente tras el veredicto, sin cambios de estado: T46.1 requiere el resolver i
 reducción del trabajo React/SVG (frame local ~420 ms vs 33,3 ms de referencia); los tests IME
 usan CDP sin alternativa Firefox/WebKit (portabilidad pendiente junto a la descarga de binarios);
 T55.2 sigue parcial y visible hasta E16 (CSP/offline).
+
+## Corrección del fallo de CI por rendimiento del commit (2026-09-24)
+
+El CI fallaba en el benchmark unit (`pnpm check`): commit p95 de 27,15 ms (100 nodos, ≤16) y
+118,70 ms (1000 nodos, ≤50). Dos causas, corregidas sin subir umbrales ni omitir pruebas:
+
+1. **Coste real del commit** (validación completa + serializaciones por operación):
+   - Camino scene-only en `candidate`: `nodes.move`/`node.resize`/`nodes.set-lock` clonan solo la
+     escena (los demás campos quedan compartidos y congelados), validan los deltas con rangos
+     exactos y no revalidan el documento completo; `scene.set`/`route.set`/operaciones de grupos
+     siguen validando la escena estructural. `validateScene` extraída de `validateDocument`.
+   - Noop y dirty estructurales: `commandsMatchScene` (solo entidades tocadas) y
+     `sceneEquals` contra `savedScene` — sin serializar 2 MB por operación.
+   - **Causa dominante**: `trim()` serializaba con `JSON.stringify` toda la historia por cada
+     commit. Ahora la contabilidad de bytes del historial es incremental (arrays de tamaños
+     alineados con past/future, suma por push/pop/shift y `currentBytes` actualizado por deltas
+     de escena), y `invalidationsFor` compara topología con Maps en O(N).
+   - Resultado (gate aislado): commit 100 nodos **0,19 ms**, 1000 nodos **1,40 ms** (antes 27/118
+     en CI) con margen holgado sobre 16/50 ms incluso en runner lento.
+2. **Contención de workers**: el benchmark se ejecutaba dentro de la suite paralela. Ahora
+   `vitest.config.ts` excluye `editor-performance.unit.spec.ts` de la suite y `pnpm check`
+   ejecuta `pnpm test:perf` como gate aislado en su propio proceso (`vitest.perf.config.ts`,
+   un worker, sin paralelismo de archivos). CI corre `pnpm check`, así que la medición es la del
+   mismo runner sin contención de la suite.
+
+Cifras del gate aislado (mediana de p95, operaciones reales y completas): 100 nodos — validate
+2,2 / resolve 4,6 / commit 0,2 / bfs 0,2 / export 9,6 ms; 1000 nodos — validate 21,7 / resolve
+154,5 / commit 1,4 / bfs 7,6 / export 389,2 ms. Todas dentro de presupuesto.
+
+**Bloqueo previsto restante (no ocultado)**: CI también exige 33,3 ms por frame en el drag de
+1000 nodos (`editor-performance.e2e.ts` aserta el presupuesto de referencia cuando corre sin
+`PLAYWRIGHT_CHANNEL`, como en CI). El frame local medido (~420 ms, desglose JS ~115 ms + commit
+React/paint del SVG) sigue lejos; requiere el renderer incremental (T46.1). El commit unit ya no
+bloquea; el gate de frames seguirá rojo en CI hasta que ese trabajo aterrice.
+
+### Gates de esta corrección
+
+| Ejecución | Resultado |
+|---|---|
+| `pnpm check` (incluye `test:perf` aislado), Node22.23.2 | PASS: 336 unit + 13 tarball + perf 2/2, todos los gates |
+| E2E completo Chrome153 + Pixel7, puerto 42925 | **198 passed, 22 skipped** |
+| Frameworks Vite 7.3.6 / Next 15.5.25 | PASS |
+| Visual legacy | 4/4 PASS |
+| `verify-spec.mjs` | 80 implementados / 2 parciales (T46.1, T55.2) / 30 missing |
+
+## PR #24 — follow-up profiling and transaction integrity (2026-09-25)
+
+The preceding frame-cost attribution was a hypothesis, not a CPU profile. A CDP CPU/trace
+capture located the dominant cost in geometric quality checks invoked by the geometry
+inspector on every preview. Paint was not the dominant phase in this capture.
+
+- Geometry, relations and selection tools now subscribe to committed document/selection
+  slices; geometry materialization is memoized and does not compute unused diagnostics.
+- Immutable seed layouts are reused, routing lookups are indexed, and the static SVG
+  markup subtree is memoized. Export/publish diagnostics remain enabled.
+- The supplied scene-only transaction optimization needed additional integrity fixes:
+  committed coordinate ranges, non-scene dirty state, structural validation, route-key
+  counts, bounded history trimming, and undo/redo byte alignment. Two new regressions
+  were observed RED and then GREEN; scene-resolution isolation also has a regression.
+- Same 1000-node/2000-edge browser dataset, Chrome153 macOS with `PERF_REFERENCE=1`:
+  **16.8 ms frame p95**, against the unchanged **33.3 ms** assertion. This is local evidence,
+  not certification of the GitHub runner or completion of every E19 acceptance scenario.
+
+The isolated `test:perf` remains part of `pnpm check`. No budgets, datasets or required CI
+steps were weakened. Remote verification of the resulting commit remains required.
