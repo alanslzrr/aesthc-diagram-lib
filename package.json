@@ -107,6 +107,7 @@
   "scripts": {
     "test": "vitest run",
     "test:package": "pnpm build && node ./scripts/test-package.mjs",
+    "test:memory": "pnpm build && node scripts/test-memory.mjs",
     "typecheck": "tsc --noEmit",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs && node scripts/copy-fonts.mjs",
     "build": "tsup && node ./scripts/inject-use-client.mjs && pnpm build:css",
