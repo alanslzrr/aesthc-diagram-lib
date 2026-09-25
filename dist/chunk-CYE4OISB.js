@@ -118,6 +118,18 @@ var SCENE_STRUCTURE = /* @__PURE__ */ new Set([
   "group.upsert"
 ]);
 var isSceneOnly = (commands) => commands.length > 0 && commands.every((command) => SCENE_ONLY.has(command.type));
+function cloneSceneForCommands(scene, commands) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const command of commands) {
+    if (command.type === "nodes.move") Object.keys(command.positions).forEach((id) => ids.add(id));
+    else if (command.type === "node.resize") ids.add(command.id);
+    else if (command.type === "nodes.set-lock") command.ids.forEach((id) => ids.add(id));
+    else return structuredClone(scene);
+  }
+  const nodes = { ...scene.nodes };
+  for (const id of ids) if (nodes[id]) nodes[id] = { ...nodes[id] };
+  return { ...scene, nodes };
+}
 function commandsMatchScene(scene, commands) {
   for (const command of commands) {
     switch (command.type) {
@@ -345,7 +357,10 @@ function createEditorStore(options) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits);
       if (deltaIssues.length) return { ok: false, diagnostics: deltaIssues.slice(0, 100) };
     }
-    let doc = sceneOnly ? { ...snapshot.document, scene: structuredClone(snapshot.document.scene) } : structuredClone(snapshot.document);
+    let doc = sceneOnly ? {
+      ...snapshot.document,
+      scene: cloneSceneForCommands(snapshot.document.scene, transaction.commands)
+    } : structuredClone(snapshot.document);
     for (const command of transaction.commands) {
       const result = applyCommand(doc, command);
       if (!result.ok) return result;
