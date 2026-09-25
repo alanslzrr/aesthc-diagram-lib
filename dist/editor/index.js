@@ -177,7 +177,8 @@ function EditorRoot({
   locale,
   children
 }) {
-  return /* @__PURE__ */ jsx(Context.Provider, { value: { store, locale }, children });
+  const value = useMemo(() => ({ store, locale }), [store, locale]);
+  return /* @__PURE__ */ jsx(Context.Provider, { value, children });
 }
 function useEditor() {
   const context = useContext(Context);
