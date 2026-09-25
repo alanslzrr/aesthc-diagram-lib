@@ -1416,16 +1416,20 @@
           "given": "Unicode/ID y dos labels iguales",
           "when": "buscar exact/prefix/substring, abrir relación paralela",
           "then": "orden determinista e ID exacto, cero resultado anunciado",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewer.e2e.ts",
+          "result": "Finder por ID/label/kind: orden determinista (ID exacto → prefijo label → substring → kind, orden autorado), insensibilidad Unicode con texto original, teclado Enter/Escape con foco restaurado y anuncio de cero resultados (role=status); inspector con IDs exactos de relaciones paralelas y enlaces seguros por scheme; cobertura unit adicional en tests/editor-graph.unit.spec.ts (searchNodes/relationsOf). Viewer público en @aesthc/diagram-lib/viewer con página site/viewer.html (E2E chromium 3/3 PASS)"
         },
-        {
+{
           "id": "T32.2",
           "layer": "e2e",
           "file": "tests/e2e/editor-viewer.e2e.ts",
           "given": "query receipt rev0, documento cambia rev1",
           "when": "intentar seguir ruta/card antigua",
           "then": "query invalidada, no stale highlight ni export",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewer.e2e.ts",
+          "result": "recibos route/reach ligados a documentId+revision (isQueryStale); al importar documento con revisión nueva el highlight desaparece ([data-query-highlight] 5→0), la exportación de la consulta queda deshabilitada y se anuncia 'The document changed'; exportQuerySvg mantiene canonical=false y estilo de highlight inline (E2E chromium PASS)"
         }
       ]
     },

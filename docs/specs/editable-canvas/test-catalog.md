@@ -943,7 +943,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer.e2e.ts`
+
+**Evidencia:** Finder por ID/label/kind: orden determinista (ID exacto → prefijo label → substring → kind, orden autorado), insensibilidad Unicode con texto original, teclado Enter/Escape con foco restaurado y anuncio de cero resultados (role=status); inspector con IDs exactos de relaciones paralelas y enlaces seguros por scheme; cobertura unit adicional en tests/editor-graph.unit.spec.ts (searchNodes/relationsOf). Viewer público en @aesthc/diagram-lib/viewer con página site/viewer.html (E2E chromium 3/3 PASS).
 
 - **Given:** Unicode/ID y dos labels iguales.
 - **When:** buscar exact/prefix/substring, abrir relación paralela.
@@ -953,7 +955,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer.e2e.ts`
+
+**Evidencia:** recibos route/reach ligados a documentId+revision (isQueryStale); al importar documento con revisión nueva el highlight desaparece ([data-query-highlight] 5→0), la exportación de la consulta queda deshabilitada y se anuncia 'The document changed'; exportQuerySvg mantiene canonical=false y estilo de highlight inline (E2E chromium PASS).
 
 - **Given:** query receipt rev0, documento cambia rev1.
 - **When:** intentar seguir ruta/card antigua.

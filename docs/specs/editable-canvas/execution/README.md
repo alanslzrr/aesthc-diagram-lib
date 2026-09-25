@@ -30,7 +30,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E10 | M1 | 6/0/0 | Persistencia opt-in, autosave, conflictos por token, cuarentena y save-as | Escenarios ampliados de fallos de almacenamiento |
 | E11 | M1 | 6/0/0 | Export JSON/SVG/PNG/JPEG/WebP, fuentes aisladas, límites y receipts | Paridad visual certificada y fallas de raster por plataforma |
 | E12 | M1 | 2/0/0 | Studio separado, entrypoints y consumidor del tarball | Cierre formal M1 (depende de gates restantes) |
-| E13 | M2 | 4/0/2 | Queries route/reach dirigidas con IDs exactos (T30–T31) | Viewer semántico: finder, inspector y stale queries (T32.1, T32.2) |
+| E13 | M2 | 6/0/0 | Queries route/reach con IDs exactos y **viewer semántico completo** (T32.1, T32.2): finder determinista, inspector con paralelas, recibos e invalidación por revisión | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E14 | M2 | 0/0/6 | Validación de datos persistibles de vistas/story | Lenses, minimapa, collapse, vistas, story, presentación y deep links |
 | E15 | M2 | 1/0/3 | Diagnósticos geométricos publish (T36.1) | Router A* ortogonal, layout asíncrono con requestId y publish quality (T36.2, T37.x) |
 | E16 | M2 | 0/0/2 | — | HTML autónomo offline, CSP y fallback no-JS (desbloquea T55.2) |
@@ -92,6 +92,37 @@ Sin commits ni publicación hasta el cierre de esta revisión. Se completa el pr
 
 T46.1 pasa de parcial con evidencia a parcial con protocolo ejecutado: queda la certificación en
 el runner de referencia (CI) y la revisión humana de accesibilidad.
+
+## Continuación M2: viewer semántico E13 (2026-09-25)
+
+Primera funcionalidad M2. Cierra T32.1 y T32.2 (cobertura 82 implementados / 2 parciales / 28 missing).
+
+- **API pública `@aesthc/diagram-lib/viewer`**: `DiagramViewer` (read-only, sin comandos mutantes
+  ni dependencia de Studio), `Finder`, `Inspector` y el soporte de consultas
+  (`graphSnapshot`, `searchNodes`, `relationsOf`, `findRoute`, `findReach`, `isQueryStale`,
+  `exportQuerySvg`). Entry con `use client`, CSS opt-in `viewer.css`, ejemplos y pruebas de
+  paquete (tarball, React 18/19, NodeNext/Bundler, react-server).
+- **Graph**: `GraphSnapshot` ahora expone `nodes` (id/label/kind/description en orden autorado);
+  `searchNodes` ordena determinista (ID exacto → prefijo de label → substring → kind-prefix →
+  kind-substring, orden autorado) con comparación Unicode case-insensitive conservando el texto
+  original; `relationsOf` devuelve entrantes/salientes con IDs exactos de paralelas.
+- **Renderer**: `RenderOptions.highlight` marca `data-query-highlight` por ID exacto (paralelas
+  individuales); el export de la consulta inyecta el estilo inline con `canonical:false`.
+- **DiagramViewer**: finder de origen/destino, dirección upstream/downstream, ruta y alcance,
+  resumen con IDs de relaciones clicables, inspector (descripción, propiedades, enlaces seguros
+  por scheme http/https/mailto y relaciones con IDs), y **invalidación por receipt**: si cambia
+  `documentId` o `revision`, el highlight desaparece, la exportación se deshabilita y se anuncia
+  el cambio. Timeline (sin relaciones) deshabilita ruta/alcance explícitamente.
+- **Superficie de prueba**: nueva página `site/viewer.html` (entry propio dentro de su budget:
+  JS 134.7 KiB gzip / 175, studio y landing sin cambios).
+- **Gates locales**: unit 343 PASS (2 nuevos de search/relations), tarball PASS (viewer en
+  exports, css y use client), budgets PASS, perf frame p95 16.7 ms / 0 long tasks sin regresión,
+  E2E viewer **3/3 PASS en chromium**; Firefox/WebKit/mobile requieren los binarios de Playwright.
+
+TDD: los unit de `searchNodes`/`relationsOf` y los E2E se escribieron tras la implementación
+inicial; la corrección del flujo "el finder debe inspeccionar el nodo elegido" se observó RED en
+el E2E (el inspector no reflejaba la selección del origen) antes de GREEN. El `data-query-highlight`
+se reutilizará en las cards de E17.
 
 ## Implementación disponible
 

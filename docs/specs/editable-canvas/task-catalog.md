@@ -252,7 +252,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e13"></a>
 ## E13 — Graph queries y viewer semántico
 
-**Hito:** M2 · **Depende de:** E03, E05, E09 · **Cobertura:** 4 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M2 · **Depende de:** E03, E05, E09 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R30, R31, R32.
 
