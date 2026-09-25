@@ -1453,7 +1453,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-compare.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-compare.unit.spec.ts`
+
+**Evidencia:** compareDocuments por ID estable: label modificado = cambio semántico; movimiento = solo presentación; ID renombrado = remove+add (nunca rename inferido); reorder de mensajes de sequence = semántico; tipos distintos rechazan con compare.incompatible; inputs inmutables y mergeSafety=false (unit 4/4 PASS).
 
 - **Given:** same IDs+label change, moved node, renamed ID y changed sequence order.
 - **When:** compare.
@@ -1463,7 +1465,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-compare.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-compare.e2e.ts`
+
+**Evidencia:** Before/Delta/After con navegación por teclado (listbox con activedescendant), highlight exacto por ID, toggle de lado y export de receipt JSON descargable con IDs exactos y sin promesa de merge; documento incompatible rechaza sin mutar la vista (E2E chromium 2/2 PASS).
 
 - **Given:** Before/Delta/After y tipo incompatible.
 - **When:** navegar cambios con teclado/export.
@@ -1479,7 +1483,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** evidencia declarada: verified=true rechazado por el schema estricto; path traversal (evidence.path), commit inválido (evidence.commit), rango inválido (evidence.range) y repo no-https (url.scheme) rechazados; el módulo nunca llama a fetch (spy) y solo el verificador inyectado puede hacerlo (unit PASS).
 
 - **Given:** JSON con verified=true, path traversal, commit/rango inválido.
 - **When:** validate/verify.
@@ -1489,7 +1495,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** verifyEvidence con verificador fake: verified solo con match completo; mismatch, excepción y unavailable nunca producen falso positivo; un documento no puede autodeclararse verificado (unit PASS).
 
 - **Given:** verifier fake de commit/blob correcto e incorrecto.
 - **When:** resolver receipt.
@@ -1505,7 +1513,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-profiles.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** perfil de deployment opt-in por tags region:*: con enabled reporta owner-missing, region-conflict, public-entity y crossing-missing por hecho exacto con subject node/edge y facts (nodos/regiones/crossings); deshabilitado no impone reglas ni descubre infraestructura (unit PASS).
 
 - **Given:** owner faltante, múltiples regiones, db pública, crossing ausente.
 - **When:** validar con perfil on/off.
@@ -1515,7 +1525,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-profiles.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-profiles.e2e.ts`
+
+**Evidencia:** perfil inválido en el viewer: diagnóstico navega al subject exacto (edge ab), Publish export queda bloqueado con role=alert, el toggle no se auto-desactiva y sin descarga; con el perfil desactivado el mismo documento publica (E2E chromium PASS).
 
 - **Given:** perfil inválido en inspector.
 - **When:** solicitar export publish.
@@ -1531,7 +1543,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-motion.e2e.ts`
+
+**Evidencia:** grabación con codec soportado: WebM descargado y decodificado en un <video> real (dimensiones >0, duración acotada 0.5-4s, frame final con píxeles no vacíos) sin getUserMedia (contador a 0) y sin overlays de UI (E2E chromium PASS).
 
 - **Given:** codec soportado y story autorada.
 - **When:** grabar y decodificar archivo.
@@ -1541,7 +1555,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-motion.e2e.ts`
+
+**Evidencia:** reduced-motion deshabilita la grabación con nota; sin codec WebM el botón queda deshabilitado sin archivo falso; cancelar una grabación detiene el recorder, termina todos los tracks del canvas (readyState ended), no descarga y reporta operation.aborted; el trace finito reproduce la ruta autorada sin inventar edges (E2E 3/3 + unit PASS).
 
 - **Given:** no codec, onerror, abort, hidden y reduced-motion.
 - **When:** intentar/grabar/cancelar.

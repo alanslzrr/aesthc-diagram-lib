@@ -1926,7 +1926,9 @@
           "given": "same IDs+label change, moved node, renamed ID y changed sequence order",
           "when": "compare",
           "then": "modified semántico, presentation-only, remove+add, reorder semántico respectivamente",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-compare.unit.spec.ts",
+          "result": "compareDocuments por ID estable: label modificado = cambio semántico; movimiento = solo presentación; ID renombrado = remove+add (nunca rename inferido); reorder de mensajes de sequence = semántico; tipos distintos rechazan con compare.incompatible; inputs inmutables y mergeSafety=false (unit 4/4 PASS)"
         },
         {
           "id": "T49.2",
@@ -1935,7 +1937,9 @@
           "given": "Before/Delta/After y tipo incompatible",
           "when": "navegar cambios con teclado/export",
           "then": "IDs exactos, inputs intactos; incompatible rechaza; no claims de merge safety",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-compare.e2e.ts",
+          "result": "Before/Delta/After con navegación por teclado (listbox con activedescendant), highlight exacto por ID, toggle de lado y export de receipt JSON descargable con IDs exactos y sin promesa de merge; documento incompatible rechaza sin mutar la vista (E2E chromium 2/2 PASS)"
         }
       ]
     },
@@ -1952,7 +1956,9 @@
           "given": "JSON con verified=true, path traversal, commit/rango inválido",
           "when": "validate/verify",
           "then": "unknown field o diagnostics; no acceso a red/fs ni verified desde input",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-evidence.unit.spec.ts",
+          "result": "evidencia declarada: verified=true rechazado por el schema estricto; path traversal (evidence.path), commit inválido (evidence.commit), rango inválido (evidence.range) y repo no-https (url.scheme) rechazados; el módulo nunca llama a fetch (spy) y solo el verificador inyectado puede hacerlo (unit PASS)"
         },
         {
           "id": "T50.2",
@@ -1961,7 +1967,9 @@
           "given": "verifier fake de commit/blob correcto e incorrecto",
           "when": "resolver receipt",
           "then": "verified solo match completo; mismatch/unavailable sin false positive",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-evidence.unit.spec.ts",
+          "result": "verifyEvidence con verificador fake: verified solo con match completo; mismatch, excepción y unavailable nunca producen falso positivo; un documento no puede autodeclararse verificado (unit PASS)"
         }
       ]
     },
@@ -1978,7 +1986,9 @@
           "given": "owner faltante, múltiples regiones, db pública, crossing ausente",
           "when": "validar con perfil on/off",
           "then": "on falla por facts exactos; off no impone perfil ni descubre infraestructura",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-evidence.unit.spec.ts",
+          "result": "perfil de deployment opt-in por tags region:*: con enabled reporta owner-missing, region-conflict, public-entity y crossing-missing por hecho exacto con subject node/edge y facts (nodos/regiones/crossings); deshabilitado no impone reglas ni descubre infraestructura (unit PASS)"
         },
         {
           "id": "T51.2",
@@ -1987,7 +1997,9 @@
           "given": "perfil inválido en inspector",
           "when": "solicitar export publish",
           "then": "no se desactiva profile automáticamente; diagnóstico navega al nodo/edge",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-profiles.e2e.ts",
+          "result": "perfil inválido en el viewer: diagnóstico navega al subject exacto (edge ab), Publish export queda bloqueado con role=alert, el toggle no se auto-desactiva y sin descarga; con el perfil desactivado el mismo documento publica (E2E chromium PASS)"
         }
       ]
     },
@@ -2004,7 +2016,9 @@
           "given": "codec soportado y story autorada",
           "when": "grabar y decodificar archivo",
           "then": "duration bounded, pixels no vacíos, final frame, sin UI overlays",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-motion.e2e.ts",
+          "result": "grabación con codec soportado: WebM descargado y decodificado en un <video> real (dimensiones >0, duración acotada 0.5-4s, frame final con píxeles no vacíos) sin getUserMedia (contador a 0) y sin overlays de UI (E2E chromium PASS)"
         },
         {
           "id": "T52.2",
@@ -2013,7 +2027,9 @@
           "given": "no codec, onerror, abort, hidden y reduced-motion",
           "when": "intentar/grabar/cancelar",
           "then": "unavailable o cancelled real; tracks/URLs/timers liberados, no falso éxito",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-motion.e2e.ts",
+          "result": "reduced-motion deshabilita la grabación con nota; sin codec WebM el botón queda deshabilitado sin archivo falso; cancelar una grabación detiene el recorder, termina todos los tracks del canvas (readyState ended), no descarga y reporta operation.aborted; el trace finito reproduce la ruta autorada sin inventar edges (E2E 3/3 + unit PASS)"
         }
       ]
     },

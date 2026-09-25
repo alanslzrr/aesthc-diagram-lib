@@ -421,7 +421,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e22"></a>
 ## E22 — Comparación exacta Before/Delta/After
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R49.
 
@@ -439,7 +439,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e23"></a>
 ## E23 — Evidencia y perfil deployment
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R50, R51.
 
@@ -457,7 +457,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e24"></a>
 ## E24 — Trace finito y WebM
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R52.
 

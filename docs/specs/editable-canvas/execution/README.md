@@ -39,9 +39,9 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
 | E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next; documentación M2 publicada (viewer, extending, shares, offline HTML) | Pendiente solo la matriz cross-browser de CI (binarios fijados) |
 | E21 | M2 | 2/0/0 | Release verification, snapshots, changelog M2 y evidencia del candidato | Publicación npm/tags requieren autorización específica |
-| E22 | M3 | 0/0/2 | — | Comparación Before/Delta/After (pendiente, tras M2) |
-| E23 | M3 | 0/0/4 | Validación de datos evidence (declarativos) | Verificador trusted y deployment profile |
-| E24 | M3 | 0/0/2 | — | Playback finito y WebM |
+| E22 | M3 | 2/0/0 | **Comparación exacta Before/Delta/After** por ID, sin inferir renames, con receipt JSON | T49.1 y T49.2 cerrados |
+| E23 | M3 | 4/0/0 | **Evidencia declarada vs verificada** con verificador trusted y **perfil de deployment opt-in** navegable | T50.1, T50.2, T51.1 y T51.2 cerrados |
+| E24 | M3 | 2/0/0 | **WebM finito con capability gate**, cancelación y liberación de recursos; trace edge-by-edge | T52.1 y T52.2 cerrados |
 
 ### Riesgos pendientes registrados
 
@@ -269,6 +269,24 @@ Batería reejecutada tras las correcciones: `pnpm check` (375 unit + 2 perf + ta
 completo Chrome153 + Pixel7 **237 passed / 21 skipped / 0 fallos**, frameworks Vite/Next PASS,
 memoria/raster de referencia PASS (heap −2.7 MiB, blobs 0→0). La cobertura no cambia
 (103/1/8); las evidencias de T37.1, T37.2, T40.2 y T43.1 se rectificaron con los nuevos casos.
+
+## M3: comparación, evidencia y motion (2026-09-25)
+
+Cierra el catálogo: **111 implementados / 1 parcial (T46.1, certificación CI) / 0 missing**.
+
+- **E22 — `src/graph/compare.ts` + `src/viewer/Comparison.tsx`**: comparación exacta por ID
+  (label semántico, movimiento solo presentación, rename = remove+add, reorder de sequence
+  semántico, tipos distintos rechazados), vista Before/Delta/After con teclado, highlight exacto
+  y export JSON con `mergeSafety: false`; inputs inmutables.
+- **E23 — `src/editor-core/evidence.ts` + `src/editor-core/profiles.ts` + `src/viewer/Evidence.tsx`**:
+  evidencia declarada nunca autodeclarada verificada (schema estricto + validación de path/commit/
+  rango/URL), verificador trusted inyectado con match completo obligatorio, y perfil de deployment
+  opt-in por hechos exactos (owner, región, entidad pública, crossing) que bloquea publish sin
+  auto-desactivarse y navega al subject.
+- **E24 — `src/export/motion.ts` + `src/viewer/trace.ts`**: WebM finito grabado solo desde canvas
+  (sin cámara/micrófono), capability gate real, reducido-motion deshabilitado, cancelación que
+  libera tracks/URLs/canvas, frame final verificable y trace edge-by-edge sin inventar relaciones.
+- **Gates locales**: unit 384 PASS, E2E M3 8/8 PASS en chromium, budgets PASS.
 
 ## Implementación disponible
 

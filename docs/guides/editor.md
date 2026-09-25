@@ -126,7 +126,9 @@ per-instance renderer/provider registries are implemented and documented in the
 
 ## Known limits of this implementation
 
-Document compare (M3), evidence verification and deployment profiles (M3) and
-WebM motion export (M3) are not implemented. Cross-browser certification runs in
-CI with the pinned browsers; a local Chrome is complementary evidence, not a
-replacement. Human screen-reader review remains a documented manual step.
+Document compare, evidence verification, deployment profiles and finite WebM
+motion export are implemented and covered by unit and browser tests. Cross-browser
+certification runs in CI with the pinned browsers; a local Chrome is complementary
+evidence, not a replacement. Human screen-reader review remains a documented
+manual step, and the reference-runner performance protocol (long tasks, memory)
+is certified in CI.

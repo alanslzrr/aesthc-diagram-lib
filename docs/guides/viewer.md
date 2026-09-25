@@ -68,3 +68,20 @@ It opens from `file://` with zero network requests and no storage; with
 JavaScript disabled the static SVG and list remain readable. The canonical
 source JSON is embedded only with `includeSource: true`, and the artifact is
 capped at 8 MiB. Document text is always data, never instructions.
+
+## Comparison, evidence and motion
+
+- `Comparison` (`compareDocuments`) matches entities by exact ID: a label edit
+  is semantic, a move is presentation-only, a renamed ID is a remove + add and
+  a sequence reorder is semantic. Different diagram types are rejected. The
+  Before/Delta/After view navigates changes with the keyboard, highlights exact
+  IDs and exports a JSON receipt with `mergeSafety: false`.
+- `Evidence` shows declared source evidence (never presented as verified) and an
+  opt-in deployment profile (`validateDeploymentProfile`) that fails by exact
+  fact — owner, region conflict, public entity, missing crossing. Diagnostics
+  navigate to their subject; an invalid profile blocks publish export and is
+  never auto-disabled.
+- `exportStoryWebm` records a finite story from a canvas stream only (no camera
+  or microphone). It is capability-gated, bounded by the validated story,
+  disabled under reduced motion and always releases tracks, object URLs and the
+  canvas on success, failure and abort.
