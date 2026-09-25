@@ -6,16 +6,17 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-CYE4OISB.js";
+} from "../chunk-SGDUU6YV.js";
 import {
   anchorFromPoint,
   anchorPoint,
   createCanvasTextMeasurer,
+  createPreviewResolver,
   getAdapter,
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-3HFONDQI.js";
+} from "../chunk-FTHHFRVE.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -550,6 +551,7 @@ function EditorSurface({
   const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels(), instanceId = useId();
   const svgRef = useRef(null), [size, setSize] = useState({ width: 800, height: 600 });
   const activeDoc = snapshot.draft.kind === "gesture" ? snapshot.draft.preview : snapshot.document;
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store]);
   const committedResolved = useMemo(
     () => resolveDocument(snapshot.document, {
       quality: "edit",
@@ -561,14 +563,14 @@ function EditorSurface({
     [snapshot.document, instanceId]
   );
   const resolved = useMemo(
-    () => activeDoc === snapshot.document ? committedResolved : resolveDocument(activeDoc, {
+    () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {
       quality: "edit",
       requestId: instanceId,
       measureText,
       skipValidation: true,
       skipDiagnostics: true
     }),
-    [activeDoc, snapshot.document, committedResolved, instanceId]
+    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview]
   );
   const [gestureEntities, setGestureEntities] = useState(null);
   const gestureKey = gestureEntities ? `${[...gestureEntities.nodes].sort().join(",")}|${[...gestureEntities.edges].sort().join(",")}` : null;

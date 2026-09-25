@@ -491,7 +491,21 @@ function pushTextOverflow(layout, document2, context, diagnostics) {
   }
 }
 var seedLayouts = /* @__PURE__ */ new WeakMap();
+function createPreviewResolver() {
+  let previous;
+  return (document2, context) => {
+    const immutable = Object.isFrozen(document2) && Object.isFrozen(document2.scene);
+    const reusable = immutable && previous && context.skipDiagnostics && previous.context.skipDiagnostics && document2.spec === previous.document.spec && document2.presentation === previous.document.presentation && document2.metadata === previous.document.metadata && context.measureText === previous.context.measureText && context.quality === previous.context.quality ? previous : void 0;
+    const extents = reusable?.extents ?? /* @__PURE__ */ new WeakMap();
+    const result = resolveScene(document2, context, reusable, extents);
+    previous = immutable && result.ok ? { document: document2, context, scene: result.value, extents } : void 0;
+    return result;
+  };
+}
 function resolveDocument(document2, context) {
+  return resolveScene(document2, context);
+}
+function resolveScene(document2, context, previous, extents) {
   if (context.signal?.aborted) return failure("operation.aborted");
   const checked = context.skipValidation ? success(document2) : validateDocument(document2);
   if (!checked.ok) return checked;
@@ -502,7 +516,12 @@ function resolveDocument(document2, context) {
     template = seed.value;
     if (Object.isFrozen(document2.spec)) seedLayouts.set(document2.spec, template);
   }
-  const layout = { ...template, nodes: template.nodes.map((node) => ({ ...node })) }, diagnostics = [];
+  const layout = {
+    ...template,
+    nodes: template.nodes.map(
+      (node) => previous && previous.document.scene.nodes[node.id] === document2.scene.nodes[node.id] ? previous.scene.layout.nodeById[node.id] : { ...node }
+    )
+  }, diagnostics = [];
   if (!freeTypes.has(document2.spec.type)) {
     if (!context.skipDiagnostics) pushTextOverflow(layout, document2, context, diagnostics);
     return success(
@@ -517,7 +536,7 @@ function resolveDocument(document2, context) {
   }
   for (const node of layout.nodes) {
     const placement = document2.scene.nodes[node.id];
-    if (placement)
+    if (placement && node !== previous?.scene.layout.nodeById[node.id])
       Object.assign(node, {
         x: placement.x,
         y: placement.y,
@@ -532,9 +551,16 @@ function resolveDocument(document2, context) {
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]));
   const graphNodes = document2.spec.type === "graph" ? new Map(document2.spec.nodes.map((node) => [node.id, node])) : void 0;
   const graphEdges = document2.spec.type === "graph" ? new Map(document2.spec.edges.map((edge) => [edge.id, edge])) : void 0;
+  const previousEdges = new Map(previous?.scene.layout.edges.map((edge) => [edge.id, edge]));
   const parallel = /* @__PURE__ */ new Map();
   layout.edges = edgesOf(document2.spec).map((edge) => {
     const from = layout.nodeById[edge.from], to = layout.nodeById[edge.to], route = document2.scene.routes[edge.id];
+    const key = JSON.stringify([edge.from, edge.to]), ordinal = parallel.get(key) ?? 0;
+    parallel.set(key, ordinal + 1);
+    if (previous && from === previous.scene.layout.nodeById[edge.from] && to === previous.scene.layout.nodeById[edge.to] && route === previous.document.scene.routes[edge.id]) {
+      const cached = previousEdges.get(edge.id);
+      if (cached) return cached;
+    }
     const horizontal = Math.abs(to.cx - from.cx) >= Math.abs(to.cy - from.cy);
     let source = {
       side: horizontal ? to.cx >= from.cx ? "right" : "left" : to.cy >= from.cy ? "bottom" : "top",
@@ -559,8 +585,6 @@ function resolveDocument(document2, context) {
       target = { side: "right", offset: 0.7 };
     }
     const start = anchor(from, source), end = anchor(to, target);
-    const key = JSON.stringify([edge.from, edge.to]), ordinal = parallel.get(key) ?? 0;
-    parallel.set(key, ordinal + 1);
     const offset = ordinal * 20;
     let points2;
     if (route?.mode === "manual")
@@ -649,7 +673,8 @@ function resolveDocument(document2, context) {
   const points = [];
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h]);
-    const extent = nodeTextExtent(n, document2, context);
+    const extent = extents?.get(n) ?? nodeTextExtent(n, document2, context);
+    extents?.set(n, extent);
     if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
       points.push([extent.left, n.y], [extent.right, n.y + n.h]);
       if (!context.skipDiagnostics)
@@ -742,10 +767,10 @@ function resolveDocument(document2, context) {
           });
       }
     }
-    const extents = new Map(
+    const extents2 = new Map(
       layout.nodes.map((n) => [n.id, nodeTextExtent(n, document2, context)])
     );
-    for (const [id, extent] of extents) {
+    for (const [id, extent] of extents2) {
       const a = rects.get(id);
       if (!a) continue;
       const labelRect = {
@@ -804,6 +829,7 @@ export {
   createEmbeddedFontTextMeasurer,
   anchorPoint,
   anchorFromPoint,
+  createPreviewResolver,
   resolveDocument,
   relayoutScene
 };
