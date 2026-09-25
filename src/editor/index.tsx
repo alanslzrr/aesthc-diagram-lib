@@ -224,7 +224,7 @@ const EdgeHitRect = memo(function EdgeHitRect({
       width={width}
       height={height}
       rx={6}
-      fill="rgba(0, 0, 0, 0.001)"
+      fill="transparent"
       stroke={selected ? stroke : 'transparent'}
       style={{ cursor: 'pointer' }}
       tabIndex={0}
@@ -1448,17 +1448,19 @@ export function EditorSurface({
           ) : (
             <SceneMarkup markup={markup} />
           )}
-          <SceneHits
-            nodes={hitBaseline.nodes}
-            edges={hitBaseline.edges}
-            selection={snapshot.selection}
-            zoom={snapshot.viewport.zoom}
-            color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
-            connectionLabel={t('Connection', 'Conexión')}
-            selectEdge={selectEdge}
-            selectNode={selectNode}
-            handleNodeKey={handleNodeKey}
-          />
+          <g pointerEvents={gestureEntities ? 'none' : undefined}>
+            <SceneHits
+              nodes={hitBaseline.nodes}
+              edges={hitBaseline.edges}
+              selection={snapshot.selection}
+              zoom={snapshot.viewport.zoom}
+              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              connectionLabel={t('Connection', 'Conexión')}
+              selectEdge={selectEdge}
+              selectNode={selectNode}
+              handleNodeKey={handleNodeKey}
+            />
+          </g>
           {gestureEntities && (
             <SceneHits
               nodes={authoredNodes.filter((node) => gestureEntities.nodes.includes(node.id))}

@@ -513,6 +513,7 @@ test('Studio selects connections and edits manual routes through draggable waypo
   test.skip(isMobile, 'Mouse drag gesture; route controls are keyboard reachable')
   await page.goto('/studio.html')
   const edge = page.locator('[data-hit-edge="request"]').first()
+  await expect(edge).toHaveAttribute('fill', 'transparent')
   await edge.click()
   await expect(edge).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Manual route', exact: true }).click()
