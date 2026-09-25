@@ -4,7 +4,7 @@ import {
 } from "./chunk-VUW7SRON.js";
 import {
   createDocument
-} from "./chunk-TO2IOO5N.js";
+} from "./chunk-3MHLUDWC.js";
 import {
   identifyEdges,
   labelPillWidth,
@@ -24,7 +24,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-SO54APJD.js";
+} from "./chunk-6NELNSRC.js";
 import {
   nodeGeometry
 } from "./chunk-YKPE23VO.js";
@@ -490,13 +490,19 @@ function pushTextOverflow(layout, document2, context, diagnostics) {
       });
   }
 }
+var seedLayouts = /* @__PURE__ */ new WeakMap();
 function resolveDocument(document2, context) {
   if (context.signal?.aborted) return failure("operation.aborted");
   const checked = context.skipValidation ? success(document2) : validateDocument(document2);
   if (!checked.ok) return checked;
-  const seed = getAdapter(document2.spec.type).seedLayout(document2.spec);
-  if (!seed.ok) return seed;
-  const layout = seed.value, diagnostics = [];
+  let template = Object.isFrozen(document2.spec) ? seedLayouts.get(document2.spec) : void 0;
+  if (!template) {
+    const seed = getAdapter(document2.spec.type).seedLayout(document2.spec);
+    if (!seed.ok) return seed;
+    template = seed.value;
+    if (Object.isFrozen(document2.spec)) seedLayouts.set(document2.spec, template);
+  }
+  const layout = { ...template, nodes: template.nodes.map((node) => ({ ...node })) }, diagnostics = [];
   if (!freeTypes.has(document2.spec.type)) {
     if (!context.skipDiagnostics) pushTextOverflow(layout, document2, context, diagnostics);
     return success(
@@ -521,10 +527,11 @@ function resolveDocument(document2, context) {
         cy: placement.y + placement.height / 2
       });
   }
-  layout.nodes.sort(
-    (a, b) => document2.scene.zOrder.indexOf(a.id) - document2.scene.zOrder.indexOf(b.id)
-  );
+  const zOrder = new Map(document2.scene.zOrder.map((id, index) => [id, index]));
+  layout.nodes.sort((a, b) => (zOrder.get(a.id) ?? -1) - (zOrder.get(b.id) ?? -1));
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]));
+  const graphNodes = document2.spec.type === "graph" ? new Map(document2.spec.nodes.map((node) => [node.id, node])) : void 0;
+  const graphEdges = document2.spec.type === "graph" ? new Map(document2.spec.edges.map((edge) => [edge.id, edge])) : void 0;
   const parallel = /* @__PURE__ */ new Map();
   layout.edges = edgesOf(document2.spec).map((edge) => {
     const from = layout.nodeById[edge.from], to = layout.nodeById[edge.to], route = document2.scene.routes[edge.id];
@@ -541,9 +548,9 @@ function resolveDocument(document2, context) {
       source = route.source;
       target = route.target;
     } else if (document2.spec.type === "graph") {
-      const authored = document2.spec.edges.find((e) => e.id === edge.id);
-      const sp = document2.spec.nodes.find((n) => n.id === edge.from)?.ports?.find((p) => p.id === authored.sourcePort);
-      const tp = document2.spec.nodes.find((n) => n.id === edge.to)?.ports?.find((p) => p.id === authored.targetPort);
+      const authored = graphEdges.get(edge.id);
+      const sp = graphNodes.get(edge.from)?.ports?.find((p) => p.id === authored.sourcePort);
+      const tp = graphNodes.get(edge.to)?.ports?.find((p) => p.id === authored.targetPort);
       if (sp) source = sp;
       if (tp) target = tp;
     }

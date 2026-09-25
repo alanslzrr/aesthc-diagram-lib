@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-LUS7RFSZ.js";
+} from "../chunk-WD7GDGCN.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -15,18 +15,18 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-ZJ2KQFD7.js";
+} from "../chunk-3HFONDQI.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
   serializeDocument
-} from "../chunk-TO2IOO5N.js";
+} from "../chunk-3MHLUDWC.js";
 import "../chunk-QVERY2JP.js";
 import {
   edgesOf,
   freeTypes,
   nodesOf
-} from "../chunk-SO54APJD.js";
+} from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
@@ -322,7 +322,8 @@ function materialize(document) {
     quality: "edit",
     requestId: "gesture",
     measureText,
-    skipValidation: true
+    skipValidation: true,
+    skipDiagnostics: true
   });
   if (!result.ok) return document.scene;
   return {
@@ -455,6 +456,9 @@ function EditorRelayout() {
     }
   );
 }
+var SceneMarkup = memo(function SceneMarkup2({ markup }) {
+  return /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } });
+});
 function EditorSurface({
   ariaLabel,
   className
@@ -1188,9 +1192,9 @@ function EditorSurface({
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
               gestureEntities && baseline !== null ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: baseline } }),
-                /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: deltaMarkup ?? "" } })
-              ] }) : /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } }),
+                /* @__PURE__ */ jsx(SceneMarkup, { markup: baseline }),
+                /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" })
+              ] }) : /* @__PURE__ */ jsx(SceneMarkup, { markup }),
               authoredEdges.flatMap((e) => {
                 const points = e.routePoints ?? [];
                 const segments = [];
@@ -1759,7 +1763,10 @@ function EditorJsonPanel() {
   ] });
 }
 function EditorSelectionTools() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ document: s.document, selection: s.selection }),
+    shallowEqual
+  ), t = useLabels();
   const fragment = useRef(null), [hasCopy, setHasCopy] = useState(false), [clipboardBusy, setClipboardBusy] = useState(false), [arrangement, setArrangement] = useState("left"), [error, setError] = useState("");
   const free = getAdapter(snapshot.document.spec.type).capabilities.includes("move-free");
   function copy() {
@@ -2271,8 +2278,12 @@ function EditorStructuredInspector() {
   return null;
 }
 function EditorNodeGeometry({ nodeId }) {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
-  const placement = materialize(snapshot.document).nodes[nodeId];
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ document: s.document, selection: s.selection }),
+    shallowEqual
+  ), t = useLabels();
+  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document]);
+  const placement = scene.nodes[nodeId];
   const [values, setValues] = useState({ x: "0", y: "0", width: "240", height: "64" }), [error, setError] = useState("");
   useEffect(() => {
     if (placement)
@@ -2289,10 +2300,10 @@ function EditorNodeGeometry({ nodeId }) {
     {
       onSubmit: (event) => {
         event.preventDefault();
-        const scene = materialize(snapshot.document), result = dispatch(
+        const scene2 = materialize(snapshot.document), result = dispatch(
           store,
           [
-            { type: "scene.set", scene },
+            { type: "scene.set", scene: scene2 },
             {
               type: "nodes.move",
               positions: { [nodeId]: { x: Number(values.x), y: Number(values.y) } }
@@ -2328,7 +2339,10 @@ function EditorNodeGeometry({ nodeId }) {
   );
 }
 function EditorRelations() {
-  const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels();
+  const { store } = useEditor(), snapshot = useEditorSelector(
+    (s) => ({ document: s.document, selection: s.selection }),
+    shallowEqual
+  ), t = useLabels();
   const nodes = nodesOf(snapshot.document.spec), [from, setFrom] = useState(""), [to, setTo] = useState(""), [label, setLabel] = useState(""), [error, setError] = useState("");
   if (snapshot.document.spec.type === "timeline") return null;
   const adapter = getAdapter(snapshot.document.spec.type);

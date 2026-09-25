@@ -6,12 +6,12 @@ import {
   screenToWorld,
   worldToScreen,
   zoomAt
-} from "../chunk-LUS7RFSZ.js";
+} from "../chunk-WD7GDGCN.js";
 import {
   getAdapter,
   relayoutScene,
   resolveDocument
-} from "../chunk-ZJ2KQFD7.js";
+} from "../chunk-3HFONDQI.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -21,7 +21,7 @@ import {
   exportLegacySpec,
   importDocument,
   serializeDocument
-} from "../chunk-TO2IOO5N.js";
+} from "../chunk-3MHLUDWC.js";
 import "../chunk-QVERY2JP.js";
 import {
   DEFAULT_LIMITS,
@@ -31,7 +31,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "../chunk-SO54APJD.js";
+} from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";

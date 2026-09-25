@@ -4,12 +4,12 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "../chunk-ZJ2KQFD7.js";
+} from "../chunk-3HFONDQI.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
   serializeDocument
-} from "../chunk-TO2IOO5N.js";
+} from "../chunk-3MHLUDWC.js";
 import "../chunk-QVERY2JP.js";
 import {
   canonical,
@@ -17,7 +17,7 @@ import {
   issue,
   success,
   validateDocument
-} from "../chunk-SO54APJD.js";
+} from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
 import {
   escapeXml,
