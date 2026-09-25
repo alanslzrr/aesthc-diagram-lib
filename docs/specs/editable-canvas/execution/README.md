@@ -745,3 +745,32 @@ Static hit targets are memoized separately from gesture targets; already materia
 manual scenes no longer submit a redundant `scene.set` on every move. Placement updates
 copy only touched records while retaining structural validation. Three consecutive local
 strict repetitions passed after these changes; final CI remains the acceptance evidence.
+
+### Follow-up: Linux frame budget and cross-browser CI
+
+The pinned Linux reference job passed on `4282ad4` in
+[run 36101931596](https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/36101931596):
+**16.8 ms p95 over 131 frames**, with the original 1000-node/2000-edge dataset and
+33.3 ms assertion. Two frames exceeded 100 ms; this is not a claim that all E19
+performance/memory acceptance scenarios are complete.
+
+The remaining work was not just scene resolution: Studio's parent subscribed to the
+entire snapshot and recreated the provider value, invalidating panels on every preview.
+Studio now selects committed document/dirty state, and the provider value is stable.
+The internal preview resolver reuses untouched geometry and text extents. The committed
+SVG layer stays mounted across gestures; only moving entities are hidden under a delta
+layer. A browser regression asserts that untouched SVG elements remain connected.
+
+CI runs the same frame gate in its own Ubuntu job without concurrent functional workers.
+Continuous Playwright trace recording is disabled only for timing; raw frame metrics,
+environment and failure screenshots remain available, with a CPU-profile rerun after a
+failure. Functional browser projects retain their traces and unchanged coverage.
+
+Cross-browser fixes include coalesced gesture completion, mouse gestures constrained to
+the native viewport, responsive minimum widths and awaited resize previews. Native IME
+coverage remains Chromium/CDP; other engines exercise explicitly annotated DOM composition
+events, not operating-system IME drivers. The responsive matrix now verifies the aspect
+ratio of **both** persistent SVG layers rather than assuming one SVG root. The referenced
+run passed the frame gate but exposed that outdated single-SVG test locator; final PR CI
+must still certify the complete matrix and framework consumers. No milestone state or
+visual golden was changed to claim completion.
