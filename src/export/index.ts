@@ -23,6 +23,8 @@ export interface ExportOptions {
   signal?: AbortSignal
   fonts?: { sans: Uint8Array; mono: Uint8Array }
   fontPolicy?: 'required' | 'fallback'
+  /** Trusted custom node renderers for documents declaring `renderer` payloads. */
+  renderers?: import('../editor-core/types').ResolveRendererRegistry
 }
 export interface ExportArtifact {
   bytes: Uint8Array
@@ -143,12 +145,21 @@ export async function exportDocument(
       requestId: 'export',
       signal: options.signal,
       measureText: measurer?.measure ?? createCanvasTextMeasurer(),
+      renderers: options.renderers,
     })
     measurer?.dispose()
     if (!resolved.ok) return resolved
     diagnostics.push(...resolved.diagnostics)
-    if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))
-      return failure('export.quality')
+    if (options.quality === 'publish') {
+      const missingRenderer = diagnostics.find(
+        (d) =>
+          d.code === 'renderer.unsupported' ||
+          d.code === 'renderer.invalid' ||
+          d.code === 'renderer.measure',
+      )
+      if (missingRenderer) return failure(missingRenderer.code)
+      if (diagnostics.some((d) => d.code.startsWith('quality.'))) return failure('export.quality')
+    }
     width = Math.ceil(resolved.value.layout.width * options.scale)
     height = Math.ceil(resolved.value.layout.height * options.scale)
     if (

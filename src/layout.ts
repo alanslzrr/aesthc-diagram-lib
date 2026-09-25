@@ -34,6 +34,9 @@ export interface NodePort {
 
 export interface PlacedNode extends DiagramNode {
   slot?: number
+  /** Canonical SVG fragment produced by a registered custom renderer, or a
+   * placeholder when the typeKey is unsupported. */
+  customSvg?: string
   /** Logical column/group index: band column, flowchart level, swimlane row… */
   band: number
   x: number
