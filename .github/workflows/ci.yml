@@ -87,9 +87,16 @@ jobs:
       - run: pnpm build && pnpm site:build
       - run: pnpm exec playwright install --with-deps chromium
       - name: Enforce the unchanged reference frame budget without competing browser workers
+        id: frame
         run: pnpm exec playwright test --project=performance --no-deps --workers=1
         env:
           PERF_REFERENCE: '1'
+      - name: Capture a diagnostic CPU profile after a frame-budget failure
+        if: failure() && steps.frame.outcome == 'failure'
+        run: pnpm exec playwright test --project=performance --no-deps --workers=1 --retries=0 --output=profile-results
+        env:
+          PERF_REFERENCE: '1'
+          PERF_PROFILE: '1'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
@@ -97,4 +104,5 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            profile-results/
           retention-days: 7
