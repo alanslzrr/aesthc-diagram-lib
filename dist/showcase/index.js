@@ -21,8 +21,8 @@ import {
   connectedIds,
   diagramEdges
 } from "../chunk-QVERY2JP.js";
-import "../chunk-KDAWQGDC.js";
 import "../chunk-YKPE23VO.js";
+import "../chunk-KDAWQGDC.js";
 import "../chunk-TVEV5XLW.js";
 
 // src/showcase/Showcase.tsx

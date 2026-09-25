@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-6SRL6DX7.js";
+} from "../chunk-3T2LMA7P.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,7 +16,7 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-EAOYH4UI.js";
+} from "../chunk-AVTVKBIV.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -31,11 +31,11 @@ import {
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-FE2JPGPT.js";
-import "../chunk-KDAWQGDC.js";
+} from "../chunk-3I2A4V6U.js";
 import {
   nodeGeometry
 } from "../chunk-YKPE23VO.js";
+import "../chunk-KDAWQGDC.js";
 import "../chunk-TVEV5XLW.js";
 
 // src/editor/index.tsx

@@ -1,4 +1,4 @@
-import { B as BandDiagramSpec, k as DiagramNodeVisual, l as DiagramRegistration } from './layout-Bw-QA7sy.js';
+import { B as BandDiagramSpec, k as DiagramNodeVisual, l as DiagramRegistration } from './layout-DmZ-4ly5.js';
 import './theme.js';
 
 type Locale = 'en' | 'es';

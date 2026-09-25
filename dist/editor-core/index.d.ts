@@ -1,5 +1,5 @@
-import { g as DiagramDocument, t as EditorSpec, I as ImportOptions, j as Result, u as Presentation, h as DiagramSpec, v as ImportReceipt, w as Limits, S as StoreOptions, E as EditorStore, x as EditorDiagramType, y as TypeAdapter, z as Rect, A as Size, V as Viewport, C as Point, G as DiagramScene, J as ResolveContext, R as ResolvedScene, n as EntityRef, K as DiagramFragment, M as Transaction, O as EditorPermissions, Q as CommitResult } from '../layout-Bw-QA7sy.js';
-export { U as Capability, W as ChangeSet, m as Diagnostic, X as DiagramGroup, Y as DiagramLink, Z as DocumentMetadata, _ as EditorCommand, a as EditorSnapshot, $ as EditorTool, a0 as EndpointAnchor, a1 as EntityMetadata, a2 as FocusSet, a3 as GraphDiagramSpec, a4 as GraphEdge, a5 as GraphNode, a6 as GraphPort, a7 as JsonValue, L as Locale, N as NamedView, a8 as NodeInput, a9 as NodePlacement, aa as Palette, ab as RelationInput, ac as ReorderCollection, ad as RoutePlacement, ae as SourceEvidence, s as StoryStep, af as StructuralEdit } from '../layout-Bw-QA7sy.js';
+import { g as DiagramDocument, u as EditorSpec, I as ImportOptions, j as Result, v as Presentation, h as DiagramSpec, w as ImportReceipt, x as Limits, S as StoreOptions, E as EditorStore, y as EditorDiagramType, z as TypeAdapter, A as Rect, C as Size, V as Viewport, G as Point, J as DiagramScene, K as ResolveContext, R as ResolvedScene, n as EntityRef, M as DiagramFragment, O as Transaction, Q as EditorPermissions, U as CommitResult } from '../layout-DmZ-4ly5.js';
+export { W as Capability, X as ChangeSet, m as Diagnostic, Y as DiagramGroup, Z as DiagramLink, _ as DocumentMetadata, $ as EditorCommand, a as EditorSnapshot, a0 as EditorTool, a1 as EndpointAnchor, a2 as EntityMetadata, a3 as FocusSet, a4 as GraphDiagramSpec, a5 as GraphEdge, a6 as GraphNode, a7 as GraphPort, a8 as JsonValue, L as Locale, N as NamedView, a9 as NodeInput, aa as NodePlacement, ab as Palette, ac as RelationInput, ad as ReorderCollection, ae as ResolveCustomRenderer, o as ResolveRendererRegistry, af as RoutePlacement, ag as SourceEvidence, t as StoryStep, ah as StructuralEdit } from '../layout-DmZ-4ly5.js';
 import '../theme.js';
 
 declare function defaultPresentation(): Presentation;
@@ -228,6 +228,9 @@ interface RegisteredLayoutOptions {
     expectedRevision: number;
     /** Latest issued request id; an older request never publishes. */
     latestRequestId: () => string;
+    /** Current document revision; a change while the provider was pending
+     * rejects the result even if the request id still matches. */
+    latestRevision?: () => number;
     requestId?: string;
     signal?: AbortSignal;
 }

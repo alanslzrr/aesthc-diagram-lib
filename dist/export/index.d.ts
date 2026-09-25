@@ -1,4 +1,4 @@
-import { g as DiagramDocument, j as Result, m as Diagnostic, n as EntityRef } from '../layout-Bw-QA7sy.js';
+import { g as DiagramDocument, j as Result, m as Diagnostic, n as EntityRef, o as ResolveRendererRegistry } from '../layout-DmZ-4ly5.js';
 import '../theme.js';
 
 interface ExportHtmlOptions {
@@ -122,6 +122,8 @@ interface ExportOptions {
         mono: Uint8Array;
     };
     fontPolicy?: 'required' | 'fallback';
+    /** Trusted custom node renderers for documents declaring `renderer` payloads. */
+    renderers?: ResolveRendererRegistry;
 }
 interface ExportArtifact {
     bytes: Uint8Array;

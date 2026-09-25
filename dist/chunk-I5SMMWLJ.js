@@ -5,7 +5,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-EAOYH4UI.js";
+} from "./chunk-AVTVKBIV.js";
 import {
   serializeDocument
 } from "./chunk-3MHLUDWC.js";
@@ -22,7 +22,7 @@ import {
   escapeXml,
   renderSceneMarkup,
   renderSvg
-} from "./chunk-FE2JPGPT.js";
+} from "./chunk-3I2A4V6U.js";
 
 // src/export/raster.ts
 async function rasterizeSvg(svg, mime, width, height, signal) {
@@ -389,13 +389,19 @@ async function exportDocument(input, options) {
       quality: options.quality,
       requestId: "export",
       signal: options.signal,
-      measureText: measurer?.measure ?? createCanvasTextMeasurer()
+      measureText: measurer?.measure ?? createCanvasTextMeasurer(),
+      renderers: options.renderers
     });
     measurer?.dispose();
     if (!resolved.ok) return resolved;
     diagnostics.push(...resolved.diagnostics);
-    if (options.quality === "publish" && diagnostics.some((d) => d.code.startsWith("quality.")))
-      return failure("export.quality");
+    if (options.quality === "publish") {
+      const missingRenderer = diagnostics.find(
+        (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure"
+      );
+      if (missingRenderer) return failure(missingRenderer.code);
+      if (diagnostics.some((d) => d.code.startsWith("quality."))) return failure("export.quality");
+    }
     width = Math.ceil(resolved.value.layout.width * options.scale);
     height = Math.ceil(resolved.value.layout.height * options.scale);
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width > 16384 || height > 16384 || width * height > 32e6)

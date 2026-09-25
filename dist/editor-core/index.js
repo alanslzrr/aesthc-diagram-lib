@@ -6,13 +6,13 @@ import {
   screenToWorld,
   worldToScreen,
   zoomAt
-} from "../chunk-6SRL6DX7.js";
+} from "../chunk-3T2LMA7P.js";
 import {
   getAdapter,
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-EAOYH4UI.js";
+} from "../chunk-AVTVKBIV.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import {
@@ -34,7 +34,9 @@ import {
   validateEditorSpec
 } from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
+import "../chunk-3I2A4V6U.js";
 import "../chunk-YKPE23VO.js";
+import "../chunk-KDAWQGDC.js";
 import "../chunk-TVEV5XLW.js";
 
 // src/editor-core/conversion.ts
@@ -177,7 +179,7 @@ function routeOrthogonal(request) {
         result.push((values[i] + values[i + 1]) / 2);
     }
     result.push(values[0] - margin, values[values.length - 1] + margin);
-    return result;
+    return result.sort((a, b) => a - b);
   };
   const axisX = withMidpoints(xs);
   const axisY = withMidpoints(ys);
@@ -191,6 +193,15 @@ function routeOrthogonal(request) {
     index % axisY.length
   ];
   const reachable = (x, y) => !inside(axisX[x], axisY[y]);
+  const segmentClear = (ax, ay, bx, by) => {
+    const minX = Math.min(ax, bx), maxX = Math.max(ax, bx), minY = Math.min(ay, by), maxY = Math.max(ay, by);
+    for (const obstacle of obstacles) {
+      if (maxX < obstacle.x || minX > obstacle.x + obstacle.w) continue;
+      if (maxY < obstacle.y || minY > obstacle.y + obstacle.h) continue;
+      return false;
+    }
+    return true;
+  };
   const goalKey = key(goalIndex[0], goalIndex[1]);
   const startKey = key(startIndex[0], startIndex[1]);
   const g = /* @__PURE__ */ new Map([[startKey, 0]]);
@@ -200,10 +211,11 @@ function routeOrthogonal(request) {
   const previousDirection = /* @__PURE__ */ new Map();
   const neighborsOf = (x, y) => {
     const result = [];
-    if (x + 1 < axisX.length && reachable(x + 1, y)) result.push([x + 1, y, "h"]);
-    if (x - 1 >= 0 && reachable(x - 1, y)) result.push([x - 1, y, "h"]);
-    if (y + 1 < axisY.length && reachable(x, y + 1)) result.push([x, y + 1, "v"]);
-    if (y - 1 >= 0 && reachable(x, y - 1)) result.push([x, y - 1, "v"]);
+    const connects = (nx, ny) => reachable(nx, ny) && segmentClear(axisX[x], axisY[y], axisX[nx], axisY[ny]);
+    if (x + 1 < axisX.length && connects(x + 1, y)) result.push([x + 1, y, "h"]);
+    if (x - 1 >= 0 && connects(x - 1, y)) result.push([x - 1, y, "h"]);
+    if (y + 1 < axisY.length && connects(x, y + 1)) result.push([x, y + 1, "v"]);
+    if (y - 1 >= 0 && connects(x, y - 1)) result.push([x, y - 1, "v"]);
     return result;
   };
   const heuristic = (x, y) => Math.abs(axisX[x] - axisX[goalIndex[0]]) + Math.abs(axisY[y] - axisY[goalIndex[1]]);
@@ -262,7 +274,8 @@ function routeOrthogonal(request) {
 
 // src/editor-core/layout-provider.ts
 function applyLayoutResult(document, result, options) {
-  if (result.baseRevision !== options.expectedRevision) return failure("revision.stale");
+  if (document.revision !== options.expectedRevision) return failure("revision.stale");
+  if (result.baseRevision !== document.revision) return failure("revision.stale");
   const checked = validateDocument(document);
   if (!checked.ok) return checked;
   const current = checked.value;
@@ -274,6 +287,8 @@ function applyLayoutResult(document, result, options) {
     if (!known.has(id)) return failure("reference.missing");
     if (isNodeLocked(current, id)) return failure("entity.locked");
   }
+  for (const id of result.scene.zOrder ?? [])
+    if (!known.has(id)) return failure("reference.missing");
   const next = structuredClone(current);
   next.scene = {
     ...next.scene,
@@ -281,7 +296,9 @@ function applyLayoutResult(document, result, options) {
     nodes: { ...next.scene.nodes, ...structuredClone(placed) },
     zOrder: result.scene.zOrder ?? next.scene.zOrder
   };
-  return success(next);
+  const validated = validateDocument(next);
+  if (!validated.ok) return validated;
+  return success(validated.value);
 }
 async function runLayoutProvider(document, provider, options) {
   const result = await provider.run();
@@ -402,6 +419,9 @@ async function runRegisteredLayout(document, registry, providerId, options) {
     });
   }
   if (options.signal?.aborted) return failure("operation.aborted");
+  const currentRevision = options.latestRevision?.() ?? document.revision;
+  if (currentRevision !== options.expectedRevision)
+    return success({ status: "rejected", document, diagnostics: ["revision.stale"] });
   if (requestId !== options.latestRequestId())
     return success({ status: "rejected", document, diagnostics: ["provider.stale"] });
   const applied = applyLayoutResult(

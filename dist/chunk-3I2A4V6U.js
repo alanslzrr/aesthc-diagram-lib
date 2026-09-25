@@ -1,11 +1,11 @@
 import {
-  brandIcons,
-  scopeIconMarkup
-} from "./chunk-KDAWQGDC.js";
-import {
   nodeGeometry,
   tableFieldGeometry
 } from "./chunk-YKPE23VO.js";
+import {
+  brandIcons,
+  scopeIconMarkup
+} from "./chunk-KDAWQGDC.js";
 import {
   CARD_R,
   DECISION_PILL_H,
@@ -131,7 +131,12 @@ function renderSceneMarkup(document, scene, options) {
     if (!includeNode(n.id)) continue;
     const visual = document.metadata.visuals[n.id];
     const g = nodeGeometry(n, !!visual);
+    const custom = n.customSvg;
     out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}${dimmed(n.id)}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? "")}</desc>`;
+    if (custom) {
+      out += `${custom}</g>`;
+      continue;
+    }
     if (n.shape === "bar") {
       out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === "primary" ? "main" : "branch")}" fill-opacity=".22" stroke="${p.border}"/></g>`;
       continue;

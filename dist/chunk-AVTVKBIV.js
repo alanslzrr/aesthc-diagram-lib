@@ -26,6 +26,9 @@ import {
   validateEditorSpec
 } from "./chunk-6NELNSRC.js";
 import {
+  escapeXml
+} from "./chunk-3I2A4V6U.js";
+import {
   nodeGeometry
 } from "./chunk-YKPE23VO.js";
 
@@ -549,6 +552,58 @@ function resolveScene(document2, context, previous, extents) {
   const zOrder = new Map(document2.scene.zOrder.map((id, index) => [id, index]));
   layout.nodes.sort((a, b) => (zOrder.get(a.id) ?? -1) - (zOrder.get(b.id) ?? -1));
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]));
+  if (document2.spec.type === "graph") {
+    const palette = document2.presentation.theme[document2.presentation.theme.mode];
+    for (const specNode of document2.spec.nodes) {
+      if (!specNode.renderer) continue;
+      const placed = layout.nodeById[specNode.id];
+      if (!placed) continue;
+      const renderer = context.renderers?.resolve(specNode.renderer.typeKey);
+      if (!renderer) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue("renderer.unsupported"),
+            subject: { kind: "node", id: specNode.id }
+          });
+        placed.customSvg = `<rect data-renderer-missing="${escapeXml(specNode.renderer.typeKey)}" x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" rx="8" fill="none" stroke="${palette.border}" stroke-dasharray="4 4"/><text x="${placed.cx}" y="${placed.cy + 4}" text-anchor="middle" font-family="Geist, sans-serif" font-size="12" fill="${palette.mutedForeground}">${escapeXml(specNode.renderer.typeKey)} unavailable</text>`;
+        continue;
+      }
+      const validated = renderer.validate(specNode.renderer.data);
+      if (!validated.ok) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue("renderer.invalid"),
+            subject: { kind: "node", id: specNode.id }
+          });
+        continue;
+      }
+      const size = renderer.measure(validated.value, { fontSize: 13 });
+      if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue("renderer.measure"),
+            subject: { kind: "node", id: specNode.id }
+          });
+        continue;
+      }
+      placed.w = size.width;
+      placed.h = size.height;
+      placed.cx = placed.x + placed.w / 2;
+      placed.cy = placed.y + placed.h / 2;
+      placed.customSvg = renderer.renderSvg(validated.value, {
+        theme: document2.presentation.theme.mode,
+        palette: {
+          background: palette.background,
+          foreground: palette.foreground,
+          card: palette.card,
+          border: palette.border,
+          muted: palette.mutedForeground
+        },
+        x: placed.x,
+        y: placed.y
+      });
+    }
+  }
   const graphNodes = document2.spec.type === "graph" ? new Map(document2.spec.nodes.map((node) => [node.id, node])) : void 0;
   const graphEdges = document2.spec.type === "graph" ? new Map(document2.spec.edges.map((edge) => [edge.id, edge])) : void 0;
   const previousEdges = new Map(previous?.scene.layout.edges.map((edge) => [edge.id, edge]));
