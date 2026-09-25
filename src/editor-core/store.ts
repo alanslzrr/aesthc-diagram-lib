@@ -131,6 +131,19 @@ const SCENE_STRUCTURE: ReadonlySet<EditorCommand['type']> = new Set([
 ])
 const isSceneOnly = (commands: EditorCommand[]) =>
   commands.length > 0 && commands.every((command) => SCENE_ONLY.has(command.type))
+/** Copy only mutable placement records; unchanged branches remain frozen and shared. */
+function cloneSceneForCommands(scene: DiagramDocument['scene'], commands: EditorCommand[]) {
+  const ids = new Set<string>()
+  for (const command of commands) {
+    if (command.type === 'nodes.move') Object.keys(command.positions).forEach((id) => ids.add(id))
+    else if (command.type === 'node.resize') ids.add(command.id)
+    else if (command.type === 'nodes.set-lock') command.ids.forEach((id) => ids.add(id))
+    else return structuredClone(scene)
+  }
+  const nodes = { ...scene.nodes }
+  for (const id of ids) if (nodes[id]) nodes[id] = { ...nodes[id] }
+  return { ...scene, nodes }
+}
 /** True when applying these commands to `scene` would change nothing. */
 function commandsMatchScene(scene: DiagramDocument['scene'], commands: EditorCommand[]): boolean {
   for (const command of commands) {
@@ -409,7 +422,10 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
     }
     let doc = sceneOnly
-      ? { ...snapshot.document, scene: structuredClone(snapshot.document.scene) }
+      ? {
+          ...snapshot.document,
+          scene: cloneSceneForCommands(snapshot.document.scene, transaction.commands),
+        }
       : structuredClone(snapshot.document)
     for (const command of transaction.commands) {
       const result = applyCommand(doc, command)

@@ -566,3 +566,21 @@ describe('scene-only optimization boundaries', () => {
     expect(store.getSnapshot().dirty).toBe(true)
   })
 })
+
+it('shares frozen untouched placements without mutating the committed baseline', () => {
+  const store = makeStore()
+  const before = store.getSnapshot().document
+  store.beginGesture({ id: 'sharing', label: 'Move', expectedRevision: before.revision })
+  store.previewGesture([{ type: 'nodes.move', positions: { a: { x: 500, y: 400 } } }], {
+    skipValidation: true,
+  })
+  const draft = store.getSnapshot().draft
+  if (draft.kind !== 'gesture') throw Error('gesture')
+  expect(draft.preview.spec).toBe(before.spec)
+  expect(draft.preview.scene.nodes.b).toBe(before.scene.nodes.b)
+  expect(draft.preview.scene.nodes.a).not.toBe(before.scene.nodes.a)
+  expect(Object.isFrozen(draft.preview.scene.nodes.b)).toBe(true)
+  expect(before.scene.nodes.a.x).not.toBe(500)
+  store.cancelGesture()
+  expect(store.getSnapshot().document).toBe(before)
+})
