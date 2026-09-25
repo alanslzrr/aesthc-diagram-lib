@@ -1,15 +1,23 @@
 "use client";
 import {
+  validateDeploymentProfile
+} from "../chunk-5Q3CWSGC.js";
+import "../chunk-3T2LMA7P.js";
+import {
+  compareDocuments,
   findReach,
   findRoute,
   graphSnapshot,
   relationsOf,
   searchNodes
-} from "../chunk-23MOXLIZ.js";
+} from "../chunk-EILTSCOU.js";
 import {
   downloadArtifact,
-  exportCard
-} from "../chunk-I5SMMWLJ.js";
+  exportCard,
+  exportDocument,
+  exportStoryWebm,
+  webmCapability
+} from "../chunk-H7DLTDYO.js";
 import {
   resolveDocument
 } from "../chunk-AVTVKBIV.js";
@@ -33,9 +41,52 @@ import "../chunk-TVEV5XLW.js";
 // src/viewer/DiagramViewer.tsx
 import { useEffect as useEffect2, useMemo as useMemo3, useRef as useRef4, useState as useState3 } from "react";
 
+// src/viewer/Evidence.tsx
+import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+function Evidence({ document: document2, entity, profile, onSelect, t }) {
+  const entries = entity ? entity.kind === "node" ? document2.metadata.nodes[entity.id]?.evidence ?? [] : document2.metadata.edges[entity.id]?.evidence ?? [] : [];
+  return /* @__PURE__ */ jsxs("div", { className: "adl-viewer-evidence", children: [
+    /* @__PURE__ */ jsx("h4", { children: t("Evidence", "Evidencia") }),
+    !entity ? /* @__PURE__ */ jsx("p", { className: "adl-viewer-muted", children: t("Select an entity.", "Selecciona una entidad.") }) : entries.length === 0 ? /* @__PURE__ */ jsx("p", { className: "adl-viewer-muted", children: t("No declared evidence.", "Sin evidencia declarada.") }) : /* @__PURE__ */ jsx("ul", { className: "adl-viewer-evidence-list", children: entries.map((entry) => /* @__PURE__ */ jsxs("li", { children: [
+      /* @__PURE__ */ jsx("span", { className: "adl-viewer-mono", children: entry.id }),
+      " ",
+      /* @__PURE__ */ jsxs("span", { className: "adl-viewer-muted", children: [
+        entry.repository.replace(/^https:\/\//, ""),
+        " \xB7 ",
+        entry.path,
+        ":",
+        entry.startLine,
+        "-",
+        entry.endLine
+      ] }),
+      " ",
+      /* @__PURE__ */ jsx("span", { className: "adl-viewer-evidence-status", children: t("declared", "declarada") })
+    ] }, entry.id)) }),
+    profile?.enabled && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx("h4", { children: t("Deployment profile", "Perfil de despliegue") }),
+      /* @__PURE__ */ jsx("p", { className: "adl-viewer-muted", children: t(
+        `${profile.facts.nodes} nodes \xB7 ${profile.facts.regions} regions \xB7 ${profile.facts.crossRegionEdges} cross-region edges`,
+        `${profile.facts.nodes} nodos \xB7 ${profile.facts.regions} regiones \xB7 ${profile.facts.crossRegionEdges} relaciones entre regiones`
+      ) }),
+      profile.diagnostics.length === 0 ? /* @__PURE__ */ jsx("p", { className: "adl-viewer-muted", role: "status", children: t("No profile issues.", "Sin incidencias del perfil.") }) : /* @__PURE__ */ jsx("ul", { className: "adl-viewer-profile-diagnostics", role: "list", children: profile.diagnostics.map((diagnostic, index) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: () => diagnostic.subject && onSelect({ kind: diagnostic.subject.kind, id: diagnostic.subject.id }),
+          children: [
+            /* @__PURE__ */ jsx("span", { className: "adl-viewer-mono", children: diagnostic.code }),
+            " ",
+            diagnostic.subject ? `${diagnostic.subject.kind}:${diagnostic.subject.id}` : ""
+          ]
+        }
+      ) }, `${diagnostic.code}-${diagnostic.subject?.id ?? index}`)) })
+    ] })
+  ] });
+}
+
 // src/viewer/Finder.tsx
 import { useId, useMemo, useRef, useState } from "react";
-import { jsx, jsxs } from "react/jsx-runtime";
+import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 function Finder({ graph, label, onSelect, placeholder, disabled }) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -64,8 +115,8 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
       setActive(0);
     }
   }
-  return /* @__PURE__ */ jsxs("div", { className: "adl-viewer-finder", children: [
-    /* @__PURE__ */ jsx(
+  return /* @__PURE__ */ jsxs2("div", { className: "adl-viewer-finder", children: [
+    /* @__PURE__ */ jsx2(
       "input",
       {
         ref: input,
@@ -84,7 +135,7 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
         onKeyDown
       }
     ),
-    open && /* @__PURE__ */ jsx("ul", { className: "adl-viewer-finder-results", id: listId, role: "listbox", "aria-label": label, children: results.map((result, index) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(
+    open && /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-finder-results", id: listId, role: "listbox", "aria-label": label, children: results.map((result, index) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsxs2(
       "button",
       {
         type: "button",
@@ -94,15 +145,15 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
         onClick: () => choose(result.id),
         onMouseEnter: () => setActive(index),
         children: [
-          /* @__PURE__ */ jsx("span", { children: result.label }),
-          /* @__PURE__ */ jsxs("span", { className: "adl-viewer-finder-meta", children: [
+          /* @__PURE__ */ jsx2("span", { children: result.label }),
+          /* @__PURE__ */ jsxs2("span", { className: "adl-viewer-finder-meta", children: [
             result.id,
             result.kind ? ` \xB7 ${result.kind}` : ""
           ] })
         ]
       }
     ) }, result.id)) }),
-    query.length > 0 && results.length === 0 && /* @__PURE__ */ jsxs("p", { className: "adl-viewer-finder-empty", role: "status", children: [
+    query.length > 0 && results.length === 0 && /* @__PURE__ */ jsxs2("p", { className: "adl-viewer-finder-empty", role: "status", children: [
       "No matches for \u201C",
       query,
       "\u201D."
@@ -111,45 +162,45 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
 }
 
 // src/viewer/Inspector.tsx
-import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var safeScheme = /^(https?:|mailto:)/i;
 function safeLinks(links) {
   return (links ?? []).filter((link) => safeScheme.test(link.href) && !/["<>]/.test(link.href));
 }
 function Inspector({ document: document2, graph, entity, onSelect, t }) {
   if (!entity)
-    return /* @__PURE__ */ jsx2("div", { className: "adl-viewer-inspector adl-viewer-inspector-empty", children: t("Select an entity to inspect.", "Selecciona una entidad para inspeccionarla.") });
+    return /* @__PURE__ */ jsx3("div", { className: "adl-viewer-inspector adl-viewer-inspector-empty", children: t("Select an entity to inspect.", "Selecciona una entidad para inspeccionarla.") });
   const labelOf = (id) => graph.nodes.find((node2) => node2.id === id)?.label ?? id;
   if (entity.kind === "edge") {
     const edge = graph.edges.find((candidate) => candidate.id === entity.id);
     if (!edge)
-      return /* @__PURE__ */ jsx2("div", { className: "adl-viewer-inspector", children: /* @__PURE__ */ jsx2("p", { role: "status", children: t(
+      return /* @__PURE__ */ jsx3("div", { className: "adl-viewer-inspector", children: /* @__PURE__ */ jsx3("p", { role: "status", children: t(
         "This relation is no longer in the document.",
         "Esta relaci\xF3n ya no est\xE1 en el documento."
       ) }) });
     const metadata2 = document2.metadata.edges[edge.id];
     const links2 = safeLinks(metadata2?.links);
-    return /* @__PURE__ */ jsxs2("div", { className: "adl-viewer-inspector", children: [
-      /* @__PURE__ */ jsx2("h3", { children: /* @__PURE__ */ jsx2("span", { className: "adl-viewer-mono", children: edge.id }) }),
-      /* @__PURE__ */ jsxs2("p", { children: [
+    return /* @__PURE__ */ jsxs3("div", { className: "adl-viewer-inspector", children: [
+      /* @__PURE__ */ jsx3("h3", { children: /* @__PURE__ */ jsx3("span", { className: "adl-viewer-mono", children: edge.id }) }),
+      /* @__PURE__ */ jsxs3("p", { children: [
         labelOf(edge.from),
         " ",
-        /* @__PURE__ */ jsx2("span", { "aria-hidden": "true", children: "\u2192" }),
+        /* @__PURE__ */ jsx3("span", { "aria-hidden": "true", children: "\u2192" }),
         " ",
         labelOf(edge.to)
       ] }),
-      edge.label ? /* @__PURE__ */ jsxs2("p", { className: "adl-viewer-muted", children: [
+      edge.label ? /* @__PURE__ */ jsxs3("p", { className: "adl-viewer-muted", children: [
         t("Label:", "Etiqueta:"),
         " ",
         edge.label
       ] }) : null,
-      edge.variant ? /* @__PURE__ */ jsx2("p", { className: "adl-viewer-muted", children: edge.variant }) : null,
-      links2.length > 0 && /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-links", children: links2.map((link) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsx2("a", { href: link.href, target: "_blank", rel: "noreferrer", children: link.label }) }, link.href)) })
+      edge.variant ? /* @__PURE__ */ jsx3("p", { className: "adl-viewer-muted", children: edge.variant }) : null,
+      links2.length > 0 && /* @__PURE__ */ jsx3("ul", { className: "adl-viewer-links", children: links2.map((link) => /* @__PURE__ */ jsx3("li", { children: /* @__PURE__ */ jsx3("a", { href: link.href, target: "_blank", rel: "noreferrer", children: link.label }) }, link.href)) })
     ] });
   }
   const node = graph.nodes.find((candidate) => candidate.id === entity.id);
   if (!node)
-    return /* @__PURE__ */ jsx2("div", { className: "adl-viewer-inspector", children: /* @__PURE__ */ jsx2("p", { role: "status", children: t(
+    return /* @__PURE__ */ jsx3("div", { className: "adl-viewer-inspector", children: /* @__PURE__ */ jsx3("p", { role: "status", children: t(
       "This entity is no longer in the document.",
       "Esta entidad ya no est\xE1 en el documento."
     ) }) });
@@ -158,33 +209,33 @@ function Inspector({ document: document2, graph, entity, onSelect, t }) {
   const relations = relationsOf(graph, node.id);
   const incoming = relations.ok ? relations.value.incoming : [];
   const outgoing = relations.ok ? relations.value.outgoing : [];
-  return /* @__PURE__ */ jsxs2("div", { className: "adl-viewer-inspector", children: [
-    /* @__PURE__ */ jsx2("h3", { children: node.label }),
-    /* @__PURE__ */ jsx2("p", { className: "adl-viewer-mono adl-viewer-id", children: node.id }),
-    node.kind ? /* @__PURE__ */ jsx2("p", { className: "adl-viewer-kind", children: node.kind }) : null,
-    node.description ? /* @__PURE__ */ jsx2("p", { children: node.description }) : null,
-    metadata?.roles?.length ? /* @__PURE__ */ jsxs2("p", { className: "adl-viewer-muted", children: [
+  return /* @__PURE__ */ jsxs3("div", { className: "adl-viewer-inspector", children: [
+    /* @__PURE__ */ jsx3("h3", { children: node.label }),
+    /* @__PURE__ */ jsx3("p", { className: "adl-viewer-mono adl-viewer-id", children: node.id }),
+    node.kind ? /* @__PURE__ */ jsx3("p", { className: "adl-viewer-kind", children: node.kind }) : null,
+    node.description ? /* @__PURE__ */ jsx3("p", { children: node.description }) : null,
+    metadata?.roles?.length ? /* @__PURE__ */ jsxs3("p", { className: "adl-viewer-muted", children: [
       t("Roles:", "Roles:"),
       " ",
       metadata.roles.join(", ")
     ] }) : null,
-    links.length > 0 && /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-links", children: links.map((link) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsx2("a", { href: link.href, target: "_blank", rel: "noreferrer", children: link.label }) }, link.href)) }),
-    /* @__PURE__ */ jsx2("h4", { children: t("Incoming", "Entrantes") }),
-    incoming.length === 0 ? /* @__PURE__ */ jsx2("p", { className: "adl-viewer-muted", children: t("None.", "Ninguna.") }) : /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-relations", children: incoming.map((relation) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsxs2("button", { type: "button", onClick: () => onSelect({ kind: "edge", id: relation.edgeId }), children: [
-      /* @__PURE__ */ jsx2("span", { children: labelOf(relation.from) }),
-      /* @__PURE__ */ jsx2("span", { className: "adl-viewer-mono", children: relation.edgeId })
+    links.length > 0 && /* @__PURE__ */ jsx3("ul", { className: "adl-viewer-links", children: links.map((link) => /* @__PURE__ */ jsx3("li", { children: /* @__PURE__ */ jsx3("a", { href: link.href, target: "_blank", rel: "noreferrer", children: link.label }) }, link.href)) }),
+    /* @__PURE__ */ jsx3("h4", { children: t("Incoming", "Entrantes") }),
+    incoming.length === 0 ? /* @__PURE__ */ jsx3("p", { className: "adl-viewer-muted", children: t("None.", "Ninguna.") }) : /* @__PURE__ */ jsx3("ul", { className: "adl-viewer-relations", children: incoming.map((relation) => /* @__PURE__ */ jsx3("li", { children: /* @__PURE__ */ jsxs3("button", { type: "button", onClick: () => onSelect({ kind: "edge", id: relation.edgeId }), children: [
+      /* @__PURE__ */ jsx3("span", { children: labelOf(relation.from) }),
+      /* @__PURE__ */ jsx3("span", { className: "adl-viewer-mono", children: relation.edgeId })
     ] }) }, relation.edgeId)) }),
-    /* @__PURE__ */ jsx2("h4", { children: t("Outgoing", "Salientes") }),
-    outgoing.length === 0 ? /* @__PURE__ */ jsx2("p", { className: "adl-viewer-muted", children: t("None.", "Ninguna.") }) : /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-relations", children: outgoing.map((relation) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsxs2("button", { type: "button", onClick: () => onSelect({ kind: "edge", id: relation.edgeId }), children: [
-      /* @__PURE__ */ jsx2("span", { children: labelOf(relation.to) }),
-      /* @__PURE__ */ jsx2("span", { className: "adl-viewer-mono", children: relation.edgeId })
+    /* @__PURE__ */ jsx3("h4", { children: t("Outgoing", "Salientes") }),
+    outgoing.length === 0 ? /* @__PURE__ */ jsx3("p", { className: "adl-viewer-muted", children: t("None.", "Ninguna.") }) : /* @__PURE__ */ jsx3("ul", { className: "adl-viewer-relations", children: outgoing.map((relation) => /* @__PURE__ */ jsx3("li", { children: /* @__PURE__ */ jsxs3("button", { type: "button", onClick: () => onSelect({ kind: "edge", id: relation.edgeId }), children: [
+      /* @__PURE__ */ jsx3("span", { children: labelOf(relation.to) }),
+      /* @__PURE__ */ jsx3("span", { className: "adl-viewer-mono", children: relation.edgeId })
     ] }) }, relation.edgeId)) })
   ] });
 }
 
 // src/viewer/Minimap.tsx
 import { useMemo as useMemo2, useRef as useRef2 } from "react";
-import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 function Minimap({
   svg,
   layoutWidth,
@@ -211,7 +262,7 @@ function Minimap({
     const y = (event.clientY - bounds.top) / scale;
     onNavigate({ x, y });
   }
-  return /* @__PURE__ */ jsxs3(
+  return /* @__PURE__ */ jsxs4(
     "div",
     {
       ref: frame,
@@ -228,7 +279,7 @@ function Minimap({
         moveTo(event);
       },
       children: [
-        /* @__PURE__ */ jsx3(
+        /* @__PURE__ */ jsx4(
           "div",
           {
             className: "adl-viewer-minimap-svg",
@@ -236,7 +287,7 @@ function Minimap({
             dangerouslySetInnerHTML: { __html: svg }
           }
         ),
-        /* @__PURE__ */ jsx3(
+        /* @__PURE__ */ jsx4(
           "div",
           {
             className: "adl-viewer-minimap-viewport",
@@ -255,7 +306,7 @@ function Minimap({
 
 // src/viewer/Presentation.tsx
 import { useEffect, useRef as useRef3, useState as useState2 } from "react";
-import { jsxs as jsxs4 } from "react/jsx-runtime";
+import { jsxs as jsxs5 } from "react/jsx-runtime";
 function Presentation({ children, trigger, onExit, label }) {
   const [mode, setMode] = useState2("off");
   const shell = useRef3(null);
@@ -302,13 +353,13 @@ function Presentation({ children, trigger, onExit, label }) {
       document.removeEventListener("fullscreenchange", onFullscreen);
     };
   }, [active, mode]);
-  return /* @__PURE__ */ jsxs4(
+  return /* @__PURE__ */ jsxs5(
     "div",
     {
       ref: shell,
       className: active ? "adl-viewer-presentation adl-viewer-presentation-active" : "adl-viewer-presentation",
       children: [
-        active && /* @__PURE__ */ jsxs4(
+        active && /* @__PURE__ */ jsxs5(
           "button",
           {
             type: "button",
@@ -624,7 +675,7 @@ function querySummary(query, graph, t) {
 }
 
 // src/viewer/DiagramViewer.tsx
-import { jsx as jsx4, jsxs as jsxs5 } from "react/jsx-runtime";
+import { jsx as jsx5, jsxs as jsxs6 } from "react/jsx-runtime";
 var ZOOM_MIN = 0.1;
 var ZOOM_MAX = 4;
 function DiagramViewer({ document: document2, locale = "en", className }) {
@@ -651,6 +702,12 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
   const [storyFocus, setStoryFocus] = useState3(
     null
   );
+  const [profileEnabled, setProfileEnabled] = useState3(false);
+  const [publishIssue, setPublishIssue] = useState3(null);
+  const [recording, setRecording] = useState3(false);
+  const [motionIssue, setMotionIssue] = useState3(null);
+  const recordAbort = useRef4(null);
+  const webm = useMemo3(() => webmCapability(), []);
   const [reducedMotion, setReducedMotion] = useState3(
     () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches
   );
@@ -713,6 +770,10 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
       exclude
     }) : "",
     [document2, scene, highlight, lensSet, exclude]
+  );
+  const profileReport = useMemo3(
+    () => validateDeploymentProfile(document2, { enabled: profileEnabled }),
+    [document2, profileEnabled]
   );
   const relationsEnabled = graph.edges.length > 0;
   const summary = querySummary(query, graph, t);
@@ -884,6 +945,64 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     if (!artifact.ok) return;
     downloadArtifact(artifact.value, "card.png");
   }
+  function cancelRecording() {
+    recordAbort.current?.abort();
+  }
+  async function exportWebm() {
+    setMotionIssue(null);
+    const controller = new AbortController();
+    recordAbort.current = controller;
+    setRecording(true);
+    const result = await exportStoryWebm(document2, {
+      signal: controller.signal,
+      reducedMotion
+    });
+    recordAbort.current = null;
+    setRecording(false);
+    if (!result.ok) {
+      setMotionIssue(result.diagnostics.map((diagnostic) => diagnostic.code).join(", "));
+      return;
+    }
+    const url = URL.createObjectURL(
+      new Blob([result.value.bytes], { type: result.value.receipt.mimeType })
+    );
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = "story.webm";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  }
+  async function exportPublish() {
+    setPublishIssue(null);
+    if (!scene.ok) return;
+    const report = validateDeploymentProfile(document2, { enabled: profileEnabled });
+    if (!report.ok) {
+      setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code));
+      return;
+    }
+    if (report.value.enabled && report.value.diagnostics.length > 0) {
+      setPublishIssue(report.value.diagnostics.map((diagnostic) => diagnostic.code));
+      const first = report.value.diagnostics[0].subject;
+      if (first) setSelection(first);
+      return;
+    }
+    const artifact = await exportDocument(document2, {
+      format: "svg",
+      scope: { type: "document" },
+      theme: document2.presentation.theme.mode,
+      quality: "publish",
+      background: "theme",
+      scale: 1,
+      includeSource: false,
+      metadata: "minimal",
+      fontPolicy: "fallback"
+    });
+    if (!artifact.ok) {
+      setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code));
+      return;
+    }
+    downloadArtifact(artifact.value, "diagram.svg");
+  }
   function zoomBy(factor) {
     setCamera((current) => ({
       ...current,
@@ -917,24 +1036,24 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     if (!proxyMarkup) return "";
     return `<svg class="adl-viewer-proxy-layer" viewBox="0 0 ${scene.ok ? scene.value.layout.width : 1} ${scene.ok ? scene.value.layout.height : 1}" aria-hidden="true">${proxyMarkup}</svg>`;
   }, [proxyMarkup, scene]);
-  return /* @__PURE__ */ jsxs5(
+  return /* @__PURE__ */ jsxs6(
     "section",
     {
       className: `adl-viewer${className ? ` ${className}` : ""}`,
       "data-theme": document2.presentation.theme.mode,
       "aria-label": t("Semantic viewer", "Visor sem\xE1ntico"),
       children: [
-        /* @__PURE__ */ jsxs5("header", { className: "adl-viewer-header", children: [
-          /* @__PURE__ */ jsxs5("div", { children: [
-            /* @__PURE__ */ jsx4("h2", { children: document2.spec.caption || t("Untitled diagram", "Diagrama sin t\xEDtulo") }),
-            /* @__PURE__ */ jsxs5("p", { className: "adl-viewer-muted", children: [
+        /* @__PURE__ */ jsxs6("header", { className: "adl-viewer-header", children: [
+          /* @__PURE__ */ jsxs6("div", { children: [
+            /* @__PURE__ */ jsx5("h2", { children: document2.spec.caption || t("Untitled diagram", "Diagrama sin t\xEDtulo") }),
+            /* @__PURE__ */ jsxs6("p", { className: "adl-viewer-muted", children: [
               t("Revision", "Revisi\xF3n"),
               " ",
               document2.revision
             ] })
           ] }),
-          /* @__PURE__ */ jsxs5("div", { className: "adl-viewer-controls", children: [
-            /* @__PURE__ */ jsx4(
+          /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-controls", children: [
+            /* @__PURE__ */ jsx5(
               Finder,
               {
                 graph,
@@ -947,11 +1066,11 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                 }
               }
             ),
-            origin && /* @__PURE__ */ jsxs5("span", { className: "adl-viewer-origin", children: [
+            origin && /* @__PURE__ */ jsxs6("span", { className: "adl-viewer-origin", children: [
               "\u2713 ",
               origin
             ] }),
-            query?.kind !== "reach" && /* @__PURE__ */ jsx4(
+            query?.kind !== "reach" && /* @__PURE__ */ jsx5(
               Finder,
               {
                 graph,
@@ -964,26 +1083,26 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                 }
               }
             ),
-            destination && /* @__PURE__ */ jsxs5("span", { className: "adl-viewer-origin", children: [
+            destination && /* @__PURE__ */ jsxs6("span", { className: "adl-viewer-origin", children: [
               "\u2713 ",
               destination
             ] }),
-            /* @__PURE__ */ jsxs5("label", { className: "adl-viewer-direction", children: [
+            /* @__PURE__ */ jsxs6("label", { className: "adl-viewer-direction", children: [
               t("Direction", "Direcci\xF3n"),
-              /* @__PURE__ */ jsxs5(
+              /* @__PURE__ */ jsxs6(
                 "select",
                 {
                   "aria-label": t("Direction", "Direcci\xF3n"),
                   value: direction,
                   onChange: (event) => setDirection(event.target.value),
                   children: [
-                    /* @__PURE__ */ jsx4("option", { value: "downstream", children: t("Downstream", "Descendente") }),
-                    /* @__PURE__ */ jsx4("option", { value: "upstream", children: t("Upstream", "Ascendente") })
+                    /* @__PURE__ */ jsx5("option", { value: "downstream", children: t("Downstream", "Descendente") }),
+                    /* @__PURE__ */ jsx5("option", { value: "upstream", children: t("Upstream", "Ascendente") })
                   ]
                 }
               )
             ] }),
-            /* @__PURE__ */ jsx4(
+            /* @__PURE__ */ jsx5(
               "button",
               {
                 type: "button",
@@ -992,14 +1111,27 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                 children: t("Show route", "Mostrar ruta")
               }
             ),
-            /* @__PURE__ */ jsx4("button", { type: "button", onClick: runReach, disabled: !relationsEnabled || !origin, children: t("Show reach", "Mostrar alcance") }),
-            /* @__PURE__ */ jsx4("button", { type: "button", onClick: clearQuery, children: t("Clear", "Limpiar") })
+            /* @__PURE__ */ jsx5("button", { type: "button", onClick: runReach, disabled: !relationsEnabled || !origin, children: t("Show reach", "Mostrar alcance") }),
+            /* @__PURE__ */ jsx5("button", { type: "button", onClick: clearQuery, children: t("Clear", "Limpiar") }),
+            /* @__PURE__ */ jsxs6("label", { className: "adl-viewer-profile-toggle", children: [
+              /* @__PURE__ */ jsx5(
+                "input",
+                {
+                  type: "checkbox",
+                  checked: profileEnabled,
+                  onChange: (event) => setProfileEnabled(event.target.checked),
+                  "aria-label": t("Deployment profile", "Perfil de despliegue")
+                }
+              ),
+              t("Deployment profile", "Perfil de despliegue")
+            ] }),
+            /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => void exportPublish(), children: t("Publish export", "Exportar publicaci\xF3n") })
           ] })
         ] }),
-        facets.roles.length > 0 || facets.tags.length > 0 ? /* @__PURE__ */ jsxs5("div", { className: "adl-viewer-lensbar", children: [
-          /* @__PURE__ */ jsxs5("label", { children: [
+        facets.roles.length > 0 || facets.tags.length > 0 ? /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-lensbar", children: [
+          /* @__PURE__ */ jsxs6("label", { children: [
             t("Roles", "Roles"),
-            /* @__PURE__ */ jsxs5(
+            /* @__PURE__ */ jsxs6(
               "select",
               {
                 "aria-label": t("Role lens", "Lente de roles"),
@@ -1009,15 +1141,15 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                   nodeRoles: event.target.value ? [event.target.value] : void 0
                 })),
                 children: [
-                  /* @__PURE__ */ jsx4("option", { value: "", children: t("All", "Todos") }),
-                  facets.roles.map((role) => /* @__PURE__ */ jsx4("option", { value: role, children: role }, role))
+                  /* @__PURE__ */ jsx5("option", { value: "", children: t("All", "Todos") }),
+                  facets.roles.map((role) => /* @__PURE__ */ jsx5("option", { value: role, children: role }, role))
                 ]
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs5("label", { children: [
+          /* @__PURE__ */ jsxs6("label", { children: [
             t("Tags", "Etiquetas"),
-            /* @__PURE__ */ jsxs5(
+            /* @__PURE__ */ jsxs6(
               "select",
               {
                 "aria-label": t("Tag lens", "Lente de etiquetas"),
@@ -1027,15 +1159,15 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                   tags: event.target.value ? [event.target.value] : void 0
                 })),
                 children: [
-                  /* @__PURE__ */ jsx4("option", { value: "", children: t("All", "Todos") }),
-                  facets.tags.map((tag) => /* @__PURE__ */ jsx4("option", { value: tag, children: tag }, tag))
+                  /* @__PURE__ */ jsx5("option", { value: "", children: t("All", "Todos") }),
+                  facets.tags.map((tag) => /* @__PURE__ */ jsx5("option", { value: tag, children: tag }, tag))
                 ]
               }
             )
           ] }),
-          document2.scene.groups.length > 0 && /* @__PURE__ */ jsxs5("label", { children: [
+          document2.scene.groups.length > 0 && /* @__PURE__ */ jsxs6("label", { children: [
             t("Collapse", "Colapsar"),
-            /* @__PURE__ */ jsxs5(
+            /* @__PURE__ */ jsxs6(
               "select",
               {
                 "aria-label": t("Collapse group", "Colapsar grupo"),
@@ -1049,30 +1181,30 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                   }
                 },
                 children: [
-                  /* @__PURE__ */ jsx4("option", { value: "", children: t("None", "Ninguno") }),
-                  document2.scene.groups.map((group) => /* @__PURE__ */ jsx4("option", { value: group.id, children: group.label }, group.id))
+                  /* @__PURE__ */ jsx5("option", { value: "", children: t("None", "Ninguno") }),
+                  document2.scene.groups.map((group) => /* @__PURE__ */ jsx5("option", { value: group.id, children: group.label }, group.id))
                 ]
               }
             )
           ] }),
-          collapsed.size > 0 && /* @__PURE__ */ jsx4("button", { type: "button", onClick: () => setCollapsed(/* @__PURE__ */ new Set()), children: t("Expand all", "Expandir todo") })
+          collapsed.size > 0 && /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => setCollapsed(/* @__PURE__ */ new Set()), children: t("Expand all", "Expandir todo") })
         ] }) : null,
-        !relationsEnabled && /* @__PURE__ */ jsx4("p", { className: "adl-viewer-note", children: t(
+        !relationsEnabled && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", children: t(
           "This diagram has no relations; route and reach are unavailable.",
           "Este diagrama no tiene relaciones; la ruta y el alcance no est\xE1n disponibles."
         ) }),
-        stale && query && /* @__PURE__ */ jsx4("p", { className: "adl-viewer-note", role: "status", children: t(
+        stale && query && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "status", children: t(
           "The document changed. The previous route, highlight and export were invalidated.",
           "El documento cambi\xF3. La ruta anterior, el resaltado y la exportaci\xF3n quedaron invalidados."
         ) }),
-        /* @__PURE__ */ jsxs5(
+        /* @__PURE__ */ jsxs6(
           Presentation,
           {
             label: t("Exit presentation", "Salir de presentaci\xF3n"),
             onExit: () => presentTrigger.current?.focus(),
-            trigger: (activate) => /* @__PURE__ */ jsx4("button", { ref: presentTrigger, type: "button", onClick: activate, children: t("Present", "Presentar") }),
+            trigger: (activate) => /* @__PURE__ */ jsx5("button", { ref: presentTrigger, type: "button", onClick: activate, children: t("Present", "Presentar") }),
             children: [
-              /* @__PURE__ */ jsxs5(
+              /* @__PURE__ */ jsxs6(
                 "div",
                 {
                   ref: canvasHost,
@@ -1088,7 +1220,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                     panTo(event);
                   },
                   children: [
-                    scene.ok ? /* @__PURE__ */ jsx4(
+                    scene.ok ? /* @__PURE__ */ jsx5(
                       "div",
                       {
                         className: "adl-viewer-stage",
@@ -1100,8 +1232,8 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                         },
                         dangerouslySetInnerHTML: { __html: svg }
                       }
-                    ) : /* @__PURE__ */ jsx4("p", { className: "adl-viewer-note", role: "alert", children: scene.diagnostics.map((diagnostic) => diagnostic.code).join(", ") }),
-                    scene.ok && collapse && /* @__PURE__ */ jsx4(
+                    ) : /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: scene.diagnostics.map((diagnostic) => diagnostic.code).join(", ") }),
+                    scene.ok && collapse && /* @__PURE__ */ jsx5(
                       "div",
                       {
                         className: "adl-viewer-overlay",
@@ -1111,9 +1243,9 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                   ]
                 }
               ),
-              /* @__PURE__ */ jsxs5("div", { className: "adl-viewer-camera", children: [
-                /* @__PURE__ */ jsx4("button", { type: "button", onClick: () => zoomBy(1.25), "aria-label": t("Zoom in", "Acercar"), children: "+" }),
-                /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-camera", children: [
+                /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => zoomBy(1.25), "aria-label": t("Zoom in", "Acercar"), children: "+" }),
+                /* @__PURE__ */ jsx5(
                   "button",
                   {
                     type: "button",
@@ -1122,8 +1254,8 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                     children: "\u2212"
                   }
                 ),
-                /* @__PURE__ */ jsx4("button", { type: "button", onClick: fit, children: t("Fit", "Ajustar") }),
-                /* @__PURE__ */ jsxs5("span", { className: "adl-viewer-muted", role: "status", "aria-label": t("Zoom", "Zoom"), children: [
+                /* @__PURE__ */ jsx5("button", { type: "button", onClick: fit, children: t("Fit", "Ajustar") }),
+                /* @__PURE__ */ jsxs6("span", { className: "adl-viewer-muted", role: "status", "aria-label": t("Zoom", "Zoom"), children: [
                   Math.round(camera.zoom * 100),
                   "%"
                 ] })
@@ -1131,8 +1263,8 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             ]
           }
         ),
-        story.length > 0 && /* @__PURE__ */ jsxs5("div", { className: "adl-viewer-story", role: "group", "aria-label": t("Story", "Historia"), children: [
-          storyPlaying ? /* @__PURE__ */ jsx4("button", { type: "button", onClick: () => playback.current?.pause(), children: t("Pause", "Pausar") }) : /* @__PURE__ */ jsx4(
+        story.length > 0 && /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-story", role: "group", "aria-label": t("Story", "Historia"), children: [
+          storyPlaying ? /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => playback.current?.pause(), children: t("Pause", "Pausar") }) : /* @__PURE__ */ jsx5(
             "button",
             {
               type: "button",
@@ -1145,13 +1277,34 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
               children: t("Play", "Reproducir")
             }
           ),
-          /* @__PURE__ */ jsx4("button", { type: "button", onClick: () => playback.current?.prev(), children: t("Previous", "Anterior") }),
-          /* @__PURE__ */ jsx4("button", { type: "button", onClick: () => playback.current?.next(), children: t("Next", "Siguiente") }),
-          /* @__PURE__ */ jsx4("button", { type: "button", onClick: stopStory, children: t("Stop", "Detener") }),
-          /* @__PURE__ */ jsx4("span", { role: "status", children: storyIndex >= 0 ? `${storyIndex + 1}/${story.length}` : t("Stopped", "Detenido") }),
-          reducedMotion && /* @__PURE__ */ jsx4("span", { className: "adl-viewer-muted", children: t("Reduced motion: static navigation.", "Movimiento reducido: navegaci\xF3n est\xE1tica.") })
+          /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => playback.current?.prev(), children: t("Previous", "Anterior") }),
+          /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => playback.current?.next(), children: t("Next", "Siguiente") }),
+          /* @__PURE__ */ jsx5("button", { type: "button", onClick: stopStory, children: t("Stop", "Detener") }),
+          /* @__PURE__ */ jsx5("span", { role: "status", children: storyIndex >= 0 ? `${storyIndex + 1}/${story.length}` : t("Stopped", "Detenido") }),
+          reducedMotion && /* @__PURE__ */ jsx5("span", { className: "adl-viewer-muted", children: t("Reduced motion: static navigation.", "Movimiento reducido: navegaci\xF3n est\xE1tica.") }),
+          recording ? /* @__PURE__ */ jsx5("button", { type: "button", onClick: cancelRecording, children: t("Cancel export", "Cancelar exportaci\xF3n") }) : /* @__PURE__ */ jsx5(
+            "button",
+            {
+              type: "button",
+              onClick: () => void exportWebm(),
+              disabled: !webm.supported || reducedMotion,
+              title: !webm.supported ? t(
+                "WebM is unavailable in this browser.",
+                "WebM no est\xE1 disponible en este navegador."
+              ) : reducedMotion ? t(
+                "Reduced motion: recording is disabled.",
+                "Movimiento reducido: la grabaci\xF3n est\xE1 deshabilitada."
+              ) : void 0,
+              children: t("Export WebM", "Exportar WebM")
+            }
+          ),
+          !webm.supported && /* @__PURE__ */ jsx5("span", { className: "adl-viewer-muted", children: t(
+            "WebM is unavailable in this browser.",
+            "WebM no est\xE1 disponible en este navegador."
+          ) }),
+          motionIssue && /* @__PURE__ */ jsx5("span", { className: "adl-viewer-muted", role: "status", children: motionIssue })
         ] }),
-        scene.ok && /* @__PURE__ */ jsx4(
+        scene.ok && /* @__PURE__ */ jsx5(
           Minimap,
           {
             svg,
@@ -1162,9 +1315,9 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             onNavigate: (center) => setCamera((current) => ({ ...current, ...center }))
           }
         ),
-        (summary || query || storyIndex >= 0) && /* @__PURE__ */ jsxs5("div", { className: "adl-viewer-querybar", children: [
-          /* @__PURE__ */ jsx4("p", { role: "status", children: storyIndex >= 0 && !query ? t(`Story step ${storyIndex + 1}.`, `Paso ${storyIndex + 1} de la historia.`) : summary ?? "" }),
-          edgeIds.length > 0 && !storyFocus && /* @__PURE__ */ jsx4("ul", { className: "adl-viewer-edgeids", "aria-label": t("Relation IDs", "IDs de relaciones"), children: edgeIds.map((edgeId) => /* @__PURE__ */ jsx4("li", { children: /* @__PURE__ */ jsx4(
+        (summary || query || storyIndex >= 0) && /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-querybar", children: [
+          /* @__PURE__ */ jsx5("p", { role: "status", children: storyIndex >= 0 && !query ? t(`Story step ${storyIndex + 1}.`, `Paso ${storyIndex + 1} de la historia.`) : summary ?? "" }),
+          edgeIds.length > 0 && !storyFocus && /* @__PURE__ */ jsx5("ul", { className: "adl-viewer-edgeids", "aria-label": t("Relation IDs", "IDs de relaciones"), children: edgeIds.map((edgeId) => /* @__PURE__ */ jsx5("li", { children: /* @__PURE__ */ jsx5(
             "button",
             {
               type: "button",
@@ -1173,7 +1326,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
               children: edgeId
             }
           ) }, edgeId)) }),
-          /* @__PURE__ */ jsx4(
+          /* @__PURE__ */ jsx5(
             "button",
             {
               type: "button",
@@ -1183,7 +1336,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
               children: t("Export query SVG", "Exportar SVG de la consulta")
             }
           ),
-          /* @__PURE__ */ jsx4(
+          /* @__PURE__ */ jsx5(
             "button",
             {
               type: "button",
@@ -1192,9 +1345,10 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
               children: t("Export card PNG", "Exportar card PNG")
             }
           ),
-          /* @__PURE__ */ jsx4("span", { id: "adl-viewer-stale", hidden: true, children: t("Export requires a current query.", "La exportaci\xF3n requiere una consulta vigente.") })
+          /* @__PURE__ */ jsx5("span", { id: "adl-viewer-stale", hidden: true, children: t("Export requires a current query.", "La exportaci\xF3n requiere una consulta vigente.") })
         ] }),
-        /* @__PURE__ */ jsx4(
+        publishIssue && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: publishIssue.join(", ") }),
+        /* @__PURE__ */ jsx5(
           Inspector,
           {
             document: document2,
@@ -1203,19 +1357,254 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             onSelect: setSelection,
             t
           }
+        ),
+        /* @__PURE__ */ jsx5(
+          Evidence,
+          {
+            document: document2,
+            entity: selection,
+            profile: profileReport.ok ? profileReport.value : null,
+            onSelect: setSelection,
+            t
+          }
         )
       ]
     }
   );
 }
+
+// src/viewer/Comparison.tsx
+import { useMemo as useMemo4, useRef as useRef5, useState as useState4 } from "react";
+import { jsx as jsx6, jsxs as jsxs7 } from "react/jsx-runtime";
+function Comparison({ before, after, locale = "en" }) {
+  const t = (en, es) => locale === "es" ? es : en;
+  const comparison = useMemo4(() => compareDocuments(before, after), [before, after]);
+  const [side, setSide] = useState4("after");
+  const [selected, setSelected] = useState4(0);
+  const list = useRef5(null);
+  const items = useMemo4(() => {
+    if (!comparison.ok) return [];
+    const entries = [];
+    for (const delta of [...comparison.value.nodes, ...comparison.value.edges])
+      entries.push({
+        key: `${delta.kind}:${delta.id}`,
+        ref: delta.status === "added" ? null : { kind: delta.kind, id: delta.id },
+        label: `${delta.status} \xB7 ${delta.id}`
+      });
+    for (const entry of comparison.value.reorder)
+      entries.push({
+        key: `reorder:${entry.collection}`,
+        ref: null,
+        label: `reorder \xB7 ${entry.collection}: ${entry.after.join(" \u2192 ")}`
+      });
+    return entries;
+  }, [comparison]);
+  const selectedRef = items[selected]?.ref ?? null;
+  const scene = useMemo4(() => {
+    const document2 = side === "before" ? before : after;
+    const resolved = resolveDocument(document2, {
+      quality: "edit",
+      requestId: "comparison",
+      skipDiagnostics: true
+    });
+    if (!resolved.ok) return null;
+    return {
+      document: document2,
+      svg: renderSvg(document2, resolved.value, {
+        instanceId: `comparison-${side}`,
+        theme: document2.presentation.theme.mode,
+        highlight: selectedRef ? selectedRef.kind === "node" ? { nodes: /* @__PURE__ */ new Set([selectedRef.id]) } : { edges: /* @__PURE__ */ new Set([selectedRef.id]) } : void 0
+      })
+    };
+  }, [before, after, side, selectedRef]);
+  function onKeyDown(event) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelected((index) => Math.min(index + 1, items.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelected((index) => Math.max(index - 1, 0));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setSelected(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setSelected(Math.max(0, items.length - 1));
+    }
+  }
+  function exportComparison() {
+    if (!comparison.ok) return;
+    const artifact = {
+      bytes: new TextEncoder().encode(JSON.stringify(comparison.value, null, 2)),
+      receipt: {
+        documentId: `${comparison.value.before.documentId}\u2192${comparison.value.after.documentId}`,
+        revision: comparison.value.after.revision,
+        format: "json",
+        mimeType: "application/json",
+        bytes: 0,
+        scope: "document",
+        canonical: false,
+        sourceIncluded: false,
+        verified: false,
+        diagnostics: []
+      }
+    };
+    artifact.receipt.bytes = artifact.bytes.byteLength;
+    downloadArtifact(artifact, "comparison.json");
+  }
+  if (!comparison.ok)
+    return /* @__PURE__ */ jsx6("section", { className: "adl-viewer-comparison", "aria-label": t("Comparison", "Comparaci\xF3n"), children: /* @__PURE__ */ jsx6("p", { className: "adl-viewer-note", role: "alert", children: comparison.diagnostics.map((diagnostic) => diagnostic.code).join(", ") }) });
+  const counts = comparison.value.counts;
+  return /* @__PURE__ */ jsxs7("section", { className: "adl-viewer-comparison", "aria-label": t("Comparison", "Comparaci\xF3n"), children: [
+    /* @__PURE__ */ jsxs7("header", { className: "adl-viewer-controls", children: [
+      /* @__PURE__ */ jsxs7("fieldset", { children: [
+        /* @__PURE__ */ jsx6("legend", { children: t("Side", "Lado") }),
+        /* @__PURE__ */ jsxs7("label", { children: [
+          /* @__PURE__ */ jsx6(
+            "input",
+            {
+              type: "radio",
+              name: "comparison-side",
+              checked: side === "before",
+              onChange: () => setSide("before")
+            }
+          ),
+          t("Before", "Antes")
+        ] }),
+        /* @__PURE__ */ jsxs7("label", { children: [
+          /* @__PURE__ */ jsx6(
+            "input",
+            {
+              type: "radio",
+              name: "comparison-side",
+              checked: side === "after",
+              onChange: () => setSide("after")
+            }
+          ),
+          t("After", "Despu\xE9s")
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx6("p", { role: "status", children: t(
+        `${counts.added} added \xB7 ${counts.removed} removed \xB7 ${counts.modified} modified (${counts.presentationOnly} presentation-only) \xB7 ${counts.reorder} reordered`,
+        `${counts.added} a\xF1adidos \xB7 ${counts.removed} eliminados \xB7 ${counts.modified} modificados (${counts.presentationOnly} solo presentaci\xF3n) \xB7 ${counts.reorder} reordenados`
+      ) }),
+      /* @__PURE__ */ jsx6("button", { type: "button", onClick: exportComparison, children: t("Export comparison JSON", "Exportar comparaci\xF3n JSON") })
+    ] }),
+    /* @__PURE__ */ jsxs7("div", { className: "adl-viewer-comparison-body", children: [
+      /* @__PURE__ */ jsx6(
+        "ul",
+        {
+          ref: list,
+          className: "adl-viewer-changes",
+          role: "listbox",
+          "aria-label": t("Changes", "Cambios"),
+          tabIndex: 0,
+          "aria-activedescendant": items[selected] ? `change-${selected}` : void 0,
+          onKeyDown,
+          children: items.map((item, index) => /* @__PURE__ */ jsx6(
+            "li",
+            {
+              id: `change-${index}`,
+              role: "option",
+              "aria-selected": index === selected,
+              children: /* @__PURE__ */ jsx6("button", { type: "button", onClick: () => setSelected(index), children: /* @__PURE__ */ jsx6("span", { className: "adl-viewer-mono", children: item.label }) })
+            },
+            item.key
+          ))
+        }
+      ),
+      scene ? /* @__PURE__ */ jsx6(
+        "div",
+        {
+          className: "adl-viewer-comparison-stage",
+          role: "img",
+          "aria-label": t("Comparison preview", "Vista de comparaci\xF3n"),
+          dangerouslySetInnerHTML: { __html: scene.svg }
+        }
+      ) : /* @__PURE__ */ jsx6("p", { className: "adl-viewer-note", role: "alert", children: t("The preview could not be resolved.", "La vista no se pudo resolver.") })
+    ] })
+  ] });
+}
+
+// src/viewer/trace.ts
+function createTracePlayer(route, callbacks, options = {}) {
+  const edges = [...route.edgeIds];
+  const duration = options.edgeDurationMs ?? 400;
+  const setTimer = options.environment?.setTimer ?? ((callback, ms) => setTimeout(callback, ms));
+  const clearTimer = options.environment?.clearTimer ?? ((handle) => clearTimeout(handle));
+  let timer;
+  let index = -1;
+  let state = "idle";
+  function emit() {
+    if (index >= 0 && index < edges.length) callbacks.onStep(index, edges[index]);
+  }
+  function schedule() {
+    clearTimer(timer);
+    timer = setTimer(() => {
+      if (state !== "playing") return;
+      if (index >= edges.length - 1) {
+        state = "ended";
+        callbacks.onEnd();
+        return;
+      }
+      index += 1;
+      emit();
+      schedule();
+    }, duration);
+  }
+  return {
+    state: () => state,
+    index: () => index,
+    edgeIds: () => [...edges],
+    play(from = 0) {
+      if (edges.length === 0) return false;
+      clearTimer(timer);
+      index = Math.max(0, Math.min(from, edges.length - 1));
+      state = "playing";
+      emit();
+      schedule();
+      return true;
+    },
+    pause() {
+      if (state !== "playing") return;
+      clearTimer(timer);
+      state = "paused";
+    },
+    next() {
+      if (index >= edges.length - 1) return false;
+      clearTimer(timer);
+      index += 1;
+      emit();
+      if (state === "playing") schedule();
+      return true;
+    },
+    prev() {
+      if (index <= 0) return false;
+      clearTimer(timer);
+      index -= 1;
+      emit();
+      if (state === "playing") schedule();
+      return true;
+    },
+    stop() {
+      clearTimer(timer);
+      if (state !== "idle" && state !== "ended") callbacks.onStop();
+      state = "idle";
+      index = -1;
+    }
+  };
+}
 export {
+  Comparison,
   DiagramViewer,
+  Evidence,
   Finder,
   Inspector,
   Minimap,
   Presentation,
   StoryPlayback,
   createMotionOwnerGuard,
+  createTracePlayer,
   decodeViewerState,
   describeStoryStep,
   encodeViewerState,

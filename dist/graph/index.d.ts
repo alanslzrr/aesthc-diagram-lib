@@ -1,5 +1,54 @@
-import { i as DiagramEdge, j as Result, g as DiagramDocument } from '../layout-DmZ-4ly5.js';
+import { g as DiagramDocument, j as Result, m as DiagramEdge } from '../layout-BhvxbOAw.js';
 import '../theme.js';
+
+interface FieldChange {
+    path: string;
+    before: unknown;
+    after: unknown;
+}
+interface EntityDelta {
+    kind: 'node' | 'edge';
+    id: string;
+    status: 'added' | 'removed' | 'modified';
+    /** Changed semantic field paths; empty for presentation-only changes. */
+    semantic: string[];
+    /** Changed presentation fields (placement, route points). */
+    presentation: string[];
+}
+interface Comparison {
+    before: {
+        documentId: string;
+        revision: number;
+    };
+    after: {
+        documentId: string;
+        revision: number;
+    };
+    type: string;
+    nodes: EntityDelta[];
+    edges: EntityDelta[];
+    /** Authored-order changes over an unchanged id set. Authored order is
+     * semantic: anonymous identity and sequence meaning follow it. */
+    reorder: Array<{
+        collection: 'nodes' | 'edges';
+        before: string[];
+        after: string[];
+    }>;
+    presentation: FieldChange[];
+    counts: {
+        added: number;
+        removed: number;
+        modified: number;
+        presentationOnly: number;
+        reorder: number;
+    };
+    /** Never implies merge safety: the comparison is read-only evidence. */
+    mergeSafety: false;
+}
+/** Exact structural comparison. Entities are matched by their stable IDs only:
+ * a renamed ID is a remove + add, never an inferred rename, and no merge
+ * behavior is promised. Inputs are never mutated. */
+declare function compareDocuments(beforeInput: DiagramDocument, afterInput: DiagramDocument): Result<Comparison>;
 
 interface GraphFilter {
     variants?: Array<'main' | 'branch'>;
@@ -67,4 +116,4 @@ interface NodeRelations {
 /** Authored edge order; parallel relations keep their distinct IDs. */
 declare function relationsOf(graph: GraphSnapshot, nodeId: string): Result<NodeRelations>;
 
-export { type GraphFilter, type GraphNodeInfo, type GraphSnapshot, type NodeRelations, type ReachResult, type RouteResult, type SearchMatch, type SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes };
+export { type Comparison, type EntityDelta, type FieldChange, type GraphFilter, type GraphNodeInfo, type GraphSnapshot, type NodeRelations, type ReachResult, type RouteResult, type SearchMatch, type SearchResult, compareDocuments, findReach, findRoute, graphSnapshot, relationsOf, searchNodes };

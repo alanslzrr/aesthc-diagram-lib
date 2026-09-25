@@ -1,8 +1,9 @@
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { g as DiagramDocument, L as Locale, n as EntityRef, V as Viewport, t as StoryStep, N as NamedView, j as Result, R as ResolvedScene } from '../layout-DmZ-4ly5.js';
+import { g as DiagramDocument, L as Locale, n as EntityRef, V as Viewport, t as StoryStep, N as NamedView, j as Result, R as ResolvedScene } from '../layout-BhvxbOAw.js';
 import { GraphSnapshot, RouteResult, ReachResult, GraphFilter } from '../graph/index.js';
-export { GraphNodeInfo, NodeRelations, SearchMatch, SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes } from '../graph/index.js';
+export { Comparison as DocumentComparison, EntityDelta, FieldChange, GraphNodeInfo, NodeRelations, SearchMatch, SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes } from '../graph/index.js';
+import { D as DeploymentProfileReport } from '../profiles-BU8Kb50T.js';
 import '../theme.js';
 
 interface DiagramViewerProps {
@@ -29,6 +30,28 @@ interface FinderProps {
  * authored order). Unicode case-insensitive, original text preserved.
  */
 declare function Finder({ graph, label, onSelect, placeholder, disabled }: FinderProps): react.JSX.Element;
+
+interface ComparisonProps {
+    before: DiagramDocument;
+    after: DiagramDocument;
+    locale?: Locale;
+}
+/** Before/Delta/After comparison with keyboard navigation and a JSON receipt.
+ * Entities are matched by exact ID; inputs are never mutated and no merge
+ * behavior is implied. */
+declare function Comparison({ before, after, locale }: ComparisonProps): react.JSX.Element;
+
+interface EvidenceProps {
+    document: DiagramDocument;
+    entity: EntityRef | null;
+    profile: DeploymentProfileReport | null;
+    onSelect: (entity: EntityRef) => void;
+    t: (en: string, es: string) => string;
+}
+/** Read-only evidence and deployment-profile panel. Declared evidence is never
+ * presented as verified, and profile diagnostics navigate to their exact
+ * subject by ID. */
+declare function Evidence({ document, entity, profile, onSelect, t }: EvidenceProps): react.JSX.Element;
 
 interface InspectorProps {
     document: DiagramDocument;
@@ -123,6 +146,35 @@ interface MotionOwnerGuard {
 /** Exactly one owner can move the camera at a time (story, route or trace). */
 declare function createMotionOwnerGuard(): MotionOwnerGuard;
 
+type TraceState = 'idle' | 'playing' | 'paused' | 'ended';
+interface TraceCallbacks {
+    onStep: (edgeIndex: number, edgeId: string) => void;
+    onEnd: () => void;
+    onStop: () => void;
+}
+interface TraceEnvironment {
+    setTimer?: (callback: () => void, ms: number) => unknown;
+    clearTimer?: (handle: unknown) => void;
+}
+/**
+ * Finite trace playback over an authored route: one edge at a time with a
+ * fixed per-edge duration, a single motion owner and no auto-start. It never
+ * invents edges: the sequence is exactly the route receipt.
+ */
+declare function createTracePlayer(route: Pick<RouteResult, 'edgeIds'>, callbacks: TraceCallbacks, options?: {
+    edgeDurationMs?: number;
+    environment?: TraceEnvironment;
+}): {
+    state: () => TraceState;
+    index: () => number;
+    edgeIds: () => string[];
+    play(from?: number): boolean;
+    pause(): void;
+    next(): boolean;
+    prev(): boolean;
+    stop(): void;
+};
+
 /** Reading-only lens: filters what is dimmed, never what queries traverse. */
 interface ViewerLens {
     nodeRoles?: string[];
@@ -200,4 +252,4 @@ interface ExportQuerySvgOptions {
 declare function exportQuerySvg(document: DiagramDocument, scene: ResolvedScene, query: ViewerQueryState, options: ExportQuerySvgOptions): string;
 declare function querySummary(query: ViewerQueryState | null, graph: GraphSnapshot, t: (en: string, es: string) => string): string | null;
 
-export { DiagramViewer, type DiagramViewerProps, type ExportQuerySvgOptions, Finder, type FinderProps, GraphFilter, GraphSnapshot, Inspector, type InspectorProps, Minimap, type MinimapProps, type MotionOwnerGuard, type PlaybackCallbacks, type PlaybackEnvironment, type PlaybackOwner, type PlaybackState, Presentation, type PresentationProps, ReachResult, type ResolvedView, RouteResult, StoryPlayback, type StoryTransition, type ViewerLens, type ViewerQueryState, type ViewerState, createMotionOwnerGuard, decodeViewerState, describeStoryStep, encodeViewerState, exportQuerySvg, highlightStyle, isQueryStale, lensFacets, lensMatches, queryEdgeIds, queryHighlight, queryReceipt, querySummary, resolveView };
+export { Comparison, type ComparisonProps, DiagramViewer, type DiagramViewerProps, Evidence, type EvidenceProps, type ExportQuerySvgOptions, Finder, type FinderProps, GraphFilter, GraphSnapshot, Inspector, type InspectorProps, Minimap, type MinimapProps, type MotionOwnerGuard, type PlaybackCallbacks, type PlaybackEnvironment, type PlaybackOwner, type PlaybackState, Presentation, type PresentationProps, ReachResult, type ResolvedView, RouteResult, StoryPlayback, type StoryTransition, type TraceCallbacks, type TraceEnvironment, type TraceState, type ViewerLens, type ViewerQueryState, type ViewerState, createMotionOwnerGuard, createTracePlayer, decodeViewerState, describeStoryStep, encodeViewerState, exportQuerySvg, highlightStyle, isQueryStale, lensFacets, lensMatches, queryEdgeIds, queryHighlight, queryReceipt, querySummary, resolveView };

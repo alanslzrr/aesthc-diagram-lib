@@ -7,6 +7,124 @@ import {
   validateDocument
 } from "./chunk-6NELNSRC.js";
 
+// src/graph/compare.ts
+function diffValues(before, after, prefix) {
+  if (JSON.stringify(before) === JSON.stringify(after)) return [];
+  if (before === null || after === null || typeof before !== "object" || typeof after !== "object" || Array.isArray(before) || Array.isArray(after))
+    return [{ path: prefix, before, after }];
+  const keys = /* @__PURE__ */ new Set([...Object.keys(before), ...Object.keys(after)]);
+  const changes = [];
+  for (const key of keys) {
+    const left = before[key];
+    const right = after[key];
+    changes.push(...diffValues(left, right, `${prefix}/${key}`));
+  }
+  return changes;
+}
+function orderOf(ids) {
+  return ids.join("\0");
+}
+function reorderOf(collection, beforeIds, afterIds) {
+  const beforeSet = new Set(beforeIds), afterSet = new Set(afterIds);
+  const kept = beforeIds.filter((id) => afterSet.has(id));
+  const keptAfter = afterIds.filter((id) => beforeSet.has(id));
+  if (kept.length < 2 || orderOf(kept) === orderOf(keptAfter)) return [];
+  return [{ collection, before: kept, after: keptAfter }];
+}
+function compareDocuments(beforeInput, afterInput) {
+  const beforeChecked = validateDocument(beforeInput);
+  if (!beforeChecked.ok) return beforeChecked;
+  const afterChecked = validateDocument(afterInput);
+  if (!afterChecked.ok) return afterChecked;
+  const before = beforeChecked.value, after = afterChecked.value;
+  if (before.spec.type !== after.spec.type) return failure("compare.incompatible");
+  const beforeNodes = new Map(nodesOf(before.spec).map((node) => [node.id, node]));
+  const afterNodes = new Map(nodesOf(after.spec).map((node) => [node.id, node]));
+  const beforeEdges = new Map(edgesOf(before.spec).map((edge) => [edge.id, edge]));
+  const afterEdges = new Map(edgesOf(after.spec).map((edge) => [edge.id, edge]));
+  const nodes = [];
+  const edges = [];
+  function delta(kind, id, beforeEntity, afterEntity, beforePlacement, afterPlacement) {
+    if (beforeEntity === void 0)
+      return { kind, id, status: "added", semantic: [], presentation: [] };
+    if (afterEntity === void 0)
+      return { kind, id, status: "removed", semantic: [], presentation: [] };
+    const semantic = diffValues(beforeEntity, afterEntity, "").map((change) => change.path);
+    const presentation2 = diffValues(beforePlacement, afterPlacement, "").map(
+      (change) => change.path
+    );
+    if (semantic.length === 0 && presentation2.length === 0) return null;
+    return { kind, id, status: "modified", semantic, presentation: presentation2 };
+  }
+  for (const id of /* @__PURE__ */ new Set([...beforeNodes.keys(), ...afterNodes.keys()])) {
+    const entry = delta(
+      "node",
+      id,
+      beforeNodes.get(id),
+      afterNodes.get(id),
+      before.scene.nodes[id],
+      after.scene.nodes[id]
+    );
+    if (entry) nodes.push(entry);
+  }
+  for (const id of /* @__PURE__ */ new Set([...beforeEdges.keys(), ...afterEdges.keys()])) {
+    const entry = delta(
+      "edge",
+      id,
+      beforeEdges.get(id),
+      afterEdges.get(id),
+      before.scene.routes[id],
+      after.scene.routes[id]
+    );
+    if (entry) edges.push(entry);
+  }
+  const presentation = diffValues(
+    {
+      presentation: before.presentation,
+      mode: before.scene.mode,
+      zOrder: before.scene.zOrder
+    },
+    {
+      presentation: after.presentation,
+      mode: after.scene.mode,
+      zOrder: after.scene.zOrder
+    },
+    ""
+  );
+  const reorder = [
+    ...reorderOf(
+      "nodes",
+      nodesOf(before.spec).map((node) => node.id),
+      nodesOf(after.spec).map((node) => node.id)
+    ),
+    ...reorderOf(
+      "edges",
+      edgesOf(before.spec).map((edge) => edge.id),
+      edgesOf(after.spec).map((edge) => edge.id)
+    )
+  ];
+  const counts = {
+    added: [...nodes, ...edges].filter((entry) => entry.status === "added").length,
+    removed: [...nodes, ...edges].filter((entry) => entry.status === "removed").length,
+    modified: [...nodes, ...edges].filter((entry) => entry.status === "modified").length,
+    presentationOnly: [...nodes, ...edges].filter(
+      (entry) => entry.status === "modified" && entry.semantic.length === 0
+    ).length,
+    reorder: reorder.length
+  };
+  return success({
+    before: { documentId: before.id, revision: before.revision },
+    after: { documentId: after.id, revision: after.revision },
+    type: before.spec.type,
+    nodes,
+    edges,
+    reorder,
+    presentation,
+    counts,
+    mergeSafety: false
+  });
+}
+
 // src/graph/index.ts
 function graphSnapshot(document, filter) {
   const checked = validateDocument(document);
@@ -139,6 +257,7 @@ function relationsOf(graph, nodeId) {
 }
 
 export {
+  compareDocuments,
   graphSnapshot,
   findRoute,
   findReach,

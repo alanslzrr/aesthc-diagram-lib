@@ -1,4 +1,4 @@
-import { g as DiagramDocument, j as Result, m as Diagnostic, n as EntityRef, o as ResolveRendererRegistry } from '../layout-DmZ-4ly5.js';
+import { g as DiagramDocument, j as Result, i as Diagnostic, n as EntityRef, o as ResolveRendererRegistry } from '../layout-BhvxbOAw.js';
 import '../theme.js';
 
 interface ExportHtmlOptions {
@@ -101,6 +101,43 @@ interface ProbedExportCapabilities {
 declare function probeExportCapabilities(): ProbedExportCapabilities;
 declare function supportedFormats(capabilities: ProbedExportCapabilities): ExportFormat[];
 
+/** Capability gate: the recorder and a canvas stream must exist and a WebM
+ * codec must be really supported. No camera or microphone is ever requested. */
+declare function webmCapability(): {
+    supported: boolean;
+    mimeType: string | null;
+};
+interface MotionOptions {
+    fps?: number;
+    scale?: number;
+    signal?: AbortSignal;
+    /** Reduced motion never records: the static story navigation stays. */
+    reducedMotion?: boolean;
+}
+interface MotionArtifact {
+    bytes: Uint8Array;
+    receipt: {
+        documentId: string;
+        revision: number;
+        mimeType: string;
+        bytes: number;
+        width: number;
+        height: number;
+        fps: number;
+        durationMs: number;
+        frameCount: number;
+        /** Written but never verified as decodable by the exporter itself. */
+        verified: false;
+        diagnostics: [];
+    };
+}
+/**
+ * Records a finite story to WebM from a canvas stream only. The duration is
+ * bounded by the validated story, every resource (tracks, object URLs, canvas)
+ * is released on success, failure and abort, and an abort never reports success.
+ */
+declare function exportStoryWebm(input: DiagramDocument, options?: MotionOptions): Promise<Result<MotionArtifact>>;
+
 type ExportFormat = 'json' | 'svg' | 'png' | 'jpeg' | 'webp';
 interface ExportOptions {
     format: ExportFormat;
@@ -157,4 +194,4 @@ declare function getExportCapabilities(): {
 declare function downloadArtifact(artifact: ExportArtifact, filename: string): Result<void>;
 declare function copyArtifact(artifact: ExportArtifact): Promise<Result<void>>;
 
-export { CARD_HEIGHT, CARD_WIDTH, type CardArtifact, type CardQueryReceipt, type CardSvgOptions, type ExportArtifact, type ExportFormat, type ExportHtmlArtifact, type ExportHtmlOptions, type ExportOptions, type ProbedExportCapabilities, type ValidatedQuery, cardSvg, copyArtifact, downloadArtifact, exportCard, exportDocument, exportDocumentHtml, getExportCapabilities, probeExportCapabilities, supportedFormats, validateCardQuery };
+export { CARD_HEIGHT, CARD_WIDTH, type CardArtifact, type CardQueryReceipt, type CardSvgOptions, type ExportArtifact, type ExportFormat, type ExportHtmlArtifact, type ExportHtmlOptions, type ExportOptions, type MotionArtifact, type MotionOptions, type ProbedExportCapabilities, type ValidatedQuery, cardSvg, copyArtifact, downloadArtifact, exportCard, exportDocument, exportDocumentHtml, exportStoryWebm, getExportCapabilities, probeExportCapabilities, supportedFormats, validateCardQuery, webmCapability };

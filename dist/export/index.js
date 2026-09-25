@@ -7,11 +7,13 @@ import {
   exportCard,
   exportDocument,
   exportDocumentHtml,
+  exportStoryWebm,
   getExportCapabilities,
   probeExportCapabilities,
   supportedFormats,
-  validateCardQuery
-} from "../chunk-I5SMMWLJ.js";
+  validateCardQuery,
+  webmCapability
+} from "../chunk-H7DLTDYO.js";
 import "../chunk-AVTVKBIV.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
@@ -32,8 +34,10 @@ export {
   exportCard,
   exportDocument,
   exportDocumentHtml,
+  exportStoryWebm,
   getExportCapabilities,
   probeExportCapabilities,
   supportedFormats,
-  validateCardQuery
+  validateCardQuery,
+  webmCapability
 };
