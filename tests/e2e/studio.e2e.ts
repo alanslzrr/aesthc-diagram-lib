@@ -160,6 +160,8 @@ test('Studio marquee selects across zoom, cancels without edits and supports add
   isMobile,
 }) => {
   test.skip(isMobile, 'Mouse rectangle selection')
+  // Keep the entire drag inside the native viewport in every browser engine.
+  await page.setViewportSize({ width: 1280, height: 1600 })
   await page.goto('/studio.html')
   const canvas = page.getByRole('group', { name: /^Editable diagram/ })
   const nodes = canvas.locator('[data-hit-node]')
@@ -433,7 +435,7 @@ test('Studio northwest resize anchors at zoom and locked nodes hide handles', as
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2 + 8, { steps: 4 })
-  expect(Number(await node.getAttribute('x'))).toBeGreaterThan(before.x)
+  await expect.poll(async () => Number(await node.getAttribute('x'))).toBeGreaterThan(before.x)
   expect(Number(await node.getAttribute('x')) + Number(await node.getAttribute('width'))).toBe(
     before.x + before.width,
   )
@@ -583,6 +585,8 @@ test('Studio relayout previews, applies in one undoable edit and cancels cleanly
   isMobile,
 }) => {
   test.skip(isMobile, 'Mouse-specific drag; mobile controls covered separately')
+  // Keep the entire drag inside the native viewport in every browser engine.
+  await page.setViewportSize({ width: 1280, height: 1600 })
   await page.goto('/studio.html')
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const before = await node.getAttribute('x')
