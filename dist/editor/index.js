@@ -292,7 +292,7 @@ var EdgeHitRect = memo(function EdgeHitRect2({
       height,
       rx: 6,
       fill: "rgba(0, 0, 0, 0.001)",
-      stroke: selected ? stroke : "rgba(0, 0, 0, 0.001)",
+      stroke: selected ? stroke : "transparent",
       style: { cursor: "pointer" },
       tabIndex: 0,
       role: "button",
@@ -430,6 +430,7 @@ function EditorRelayout() {
     const scene = relayoutScene(current.document);
     if (!scene.ok) return;
     const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+    transactionRef.current = id;
     if (!store.beginGesture({ id, label: "Re-layout", expectedRevision: current.document.revision }).ok)
       return;
     store.previewGesture([{ type: "scene.set", scene: scene.value }], { skipValidation: true });
@@ -521,6 +522,26 @@ var SceneHits = memo(function SceneHits2({
       }
     ) }, n.id))
   ] });
+});
+var BaselineLayer = memo(function BaselineLayer2({
+  markup,
+  width,
+  height,
+  x,
+  y,
+  zoom
+}) {
+  return /* @__PURE__ */ jsx(
+    "svg",
+    {
+      "aria-hidden": "true",
+      width: "100%",
+      height: "100%",
+      viewBox: `0 0 ${width} ${height}`,
+      style: { position: "absolute", inset: 0, pointerEvents: "none", willChange: "transform" },
+      children: /* @__PURE__ */ jsx("g", { transform: `translate(${x} ${y}) scale(${zoom})`, children: /* @__PURE__ */ jsx(SceneMarkup, { markup }) })
+    }
+  );
 });
 function EditorSurface({
   ariaLabel,
@@ -864,6 +885,7 @@ function EditorSurface({
         event.currentTarget.releasePointerCapture(event.pointerId);
       return;
     }
+    if (!cancel) flushMove();
     if (marquee.current?.pointer === event.pointerId) {
       if (cancel) cancelMarquee();
       else {
@@ -988,9 +1010,21 @@ function EditorSurface({
     [store]
   );
   return /* @__PURE__ */ jsxs("div", { className: `adl-editor-surface ${className ?? ""}`, children: [
+    gestureEntities && baseline !== null && /* @__PURE__ */ jsx(
+      BaselineLayer,
+      {
+        markup: baseline,
+        width: size.width,
+        height: size.height,
+        x: snapshot.viewport.x,
+        y: snapshot.viewport.y,
+        zoom: snapshot.viewport.zoom
+      }
+    ),
     /* @__PURE__ */ jsx(
       "svg",
       {
+        style: { position: "relative" },
         ref: svgRef,
         width: "100%",
         height: "100%",
@@ -1272,10 +1306,7 @@ function EditorSurface({
           {
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
-              gestureEntities && baseline !== null ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx(SceneMarkup, { markup: baseline }),
-                /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" })
-              ] }) : /* @__PURE__ */ jsx(SceneMarkup, { markup }),
+              gestureEntities && baseline !== null ? /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" }) : /* @__PURE__ */ jsx(SceneMarkup, { markup }),
               /* @__PURE__ */ jsx(
                 SceneHits,
                 {
