@@ -38,6 +38,9 @@ export interface RegisteredLayoutOptions {
   expectedRevision: number
   /** Latest issued request id; an older request never publishes. */
   latestRequestId: () => string
+  /** Current document revision; a change while the provider was pending
+   * rejects the result even if the request id still matches. */
+  latestRevision?: () => number
   requestId?: string
   signal?: AbortSignal
 }
@@ -83,6 +86,9 @@ export async function runRegisteredLayout(
     })
   }
   if (options.signal?.aborted) return failure('operation.aborted')
+  const currentRevision = options.latestRevision?.() ?? document.revision
+  if (currentRevision !== options.expectedRevision)
+    return success({ status: 'rejected', document, diagnostics: ['revision.stale'] })
   if (requestId !== options.latestRequestId())
     return success({ status: 'rejected', document, diagnostics: ['provider.stale'] })
   const applied = applyLayoutResult(

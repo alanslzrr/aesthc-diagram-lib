@@ -26,7 +26,8 @@ export function applyLayoutResult(
   result: LayoutProviderResult,
   options: { expectedRevision: number },
 ): Result<DiagramDocument> {
-  if (result.baseRevision !== options.expectedRevision) return failure('revision.stale')
+  if (document.revision !== options.expectedRevision) return failure('revision.stale')
+  if (result.baseRevision !== document.revision) return failure('revision.stale')
   const checked = validateDocument(document)
   if (!checked.ok) return checked
   const current = checked.value
@@ -38,6 +39,8 @@ export function applyLayoutResult(
     if (!known.has(id)) return failure('reference.missing')
     if (isNodeLocked(current, id)) return failure('entity.locked')
   }
+  for (const id of result.scene.zOrder ?? [])
+    if (!known.has(id)) return failure('reference.missing')
   const next: DiagramDocument = structuredClone(current)
   next.scene = {
     ...next.scene,
@@ -45,7 +48,11 @@ export function applyLayoutResult(
     nodes: { ...next.scene.nodes, ...structuredClone(placed) },
     zOrder: result.scene.zOrder ?? next.scene.zOrder,
   }
-  return success(next)
+  // The result is validated as a whole document before it is accepted: NaN,
+  // negative sizes and broken references never publish.
+  const validated = validateDocument(next)
+  if (!validated.ok) return validated
+  return success(validated.value)
 }
 /** Runs a provider under the latest-wins policy: an older requestId or an
  * aborted provider never publishes its result. The document keeps its last

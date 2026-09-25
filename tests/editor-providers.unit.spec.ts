@@ -157,3 +157,78 @@ describe('E18 registered layout providers', () => {
     expect(stale.value.document).toBe(doc)
   })
 })
+
+describe('E23 audit regressions: provider result integrity', () => {
+  it('rejects a result whose baseRevision matches expectedRevision but not the actual document', async () => {
+    const { applyLayoutResult } = await import('../src/editor-core/layout-provider')
+    const doc = document()
+    const result = applyLayoutResult(
+      doc,
+      { requestId: 'audit', baseRevision: 9, scene: doc.scene },
+      { expectedRevision: 9 },
+    )
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics.some((d) => d.code === 'revision.stale')).toBe(true)
+  })
+
+  it('rejects invalid scenes: NaN positions, negative sizes and ghost zOrder', async () => {
+    const { applyLayoutResult } = await import('../src/editor-core/layout-provider')
+    const doc = document()
+    const invalidNodes = applyLayoutResult(
+      doc,
+      {
+        requestId: 'audit',
+        baseRevision: doc.revision,
+        scene: {
+          ...doc.scene,
+          nodes: { a: { x: Number.NaN, y: 0, width: -1, height: 56, locked: false } },
+        },
+      },
+      { expectedRevision: doc.revision },
+    )
+    expect(invalidNodes.ok).toBe(false)
+    const ghostZOrder = applyLayoutResult(
+      doc,
+      {
+        requestId: 'audit',
+        baseRevision: doc.revision,
+        scene: { ...doc.scene, zOrder: ['a', 'b', 'locked', 'ghost'] },
+      },
+      { expectedRevision: doc.revision },
+    )
+    expect(ghostZOrder.ok).toBe(false)
+  })
+
+  it('rejects a provider whose document revision changed while the request was pending', async () => {
+    const registry = createLayoutProviderRegistry()
+    let revision = 0
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    registry.register({
+      id: 'slow-audit',
+      async run({ document: current }) {
+        await gate
+        return {
+          ...current.scene,
+          nodes: { a: { ...current.scene.nodes.a, x: 55, y: 55 } },
+        }
+      },
+    })
+    const doc = document()
+    const pending = runRegisteredLayout(doc, registry, 'slow-audit', {
+      expectedRevision: 0,
+      latestRequestId: () => 'audit-1',
+      requestId: 'audit-1',
+      latestRevision: () => revision,
+    })
+    revision = 1
+    release()
+    const outcome = await pending
+    if (!outcome.ok) throw Error(JSON.stringify(outcome.diagnostics))
+    expect(outcome.value.status).toBe('rejected')
+    expect(outcome.value.diagnostics).toContain('revision.stale')
+    expect(outcome.value.document.scene.nodes.a.x).toBe(0)
+  })
+})
