@@ -527,3 +527,42 @@ describe('trusted preview deltas', () => {
     store.dispose()
   })
 })
+
+describe('scene-only optimization boundaries', () => {
+  it('rejects out-of-range committed coordinates', () => {
+    const store = makeStore()
+    expect(
+      store.dispatch({
+        id: 'range',
+        label: 'Range',
+        expectedRevision: 0,
+        commands: [{ type: 'nodes.move', positions: { a: { x: 100001, y: 0 } } }],
+      }).status,
+    ).toBe('rejected')
+  })
+  it('keeps non-scene edits dirty when a scene command restores saved geometry', () => {
+    const store = makeStore()
+    const original = store.getSnapshot().document.scene.nodes.a
+    const spec = structuredClone(store.getSnapshot().document.spec)
+    spec.caption = 'Unsaved caption'
+    store.dispatch({
+      id: 'caption',
+      label: 'Caption',
+      expectedRevision: 0,
+      commands: [{ type: 'spec.replace', spec }],
+    })
+    store.dispatch({
+      id: 'move',
+      label: 'Move',
+      expectedRevision: 1,
+      commands: [{ type: 'nodes.move', positions: { a: { x: original.x + 1, y: original.y } } }],
+    })
+    store.dispatch({
+      id: 'restore',
+      label: 'Restore',
+      expectedRevision: 2,
+      commands: [{ type: 'nodes.move', positions: { a: { x: original.x, y: original.y } } }],
+    })
+    expect(store.getSnapshot().dirty).toBe(true)
+  })
+})

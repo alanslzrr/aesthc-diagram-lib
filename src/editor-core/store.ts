@@ -24,11 +24,13 @@ import {
   success,
   validId,
 } from './data'
-import { validateDocument, validateEditorSpec } from './validation'
+import { validateDocument, validateEditorSpec, validateSceneOnly } from './validation'
 
 /** Validates the changed payload of a trusted preview without revalidating the whole document. */
 function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagnostic[] {
   const issues: Diagnostic[] = []
+  const inRange = (value: unknown, min: number, max: number) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max
   const finite = (value: unknown, path: string) => {
     if (typeof value !== 'number' || !Number.isFinite(value))
       issues.push({ ...issue('data.finite', path) })
@@ -36,6 +38,8 @@ function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagn
   const finitePoint = (point: { x: number; y: number }, path: string) => {
     finite(point.x, `${path}/x`)
     finite(point.y, `${path}/y`)
+    if (!inRange(point.x, -100000, 100000) || !inRange(point.y, -100000, 100000))
+      issues.push({ ...issue('layout.range', path) })
   }
   for (const command of commands) {
     switch (command.type) {
@@ -46,12 +50,7 @@ function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagn
       case 'node.resize':
         finite(command.size.width, `/scene/nodes/${pointer(command.id)}/width`)
         finite(command.size.height, `/scene/nodes/${pointer(command.id)}/height`)
-        if (
-          !Number.isFinite(command.size.width) ||
-          !Number.isFinite(command.size.height) ||
-          command.size.width <= 0 ||
-          command.size.height <= 0
-        )
+        if (!inRange(command.size.width, 96, 4096) || !inRange(command.size.height, 48, 4096))
           issues.push({ ...issue('layout.range', `/scene/nodes/${pointer(command.id)}`) })
         break
       case 'route.set':
@@ -70,6 +69,13 @@ function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagn
           finite(placement.y, `${path}/y`)
           finite(placement.width, `${path}/width`)
           finite(placement.height, `${path}/height`)
+          if (
+            !inRange(placement.x, -100000, 100000) ||
+            !inRange(placement.y, -100000, 100000) ||
+            !inRange(placement.width, 96, 4096) ||
+            !inRange(placement.height, 48, 4096)
+          )
+            issues.push({ ...issue('layout.range', path) })
         }
         for (const [edgeId, route] of Object.entries(command.scene.routes)) {
           if (route.mode !== 'manual') continue
@@ -109,6 +115,108 @@ function bytesOf(document: DiagramDocument): number {
   }
   return value
 }
+const SCENE_ONLY: ReadonlySet<EditorCommand['type']> = new Set([
+  'scene.set',
+  'nodes.move',
+  'node.resize',
+  'nodes.set-lock',
+  'route.set',
+  'group.upsert',
+])
+/** Commands that can change the scene's structure; moves/resizes only touch values. */
+const SCENE_STRUCTURE: ReadonlySet<EditorCommand['type']> = new Set([
+  'scene.set',
+  'route.set',
+  'group.upsert',
+])
+const isSceneOnly = (commands: EditorCommand[]) =>
+  commands.length > 0 && commands.every((command) => SCENE_ONLY.has(command.type))
+/** True when applying these commands to `scene` would change nothing. */
+function commandsMatchScene(scene: DiagramDocument['scene'], commands: EditorCommand[]): boolean {
+  for (const command of commands) {
+    switch (command.type) {
+      case 'nodes.move':
+        for (const [id, point] of Object.entries(command.positions)) {
+          const placement = scene.nodes[id]
+          if (!placement || placement.x !== point.x || placement.y !== point.y) return false
+        }
+        break
+      case 'node.resize': {
+        const placement = scene.nodes[command.id]
+        if (
+          !placement ||
+          placement.width !== command.size.width ||
+          placement.height !== command.size.height
+        )
+          return false
+        break
+      }
+      case 'nodes.set-lock':
+        for (const id of command.ids) {
+          const placement = scene.nodes[id]
+          if (!placement || placement.locked !== command.locked) return false
+        }
+        break
+      case 'route.set':
+        if (JSON.stringify(scene.routes[command.id]) !== JSON.stringify(command.route)) return false
+        break
+      case 'scene.set':
+        if (!sceneEquals(scene, command.scene)) return false
+        break
+      case 'group.upsert':
+        if (
+          JSON.stringify(scene.groups.find((g) => g.id === command.group.id)) !==
+          JSON.stringify(command.group)
+        )
+          return false
+        break
+      case 'group.remove':
+        if (scene.groups.some((g) => g.id === command.id)) return false
+        break
+    }
+  }
+  return true
+}
+/** Structural scene comparison; the scene is flat enough for a direct walk. */
+function sceneEquals(a: DiagramDocument['scene'], b: DiagramDocument['scene']): boolean {
+  if (a.mode !== b.mode || a.zOrder.length !== b.zOrder.length) return false
+  for (let i = 0; i < a.zOrder.length; i++) if (a.zOrder[i] !== b.zOrder[i]) return false
+  const aNodes = Object.keys(a.nodes),
+    bNodes = Object.keys(b.nodes)
+  if (aNodes.length !== bNodes.length) return false
+  for (const id of aNodes) {
+    const pa = a.nodes[id],
+      pb = b.nodes[id]
+    if (
+      !pb ||
+      pa.x !== pb.x ||
+      pa.y !== pb.y ||
+      pa.width !== pb.width ||
+      pa.height !== pb.height ||
+      pa.locked !== pb.locked
+    )
+      return false
+  }
+  if (Object.keys(a.routes).length !== Object.keys(b.routes).length) return false
+  for (const [id, route] of Object.entries(a.routes)) {
+    const other = b.routes[id]
+    if (!other || JSON.stringify(route) !== JSON.stringify(other)) return false
+  }
+  if (a.groups.length !== b.groups.length) return false
+  for (let i = 0; i < a.groups.length; i++) {
+    if (JSON.stringify(a.groups[i]) !== JSON.stringify(b.groups[i])) return false
+  }
+  return true
+}
+const sceneBytesCache = new WeakMap<DiagramDocument['scene'], number>()
+function sceneBytes(scene: DiagramDocument['scene']): number {
+  let value = sceneBytesCache.get(scene)
+  if (value === undefined) {
+    value = new TextEncoder().encode(JSON.stringify(scene)).length
+    sceneBytesCache.set(scene, value)
+  }
+  return value
+}
 
 /** Per-command invalidation so consumers skip unrelated recomputation. */
 function invalidationsFor(
@@ -143,14 +251,21 @@ function invalidationsFor(
         break
     }
   }
-  const topology = (doc: DiagramDocument) =>
-    `${nodesOf(doc.spec)
-      .map((n) => n.id)
-      .join(',')}|${edgesOf(doc.spec)
-      .map((e) => `${e.id}:${e.from}->${e.to}`)
-      .sort()
-      .join(',')}`
-  if (topology(before) !== topology(after)) set.add('graph')
+  const topology = (() => {
+    const beforeNodes = new Set(nodesOf(before.spec).map((n) => n.id)),
+      afterNodes = new Set(nodesOf(after.spec).map((n) => n.id))
+    if (beforeNodes.size !== afterNodes.size) return true
+    for (const id of beforeNodes) if (!afterNodes.has(id)) return true
+    const beforeEdges = new Map(edgesOf(before.spec).map((e) => [e.id, e])),
+      afterEdges = new Map(edgesOf(after.spec).map((e) => [e.id, e]))
+    if (beforeEdges.size !== afterEdges.size) return true
+    for (const [id, edge] of beforeEdges) {
+      const next = afterEdges.get(id)
+      if (!next || next.from !== edge.from || next.to !== edge.to) return true
+    }
+    return false
+  })()
+  if (topology) set.add('graph')
   if (!commands.length) {
     set.add('graph')
     set.add('style')
@@ -227,8 +342,13 @@ export function createEditorStore(options: StoreOptions): EditorStore {
   const listeners = new Set<() => void>(),
     commits = new Set<(result: Extract<CommitResult, { status: 'committed' }>) => void>()
   let past: DiagramDocument[] = [],
-    future: DiagramDocument[] = []
+    future: DiagramDocument[] = [],
+    pastSizes: number[] = [],
+    futureSizes: number[] = []
   let saved = canonicalizeContent(checked.value),
+    savedScene = structuredClone(checked.value.scene),
+    currentBytes = new TextEncoder().encode(canonicalizeContent(checked.value)).length,
+    nonSceneDirty = false,
     disposed = false
   let gesture: { transaction: Omit<Transaction, 'commands'>; commands: EditorCommand[] } | undefined
   let snapshot: EditorSnapshot = freezeData({
@@ -258,15 +378,19 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     for (const listener of [...listeners]) listener()
   }
   function trim() {
-    const bytes = (list: DiagramDocument[]) =>
-      list.reduce((sum, doc) => sum + new TextEncoder().encode(JSON.stringify(doc)).length, 0)
+    let pastBytes = pastSizes.reduce((sum, size) => sum + size, 0),
+      futureBytes = futureSizes.reduce((sum, size) => sum + size, 0)
     while (
       past.length + future.length > historyLimits.maxEntries ||
-      2 * (bytes(past) + bytes(future)) > historyLimits.maxBytes
+      2 * (pastBytes + futureBytes) > historyLimits.maxBytes
     ) {
-      if (past.length) past.shift()
-      else if (future.length) future.shift()
-      else break
+      if (past.length) {
+        past.shift()
+        pastBytes -= pastSizes.shift()!
+      } else if (future.length) {
+        future.shift()
+        futureBytes -= futureSizes.shift()!
+      } else break
     }
   }
   function candidate(transaction: Transaction, skipValidation = false) {
@@ -279,15 +403,23 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     if (!validId(transaction.id)) return failure<DiagramDocument>('id.invalid')
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure<DiagramDocument>('revision.stale')
-    if (skipValidation) {
+    const sceneOnly = isSceneOnly(transaction.commands)
+    if (skipValidation || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits)
       if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
     }
-    let doc = structuredClone(snapshot.document)
+    let doc = sceneOnly
+      ? { ...snapshot.document, scene: structuredClone(snapshot.document.scene) }
+      : structuredClone(snapshot.document)
     for (const command of transaction.commands) {
       const result = applyCommand(doc, command)
       if (!result.ok) return result
       doc = result.value
+    }
+    if (sceneOnly) {
+      if (transaction.commands.some((command) => SCENE_STRUCTURE.has(command.type)))
+        return validateSceneOnly(doc, limits)
+      return validateSceneOnly(doc, limits)
     }
     if (skipValidation) return success(doc)
     return validateDocument(doc, limits)
@@ -296,6 +428,10 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected('revision.overflow')
     const before = snapshot.document
     doc = { ...doc, revision: before.revision + 1 }
+    const sceneOnly = isSceneOnly(commands)
+    currentBytes = sceneOnly
+      ? currentBytes + sceneBytes(doc.scene) - sceneBytes(before.scene)
+      : bytesOf(doc)
     const nodeIds = new Set(nodesOf(doc.spec).map((n) => n.id)),
       edgeIds = new Set(edgesOf(doc.spec).map((e) => e.id)),
       groupIds = new Set(doc.scene.groups.map((g) => g.id))
@@ -306,12 +442,15 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       affected: affectedFor(before, doc, commands),
       invalidates: invalidationsFor(before, doc, commands),
     }
+    if (!sceneOnly) nonSceneDirty = canonicalizeContent({ ...doc, scene: savedScene }) !== saved
     gesture = undefined
     trim()
     notify({
       document: doc,
       selection,
-      dirty: contentOf(doc) !== saved,
+      dirty: sceneOnly
+        ? nonSceneDirty || !sceneEquals(doc.scene, savedScene)
+        : contentOf(doc) !== saved,
       canUndo: past.length > 0,
       canRedo: future.length > 0,
       diagnostics: [],
@@ -344,13 +483,21 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       const result = candidate(transaction)
       if (!result.ok)
         return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
-      if (contentOf(result.value) === contentOf(snapshot.document)) return noop()
+      const sceneOnly = isSceneOnly(transaction.commands)
+      const unchanged = sceneOnly
+        ? commandsMatchScene(snapshot.document.scene, transaction.commands)
+        : contentOf(result.value) === contentOf(snapshot.document)
+      if (unchanged) return noop()
       if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
         return rejected('revision.overflow')
-      const entryBytes = bytesOf(snapshot.document) + bytesOf(result.value)
+      const entryBytes = sceneOnly
+        ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene)
+        : bytesOf(snapshot.document) + bytesOf(result.value)
       if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
+      pastSizes.push(currentBytes)
       past.push(snapshot.document)
       future = []
+      futureSizes = []
       return publish(result.value, transaction.commands)
     },
     beginGesture(transaction) {
@@ -434,6 +581,8 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
         return rejected('revision.overflow')
       const doc = structuredClone(past.pop()!)
+      pastSizes.pop()
+      futureSizes.push(currentBytes)
       future.push(snapshot.document)
       return publish(doc, [])
     },
@@ -444,6 +593,8 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
         return rejected('revision.overflow')
       const doc = structuredClone(future.pop()!)
+      futureSizes.pop()
+      pastSizes.push(currentBytes)
       past.push(snapshot.document)
       return publish(doc, [])
     },
@@ -494,8 +645,11 @@ export function createEditorStore(options: StoreOptions): EditorStore {
         return rejected('revision.overflow')
       past = []
       future = []
+      pastSizes = []
+      futureSizes = []
       gesture = undefined
       saved = canonicalizeContent(result.value)
+      savedScene = structuredClone(result.value.scene)
       notify({ draft: { kind: 'none' }, selection: [] })
       return publish(structuredClone(result.value), [])
     },
@@ -504,6 +658,8 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       const result = validateDocument(document, limits)
       if (result.ok && document.id === snapshot.document.id) {
         saved = canonicalizeContent(result.value)
+        savedScene = structuredClone(result.value.scene)
+        nonSceneDirty = canonicalizeContent({ ...snapshot.document, scene: savedScene }) !== saved
         notify({ dirty: canonicalizeContent(snapshot.document) !== saved })
       }
     },
@@ -513,6 +669,8 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       commits.clear()
       past = []
       future = []
+      pastSizes = []
+      futureSizes = []
       gesture = undefined
     },
   }

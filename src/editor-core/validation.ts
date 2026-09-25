@@ -130,37 +130,28 @@ export function validateEditorSpec(
   }
   return errors.length ? { ok: false, diagnostics: errors.slice(0, 100) } : success(spec)
 }
-export function validateDocument(
-  input: unknown,
+/**
+ * Scene-only validation: placement references and ranges, manual routes,
+ * zOrder uniqueness and coverage, and group constraints. Used by the store's
+ * scene-only commit fast path where the spec/metadata/views are unchanged and
+ * were already validated; `validateDocument` also delegates here for the scene.
+ */
+export function validateScene(
+  document: DiagramDocument,
   options: Partial<Limits> = {},
-): Result<DiagramDocument> {
+): Diagnostic[] {
   const limits = limitsWith(options)
-  const errors = inspectData(input, limits)
-  if (errors.length) return { ok: false, diagnostics: errors }
-  if (input && typeof input === 'object' && 'schemaVersion' in input && input.schemaVersion !== 1)
-    return { ok: false, diagnostics: [issue('version.unsupported', '/schemaVersion')] }
-  if (!documentStructural(input))
-    return {
-      ok: false,
-      diagnostics: (documentStructural.errors ?? [])
-        .slice(0, 100)
-        .map((e) => issue(`schema.${e.keyword}`, e.instancePath || '/')),
-    }
-  const doc = input as DiagramDocument
-  const spec = validateEditorSpec(doc.spec, limits)
-  if (!spec.ok) errors.push(...spec.diagnostics)
-  if (!validId(doc.id) || !Number.isSafeInteger(doc.revision) || doc.revision < 0)
-    errors.push(issue('id.invalid', '/id'))
-  const nodes = new Set(nodesOf(doc.spec).map((n) => n.id))
-  const edges = edgesOf(doc.spec)
+  const errors: Diagnostic[] = []
+  const nodes = new Set(nodesOf(document.spec).map((n) => n.id))
+  const edges = edgesOf(document.spec)
   const edgeIds = new Set(edges.map((e) => e.id))
-  if (edges.some((e) => !e.id)) errors.push(issue('id.invalid', '/spec/edges'))
   const ref = (valid: boolean, path: string) => {
     if (!valid) errors.push(issue('reference.missing', path))
   }
-  for (const [id, placement] of Object.entries(doc.scene.nodes)) {
+  for (const [id, placement] of Object.entries(document.scene.nodes)) {
     ref(nodes.has(id), `/scene/nodes/${pointer(id)}`)
-    if (!freeTypes.has(doc.spec.type)) errors.push(issue('capability.unsupported', '/scene/nodes'))
+    if (!freeTypes.has(document.spec.type))
+      errors.push(issue('capability.unsupported', '/scene/nodes'))
     if (
       ![placement.x, placement.y].every((n) => finiteRange(n, -100000, 100000)) ||
       !finiteRange(placement.width, 96, 4096) ||
@@ -170,9 +161,10 @@ export function validateDocument(
   }
   const pointValid = (point: { x: number; y: number }) =>
     finiteRange(point.x, -100000, 100000) && finiteRange(point.y, -100000, 100000)
-  for (const [id, route] of Object.entries(doc.scene.routes)) {
+  for (const [id, route] of Object.entries(document.scene.routes)) {
     ref(edgeIds.has(id), `/scene/routes/${pointer(id)}`)
-    if (!freeTypes.has(doc.spec.type)) errors.push(issue('capability.unsupported', '/scene/routes'))
+    if (!freeTypes.has(document.spec.type))
+      errors.push(issue('capability.unsupported', '/scene/routes'))
     if (route.mode === 'manual') {
       if (route.points.length > limits.maxRoutePoints)
         errors.push(issue('limit.route-points', '/scene/routes'))
@@ -185,22 +177,23 @@ export function validateDocument(
         errors.push(issue('layout.range', '/scene/routes'))
     }
   }
-  unique(doc.scene.zOrder, '/scene/zOrder', errors)
+  unique(document.scene.zOrder, '/scene/zOrder', errors)
   ref(
-    doc.scene.zOrder.length === nodes.size && doc.scene.zOrder.every((id) => nodes.has(id)),
+    document.scene.zOrder.length === nodes.size &&
+      document.scene.zOrder.every((id) => nodes.has(id)),
     '/scene/zOrder',
   )
-  const groups = new Map(doc.scene.groups.map((g) => [g.id, g]))
+  const groups = new Map(document.scene.groups.map((g) => [g.id, g]))
   unique(
-    doc.scene.groups.map((g) => g.id),
+    document.scene.groups.map((g) => g.id),
     '/scene/groups',
     errors,
   )
   if (groups.size > limits.maxGroups) errors.push(issue('limit.groups', '/scene/groups'))
-  if (groups.size && !freeTypes.has(doc.spec.type))
+  if (groups.size && !freeTypes.has(document.spec.type))
     errors.push(issue('capability.unsupported', '/scene/groups'))
   const membership = new Set<string>()
-  for (const group of doc.scene.groups) {
+  for (const group of document.scene.groups) {
     for (const id of group.nodeIds) {
       ref(nodes.has(id), '/scene/groups')
       if (membership.has(id)) errors.push(issue('group.multiple-parent', '/scene/groups'))
@@ -222,6 +215,59 @@ export function validateDocument(
       parent = groups.get(parent)?.parentGroup
     }
   }
+  return errors
+}
+
+/**
+ * Validates a document whose scene is the only part allowed to differ from a
+ * previously validated baseline: scene constraints plus unchanged structural
+ * identity. Used by the scene-only commit fast path.
+ */
+export function validateSceneOnly(
+  document: DiagramDocument,
+  options: Partial<Limits> = {},
+): Result<DiagramDocument> {
+  if (!documentStructural(document))
+    return {
+      ok: false,
+      diagnostics: (documentStructural.errors ?? [])
+        .slice(0, 100)
+        .map((e) => issue(`schema.${e.keyword}`, e.instancePath || '/')),
+    }
+  const errors = validateScene(document, options)
+  return errors.length ? { ok: false, diagnostics: errors.slice(0, 100) } : success(document)
+}
+export function validateDocument(
+  input: unknown,
+  options: Partial<Limits> = {},
+): Result<DiagramDocument> {
+  const limits = limitsWith(options)
+  const errors = inspectData(input, limits)
+  if (errors.length) return { ok: false, diagnostics: errors }
+  if (input && typeof input === 'object' && 'schemaVersion' in input && input.schemaVersion !== 1)
+    return { ok: false, diagnostics: [issue('version.unsupported', '/schemaVersion')] }
+  if (!documentStructural(input))
+    return {
+      ok: false,
+      diagnostics: (documentStructural.errors ?? [])
+        .slice(0, 100)
+        .map((e) => issue(`schema.${e.keyword}`, e.instancePath || '/')),
+    }
+  const doc = input as DiagramDocument
+  const spec = validateEditorSpec(doc.spec, limits)
+  if (!spec.ok) errors.push(...spec.diagnostics)
+  if (!validId(doc.id) || !Number.isSafeInteger(doc.revision) || doc.revision < 0)
+    errors.push(issue('id.invalid', '/id'))
+  errors.push(...validateScene(doc, limits))
+  const nodes = new Set(nodesOf(doc.spec).map((n) => n.id))
+  const edges = edgesOf(doc.spec)
+  const edgeIds = new Set(edges.map((e) => e.id))
+  if (edges.some((e) => !e.id)) errors.push(issue('id.invalid', '/spec/edges'))
+  const ref = (valid: boolean, path: string) => {
+    if (!valid) errors.push(issue('reference.missing', path))
+  }
+  const pointValid = (point: { x: number; y: number }) =>
+    finiteRange(point.x, -100000, 100000) && finiteRange(point.y, -100000, 100000)
   for (const [collection, valid] of [
     [doc.metadata.nodes, nodes],
     [doc.metadata.edges, edgeIds],
