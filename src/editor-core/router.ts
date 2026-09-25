@@ -70,6 +70,8 @@ export function routeOrthogonal(request: OrthogonalRouteRequest): Result<RoutedP
   // Midpoint lines keep every free corridor reachable: two adjacent obstacle
   // edges would otherwise block the grid row between them. A margin extends
   // the grid past the obstacle extents so detours can leave the scene bounds.
+  // Margins are re-sorted into the axis: an unordered axis makes index-adjacent
+  // coordinates jump across obstacles.
   const margin = clearance * 2 + stub
   const withMidpoints = (values: number[]) => {
     const result: number[] = []
@@ -79,7 +81,7 @@ export function routeOrthogonal(request: OrthogonalRouteRequest): Result<RoutedP
         result.push((values[i] + values[i + 1]) / 2)
     }
     result.push(values[0] - margin, values[values.length - 1] + margin)
-    return result
+    return result.sort((a, b) => a - b)
   }
   const axisX = withMidpoints(xs)
   const axisY = withMidpoints(ys)
@@ -93,6 +95,21 @@ export function routeOrthogonal(request: OrthogonalRouteRequest): Result<RoutedP
     index % axisY.length,
   ]
   const reachable = (x: number, y: number) => !inside(axisX[x], axisY[y])
+  /** Axis-aligned segment vs grown obstacles: the whole segment must stay
+   * clear, not only its endpoints. Boundary contact counts as blocked, matching
+   * the point test. */
+  const segmentClear = (ax: number, ay: number, bx: number, by: number) => {
+    const minX = Math.min(ax, bx),
+      maxX = Math.max(ax, bx),
+      minY = Math.min(ay, by),
+      maxY = Math.max(ay, by)
+    for (const obstacle of obstacles) {
+      if (maxX < obstacle.x || minX > obstacle.x + obstacle.w) continue
+      if (maxY < obstacle.y || minY > obstacle.y + obstacle.h) continue
+      return false
+    }
+    return true
+  }
   const goalKey = key(goalIndex[0], goalIndex[1])
   const startKey = key(startIndex[0], startIndex[1])
   const g = new Map<number, number>([[startKey, 0]])
@@ -102,10 +119,12 @@ export function routeOrthogonal(request: OrthogonalRouteRequest): Result<RoutedP
   const previousDirection = new Map<number, string>()
   const neighborsOf = (x: number, y: number): Array<[number, number, string]> => {
     const result: Array<[number, number, string]> = []
-    if (x + 1 < axisX.length && reachable(x + 1, y)) result.push([x + 1, y, 'h'])
-    if (x - 1 >= 0 && reachable(x - 1, y)) result.push([x - 1, y, 'h'])
-    if (y + 1 < axisY.length && reachable(x, y + 1)) result.push([x, y + 1, 'v'])
-    if (y - 1 >= 0 && reachable(x, y - 1)) result.push([x, y - 1, 'v'])
+    const connects = (nx: number, ny: number) =>
+      reachable(nx, ny) && segmentClear(axisX[x], axisY[y], axisX[nx], axisY[ny])
+    if (x + 1 < axisX.length && connects(x + 1, y)) result.push([x + 1, y, 'h'])
+    if (x - 1 >= 0 && connects(x - 1, y)) result.push([x - 1, y, 'h'])
+    if (y + 1 < axisY.length && connects(x, y + 1)) result.push([x, y + 1, 'v'])
+    if (y - 1 >= 0 && connects(x, y - 1)) result.push([x, y - 1, 'v'])
     return result
   }
   const heuristic = (x: number, y: number) =>
