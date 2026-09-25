@@ -292,7 +292,7 @@ var EdgeHitRect = memo(function EdgeHitRect2({
       width,
       height,
       rx: 6,
-      fill: "rgba(0, 0, 0, 0.001)",
+      fill: "transparent",
       stroke: selected ? stroke : "transparent",
       style: { cursor: "pointer" },
       tabIndex: 0,
@@ -1309,7 +1309,7 @@ function EditorSurface({
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
               gestureEntities && baseline !== null ? /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" }) : /* @__PURE__ */ jsx(SceneMarkup, { markup }),
-              /* @__PURE__ */ jsx(
+              /* @__PURE__ */ jsx("g", { pointerEvents: gestureEntities ? "none" : void 0, children: /* @__PURE__ */ jsx(
                 SceneHits,
                 {
                   nodes: hitBaseline.nodes,
@@ -1322,7 +1322,7 @@ function EditorSurface({
                   selectNode,
                   handleNodeKey
                 }
-              ),
+              ) }),
               gestureEntities && /* @__PURE__ */ jsx(
                 SceneHits,
                 {
