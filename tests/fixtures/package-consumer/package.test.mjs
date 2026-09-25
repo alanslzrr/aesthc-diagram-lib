@@ -75,6 +75,13 @@ test('showcase renders a diagram registered by the consumer through the root ent
 
 test('every declared runtime and type export is present in the tarball', async () => {
   for (const [subpath, conditions] of Object.entries(manifest.exports)) {
+    if (subpath === './fonts/*') {
+      for (const name of ['geist-sans.woff2', 'geist-mono.woff2']) {
+        const path = fileURLToPath(import.meta.resolve(`${manifest.name}/fonts/${name}`))
+        assert.ok(statSync(path).size > 0)
+      }
+      continue
+    }
     const targets = typeof conditions === 'string' ? [conditions] : Object.values(conditions)
     for (const target of targets) {
       const file = statSync(resolve(packageRoot, target))
@@ -85,9 +92,9 @@ test('every declared runtime and type export is present in the tarball', async (
       }
     }
     const specifier = subpath === '.' ? manifest.name : `${manifest.name}/${subpath.slice(2)}`
-    if (subpath === './styles.css') {
+    if (subpath.endsWith('.css')) {
       const css = readFileSync(fileURLToPath(import.meta.resolve(specifier)), 'utf8')
-      assert.match(css, /@layer diagram-lib/)
+      assert.match(css, subpath === './styles.css' ? /@layer diagram-lib/ : /adl-editor/)
     } else {
       await import(specifier)
     }
@@ -95,7 +102,7 @@ test('every declared runtime and type export is present in the tarball', async (
 })
 
 test('interactive public entrypoints retain their client directives', () => {
-  for (const entry of ['canvas', 'showcase']) {
+  for (const entry of ['canvas', 'showcase', 'editor']) {
     const code = readFileSync(
       fileURLToPath(import.meta.resolve(`${manifest.name}/${entry}`)),
       'utf8',
@@ -173,5 +180,160 @@ test('installed architecture examples render localized service flows through pub
       assert.ok(markup.includes(spec.nodes[0].sublabel))
       assert.ok(example.sources.length > 0)
     }
+  }
+})
+
+test('editor core, graph and canonical export work from the installed package', async () => {
+  const { createDocument, createEditorStore, serializeDocument } =
+    await import('@aesthc/diagram-lib/editor-core')
+  const { graphSnapshot, findRoute } = await import('@aesthc/diagram-lib/graph')
+  const { exportDocument } = await import('@aesthc/diagram-lib/export')
+  const result = createDocument(
+    {
+      type: 'graph',
+      caption: 'Consumer editor',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'a', label: 'A', description: '' },
+        { id: 'b', label: 'B', description: '' },
+      ],
+      edges: [{ id: 'ab', from: 'a', to: 'b' }],
+    },
+    { id: 'consumer-editor', locale: 'en' },
+  )
+  assert.equal(result.ok, true)
+  const store = createEditorStore({
+    document: result.value,
+    permissions: { edit: true, save: true, export: true },
+  })
+  assert.deepEqual(findRoute(graphSnapshot(result.value), 'a', 'b').value.edgeIds, ['ab'])
+  const exported = await exportDocument(store.getSnapshot().document, {
+    format: 'json',
+    scope: { type: 'document' },
+    theme: 'light',
+    quality: 'edit',
+    background: 'theme',
+    scale: 1,
+    includeSource: false,
+    metadata: 'minimal',
+  })
+  assert.equal(exported.ok, true)
+  assert.equal(new TextDecoder().decode(exported.value.bytes), serializeDocument(result.value))
+  store.dispose()
+})
+
+test('editor entry and core extensions resolve from the installed package', async () => {
+  const editor = await import('@aesthc/diagram-lib/editor')
+  for (const name of [
+    'EditorRoot',
+    'EditorSurface',
+    'EditorToolbar',
+    'EditorInspector',
+    'EditorOutline',
+    'EditorStatus',
+    'useEditorStore',
+  ])
+    assert.equal(typeof editor[name], 'function', `missing editor export ${name}`)
+  const { createDocument, exportLegacySpec, relayoutScene, createEditorStore } =
+    await import('@aesthc/diagram-lib/editor-core')
+  const flowchart = createDocument(
+    {
+      type: 'flowchart',
+      caption: 'Legacy export',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'a', label: 'A', description: '' }],
+      edges: [],
+    },
+    { id: 'legacy-consumer', locale: 'en' },
+  )
+  assert.equal(flowchart.ok, true)
+  const exported = exportLegacySpec(flowchart.value)
+  assert.equal(exported.ok, true)
+  assert.equal(exported.value.spec.type, 'flowchart')
+  assert.equal(exported.value.losses[0].path, '/locale')
+  const graph = createDocument(
+    {
+      type: 'graph',
+      caption: 'Relayout',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'a', label: 'A', description: '' },
+        { id: 'b', label: 'B', description: '' },
+      ],
+      edges: [],
+    },
+    { id: 'relayout-consumer', locale: 'en' },
+  )
+  assert.equal(graph.ok, true)
+  const relaid = relayoutScene(graph.value)
+  assert.equal(relaid.ok, true)
+  assert.equal(relaid.value.mode, 'manual')
+  const store = createEditorStore({
+    document: graph.value,
+    permissions: { edit: true, save: true, export: true },
+  })
+  store.setPermissions({ edit: false, save: true, export: true })
+  const blocked = store.dispatch({
+    id: 'blocked',
+    label: 'Move',
+    expectedRevision: 0,
+    commands: [{ type: 'nodes.move', positions: { a: { x: 10, y: 10 } } }],
+  })
+  assert.equal(blocked.status, 'rejected')
+  store.dispose()
+})
+
+test('structured replacements require exhaustive mappings in the installed package', async () => {
+  const { createDocument, createEditorStore, getAdapter } =
+    await import('@aesthc/diagram-lib/editor-core')
+  const created = createDocument(
+    {
+      type: 'band',
+      caption: 'Mapping',
+      legend: { main: 'Main', branch: 'Branch' },
+      bands: [{ title: 'Before' }],
+      nodes: [
+        { id: 'a', label: 'A', description: '', band: 0 },
+        { id: 'b', label: 'B', description: '', band: 0 },
+      ],
+      edges: [{ id: 'ab', from: 'a', to: 'b' }],
+    },
+    { id: 'mapping-consumer', locale: 'en' },
+  )
+  assert.equal(created.ok, true)
+  const adapter = getAdapter('band')
+  const operation = {
+    type: 'bands.replace',
+    bands: [{ title: 'After' }],
+    assignments: { a: 0 },
+    removeNodeIds: [],
+  }
+  const invalid = adapter.editStructure(created.value.spec, operation)
+  assert.equal(invalid.ok, false)
+  assert.equal(invalid.diagnostics[0].code, 'structure.mapping.incomplete')
+  const valid = adapter.editStructure(created.value.spec, { ...operation, removeNodeIds: ['b'] })
+  assert.equal(valid.ok, true)
+  const store = createEditorStore({
+    document: created.value,
+    permissions: { edit: true, save: true, export: true },
+  })
+  try {
+    assert.equal(
+      store.dispatch({
+        id: 'mapping',
+        label: 'Replace bands',
+        expectedRevision: 0,
+        commands: [{ type: 'spec.replace', spec: valid.value, references: 'prune-references' }],
+      }).status,
+      'committed',
+    )
+    assert.deepEqual(adapter.nodeIds(store.getSnapshot().document.spec), ['a'])
+    assert.equal(store.undo().status, 'committed')
+    assert.deepEqual(store.getSnapshot().document.spec, created.value.spec)
+    assert.equal(store.getSnapshot().canUndo, false)
+    assert.equal(store.redo().status, 'committed')
+    assert.equal(adapter.edges(store.getSnapshot().document.spec).length, 0)
+  } finally {
+    store.dispose()
   }
 })

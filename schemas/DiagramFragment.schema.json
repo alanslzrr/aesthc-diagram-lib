@@ -1,0 +1,2067 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/DiagramFragment",
+  "definitions": {
+    "DiagramFragment": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "aesthc-diagram-fragment"
+        },
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "sourceDocumentId": {
+          "type": "string"
+        },
+        "document": {
+          "$ref": "#/definitions/DiagramDocument"
+        },
+        "selection": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EntityRef"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "schemaVersion",
+        "sourceDocumentId",
+        "document",
+        "selection"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramDocument": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "aesthc-diagram"
+        },
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "number"
+        },
+        "locale": {
+          "$ref": "#/definitions/Locale"
+        },
+        "spec": {
+          "$ref": "#/definitions/EditorSpec"
+        },
+        "scene": {
+          "$ref": "#/definitions/DiagramScene"
+        },
+        "presentation": {
+          "$ref": "#/definitions/Presentation"
+        },
+        "metadata": {
+          "$ref": "#/definitions/DocumentMetadata"
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NamedView"
+          }
+        },
+        "story": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StoryStep"
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/JsonValue"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "schemaVersion",
+        "id",
+        "revision",
+        "locale",
+        "spec",
+        "scene",
+        "presentation",
+        "metadata",
+        "views",
+        "story",
+        "extensions"
+      ],
+      "additionalProperties": false
+    },
+    "Locale": {
+      "type": "string",
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "EditorSpec": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/GraphDiagramSpec"
+        }
+      ]
+    },
+    "DiagramSpec": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/BandDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/FlowchartDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/SequenceDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/StateMachineDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/ErDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/TimelineDiagramSpec"
+        },
+        {
+          "$ref": "#/definitions/SwimlaneDiagramSpec"
+        }
+      ]
+    },
+    "BandDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "band"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "bands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramBand"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BandDiagramNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramEdge"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramDecision"
+          }
+        },
+        "continuations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramContinuation"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "bands",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false,
+      "description": "─── Per-type specs ───────────────────────────────────────────────────────"
+    },
+    "DiagramBand": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "BandDiagramNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Localized explanation shown on hover/focus and available to assistive technology."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Mono micro-label above the title, e.g. 'Trigger', 'Engine', 'Gate'."
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "nudge": {
+          "type": "number",
+          "description": "Vertical fine-tune in viewBox units, applied after the layout centres the node."
+        },
+        "shape": {
+          "$ref": "#/definitions/DiagramNodeShape",
+          "description": "Draw this node as something other than a hairline card."
+        },
+        "textAnchor": {
+          "$ref": "#/definitions/DiagramNodeTextAnchor",
+          "description": "Label alignment for `event` shapes (timeline)."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableField"
+          },
+          "description": "ER table rows (only meaningful for `shape: 'table'`)."
+        },
+        "initial": {
+          "type": "boolean",
+          "description": "State-machine: draw a double outline (initial state)."
+        },
+        "final": {
+          "type": "boolean",
+          "description": "State-machine: draw a hollow centre (final state)."
+        },
+        "band": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "band",
+        "description",
+        "id",
+        "label"
+      ],
+      "additionalProperties": false,
+      "description": "Band-layout nodes additionally declare which column they belong to."
+    },
+    "NodeWeight": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "muted"
+      ],
+      "description": "Visual weight of a node card."
+    },
+    "DiagramNodeShape": {
+      "type": "string",
+      "enum": [
+        "card",
+        "state",
+        "table",
+        "event",
+        "terminal",
+        "bar"
+      ],
+      "description": "How a node is drawn: hairline card (default), state pill, ER table, timeline event, terminal, activation bar."
+    },
+    "DiagramNodeTextAnchor": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "middle"
+      ],
+      "description": "For `event` shapes, where the label sits relative to the dot."
+    },
+    "TableField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "Optional column type, e.g. `uuid`, `varchar(64)`."
+        },
+        "key": {
+          "type": "string",
+          "enum": [
+            "pk",
+            "fk",
+            "unique"
+          ],
+          "description": "Row badge: primary key / foreign key / unique."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A single row in an ER table node."
+    },
+    "DiagramEdge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identity for parallel relations; recommended when editing/reordering."
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "labelPlacement": {
+          "$ref": "#/definitions/EdgeLabelPlacement",
+          "description": "Move a pill into an authored whitespace slot without changing its edge."
+        },
+        "route": {
+          "type": "object",
+          "properties": {
+            "lane": {
+              "$ref": "#/definitions/EdgeLane"
+            },
+            "clearance": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "lane"
+          ],
+          "additionalProperties": false,
+          "description": "Route a cross-band edge around every intervening band on an outer lane."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "EdgeVariant": {
+      "type": "string",
+      "enum": [
+        "main",
+        "branch"
+      ],
+      "description": "Edge flavour: cobalt main path vs amber branch path."
+    },
+    "EdgeLabelPlacement": {
+      "type": "string",
+      "enum": [
+        "above-target",
+        "below-target",
+        "left-of-edge",
+        "right-of-edge"
+      ]
+    },
+    "EdgeLane": {
+      "type": "string",
+      "enum": [
+        "above",
+        "below"
+      ]
+    },
+    "DiagramDecision": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "label"
+      ],
+      "additionalProperties": false,
+      "description": "A compact authored question placed in the free run after a branching node."
+    },
+    "DiagramContinuation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string"
+        },
+        "side": {
+          "$ref": "#/definitions/ContinuationSide"
+        },
+        "anchor": {
+          "$ref": "#/definitions/ContinuationAnchor"
+        },
+        "labelPlacement": {
+          "type": "string",
+          "enum": [
+            "above-source",
+            "below-source"
+          ]
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "ariaLabel": {
+          "type": "string",
+          "description": "Spoken text when the compact visible label needs clearer return semantics."
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "label",
+        "destination",
+        "side",
+        "labelPlacement"
+      ],
+      "additionalProperties": false,
+      "description": "A source-only, off-canvas continuation. It preserves return/feedback semantics without adding a long relation to the graph or enclosing the diagram in a rail."
+    },
+    "ContinuationSide": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right"
+      ]
+    },
+    "ContinuationAnchor": {
+      "type": "string",
+      "enum": [
+        "upper",
+        "center",
+        "lower"
+      ]
+    },
+    "FlowchartDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "flowchart"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramEdge"
+          }
+        },
+        "level": {
+          "type": "number",
+          "description": "Global level override for every node; omit for automatic topological levels."
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "top-down",
+            "left-right"
+          ],
+          "description": "Main flow direction."
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Localized explanation shown on hover/focus and available to assistive technology."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Mono micro-label above the title, e.g. 'Trigger', 'Engine', 'Gate'."
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "nudge": {
+          "type": "number",
+          "description": "Vertical fine-tune in viewBox units, applied after the layout centres the node."
+        },
+        "shape": {
+          "$ref": "#/definitions/DiagramNodeShape",
+          "description": "Draw this node as something other than a hairline card."
+        },
+        "textAnchor": {
+          "$ref": "#/definitions/DiagramNodeTextAnchor",
+          "description": "Label alignment for `event` shapes (timeline)."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableField"
+          },
+          "description": "ER table rows (only meaningful for `shape: 'table'`)."
+        },
+        "initial": {
+          "type": "boolean",
+          "description": "State-machine: draw a double outline (initial state)."
+        },
+        "final": {
+          "type": "boolean",
+          "description": "State-machine: draw a hollow centre (final state)."
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "sequence"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SequenceParticipant"
+          }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SequenceMessage"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "participants",
+        "messages"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceParticipant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "activation": {
+          "type": "boolean",
+          "description": "Draw a thin activation bar on the target lifeline for this message."
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "StateMachineDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "state-machine"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StateMachineState"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StateTransition"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "states",
+        "transitions"
+      ],
+      "additionalProperties": false
+    },
+    "StateMachineState": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "description": {
+          "type": "string"
+        },
+        "initial": {
+          "type": "boolean",
+          "description": "Drawn with a double outline."
+        },
+        "final": {
+          "type": "boolean",
+          "description": "Drawn with a hollow centre."
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "StateTransition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identity for parallel relations; recommended when editing/reordering."
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "ErDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "er"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErEntity"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErRelation"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "entities",
+        "relations"
+      ],
+      "additionalProperties": false
+    },
+    "ErEntity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableField"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "ErRelation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identity for parallel relations; recommended when editing/reordering."
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "TimelineDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "timeline"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimelineEvent"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "events"
+      ],
+      "additionalProperties": false
+    },
+    "TimelineEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "SwimlaneDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "swimlane"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SwimlaneLane"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "lane": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "description": "Localized explanation shown on hover/focus and available to assistive technology."
+              },
+              "kind": {
+                "type": "string",
+                "description": "Mono micro-label above the title, e.g. 'Trigger', 'Engine', 'Gate'."
+              },
+              "sublabel": {
+                "type": "string"
+              },
+              "weight": {
+                "$ref": "#/definitions/NodeWeight"
+              },
+              "nudge": {
+                "type": "number",
+                "description": "Vertical fine-tune in viewBox units, applied after the layout centres the node."
+              },
+              "shape": {
+                "$ref": "#/definitions/DiagramNodeShape",
+                "description": "Draw this node as something other than a hairline card."
+              },
+              "textAnchor": {
+                "$ref": "#/definitions/DiagramNodeTextAnchor",
+                "description": "Label alignment for `event` shapes (timeline)."
+              },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/TableField"
+                },
+                "description": "ER table rows (only meaningful for `shape: 'table'`)."
+              },
+              "initial": {
+                "type": "boolean",
+                "description": "State-machine: draw a double outline (initial state)."
+              },
+              "final": {
+                "type": "boolean",
+                "description": "State-machine: draw a hollow centre (final state)."
+              }
+            },
+            "required": [
+              "description",
+              "id",
+              "label",
+              "lane"
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramEdge"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "lanes",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "SwimlaneLane": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "GraphDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "graph"
+        },
+        "profile": {
+          "type": "string",
+          "enum": [
+            "architecture",
+            "data-flow"
+          ]
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GraphNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GraphEdge"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "GraphNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Localized explanation shown on hover/focus and available to assistive technology."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Mono micro-label above the title, e.g. 'Trigger', 'Engine', 'Gate'."
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "nudge": {
+          "type": "number",
+          "description": "Vertical fine-tune in viewBox units, applied after the layout centres the node."
+        },
+        "shape": {
+          "$ref": "#/definitions/DiagramNodeShape",
+          "description": "Draw this node as something other than a hairline card."
+        },
+        "textAnchor": {
+          "$ref": "#/definitions/DiagramNodeTextAnchor",
+          "description": "Label alignment for `event` shapes (timeline)."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableField"
+          },
+          "description": "ER table rows (only meaningful for `shape: 'table'`)."
+        },
+        "initial": {
+          "type": "boolean",
+          "description": "State-machine: draw a double outline (initial state)."
+        },
+        "final": {
+          "type": "boolean",
+          "description": "State-machine: draw a hollow centre (final state)."
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GraphPort"
+          }
+        },
+        "renderer": {
+          "type": "object",
+          "properties": {
+            "typeKey": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/JsonValue"
+              }
+            }
+          },
+          "required": [
+            "typeKey",
+            "data"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "id",
+        "label"
+      ]
+    },
+    "GraphPort": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "side": {
+          "$ref": "#/definitions/PortSide"
+        },
+        "offset": {
+          "type": "number"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "in",
+            "out",
+            "both"
+          ]
+        },
+        "capacity": {
+          "type": "number"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "side",
+        "offset",
+        "direction"
+      ],
+      "additionalProperties": false
+    },
+    "PortSide": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "top",
+        "bottom"
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/JsonValue"
+          }
+        }
+      ]
+    },
+    "GraphEdge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identity for parallel relations; recommended when editing/reordering."
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "labelPlacement": {
+          "$ref": "#/definitions/EdgeLabelPlacement",
+          "description": "Move a pill into an authored whitespace slot without changing its edge."
+        },
+        "route": {
+          "type": "object",
+          "properties": {
+            "lane": {
+              "$ref": "#/definitions/EdgeLane"
+            },
+            "clearance": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "lane"
+          ],
+          "additionalProperties": false,
+          "description": "Route a cross-band edge around every intervening band on an outer lane."
+        },
+        "sourcePort": {
+          "type": "string"
+        },
+        "targetPort": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "DiagramScene": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "manual",
+            "hybrid"
+          ]
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/NodePlacement"
+          }
+        },
+        "routes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RoutePlacement"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramGroup"
+          }
+        },
+        "zOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "mode",
+        "nodes",
+        "routes",
+        "groups",
+        "zOrder"
+      ],
+      "additionalProperties": false
+    },
+    "NodePlacement": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "height",
+        "locked",
+        "width",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "RoutePlacement": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "auto"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "manual"
+            },
+            "source": {
+              "$ref": "#/definitions/EndpointAnchor"
+            },
+            "target": {
+              "$ref": "#/definitions/EndpointAnchor"
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Point"
+              }
+            },
+            "label": {
+              "$ref": "#/definitions/Point"
+            }
+          },
+          "required": [
+            "mode",
+            "source",
+            "target",
+            "points"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EndpointAnchor": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "$ref": "#/definitions/PortSide"
+        },
+        "offset": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "side",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
+    "Point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "visual",
+            "system",
+            "region",
+            "security-group"
+          ]
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parentGroup": {
+          "type": "string"
+        },
+        "locked": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "nodeIds",
+        "locked"
+      ],
+      "additionalProperties": false
+    },
+    "Presentation": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "light",
+                "dark"
+              ]
+            },
+            "light": {
+              "$ref": "#/definitions/Palette"
+            },
+            "dark": {
+              "$ref": "#/definitions/Palette"
+            }
+          },
+          "required": [
+            "mode",
+            "light",
+            "dark"
+          ],
+          "additionalProperties": false
+        },
+        "grid": {
+          "type": "object",
+          "properties": {
+            "visible": {
+              "type": "boolean"
+            },
+            "snap": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "visible",
+            "snap",
+            "size"
+          ],
+          "additionalProperties": false
+        },
+        "padding": {
+          "type": "number"
+        },
+        "legend": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "hidden"
+          ]
+        },
+        "edgeStyle": {
+          "type": "string",
+          "enum": [
+            "orthogonal",
+            "straight"
+          ]
+        },
+        "textScale": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "theme",
+        "grid",
+        "padding",
+        "legend",
+        "edgeStyle",
+        "textScale"
+      ],
+      "additionalProperties": false
+    },
+    "Palette": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "foreground": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "mutedForeground": {
+          "type": "string"
+        },
+        "cobalt": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "background",
+        "foreground",
+        "card",
+        "border",
+        "mutedForeground",
+        "cobalt",
+        "branch"
+      ],
+      "additionalProperties": false
+    },
+    "DocumentMetadata": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EntityMetadata"
+          }
+        },
+        "edges": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EntityMetadata"
+          }
+        },
+        "visuals": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/DiagramNodeVisual"
+          }
+        },
+        "engineeringProfile": {
+          "type": "string",
+          "const": "deployment-ownership"
+        }
+      },
+      "required": [
+        "nodes",
+        "edges",
+        "visuals"
+      ],
+      "additionalProperties": false
+    },
+    "EntityMetadata": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramLink"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceEvidence"
+          }
+        },
+        "owner": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "crossing": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "roles",
+        "tags"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramLink": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "href": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "href"
+      ],
+      "additionalProperties": false
+    },
+    "SourceEvidence": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "startLine": {
+          "type": "number"
+        },
+        "endLine": {
+          "type": "number"
+        },
+        "blobSha": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "repository",
+        "commit",
+        "path",
+        "startLine",
+        "endLine"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramNodeVisual": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "thesvg"
+            },
+            "key": {
+              "$ref": "#/definitions/ThesvgNodeIconKey"
+            }
+          },
+          "required": [
+            "source",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "svgl"
+            },
+            "key": {
+              "$ref": "#/definitions/SvglNodeIconKey"
+            }
+          },
+          "required": [
+            "source",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "phosphor"
+            },
+            "key": {
+              "$ref": "#/definitions/SemanticNodeIconKey"
+            }
+          },
+          "required": [
+            "source",
+            "key"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ThesvgNodeIconKey": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SvglNodeIconKey"
+        },
+        {
+          "type": "string",
+          "const": "azure"
+        }
+      ]
+    },
+    "SvglNodeIconKey": {
+      "type": "string",
+      "enum": [
+        "express",
+        "google-cloud",
+        "mcp",
+        "nextjs",
+        "openai",
+        "openrouter",
+        "pdf",
+        "postgresql"
+      ]
+    },
+    "SemanticNodeIconKey": {
+      "type": "string",
+      "enum": [
+        "arrows-split",
+        "brackets-curly",
+        "folder-lock",
+        "gauge",
+        "graph",
+        "handshake",
+        "list-checks",
+        "list-magnifying-glass",
+        "monitor",
+        "receipt",
+        "rocket-launch",
+        "scales",
+        "seal-check",
+        "user-check",
+        "user-focus",
+        "warning"
+      ]
+    },
+    "NamedView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "focus": {
+          "$ref": "#/definitions/FocusSet"
+        },
+        "camera": {
+          "$ref": "#/definitions/Viewport"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "focus"
+      ],
+      "additionalProperties": false
+    },
+    "FocusSet": {
+      "type": "object",
+      "properties": {
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "edgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "nodeIds",
+        "edgeIds"
+      ],
+      "additionalProperties": false
+    },
+    "Viewport": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "zoom": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "zoom"
+      ],
+      "additionalProperties": false
+    },
+    "StoryStep": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "viewId": {
+          "type": "string"
+        },
+        "durationMs": {
+          "type": "number"
+        },
+        "routeEdgeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "viewId",
+        "durationMs"
+      ],
+      "additionalProperties": false
+    },
+    "EntityRef": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "node",
+            "edge",
+            "group"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -12,3 +12,8 @@ for (const key of Object.keys(EXAMPLE_DIAGRAMS)) {
   assert.ok(Number.isFinite(result.height) && result.height > 0)
 }
 console.log('All seven layouts work under the react-server condition')
+
+for (const path of ['editor-core', 'graph', 'export', 'persistence', 'render']) {
+  await import(`@aesthc/diagram-lib/${path}`)
+}
+console.log('Headless editor subpaths work under the react-server condition')

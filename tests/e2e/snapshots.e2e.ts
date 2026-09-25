@@ -45,6 +45,7 @@ test('frozen A remains complete after rebuilding and serving only B', async ({ b
       'site/vite.config.ts',
       'site/index.html',
       'site/docs.html',
+      'site/studio.html',
       'package.json',
       'tsconfig.json',
       'pnpm-workspace.yaml',

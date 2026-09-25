@@ -6,5 +6,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.spec.ts'],
+    // The performance benchmark runs as its own isolated gate (pnpm test:perf)
+    // so contention with parallel workers does not inflate its measurements.
+    exclude: ['tests/editor-performance.unit.spec.ts'],
   },
 })

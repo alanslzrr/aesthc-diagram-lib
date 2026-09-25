@@ -44,6 +44,10 @@ try {
   run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false'])
   const component = "'use client'\n" + readFileSync(join(root, 'examples/flowchart.tsx'), 'utf8')
   writeFileSync(join(temporary, 'Diagram.tsx'), component)
+  writeFileSync(
+    join(temporary, 'EditorExample.tsx'),
+    "'use client'\n" + readFileSync(join(root, 'examples/editor.tsx'), 'utf8'),
+  )
   const theme = readFileSync(join(root, 'docs/guides/theming.md'), 'utf8').match(
     /```css\n([\s\S]*?)```/,
   )[1]
@@ -57,7 +61,7 @@ try {
   )
   writeFileSync(
     join(temporary, 'vite-main.tsx'),
-    "import React from 'react'; import { createRoot } from 'react-dom/client'; import { Diagram } from './Diagram'; import './theme.css'; createRoot(document.getElementById('root')!).render(<Diagram />)",
+    "import React from 'react'; import { createRoot } from 'react-dom/client'; import { Diagram } from './Diagram'; import { EditorExample, EditorControlledExample } from './EditorExample'; import './theme.css'; createRoot(document.getElementById('root')!).render(<React.StrictMode><Diagram /><EditorExample /><EditorControlledExample /></React.StrictMode>)",
   )
   writeFileSync(
     join(temporary, 'tsconfig.json'),
@@ -82,7 +86,7 @@ try {
   )
   writeFileSync(
     join(temporary, 'app/page.tsx'),
-    "import { Diagram } from '../Diagram'; import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'; import { layoutDiagram } from '@aesthc/diagram-lib/layouts'; export default function Page(){ const geometry=layoutDiagram(EXAMPLE_DIAGRAMS['example-band'].diagram.en); return <main><h1>Next package consumer</h1><p>Server layout width: {geometry.width}</p><Diagram /></main> }",
+    "import { Diagram } from '../Diagram'; import { EditorExample, EditorControlledExample } from '../EditorExample'; import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'; import { layoutDiagram } from '@aesthc/diagram-lib/layouts'; export default function Page(){ const geometry=layoutDiagram(EXAMPLE_DIAGRAMS['example-band'].diagram.en); return <main><h1>Next package consumer</h1><p>Server layout width: {geometry.width}</p><Diagram /><EditorExample /><EditorControlledExample /></main> }",
   )
   writeFileSync(join(temporary, 'next.config.mjs'), 'export default { experimental: { cpus: 2 } }')
   const vite = join(temporary, 'node_modules/vite/bin/vite.js')
@@ -128,11 +132,59 @@ try {
       .evaluate((text) => getComputedStyle(text).fill)
     if (!styled || styled === 'rgb(0, 0, 0)')
       throw new Error(`${name}: distributed CSS did not style text`)
+    const light = page.locator('[data-theme="light"]'),
+      dark = page.locator('[data-theme="dark"]')
+    await light.getByRole('button', { name: 'Consumer service', exact: true }).waitFor()
+    await light.getByRole('button', { name: 'Consumer service', exact: true }).click()
+    await light.getByLabel('Label', { exact: true }).fill('Edited consumer')
+    await light.getByRole('button', { name: 'Apply label', exact: true }).click()
+    await light.getByRole('button', { name: 'Edited consumer', exact: true }).waitFor()
+    await light.getByRole('button', { name: 'Undo', exact: true }).click()
+    await light.getByRole('button', { name: 'Consumer service', exact: true }).waitFor()
+    const editorControl = await light
+      .getByRole('button', { name: 'Undo', exact: true })
+      .boundingBox()
+    if (!editorControl || editorControl.height < 36)
+      throw new Error(`${name}: editor CSS was tree-shaken or not loaded`)
+
+    await dark.getByRole('button', { name: 'Controlled service', exact: true }).waitFor()
+    const defs = await page.evaluate(() => {
+      const collect = (selector) => {
+        const section = document.querySelector(selector)
+        if (!section) return []
+        return [...section.querySelectorAll('marker[id], pattern[id]')].map(
+          (el) => el.getAttribute('id') ?? '',
+        )
+      }
+      return { light: collect('[data-theme="light"]'), dark: collect('[data-theme="dark"]') }
+    })
+    if (defs.light.some((id) => defs.dark.includes(id)))
+      throw new Error(`${name}: editor defs are shared across instances`)
+    await light.getByRole('button', { name: 'Consumer service', exact: true }).click()
+    await light.getByLabel('Label', { exact: true }).fill('Only light edited')
+    await light.getByRole('button', { name: 'Apply label', exact: true }).click()
+    await light.getByRole('button', { name: 'Only light edited', exact: true }).waitFor()
+    await dark.getByRole('button', { name: 'Controlled service', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Toggle edit permission', exact: true }).click()
+    await dark.getByRole('button', { name: 'Controlled service', exact: true }).click()
+    await dark.getByLabel('Label', { exact: true }).fill('Blocked edit')
+    await dark.getByRole('button', { name: 'Apply label', exact: true }).click()
+    await dark.getByRole('button', { name: 'Controlled service', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Toggle edit permission', exact: true }).click()
+    await page.getByRole('button', { name: 'Replace externally', exact: true }).click()
+    await dark.getByRole('button', { name: 'Externally replaced', exact: true }).waitFor()
+    const controlledUndo = await dark.getByRole('button', { name: 'Undo', exact: true })
+    if (await controlledUndo.isEnabled())
+      throw new Error(`${name}: external replace did not reset history`)
+    await light.getByRole('button', { name: 'Only light edited', exact: true }).waitFor()
+
     if (errors.length) throw new Error(`${name}: ${errors.join('\n')}`)
     mkdirSync(join(root, 'test-results/frameworks'), { recursive: true })
     await page.screenshot({ path: join(root, `test-results/frameworks/${name}.png`) })
     await page.close()
-    console.log(`${name}: build, hydration, styles and keyboard selection passed`)
+    console.log(
+      `${name}: build, hydration, styles, keyboard selection and editor commit/undo passed`,
+    )
   }
 } finally {
   await browser?.close()

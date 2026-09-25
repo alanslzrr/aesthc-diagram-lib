@@ -5,6 +5,13 @@ export default defineConfig({
   // per package installation. Standalone bundles would duplicate its Map.
   entry: {
     index: 'src/index.ts',
+    'editor-core/index': 'src/editor-core/index.ts',
+    'editor/index': 'src/editor/index.tsx',
+    'graph/index': 'src/graph/index.ts',
+    'export/index': 'src/export/index.ts',
+    'persistence/index': 'src/persistence/index.ts',
+    'render/index': 'src/render/index.ts',
+
     'icons/index': 'src/brand-icons/index.tsx',
     'canvas/index': 'src/canvas/index.ts',
     'layouts/index': 'src/layouts/index.ts',

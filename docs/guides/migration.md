@@ -53,3 +53,16 @@ Validation issues now use the authored collection (`edges`, `messages`,
 normalized `/nodes` and `/relations` paths. Duplicate explicit IDs retain original
 indices even after anonymous relations. Consumers matching exact paths should
 update their field mapping; issue codes and success/result shapes are unchanged.
+
+## Unreleased opt-in editor APIs
+
+Existing seven-type `DiagramSpec` consumers do not need a migration. New editing
+hosts use `/editor-core` documents and the separate `/editor` React entry; graph
+documents are deliberately not accepted by the legacy layout dispatcher.
+`createDocument` materializes relation IDs once. Persist the resulting document
+instead of regenerating anonymous IDs after reordering. No registry is required.
+
+Use the [editor guide](./editor.md) for composition, validation, export fonts,
+local persistence and known incomplete milestones. Studio has its own HTML entry
+and does not reinterpret existing playground `s=` links or overwrite its drafts.
+These additions have not been published by this implementation task.

@@ -1,0 +1,52 @@
+{
+  "screenToWorld": {
+    "screen": {
+      "x": 110,
+      "y": 70
+    },
+    "viewport": {
+      "x": 10,
+      "y": 20,
+      "zoom": 2
+    },
+    "world": {
+      "x": 50,
+      "y": 25
+    }
+  },
+  "zoomAt": {
+    "point": {
+      "x": 110,
+      "y": 70
+    },
+    "zoom": 4,
+    "viewport": {
+      "x": 10,
+      "y": 20,
+      "zoom": 2
+    },
+    "expected": {
+      "x": -90,
+      "y": -30,
+      "zoom": 4
+    }
+  },
+  "fit": {
+    "bounds": {
+      "x": -20,
+      "y": -10,
+      "width": 400,
+      "height": 200
+    },
+    "size": {
+      "width": 800,
+      "height": 600
+    },
+    "padding": 32,
+    "expected": {
+      "x": 220,
+      "y": 210,
+      "zoom": 1
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "id": "er-demo",
+  "format": "aesthc-diagram",
+  "schemaVersion": 1,
+  "revision": 0,
+  "locale": "en",
+  "spec": {
+    "type": "er",
+    "caption": "Orders",
+    "legend": {
+      "main": "Main path",
+      "branch": "Alternative"
+    },
+    "entities": [
+      {
+        "id": "user",
+        "label": "User",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "key": "pk"
+          }
+        ]
+      },
+      {
+        "id": "order",
+        "label": "Order",
+        "fields": [
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "key": "fk"
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "id": "places",
+        "from": "user",
+        "to": "order",
+        "label": "places"
+      }
+    ]
+  },
+  "scene": {
+    "mode": "auto",
+    "nodes": {},
+    "routes": {},
+    "zOrder": ["user", "order"],
+    "groups": []
+  },
+  "presentation": {
+    "theme": {
+      "mode": "light",
+      "light": {
+        "background": "#ffffff",
+        "foreground": "#171717",
+        "card": "#ffffff",
+        "border": "#e5e5e5",
+        "mutedForeground": "#737373",
+        "cobalt": "#2456ff",
+        "branch": "#0ea56b"
+      },
+      "dark": {
+        "background": "#0a0a0a",
+        "foreground": "#fafafa",
+        "card": "#0a0a0a",
+        "border": "#262626",
+        "mutedForeground": "#a3a3a3",
+        "cobalt": "#6ea8ff",
+        "branch": "#5ce0a5"
+      }
+    },
+    "textScale": 1,
+    "padding": 24,
+    "grid": {
+      "size": 16,
+      "visible": false,
+      "snap": false
+    },
+    "edgeStyle": "orthogonal",
+    "legend": "visible"
+  },
+  "metadata": {
+    "nodes": {},
+    "edges": {},
+    "visuals": {}
+  },
+  "views": [],
+  "story": [],
+  "extensions": {}
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "script-as-data",
+    "kind": "text",
+    "value": "</script><script>globalThis.__injected = true</script>",
+    "expected": "render-literal-no-execution"
+  },
+  {
+    "id": "javascript-link",
+    "kind": "href",
+    "value": "javascript:alert(1)",
+    "expected": "url.scheme"
+  },
+  {
+    "id": "data-link",
+    "kind": "href",
+    "value": "data:text/html,<script>alert(1)</script>",
+    "expected": "url.scheme"
+  },
+  {
+    "id": "protocol-relative-link",
+    "kind": "href",
+    "value": "//attacker.invalid",
+    "expected": "url.scheme"
+  },
+  {
+    "id": "prototype",
+    "kind": "json",
+    "value": "{\"__proto__\":{\"polluted\":true}}",
+    "expected": "data.unsafe-key"
+  },
+  {
+    "id": "constructor",
+    "kind": "json",
+    "value": "{\"constructor\":{\"prototype\":{\"polluted\":true}}}",
+    "expected": "data.unsafe-key"
+  },
+  {
+    "id": "invalid-json",
+    "kind": "json",
+    "value": "{\"nodes\": [",
+    "expected": "json.syntax"
+  },
+  {
+    "id": "bidi",
+    "kind": "text",
+    "value": "API‮abc",
+    "expected": "text.invisible-control-warning"
+  },
+  {
+    "id": "separators",
+    "kind": "text",
+    "value": "one two three",
+    "expected": "escaped-script-safe"
+  },
+  {
+    "id": "evidence-path",
+    "kind": "path",
+    "value": "../../private/key",
+    "expected": "evidence.path"
+  }
+]

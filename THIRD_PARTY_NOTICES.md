@@ -38,8 +38,11 @@ Brand SVG components adapted from the SVGL collection retain its MIT notice in
 property of their respective owners. Collection licensing is not an endorsement
 or a grant of unrelated trademark rights; check brand guidelines for your use.
 
-Phosphor icons and Radix primitives are installed dependencies with their own
-licenses and notices. Their license files remain in their installed packages.
+Phosphor regular icon geometry for the headless renderer is generated from the
+installed dependency by `pnpm icons:generate`; its complete MIT notice is retained
+in the generated assets and SVG exports. Selected brand exports also retain the
+TheSVG asset notices as inert metadata. Radix and Phosphor dependency license files
+remain in their installed packages.
 Changes to copied third-party assets must preserve the applicable notices.
 
 ## Generated validation

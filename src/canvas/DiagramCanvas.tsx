@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { nodeGeometry } from '../geometry/node'
 
 import {
   CANVAS_MIN_WIDTH,
   CARD_R,
-  CARD_TEXT_X,
   DECISION_PILL_H,
   DECISION_PILL_R,
   DIMMED_OPACITY,
@@ -308,10 +308,7 @@ export function DiagramCanvas({
             const isEvent = node.shape === 'event'
             const isTable = node.shape === 'table'
             const isState = node.shape === 'state'
-            const isTerminal = node.shape === 'terminal'
-            const centeredLabel = !visual && !node.kind && !node.sublabel && !isMuted
-            const textX = visual ? node.x + CARD_TEXT_X : node.x + 18
-            const radius = isState || isTerminal ? Math.min(CARD_R * 2.4, node.h / 2) : CARD_R
+            const { centeredLabel, textX, radius } = nodeGeometry(node, !!visual)
 
             return (
               <Tooltip

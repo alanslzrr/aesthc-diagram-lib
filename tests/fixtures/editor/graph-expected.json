@@ -1,0 +1,21 @@
+{
+  "routeAC": {
+    "nodeIds": ["a", "b", "c"],
+    "edgeIds": ["ab-primary", "bc"]
+  },
+  "downstreamA": {
+    "nodeIds": ["a", "b", "d", "c"],
+    "edgeIds": ["ab-primary", "ab-secondary", "ad", "bc", "dc", "ca", "cc"],
+    "depth": {
+      "a": 0,
+      "b": 1,
+      "d": 1,
+      "c": 2
+    }
+  },
+  "unreachable": ["a", "isolated"],
+  "selfRoute": {
+    "nodeIds": ["a"],
+    "edgeIds": []
+  }
+}

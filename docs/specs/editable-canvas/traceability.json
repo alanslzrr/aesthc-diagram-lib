@@ -1,0 +1,2097 @@
+{
+  "schemaVersion": 1,
+  "status": "mapped",
+  "baseline": {
+    "local": "cdf37a87c94f9ea17f29c62f45e2128bec627763",
+    "archify": "1bb61c69538e37d80793b25843f620e55469f3a2"
+  },
+  "tasks": [
+    {
+      "id": "E00",
+      "milestone": "M0",
+      "title": "Caracterizar baseline y harness",
+      "dependsOn": [],
+      "files": [
+        "tests/contracts.unit.spec.ts",
+        "tests/e2e/editor-baseline.e2e.ts",
+        "scripts/test-package.mjs"
+      ],
+      "red": "Congelar geometría, IDs y API de los siete tipos; falla ante renombrar una relación explícita o introducir un alias a src.",
+      "green": "Añadir fixtures seed, helpers de identidad y checklist del estado actual sin cambiar producción.",
+      "refactor": "Compartir helpers sin ocultar assertions de topología.",
+      "done": "pnpm check verde; registrar baseline y capturas revisadas; ninguna prueba legacy eliminada."
+    },
+    {
+      "id": "E01",
+      "milestone": "M0",
+      "title": "Documento versionado e identidad",
+      "dependsOn": [
+        "E00"
+      ],
+      "files": [
+        "src/types.ts",
+        "src/editor-core/types.ts",
+        "src/editor-core/document.ts",
+        "src/editor-core/index.ts"
+      ],
+      "red": "Copiar semillas document; comprobar source inmutable, version future rechazada e IDs paralelos estables.",
+      "green": "Implementar envelope, defaults, create/import/serialize y materialización por índice.",
+      "refactor": "Separar canonicalización y migraciones puras, no tiempo/azar implícito.",
+      "done": "R01–R03 verdes y contrato compilable; fixtures legacy sin pérdidas de spec."
+    },
+    {
+      "id": "E02",
+      "milestone": "M0",
+      "title": "Schemas, límites y diagnósticos",
+      "dependsOn": [
+        "E01"
+      ],
+      "files": [
+        "scripts/generate-schemas.mjs",
+        "src/editor-core/validation.ts",
+        "src/validation/document-structural.js",
+        "schemas/DiagramDocument.schema.json",
+        "schemas/GraphDiagramSpec.schema.json",
+        "schemas/DiagramFragment.schema.json"
+      ],
+      "red": "Duplicados, dangling refs, getters, cycles, límites exactos y unknown props deben fallar antes de layout.",
+      "green": "Generar nuevos schemas/validator standalone desde src/types.ts; pipeline de diagnóstico estable.",
+      "refactor": "Reutilizar inspect seguro evitando divergencia y sin ampliar silenciosamente API antigua.",
+      "done": "schemas:generate/check reproducible; todos límites tienen caso N y N+1."
+    },
+    {
+      "id": "E03",
+      "milestone": "M0",
+      "title": "Adapters semánticos y capabilities",
+      "dependsOn": [
+        "E02"
+      ],
+      "files": [
+        "src/editor-core/adapters/index.ts",
+        "src/editor-core/adapters/structured.ts",
+        "src/editor-core/adapters/graph.ts"
+      ],
+      "red": "Intentar free XY en sequence, edge en timeline y lane inválida debe rechazar; CRUD por tipo debe conservar invariantes.",
+      "green": "Implementar ocho adapters, CRUD/reorder, remapeo de bands y eliminación en cascada.",
+      "refactor": "Extraer utilidades de entidades sin aplanar semánticas diferentes.",
+      "done": "Matriz de ocho tipos cubierta; todos los comandos unsupported están documentados."
+    },
+    {
+      "id": "E04",
+      "milestone": "M0",
+      "title": "Store, transacciones e historial",
+      "dependsOn": [
+        "E02",
+        "E03"
+      ],
+      "files": [
+        "src/editor-core/commands.ts",
+        "src/editor-core/store.ts",
+        "src/editor-core/history.ts"
+      ],
+      "red": "Atomicidad, undo/redo, no-op, stale revision, caps de historial y dos stores aislados fallan primero.",
+      "green": "Implementar reducer puro, snapshots acotados, revisions monotónicas, subscribe estable y dispose.",
+      "refactor": "Índices por ID y notificaciones por invalidación; no store global.",
+      "done": "R10–R13 verdes; replay conserva contenido/IDs; invalid no cambia snapshot."
+    },
+    {
+      "id": "E05",
+      "milestone": "M1",
+      "title": "Resolved scene y SVG compartido",
+      "dependsOn": [
+        "E03"
+      ],
+      "files": [
+        "src/canvas/scene.tsx",
+        "src/canvas/DiagramCanvas.tsx",
+        "src/editor-core/resolve.ts",
+        "src/editor-core/routing.ts"
+      ],
+      "red": "Snapshots legacy idénticos; mover un solo endpoint debe cambiar ruta; negative coordinates no recortadas.",
+      "green": "Extraer primitivos, aplicar overrides y seed layout; renderer sin UI y fast routing.",
+      "refactor": "Compartir estilos/defs sin romper instanceId ni use client.",
+      "done": "Geometría/visual de los siete tipos conservada y scene nueva testeada."
+    },
+    {
+      "id": "E06",
+      "milestone": "M1",
+      "title": "Surface y viewport accesible",
+      "dependsOn": [
+        "E04",
+        "E05"
+      ],
+      "files": [
+        "src/editor/Surface.tsx",
+        "src/editor/viewport.ts",
+        "src/editor/gestures.ts",
+        "src/editor/Outline.tsx"
+      ],
+      "red": "Zoom anclado, CSS scale, letterboxing, DPR y pointercancel se verifican antes del handler.",
+      "green": "Implementar pan/pinch, matrix conversion, focus scope, marquee y controles keyboard.",
+      "refactor": "Separar estado de gesto, matemática y DOM; un RAF por frame.",
+      "done": "R07–R09 y cancelación E2E verdes, sin secuestro de scroll fuera del canvas."
+    },
+    {
+      "id": "E07",
+      "milestone": "M1",
+      "title": "CRUD, conexión e inspector semántico",
+      "dependsOn": [
+        "E06"
+      ],
+      "files": [
+        "src/editor/actions.ts",
+        "src/editor/ConnectionHandles.tsx",
+        "src/editor/Inspector.tsx"
+      ],
+      "red": "Crear/reconnect/delete conserva IDs, parallel edges y referencias; IME/Escape no producen commits parciales.",
+      "green": "Conectar adapters a palette/inline text/inspector y overlay de handles.",
+      "refactor": "Derivar controles de capabilities, no duplicar reglas en UI.",
+      "done": "Flujo crear→conectar→renombrar→borrar→undo válido para cada tipo compatible."
+    },
+    {
+      "id": "E08",
+      "milestone": "M1",
+      "title": "Multiselección, clipboard y grupos",
+      "dependsOn": [
+        "E07"
+      ],
+      "files": [
+        "src/editor-core/selection.ts",
+        "src/editor-core/clipboard.ts",
+        "src/editor-core/groups.ts",
+        "src/editor/SelectionOverlay.tsx"
+      ],
+      "red": "Multi-drag un commit; paste remapea todos IDs; cut con clipboard denegado no borra; group cycle rechaza.",
+      "green": "Implementar align/distribute/duplicate/fragment paste, locks, resize y grupos expandidos.",
+      "refactor": "Compartir transforms absolutos y recorte de referencias en transacciones.",
+      "done": "Copiar/pegar no cruza edges externos; undo de group move restaura cada descendiente una vez."
+    },
+    {
+      "id": "E09",
+      "milestone": "M1",
+      "title": "Composición React y configuración scoped",
+      "dependsOn": [
+        "E07"
+      ],
+      "files": [
+        "src/editor/index.tsx",
+        "src/editor/context.tsx",
+        "src/editor/Toolbar.tsx",
+        "src/editor/styles.css"
+      ],
+      "red": "Dos instancias y React StrictMode no duplican listener, theme ni history; permisos rechazan por dispatch.",
+      "green": "Root/Surface/Toolbar/Inspector/Outline/Status compuestos, props React18/19 y settings serializables.",
+      "refactor": "Eliminar boolean props redundantes; conservar separación de documento/session.",
+      "done": "Host-owned store y cambio externo documentados; light/dark es/en completos."
+    },
+    {
+      "id": "E10",
+      "milestone": "M1",
+      "title": "Persistencia, import y autosave",
+      "dependsOn": [
+        "E04"
+      ],
+      "files": [
+        "src/persistence/index.ts",
+        "src/persistence/local-storage.ts",
+        "src/editor/persistence.ts"
+      ],
+      "red": "Cuota, corrupt storage, dos writers y save A tardío tras edit B no pierden B.",
+      "green": "Adapter opt-in, queue por documento, tokens, drafts separados y UI de conflicto.",
+      "refactor": "Separar write scheduler de adapters y de React; clocks inyectables.",
+      "done": "R24–R27 verdes, save/reload round-trip y zero writes por mount."
+    },
+    {
+      "id": "E11",
+      "milestone": "M1",
+      "title": "API pública JSON/SVG/PNG",
+      "dependsOn": [
+        "E05",
+        "E09"
+      ],
+      "files": [
+        "src/export/index.ts",
+        "src/export/svg.tsx",
+        "src/export/browser.ts",
+        "src/export/assets.ts"
+      ],
+      "red": "Export con selection/hover/camera/reveal activos coincide con canonical; fonts fallidas/retry se prueban.",
+      "green": "Fresh snapshot, SVG standalone, PNG y efectos copy/download separados, cancelación y receipt.",
+      "refactor": "Reutilizar renderer y asset manifest; site migra por wrapper compatible.",
+      "done": "Archivos parseados/decodificados y no vacíos; fuente visible/resto del store inmutables."
+    },
+    {
+      "id": "E12",
+      "milestone": "M1",
+      "title": "Studio aislado y primer paquete consumidor",
+      "dependsOn": [
+        "E08",
+        "E09",
+        "E10",
+        "E11"
+      ],
+      "files": [
+        "site/studio.html",
+        "site/src/studio/main.tsx",
+        "site/vite.config.ts",
+        "package.json",
+        "tsup.config.ts",
+        "scripts/inject-use-client.mjs"
+      ],
+      "red": "Consumidor tarball importa nuevos subpaths y dos editores; landing no carga editor ni supera budget.",
+      "green": "Integrar Studio entrada separada, export map y CSS opcional; link normal desde site.",
+      "refactor": "Evitar dependencia inversa biblioteca→site; bundling por entrypoint.",
+      "done": "M1 demo de ocho tipos; pnpm check/e2e, dist generado y paquete sin aliases."
+    },
+    {
+      "id": "E13",
+      "milestone": "M2",
+      "title": "Graph queries y viewer semántico",
+      "dependsOn": [
+        "E03",
+        "E05",
+        "E09"
+      ],
+      "files": [
+        "src/graph/index.ts",
+        "src/viewer/DiagramViewer.tsx",
+        "src/viewer/Finder.tsx",
+        "src/viewer/Inspector.tsx"
+      ],
+      "red": "Semillas de multigraph con cycles/self/parallel/unreachable: ruta y reach exactos antes de UI.",
+      "green": "BFS iterativo, receipts por revision, finder y relación accesible.",
+      "refactor": "Compartir índice; no obtener topology del DOM.",
+      "done": "R30–R32 verdes, edges explícitos y stale queries invalidadas."
+    },
+    {
+      "id": "E14",
+      "milestone": "M2",
+      "title": "Lenses, vistas, story y presentación",
+      "dependsOn": [
+        "E13",
+        "E06"
+      ],
+      "files": [
+        "src/viewer/views.ts",
+        "src/viewer/motion.ts",
+        "src/viewer/Minimap.tsx",
+        "src/viewer/Presentation.tsx"
+      ],
+      "red": "Story no crea transitive edges; reduced-motion/hidden cancela; collapse no cambia queries/export.",
+      "green": "Lens por roles, minimap, named views, story finito y control único de movimiento.",
+      "refactor": "Separar reducers viewer de camera adapters y tiempos inyectados.",
+      "done": "Un solo owner de motion; links restauran solo IDs existentes; keyboard completo."
+    },
+    {
+      "id": "E15",
+      "milestone": "M2",
+      "title": "Calidad geométrica y layout asíncrono",
+      "dependsOn": [
+        "E05",
+        "E04"
+      ],
+      "files": [
+        "src/editor-core/quality.ts",
+        "src/editor-core/router.ts",
+        "src/editor-core/layout-provider.ts"
+      ],
+      "red": "Edge atraviesa nodo, label overlap y layout A lento tras B deben fallar de forma localizada.",
+      "green": "A* acotado, publish quality, text measurement y requestId/cancelación.",
+      "refactor": "Cache índices de obstáculos y medir antes de optimizar; nunca borrar labels.",
+      "done": "Receipts identifican medición/control soportado, latest-only y fallback honesto."
+    },
+    {
+      "id": "E16",
+      "milestone": "M2",
+      "title": "HTML viewer autónomo",
+      "dependsOn": [
+        "E11",
+        "E13",
+        "E14",
+        "E15"
+      ],
+      "files": [
+        "src/export/html.ts",
+        "src/export/standalone.tsx",
+        "scripts/build-standalone.mjs"
+      ],
+      "red": "Abrir file:// sin red ni fuente externa; script injection y script disabled probados antes de plantilla.",
+      "green": "Bundle runtime viewer, CSS/fonts/notices, índice mínimo y CSP de artifact.",
+      "refactor": "Compartir queries y render; no crear una implementación semántica paralela.",
+      "done": "Offline HTML funciona en browsers soportados; 0 network; ≤8 MiB."
+    },
+    {
+      "id": "E17",
+      "milestone": "M2",
+      "title": "Shares, cards y capacidades raster",
+      "dependsOn": [
+        "E11",
+        "E13",
+        "E14"
+      ],
+      "files": [
+        "src/export/cards.ts",
+        "src/persistence/share.ts",
+        "src/export/capabilities.ts",
+        "site/src/components/ExportMenu.tsx"
+      ],
+      "red": "Decode bomb, route card stale, webp falso y clipboard denied fallan sin artifacts engañosos.",
+      "green": "d=/v= codec, route/reach cards 1200×630, JPEG/WebP y print fallback.",
+      "refactor": "Un snapshot para query y card, mismo pipeline raster.",
+      "done": "Receipts scoped/canonical correctos; backward s= decoder preservado."
+    },
+    {
+      "id": "E18",
+      "milestone": "M2",
+      "title": "Extensibilidad por instancia",
+      "dependsOn": [
+        "E09",
+        "E11",
+        "E15"
+      ],
+      "files": [
+        "src/editor-core/renderers.ts",
+        "src/editor-core/providers.ts",
+        "examples/custom-node.tsx"
+      ],
+      "red": "Renderer desconocido o sin export rechaza; extensión serializable persiste; registry aislado.",
+      "green": "Registro trusted, validate/measure/renderSvg, layout provider y ejemplo externo.",
+      "refactor": "No exponer estado privado o React interno en serialización.",
+      "done": "Tarball ejemplo custom node compila y exporta; payload no registra código."
+    },
+    {
+      "id": "E19",
+      "milestone": "M2",
+      "title": "Gates a11y, performance y matriz browser",
+      "dependsOn": [
+        "E12",
+        "E14",
+        "E15",
+        "E16",
+        "E17",
+        "E18"
+      ],
+      "files": [
+        "tests/e2e/editor-accessibility.e2e.ts",
+        "tests/e2e/editor-performance.e2e.ts",
+        "scripts/check-budgets.mjs"
+      ],
+      "red": "1000/2000 dataset, drag latency y keyboard-only revelan fallos antes de optimizaciones.",
+      "green": "Resolver incumplimientos; budgets por entrada; artefactos benchmark y screenshots.",
+      "refactor": "Optimizar solo cuellos medidos, selectors por entidad y RAF; no cambiar semántica.",
+      "done": "Cinco proyectos Playwright + benchmark Chromium, theme/locale + 200% zoom, cero errores console."
+    },
+    {
+      "id": "E20",
+      "milestone": "M2",
+      "title": "Migración y consumidores reales",
+      "dependsOn": [
+        "E19"
+      ],
+      "files": [
+        "docs/guides/editor.md",
+        "docs/guides/migration.md",
+        "docs/guides/share-export.md",
+        "docs/agents/integrate.md",
+        "scripts/test-package.mjs",
+        "scripts/test-frameworks.mjs"
+      ],
+      "red": "Compilar ejemplos legacy/nuevos desde tarball, React18/19, NodeNext/Bundler y Next/Vite falla si export falta.",
+      "green": "Guías, ejemplos, migrations receipts, snippets y fixtures de framework sin source alias.",
+      "refactor": "Mantener docs generadas desde contratos y evitar APIs duplicadas.",
+      "done": "Nuevos usuarios y agentes completan integración desde tarball y docs coincidentes."
+    },
+    {
+      "id": "E21",
+      "milestone": "M2",
+      "title": "Cierre del candidato y evidencia release",
+      "dependsOn": [
+        "E19",
+        "E20"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        "docs/maintainers/releasing.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml"
+      ],
+      "red": "Gates impiden candidato con baseline faltante, dist drift o referencias documentales no distribuidas.",
+      "green": "Registrar validación exacta, riesgos, known limits, versión candidata y artefactos de release.",
+      "refactor": "Mantener permisos publish fuera de CI ordinary.",
+      "done": "Definition of Done M2 satisfecha; publicación separada requiere autorización específica."
+    },
+    {
+      "id": "E22",
+      "milestone": "M3",
+      "title": "Comparación exacta Before/Delta/After",
+      "dependsOn": [
+        "E21"
+      ],
+      "files": [
+        "src/graph/compare.ts",
+        "src/viewer/Comparison.tsx",
+        "examples/compare.tsx"
+      ],
+      "red": "Rename ID es remove+add; movimiento solo presentation; sequence reorder semántico; diferente tipo rechaza.",
+      "green": "Diff por ID con grupos, settings y navegador accesible de cambios.",
+      "refactor": "Mismos selectors y no heurísticas de impacto.",
+      "done": "Receipt determinista, inputs inmutables y sin afirmación de merge safety."
+    },
+    {
+      "id": "E23",
+      "milestone": "M3",
+      "title": "Evidencia y perfil deployment",
+      "dependsOn": [
+        "E21"
+      ],
+      "files": [
+        "src/editor-core/evidence.ts",
+        "src/editor-core/profiles.ts",
+        "src/viewer/Evidence.tsx"
+      ],
+      "red": "Evidence declarada no puede hacerse verified por JSON; traversal y owner/region faltantes fallan.",
+      "green": "Verificador trusted opt-in, receipts separados, perfil declarativo y UI de estado.",
+      "refactor": "No poner network/fs implícitos en editor/browser import.",
+      "done": "No información privada embebida por defecto; reglas opt-in con tests independientes."
+    },
+    {
+      "id": "E24",
+      "milestone": "M3",
+      "title": "Trace finito y WebM",
+      "dependsOn": [
+        "E21"
+      ],
+      "files": [
+        "src/export/motion.ts",
+        "src/viewer/trace.ts",
+        "tests/e2e/editor-motion.e2e.ts"
+      ],
+      "red": "Codec ausente, stop temprano, hidden/reduced-motion y recorder error tienen cleanup comprobable.",
+      "green": "Motion owner y recorder aislado 30fps/≤120s, capabilities y decodificación real.",
+      "refactor": "Reusar scene/clock; sin screen capture o micrófono.",
+      "done": "WebM abre/decodifica con frame final; plataformas sin soporte muestran unavailable, nunca skipped-pass."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R01",
+      "title": "Envelope versionado y normalización",
+      "task": "E01",
+      "acceptance": "Documento v1 canónico, input inmutable y defaults deterministas.",
+      "tests": [
+        {
+          "id": "T01.1",
+          "layer": "unit",
+          "file": "tests/editor-document.unit.spec.ts",
+          "given": "legacy-specs con los siete tipos",
+          "when": "createDocument con id y locale fijos",
+          "then": "format/schema/revision correctos, arrays/spec intactos salvo IDs materializados",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-document.unit.spec.ts",
+          "result": "normaliza los siete legacy specs sin mutar el input (10 tests PASS)"
+        },
+        {
+          "id": "T01.2",
+          "layer": "unit",
+          "file": "tests/editor-document.unit.spec.ts",
+          "given": "documento v1 y schemaVersion=999",
+          "when": "importDocument sobre ambos",
+          "then": "v1 round-trip; 999 version.unsupported sin fallback",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-document.unit.spec.ts",
+          "result": "round-trip canónico y rechazo de schemaVersion 999 (10 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R02",
+      "title": "Identidad estable de relaciones",
+      "task": "E01",
+      "acceptance": "No colisiones ni reasignación por move/reconnect/reorder.",
+      "tests": [
+        {
+          "id": "T02.1",
+          "layer": "unit",
+          "file": "tests/editor-document.unit.spec.ts",
+          "given": "dos anónimas a→b y un ID explícito a::b",
+          "when": "normalizar y reordenar después",
+          "then": "tres IDs únicos, explícito conservado, materiales estables después del reorder",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-document.unit.spec.ts",
+          "result": "IDs explícitos reservados antes de anónimos (10 tests PASS)"
+        },
+        {
+          "id": "T02.2",
+          "layer": "unit",
+          "file": "tests/editor-commands.unit.spec.ts",
+          "given": "parallel edges y un reconnect",
+          "when": "aplicar reconnect y undo",
+          "then": "mismo ID, mismo orden restante, referencias exactas restauradas",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "reconnect conserva el ID y el orden; undo restaura las referencias exactas"
+        }
+      ]
+    },
+    {
+      "id": "R03",
+      "title": "Migración de entrada y locale",
+      "task": "E01",
+      "acceptance": "Legacy band explícitamente habilitado; localized selecciona idioma sin inventar traducción.",
+      "tests": [
+        {
+          "id": "T03.1",
+          "layer": "unit",
+          "file": "tests/editor-document.unit.spec.ts",
+          "given": "band sin type y localized en/es",
+          "when": "importar con/ sin allowLegacyBand y locale",
+          "then": "aceptación solo opt-in; locale elegido y receipt de variante omitida",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-document.unit.spec.ts",
+          "result": "locale seleccionado con receipt de variante omitida (en→es, es→en)"
+        },
+        {
+          "id": "T03.2",
+          "layer": "unit",
+          "file": "tests/editor-document.unit.spec.ts",
+          "given": "Documento con metadata/view/scene",
+          "when": "export spec legado versus serializeDocument",
+          "then": "spec loss report; documento conserva todos los campos",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-document.unit.spec.ts",
+          "result": "exportLegacySpec con losses exactos, round-trip serialize sin pérdidas y rechazo de graph"
+        }
+      ]
+    },
+    {
+      "id": "R04",
+      "title": "Validación de referencias",
+      "task": "E02",
+      "acceptance": "Schema strict y semántica bloquean todos los dangling IDs.",
+      "tests": [
+        {
+          "id": "T04.1",
+          "layer": "unit",
+          "file": "tests/editor-validation.unit.spec.ts",
+          "given": "duplicados, missing node/port/lane/group/view y unknown property",
+          "when": "validateDocument",
+          "then": "error code/path/subject estable, nunca se llama layout",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-validation.unit.spec.ts",
+          "result": "dangling de view/lane, unknown top-level y schema adicional rechazados con codes estables"
+        },
+        {
+          "id": "T04.2",
+          "layer": "unit",
+          "file": "tests/editor-validation.unit.spec.ts",
+          "given": "JSON con __proto__, accessor con counter y objeto cíclico",
+          "when": "importDocument",
+          "then": "rechazo, counter=0 y Object.prototype sin contaminación",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-validation.unit.spec.ts",
+          "result": "unsafe keys, ciclos, accessors y no-plain rechazados (12 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R05",
+      "title": "Políticas acotadas de recursos",
+      "task": "E02",
+      "acceptance": "Límites previenen explosión de memoria/CPU sin truncar.",
+      "tests": [
+        {
+          "id": "T05.1",
+          "layer": "unit",
+          "file": "tests/editor-limits.unit.spec.ts",
+          "given": "N y N+1 de cada límite de 04-contracts",
+          "when": "validar fixtures generadas",
+          "then": "acepta N estructuralmente válido, rechaza N+1 con code/path específico",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-limits.unit.spec.ts",
+          "result": "11 límites N/N+1 con code/path (11 tests PASS)"
+        },
+        {
+          "id": "T05.2",
+          "layer": "unit",
+          "file": "tests/editor-limits.unit.spec.ts",
+          "given": "profundidad 65, NaN, Infinity, surrogate roto",
+          "when": "importar objeto o texto por su frontera",
+          "then": "fallo antes de schema/layout, no stack overflow",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-validation.unit.spec.ts",
+          "result": "profundidad 70 rechazada con data.depth sin stack overflow; NaN/Infinity/surrogate cubiertos"
+        }
+      ]
+    },
+    {
+      "id": "R06",
+      "title": "Adapters por tipo y capabilities",
+      "task": "E03",
+      "acceptance": "Ocho tipos editables conservando sus invariantes propias.",
+      "tests": [
+        {
+          "id": "T06.1",
+          "layer": "unit",
+          "file": "tests/editor-adapters.unit.spec.ts",
+          "given": "cada tipo y su CRUD/reorder permitido",
+          "when": "insertar/reemplazar/borrar/reordenar",
+          "then": "spec resultante valida y no pierde campos específicos",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-adapters.unit.spec.ts",
+          "result": "matriz CRUD/reorder de los siete tipos (17 tests PASS)"
+        },
+        {
+          "id": "T06.2",
+          "layer": "unit",
+          "file": "tests/editor-adapters.unit.spec.ts",
+          "given": "timeline edge, sequence XY, lane inexistente",
+          "when": "comandos no soportados",
+          "then": "capability.unsupported/reference sin ninguna mutación",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-adapters.unit.spec.ts",
+          "result": "capability.unsupported y reorder inválido sin mutación (17 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R07",
+      "title": "Viewport matemático correcto",
+      "task": "E06",
+      "acceptance": "Conversión inversa y zoom mantienen el anchor.",
+      "tests": [
+        {
+          "id": "T07.1",
+          "layer": "unit",
+          "file": "tests/editor-viewport.unit.spec.ts",
+          "given": "viewport-cases.json",
+          "when": "screenToWorld, worldToScreen, zoomAt y fit",
+          "then": "resultados numéricos exactos; round-trip con epsilon 1e-8",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-viewport.unit.spec.ts",
+          "result": "round-trip 1e-8, ancla de zoom y fit (3 tests PASS)"
+        },
+        {
+          "id": "T07.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-viewport.e2e.ts",
+          "given": "canvas con CSS scale/offset, letterbox, scroll y DPR 1/2",
+          "when": "drag del mismo nodo a mismo punto mundo",
+          "then": "posición igual ±1 unidad y sin doble aplicación de transform",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewport.e2e.ts",
+          "result": "drag bajo DPR 2 y CSS scale 0.5 aplica el delta una vez (sin doble transformación)"
+        }
+      ]
+    },
+    {
+      "id": "R08",
+      "title": "Pan/pinch y scroll contenido",
+      "task": "E06",
+      "acceptance": "Navegación no cambia documento ni secuestra página.",
+      "tests": [
+        {
+          "id": "T08.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-viewport.e2e.ts",
+          "given": "surface enfocada y rueda dentro/fuera",
+          "when": "wheel normal, modificada, middle pan, Space pan",
+          "then": "scroll nativo salvo gesto explícito; hash documento unchanged",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewport.e2e.ts",
+          "result": "middle-pan mueve la cámara sin tocar el documento ni el historial"
+        },
+        {
+          "id": "T08.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-touch.e2e.ts",
+          "given": "dos dedos, panel y canvas estrecho",
+          "when": "pinch/pan y scroll del inspector",
+          "then": "zoom bounded; panel scroll y cancel correctos; cero commits",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-touch.e2e.ts",
+          "result": "pinch sin commits y scroll del inspector (E2E 144 passed/14 skipped)"
+        }
+      ]
+    },
+    {
+      "id": "R09",
+      "title": "Gestos y multiselección",
+      "task": "E06",
+      "acceptance": "Selección tipada, capture seguro y transacción única.",
+      "tests": [
+        {
+          "id": "T09.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-selection.e2e.ts",
+          "given": "nodes con IDs iguales a un edge ID",
+          "when": "click/Shift/marquee sobre bounds",
+          "then": "refs discriminadas y marquee no añade edges automáticamente",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewport.e2e.ts",
+          "result": "nodo y edge con el mismo id son entidades distintas en outline y selección"
+        },
+        {
+          "id": "T09.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-gestures.e2e.ts",
+          "given": "drag en curso",
+          "when": "Escape, pointercancel, lost capture, pointerup fuera, unmount",
+          "then": "cancel no history; pointerup capturado un solo commit; no listeners residuales",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store-lifecycle.unit.spec.ts",
+          "result": "cancel sin history, pointerup un commit, sin listeners residuales (7 tests PASS + E2E marquee)"
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "title": "Transacción atómica y permisos",
+      "task": "E04",
+      "acceptance": "Ningún estado intermedio se publica ante rechazo.",
+      "tests": [
+        {
+          "id": "T10.1",
+          "layer": "unit",
+          "file": "tests/editor-commands.unit.spec.ts",
+          "given": "move válido seguido de route a ID ausente",
+          "when": "dispatch batch",
+          "then": "status rejected, mismo contenido/revision/history, cero commit notifications",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "batch con segundo comando inválido rechazado atómicamente (10 tests PASS)"
+        },
+        {
+          "id": "T10.2",
+          "layer": "unit",
+          "file": "tests/editor-commands.unit.spec.ts",
+          "given": "store edit=false o expectedRevision stale",
+          "when": "dispatch por API sin UI",
+          "then": "permission.denied/revision.stale y snapshot intacto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "permission/stale rechazados con snapshot intacto (10 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R11",
+      "title": "Undo/redo y no-op",
+      "task": "E04",
+      "acceptance": "Contenido reversible, revisions monotónicas y gestures agrupados.",
+      "tests": [
+        {
+          "id": "T11.1",
+          "layer": "unit",
+          "file": "tests/editor-history.unit.spec.ts",
+          "given": "A→B→C, undo y edit D",
+          "when": "undo/redo y nueva rama",
+          "then": "restore de contenido exacto, revisions crecen y redo se vacía",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "undo/redo con revisiones monotónicas y redo vaciado en rama (10 tests PASS)"
+        },
+        {
+          "id": "T11.2",
+          "layer": "unit",
+          "file": "tests/editor-history.unit.spec.ts",
+          "given": "100 pointermoves en un gesture y move a coordenada actual",
+          "when": "commit gesture y luego no-op",
+          "then": "un entry para gesture, cero entry/revision para no-op",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "no-op sin entry y gestos agrupados (10 tests PASS + store-lifecycle)"
+        }
+      ]
+    },
+    {
+      "id": "R12",
+      "title": "Historial bounded y dirty",
+      "task": "E04",
+      "acceptance": "Memoria acotada y dirty ligado al contenido guardado.",
+      "tests": [
+        {
+          "id": "T12.1",
+          "layer": "unit",
+          "file": "tests/editor-history.unit.spec.ts",
+          "given": "historial con maxEntries=2/maxBytes fijo",
+          "when": "tres commits y undo hasta límite",
+          "then": "evict oldest conservando orden, no exceed bytes ni undo parcial",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "evict oldest y límite de bytes por entry (10 tests PASS + store-lifecycle)"
+        },
+        {
+          "id": "T12.2",
+          "layer": "unit",
+          "file": "tests/editor-history.unit.spec.ts",
+          "given": "contenido guardado A, edit B",
+          "when": "undo a A con nueva revision",
+          "then": "dirty false pese a revision distinta; markSaved viejo no limpia B",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store-lifecycle.unit.spec.ts",
+          "result": "dirty por igualdad de contenido (7 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R13",
+      "title": "Aislamiento y reemplazo externo",
+      "task": "E04",
+      "acceptance": "Stores independientes y conflictos locales explícitos.",
+      "tests": [
+        {
+          "id": "T13.1",
+          "layer": "unit",
+          "file": "tests/editor-store.unit.spec.ts",
+          "given": "stores A/B, subscription y draft en A",
+          "when": "commit A, eco externo y documento externo distinto",
+          "then": "B sin cambios; eco no duplicado; distinto exige resolver conflicto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "stores aislados y eco no duplicado (10 tests PASS)"
+        },
+        {
+          "id": "T13.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-store.e2e.ts",
+          "given": "dos instancias bajo StrictMode",
+          "when": "mount/unmount y editar cada una",
+          "then": "listeners se liberan, SVG IDs distintos, no history ni theme cruzados",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-frameworks.mjs",
+          "result": "dos instancias aisladas en Vite/Next + StrictMode: defs SVG distintos, editar una no cambia la otra"
+        }
+      ]
+    },
+    {
+      "id": "R14",
+      "title": "Scene y renderer legacy",
+      "task": "E05",
+      "acceptance": "SVG compartido sin regresión de tipos originales.",
+      "tests": [
+        {
+          "id": "T14.1",
+          "layer": "unit",
+          "file": "tests/editor-scene.unit.spec.ts",
+          "given": "siete fixtures y layouts baseline",
+          "when": "render antes/después del refactor",
+          "then": "nodos/paths/bounds/IDs iguales y props legacy intactas",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-render-parity.unit.spec.ts",
+          "result": "11 tests de paridad + 4 de geometría + 4 de iconos (todos PASS)"
+        },
+        {
+          "id": "T14.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-render.e2e.ts",
+          "given": "light/dark es/en con coords negativas y edge labels externos",
+          "when": "fit y screenshot revisada",
+          "then": "sin clipping de texto/markers; aspect ratio y superficies opacas",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "export ambos temas/es y evidencia visual sin overflow (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R15",
+      "title": "Manual, hybrid y auto-layout",
+      "task": "E05",
+      "acceptance": "Autoría espacial estable y relayout explícito.",
+      "tests": [
+        {
+          "id": "T15.1",
+          "layer": "unit",
+          "file": "tests/editor-scene.unit.spec.ts",
+          "given": "manual/hybrid con nodo locked/pinned",
+          "when": "editar label, añadir nodo y resolver",
+          "then": "posiciones guardadas intactas; nuevo nodo no mueve pins",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-scene.unit.spec.ts",
+          "result": "posiciones/rutas manuales intactas sin mutar el documento (7 tests PASS + locked)"
+        },
+        {
+          "id": "T15.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-layout.e2e.ts",
+          "given": "preview de relayout con locks",
+          "when": "aplicar, deshacer y reset tras confirmación",
+          "then": "un commit, locks conservados, undo exacto; cancel sin cambios",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "relayout con preview, apply en un commit, undo exacto y cancel sin cambios"
+        }
+      ]
+    },
+    {
+      "id": "R16",
+      "title": "CRUD y texto seguro",
+      "task": "E07",
+      "acceptance": "Crear/renombrar/eliminar sin perder semántica.",
+      "tests": [
+        {
+          "id": "T16.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-crud.e2e.ts",
+          "given": "cada tipo en palette/inspector",
+          "when": "crear entidad y editar label/descripción con IME",
+          "then": "solo confirma al finalizar IME; texto literal, sin markup ejecutado",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-crud.e2e.ts",
+          "result": "composición IME sin commits intermedios (label y JSON), confirmación única, cancel sin persistir, texto literal sin ejecutar markup"
+        },
+        {
+          "id": "T16.2",
+          "layer": "unit",
+          "file": "tests/editor-adapters.unit.spec.ts",
+          "given": "nodo con relaciones/metadata/groups/views",
+          "when": "removeNodes y prune referencias",
+          "then": "dependencias borradas atómicamente y receipt de vistas vacías; undo restaura",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-adapters.unit.spec.ts",
+          "result": "poda de relaciones por endpoints afectados (17 tests PASS + group deletion)"
+        }
+      ]
+    },
+    {
+      "id": "R17",
+      "title": "Conexiones, ports y paralelas",
+      "task": "E07",
+      "acceptance": "Conexiones son entidades estables, no pares únicos.",
+      "tests": [
+        {
+          "id": "T17.1",
+          "layer": "unit",
+          "file": "tests/editor-connections.unit.spec.ts",
+          "given": "graph con capacity/side/direction y self/parallel",
+          "when": "crear y reconnect relación",
+          "then": "capacidad respetada, ID intacto; nada se deduplica por from/to",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-limits.unit.spec.ts",
+          "result": "capacity/dirección de puertos y paralelas sin deduplicar (11 tests PASS + graph)"
+        },
+        {
+          "id": "T17.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-connections.e2e.ts",
+          "given": "handle seleccionado por teclado o touch",
+          "when": "conectar endpoint válido, inválido y soltar fondo",
+          "then": "success explícito o cancel/reject; no delete por drop vacío",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-connections.e2e.ts",
+          "result": "handles en canvas: drag a destino crea relación undoable, drop en fondo cancela, modo teclado y Escape"
+        }
+      ]
+    },
+    {
+      "id": "R18",
+      "title": "Resize, lock y alineación",
+      "task": "E08",
+      "acceptance": "Transformaciones preservan semántica y mínimos.",
+      "tests": [
+        {
+          "id": "T18.1",
+          "layer": "unit",
+          "file": "tests/editor-transforms.unit.spec.ts",
+          "given": "tres nodos, uno locked y tabla ER",
+          "when": "align/distribute/resize batch",
+          "then": "rechazo atómico por locked; tamaños mínimos y extremos correctos",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-arrange.unit.spec.ts",
+          "result": "align/distribute con locked rechazado y mínimos (2 tests PASS + resize + structure)"
+        },
+        {
+          "id": "T18.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-transforms.e2e.ts",
+          "given": "selección en zoom 0.5 y 2",
+          "when": "multi-drag y resize",
+          "then": "offsets mundo estables, labels legibles y único undo",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "resize de selección en zoom y drag transaccional (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R19",
+      "title": "Clipboard y duplicación",
+      "task": "E08",
+      "acceptance": "Remapeo completo y cut seguro.",
+      "tests": [
+        {
+          "id": "T19.1",
+          "layer": "unit",
+          "file": "tests/editor-clipboard.unit.spec.ts",
+          "given": "fragment con grupos anidados, internas y edges externas",
+          "when": "duplicate/paste con IdFactory fija",
+          "then": "IDs nuevos únicos, internas remapeadas, externas omitidas, offset24",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-clipboard.unit.spec.ts",
+          "result": "fragmentos con IDs nuevos, internas remapeadas y externas omitidas (8 tests PASS)"
+        },
+        {
+          "id": "T19.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-clipboard.e2e.ts",
+          "given": "clipboard denegado y fragment hostile",
+          "when": "cut y paste",
+          "then": "cut no borra; payload no válido no cambia documento",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "clipboard denegado sin borrar y payload inválido sin cambios (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R20",
+      "title": "Grupos estructurales",
+      "task": "E08",
+      "acceptance": "Membresía inequívoca y movimiento sin duplicación.",
+      "tests": [
+        {
+          "id": "T20.1",
+          "layer": "unit",
+          "file": "tests/editor-groups.unit.spec.ts",
+          "given": "A contiene B contiene nodo; ciclo o doble parent propuestos",
+          "when": "validar y move group 20,30",
+          "then": "ciclo/doble parent rechazados; descendiente movido una vez",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "descendiente movido una vez; doble parent y ciclo rechazados"
+        },
+        {
+          "id": "T20.2",
+          "layer": "unit",
+          "file": "tests/editor-groups.unit.spec.ts",
+          "given": "grupo con locked child y edges externas",
+          "when": "intentar move/ungroup bloqueados, desbloquear explícitamente, ungroup keep y undo",
+          "then": "move/ungroup con lock rechazan; después de unlock ungroup mantiene coords/IDs; undo exacto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store.unit.spec.ts",
+          "result": "ungroup con miembro locked rechaza; tras unlock conserva coords/IDs y undo exacto"
+        }
+      ]
+    },
+    {
+      "id": "R21",
+      "title": "Configuración serializable y scoped",
+      "task": "E09",
+      "acceptance": "Tema/leyenda/grid portable sin CSS ejecutable.",
+      "tests": [
+        {
+          "id": "T21.1",
+          "layer": "unit",
+          "file": "tests/editor-presentation.unit.spec.ts",
+          "given": "tokens válidos/invalid hex, textScale fuera 0.75–1.5",
+          "when": "set-presentation y undo",
+          "then": "validación estricta; geometría respeta scale; rollback exacto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-presentation.unit.spec.ts",
+          "result": "validación estricta de tokens/textScale/grid/padding y geometría con scale (5 tests PASS); undo genérico en editor-store"
+        },
+        {
+          "id": "T21.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-theme.e2e.ts",
+          "given": "dos canvas con themes opuestos",
+          "when": "cambiar tokens y exportar uno",
+          "then": "otro y host no cambian; export usa theme del documento no body",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-frameworks.mjs",
+          "result": "instancias con temas opuestos (light/dark) en el mismo documento; cada export usa el tema de su documento"
+        }
+      ]
+    },
+    {
+      "id": "R22",
+      "title": "API compuesta y host controlado",
+      "task": "E09",
+      "acceptance": "Store único y chrome opcional sin dependencia del site.",
+      "tests": [
+        {
+          "id": "T22.1",
+          "layer": "package",
+          "file": "scripts/test-package.mjs",
+          "given": "tarball instalado en React18 y React19",
+          "when": "compilar Root/Surface con toolbar custom",
+          "then": "tipos resueltos sin import a src, funciona con y sin inspector",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-package.mjs",
+          "result": "12 tests tarball PASS en React 18.3.1 y React 19"
+        },
+        {
+          "id": "T22.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-controlled.e2e.ts",
+          "given": "store del host con permisos y replace externo",
+          "when": "toggle permisos, commit y acceptExternal",
+          "then": "mutación protegida en UI/API, history reset y focos huérfanos limpios",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-frameworks.mjs",
+          "result": "store controlado por el host: permisos revocados bloquean edición en UI/API, replace externo resetea history"
+        }
+      ]
+    },
+    {
+      "id": "R23",
+      "title": "Sync texto/canvas y last-good",
+      "task": "E07",
+      "acceptance": "Buffer inválido nunca sustituye el documento válido.",
+      "tests": [
+        {
+          "id": "T23.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-json.e2e.ts",
+          "given": "preview válido A y textarea dirty",
+          "when": "pegar JSON incompleto o estructural inválido",
+          "then": "A visible, error con path, texto preservado, cero commit",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "drafts inválidos conservan último válido y cero commits (E2E PASS)"
+        },
+        {
+          "id": "T23.2",
+          "layer": "unit",
+          "file": "tests/editor-json.unit.spec.ts",
+          "given": "validación async A lenta y B nueva",
+          "when": "resolver B antes de A",
+          "then": "solo B publicado, A ignorado por requestId y revision",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-store-lifecycle.unit.spec.ts",
+          "result": "drafts stale rechazados por revisión (7 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R24",
+      "title": "Save/load opt-in",
+      "task": "E10",
+      "acceptance": "Montar no persiste, round-trip íntegro al aceptar.",
+      "tests": [
+        {
+          "id": "T24.1",
+          "layer": "unit",
+          "file": "tests/editor-persistence.unit.spec.ts",
+          "given": "adapter spy y autosave desactivado",
+          "when": "mount, viewport y commit",
+          "then": "cero writes hasta opt-in; con opt-in solo commit dispara a750ms",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-persistence.unit.spec.ts",
+          "result": "cero writes hasta opt-in; autosave solo commits (6 tests PASS)"
+        },
+        {
+          "id": "T24.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-persistence.e2e.ts",
+          "given": "documento dirty con scene/theme/views",
+          "when": "save, reload y restore confirmado",
+          "then": "contenido/IDs iguales; history y cámara temporal no serializados",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "save-as/recovery/cuarentena en Studio (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R25",
+      "title": "Orden de guardado y conflictos",
+      "task": "E10",
+      "acceptance": "No lost updates ni saved engañoso.",
+      "tests": [
+        {
+          "id": "T25.1",
+          "layer": "unit",
+          "file": "tests/editor-persistence.unit.spec.ts",
+          "given": "save A pendiente y nuevo edit B",
+          "when": "resolver A y luego B",
+          "then": "B dirty hasta su confirmación; token correcto y un vuelo por key",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-persistence.unit.spec.ts",
+          "result": "B dirty hasta confirmación y un vuelo por key (6 tests PASS)"
+        },
+        {
+          "id": "T25.2",
+          "layer": "unit",
+          "file": "tests/editor-persistence.unit.spec.ts",
+          "given": "tokens diferentes, dos writers y storage event",
+          "when": "autosave o remove con token viejo",
+          "then": "conflict; conserva local y no sobrescribe/remueve remoto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-persistence.unit.spec.ts",
+          "result": "conflict por token sin sobrescribir/remover remoto (6 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R26",
+      "title": "Cuota, datos corruptos y drafts",
+      "task": "E10",
+      "acceptance": "Fallos recuperables sin pérdida del último documento.",
+      "tests": [
+        {
+          "id": "T26.1",
+          "layer": "unit",
+          "file": "tests/editor-persistence.unit.spec.ts",
+          "given": "QuotaExceeded/SecurityError y blob corrupto",
+          "when": "save/load",
+          "then": "unavailable/quarantine, documento activo intacto, download posible",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-persistence.unit.spec.ts",
+          "result": "quota/unavailable sin perder el documento activo; corrupto en cuarentena sin tocar siblings"
+        },
+        {
+          "id": "T26.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-persistence.e2e.ts",
+          "given": "draft textual inválido y borrador v0.3",
+          "when": "restaurar, cancelar y descartar",
+          "then": "slots separados, confirmación, no borra legacy automáticamente",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "restore/cancel/descartar borrador sin borrar legacy (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R27",
+      "title": "Entrypoints y Studio aislado",
+      "task": "E12",
+      "acceptance": "Nuevas capacidades no inflan imports de lectura.",
+      "tests": [
+        {
+          "id": "T27.1",
+          "layer": "package",
+          "file": "scripts/test-package.mjs",
+          "given": "exports actuales y nuevos del tarball",
+          "when": "import cross-entry con react-server y NodeNext/Bundler",
+          "then": "sin window en import puro, registry compartido y use client correcto",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-package.mjs",
+          "result": "12 tests tarball: exports, react-server, resolvers NodeNext/Bundler"
+        },
+        {
+          "id": "T27.2",
+          "layer": "unit",
+          "file": "tests/editor-budgets.unit.spec.ts",
+          "given": "Vite manifest de landing/docs/studio",
+          "when": "check-budgets contando dynamicImports",
+          "then": "landing/docs mantienen175/12; Studio250/16; no editor en graph landing",
+          "coverage": "implemented",
+          "implementedIn": "scripts/check-budgets.mjs",
+          "result": "budgets gzip PASS dentro de pnpm check"
+        }
+      ]
+    },
+    {
+      "id": "R28",
+      "title": "Export estático canónico",
+      "task": "E11",
+      "acceptance": "Output independiente del estado interactivo.",
+      "tests": [
+        {
+          "id": "T28.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-export.e2e.ts",
+          "given": "selection/lens/hover/reveal/camera/drag activos",
+          "when": "export document SVG y PNG",
+          "then": "mismo grafo completo que sesión neutral; UI y store unchanged",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "export SVG/PNG/JSON frescos en ambos temas (E2E PASS)"
+        },
+        {
+          "id": "T28.2",
+          "layer": "unit",
+          "file": "tests/editor-export.unit.spec.ts",
+          "given": "documento con viewport irrelevante, coords negativas y labels",
+          "when": "serializar SVG y reparsear XML",
+          "then": "IDs refs válidos, bounds incluyen todo y sin handlers/foreignObject",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-export-failures.e2e.ts",
+          "result": "SVG reparseado con DOMParser: XML válido, sin foreignObject ni handlers, bounds > 0"
+        }
+      ]
+    },
+    {
+      "id": "R29",
+      "title": "Assets y raster faults",
+      "task": "E11",
+      "acceptance": "Output standalone y errores recuperables.",
+      "tests": [
+        {
+          "id": "T29.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-export.e2e.ts",
+          "given": "Geist/assets disponibles sin stylesheets host",
+          "when": "export y abrir SVG/PNG fuera del app",
+          "then": "fuentes/icons correctos, PNG pixels no vacíos y notices presentes",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/studio.e2e.ts",
+          "result": "iconos semánticos/brand self-contained en SVG y raster (E2E PASS)"
+        },
+        {
+          "id": "T29.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-export-failures.e2e.ts",
+          "given": "fetch font falla, Image.onerror, toBlob null o canvas tainted",
+          "when": "export, retry y abort",
+          "then": "códigos precisos, retry posible, URLs recursos liberados",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-export-failures.e2e.ts",
+          "result": "Image.onerror → export.image, toBlob null → export.encode, retry posterior exitoso"
+        }
+      ]
+    },
+    {
+      "id": "R30",
+      "title": "Ruta dirigida exacta",
+      "task": "E13",
+      "acceptance": "BFS determinista por relaciones autoradas.",
+      "tests": [
+        {
+          "id": "T30.1",
+          "layer": "unit",
+          "file": "tests/editor-graph.unit.spec.ts",
+          "given": "graph-document y graph-expected",
+          "when": "a→c, a→a y a→isolated",
+          "then": "elegir ab-primary/bc; self cero edges; unreachable explícito",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-graph.unit.spec.ts",
+          "result": "route/self/unreachable con IDs exactos (4 tests PASS)"
+        },
+        {
+          "id": "T30.2",
+          "layer": "unit",
+          "file": "tests/editor-graph.unit.spec.ts",
+          "given": "mismo graph reordenando edges paralelas y unknown node",
+          "when": "query",
+          "then": "desempate según nuevo orden; ID exacto; unknown error no ruta inventada",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-graph.unit.spec.ts",
+          "result": "desempate por orden y unknown sin ruta inventada (4 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R31",
+      "title": "Reach seguro en ciclos",
+      "task": "E13",
+      "acceptance": "Depth mínimos, no inferencia de impacto.",
+      "tests": [
+        {
+          "id": "T31.1",
+          "layer": "unit",
+          "file": "tests/editor-graph.unit.spec.ts",
+          "given": "ciclo, self-loop, parallel y isolated",
+          "when": "downstream a y upstream b",
+          "then": "termina, dedup nodes/edges por ID, depths BFS correctos",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-graph.unit.spec.ts",
+          "result": "downstream/upstream en ciclos con dedup por ID (4 tests PASS)"
+        },
+        {
+          "id": "T31.2",
+          "layer": "unit",
+          "file": "tests/editor-graph.unit.spec.ts",
+          "given": "maxHops=1 y scene groups sin edge",
+          "when": "reach y route entre miembros",
+          "then": "truncated true cuando hay más alcance; grupo no crea conectividad",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-graph.unit.spec.ts",
+          "result": "maxHops con truncated exacto (1 y 0 hops), profundidades BFS correctas y grupos sin inventar conectividad"
+        }
+      ]
+    },
+    {
+      "id": "R32",
+      "title": "Finder e inspector semántico",
+      "task": "E13",
+      "acceptance": "Búsqueda accesible sin depender de geometría.",
+      "tests": [
+        {
+          "id": "T32.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-viewer.e2e.ts",
+          "given": "Unicode/ID y dos labels iguales",
+          "when": "buscar exact/prefix/substring, abrir relación paralela",
+          "then": "orden determinista e ID exacto, cero resultado anunciado",
+          "coverage": "missing"
+        },
+        {
+          "id": "T32.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-viewer.e2e.ts",
+          "given": "query receipt rev0, documento cambia rev1",
+          "when": "intentar seguir ruta/card antigua",
+          "then": "query invalidada, no stale highlight ni export",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R33",
+      "title": "Lens, minimapa y collapse",
+      "task": "E14",
+      "acceptance": "Filtros de lectura no mutan topología.",
+      "tests": [
+        {
+          "id": "T33.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-viewer.e2e.ts",
+          "given": "roles/tags, grupo y edges externas",
+          "when": "lens, collapse y minimap pan",
+          "then": "doc/hash intacto, proxy ligado al ID original y viewport correcto",
+          "coverage": "missing"
+        },
+        {
+          "id": "T33.2",
+          "layer": "unit",
+          "file": "tests/editor-views.unit.spec.ts",
+          "given": "lens ocultando nodo necesario",
+          "when": "findRoute sin filtro explícito",
+          "then": "ruta global no cambia; filtro explícito queda en receipt",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R34",
+      "title": "Vistas y story truthful",
+      "task": "E14",
+      "acceptance": "No crear causalidad ni edges desde orden de pasos.",
+      "tests": [
+        {
+          "id": "T34.1",
+          "layer": "unit",
+          "file": "tests/editor-views.unit.spec.ts",
+          "given": "dos vistas sin edge directa, ruta no contigua y view huérfana",
+          "when": "validar story y describir transición",
+          "then": "sin inferir relación; inválidos bloqueados por ID",
+          "coverage": "missing"
+        },
+        {
+          "id": "T34.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-story.e2e.ts",
+          "given": "story con 3 pasos, duración y control manual",
+          "when": "play/next/prev/escape/hidden y reduced-motion",
+          "then": "un owner, finito, controles funcionales y cero autoplay",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R35",
+      "title": "Presentación y deep links",
+      "task": "E14",
+      "acceptance": "Restauración bounded y salida segura.",
+      "tests": [
+        {
+          "id": "T35.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-presentation.e2e.ts",
+          "given": "fullscreen denegado y foco en trigger",
+          "when": "entrar/salir presentación",
+          "then": "fallback usable, Escape/foco restaurados y documento igual",
+          "coverage": "missing"
+        },
+        {
+          "id": "T35.2",
+          "layer": "unit",
+          "file": "tests/editor-share.unit.spec.ts",
+          "given": "IDs con ~/%/Unicode, parámetros repetidos y unknown view",
+          "when": "encode/decode viewer state",
+          "then": "round-trip con escaping; contradicción rechazada, unknown overview",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R36",
+      "title": "Geometría y diagnósticos publish",
+      "task": "E15",
+      "acceptance": "Fallo localizado sin falsos certificados.",
+      "tests": [
+        {
+          "id": "T36.1",
+          "layer": "unit",
+          "file": "tests/editor-quality.unit.spec.ts",
+          "given": "node overlap, edge-through-node, endpoint incorrecto y label collision",
+          "when": "quality edit versus publish",
+          "then": "edit warnings; publish errors medidos con fixes soportados, sin borrar labels",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-scene.unit.spec.ts",
+          "result": "diagnósticos quality.node-overlap/edge-through-node/label-collision/edge-endpoint con supportedFixes, edit warnings y publish bloqueado; skipDiagnostics en previews"
+        },
+        {
+          "id": "T36.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-quality.e2e.ts",
+          "given": "fuentes cargadas y labels largos es/en",
+          "when": "medir y export publish",
+          "then": "sin clipping; font/métricas ausentes verified=false y error accionable",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R37",
+      "title": "Router y layout cancelables",
+      "task": "E15",
+      "acceptance": "Trabajo acotado y latest revision wins.",
+      "tests": [
+        {
+          "id": "T37.1",
+          "layer": "unit",
+          "file": "tests/editor-routing.unit.spec.ts",
+          "given": "obstáculos, parallel, self-loop y ruta imposible",
+          "when": "router a límite exacto de estados",
+          "then": "determinismo, clearance12 y bends24; impossible diagnostic sin atraviesos",
+          "coverage": "missing"
+        },
+        {
+          "id": "T37.2",
+          "layer": "unit",
+          "file": "tests/editor-layout-provider.unit.spec.ts",
+          "given": "provider A lento, B nuevo y abort",
+          "when": "resolver A después de B",
+          "then": "A no aplicado; history solo B; cancel mantiene pins y última scene",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R38",
+      "title": "HTML portable y offline",
+      "task": "E16",
+      "acceptance": "Un archivo con lectura funcional y fallback estático.",
+      "tests": [
+        {
+          "id": "T38.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-html.e2e.ts",
+          "given": "artifact file:// y todos requests bloqueados",
+          "when": "buscar, route, theme y story manual",
+          "then": "funciona sin red y sin storage; fonts incluidas",
+          "coverage": "missing"
+        },
+        {
+          "id": "T38.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-html.e2e.ts",
+          "given": "mismo artifact scripts disabled y malicious label",
+          "when": "abrir archivo",
+          "then": "SVG/lista visible; ninguna ejecución inyectada; fuente exacta si includeSource",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R39",
+      "title": "Scope y disclosure de exports",
+      "task": "E11",
+      "acceptance": "No filtrar datos no solicitados ni ocultar pérdidas.",
+      "tests": [
+        {
+          "id": "T39.1",
+          "layer": "unit",
+          "file": "tests/editor-export.unit.spec.ts",
+          "given": "selection nodes+edge externo y includeSource false",
+          "when": "export selection raster, JSON selection, HTML sin source",
+          "then": "raster induced scope; JSON rechaza; HTML solo índice mínimo declarado",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-export.unit.spec.ts",
+          "result": "scope de selección: JSON rechazado, edges/grupos inducidos al raster, canonical false"
+        },
+        {
+          "id": "T39.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-export.e2e.ts",
+          "given": "documento con notes/links/extensions no dibujados, descriptions y default source=false/metadata=minimal",
+          "when": "export SVG y revisar XML/HTML",
+          "then": "no JSON completo ni notes/links/extensions; conserva descriptions/datos mínimos del viewer y advierte sobre contenido visible",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-export-failures.e2e.ts",
+          "result": "SVG sin notes/links/extensions; JSON conserva source con los datos"
+        }
+      ]
+    },
+    {
+      "id": "R40",
+      "title": "Share document compatible y bounded",
+      "task": "E17",
+      "acceptance": "s= conserva significado; d= nuevo validado.",
+      "tests": [
+        {
+          "id": "T40.1",
+          "layer": "unit",
+          "file": "tests/editor-share.unit.spec.ts",
+          "given": "hash legacy, d=v1, futuro, malformed y expansión >256KiB",
+          "when": "decode con clock limitado",
+          "then": "legacy igual, futuro rechaza, expansión/timeout aborta y release reader",
+          "coverage": "missing"
+        },
+        {
+          "id": "T40.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-share.e2e.ts",
+          "given": "documento >URL máximo y clipboard denegado",
+          "when": "copy share",
+          "then": "ofrece JSON local, no red ni subida automática, toast no anuncia success",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R41",
+      "title": "Cards de contexto exacto",
+      "task": "E17",
+      "acceptance": "1200×630 sin recorte y query snapshot íntegro.",
+      "tests": [
+        {
+          "id": "T41.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-cards.e2e.ts",
+          "given": "ruta con parallel edge explícita y reach en ciclo",
+          "when": "descargar cards y decodificar",
+          "then": "dimensiones1200×630, todo grafo fit, highlight exacto y canonical=false",
+          "coverage": "missing"
+        },
+        {
+          "id": "T41.2",
+          "layer": "unit",
+          "file": "tests/editor-cards.unit.spec.ts",
+          "given": "receipt stale/alterado/vacío/unreachable",
+          "when": "export card",
+          "then": "rechaza sin fallback engañoso; canonical card sigue sin highlights",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R42",
+      "title": "Formatos negociados y límites raster",
+      "task": "E17",
+      "acceptance": "Nunca MIME incorrecto ni memoria descontrolada.",
+      "tests": [
+        {
+          "id": "T42.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-formats.e2e.ts",
+          "given": "browser sin WebP real/ClipboardItem y JPEG transparente",
+          "when": "seleccionar export",
+          "then": "disabled/error explícito, no PNG renombrado ni fondo cambiado silenciosamente",
+          "coverage": "missing"
+        },
+        {
+          "id": "T42.2",
+          "layer": "unit",
+          "file": "tests/editor-export-limits.unit.spec.ts",
+          "given": "dimensions 16384, 32MP y un pixel sobre límite",
+          "when": "planRaster y abort",
+          "then": "acepta borde válido; rechaza excedente antes de canvas allocation",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-export.unit.spec.ts",
+          "result": "escalas y límites de píxeles rechazados antes de allocation (9 tests PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R43",
+      "title": "Plugins y extensiones seguras",
+      "task": "E18",
+      "acceptance": "Registro trusted por instancia y renderer exportable.",
+      "tests": [
+        {
+          "id": "T43.1",
+          "layer": "unit",
+          "file": "tests/editor-renderers.unit.spec.ts",
+          "given": "dos registries y payload con typeKey no registrado",
+          "when": "resolver/validar/exportar",
+          "then": "no carga remota; renderer.unsupported; otra instancia intacta",
+          "coverage": "missing"
+        },
+        {
+          "id": "T43.2",
+          "layer": "package",
+          "file": "scripts/test-package.mjs",
+          "given": "tarball y custom node con validate/measure/renderSvg",
+          "when": "compilar y exportar fixture; round-trip extensions",
+          "then": "tipos públicos suficientes, datos conservados sin callbacks serializados",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R44",
+      "title": "Keyboard y accesibilidad funcional",
+      "task": "E19",
+      "acceptance": "Toda edición esencial realizable sin drag.",
+      "tests": [
+        {
+          "id": "T44.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-accessibility.e2e.ts",
+          "given": "usuario solo teclado y outline HTML",
+          "when": "crear, editar, mover, conectar, delete, undo, save, export",
+          "then": "foco visible/orden lógico, anuncios, cero serious/critical axe",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-accessibility.e2e.ts",
+          "result": "flujo completo solo-teclado: crear→editar→mover→conectar→borrar→undo→guardar→exportar; detectó y fijó el mix selectEdge/selectNode en el foco de nodos"
+        },
+        {
+          "id": "T44.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-accessibility.e2e.ts",
+          "given": "textarea/IME y foco fuera del editor",
+          "when": "atajos de borrar/copiar/guardar y zoom página200%",
+          "then": "sin secuestro; ningún contenido/control inaccesible por clipping",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-accessibility.e2e.ts",
+          "result": "atajos sin secuestro fuera de foco y editor operable sin clipping a 200% de zoom"
+        }
+      ]
+    },
+    {
+      "id": "R45",
+      "title": "Temas/locales y móvil",
+      "task": "E19",
+      "acceptance": "Experiencia coherente con DESIGN_SYSTEM.",
+      "tests": [
+        {
+          "id": "T45.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-design.e2e.ts",
+          "given": "light/dark × es/en a360/768/1440",
+          "when": "abrir todos paneles y export menu",
+          "then": "Geist cargada, 4–8px corners, contrastes y hit targets≥44 coarse",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-design.e2e.ts",
+          "result": "matriz 360/768/1440 × en/es: sin overflow, Geist cargada, hit targets ≥44 coarse, toolbar visible"
+        },
+        {
+          "id": "T45.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-design.e2e.ts",
+          "given": "touch pointercancel, inspector y desktop screenshots",
+          "when": "recorrer formularios y revisar baselines",
+          "then": "sin overflow página, preserveAspectRatio, surfaces opacas y sin stripes",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-design.e2e.ts",
+          "result": "aspecto del viewBox sin distorsión, superficies opacas y controles coherentes"
+        }
+      ]
+    },
+    {
+      "id": "R46",
+      "title": "Performance y budgets verificables",
+      "task": "E19",
+      "acceptance": "No prometer 1000 nodes sin medición.",
+      "tests": [
+        {
+          "id": "T46.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-performance.e2e.ts",
+          "given": "dataset seed fijada 100/200 y1000/2000",
+          "when": "medir load, frame drag, selection y route en Chromium",
+          "then": "satisface p95 y reporte ambiente de 06-tdd; no cambiar dataset para pasar",
+          "coverage": "partial",
+          "implementedIn": "tests/editor-performance.unit.spec.ts",
+          "result": "algoritmos p95 Node22 cumplen (validate 15.9, resolve 104, commit 26.9, bfs 5.2, export 122ms a 1000 nodos); frame p95 de drag 1000 nodos Chrome153 macOS = 366.7ms con 63 long frames >100ms — el per-frame resolve+validate excede 33.3ms en todas las plataformas medidas; gate de 33.3ms separado y aserrado solo en el runner de referencia (CI Chromium fijado); el editor necesita optimize E19 (worker/incremental) antes de cerrar"
+        },
+        {
+          "id": "T46.2",
+          "layer": "unit",
+          "file": "tests/editor-budgets.unit.spec.ts",
+          "given": "tarball y graphs de entries prod",
+          "when": "medir gzip/packed/unpacked",
+          "then": "lectura≤175/12KiB; Studio≤250/16KiB; paquete≤2/8MiB",
+          "coverage": "implemented",
+          "implementedIn": "scripts/check-budgets.mjs",
+          "result": "budgets gzip/packed/unpacked PASS dentro de pnpm check"
+        }
+      ]
+    },
+    {
+      "id": "R47",
+      "title": "Consumidores y backwards compatibility",
+      "task": "E20",
+      "acceptance": "APIs y docs se verifican contra el artifact instalado.",
+      "tests": [
+        {
+          "id": "T47.1",
+          "layer": "package",
+          "file": "scripts/test-package.mjs",
+          "given": "tarball en limpio, ejemplos siete tipos+nuevos",
+          "when": "build React18/19 y SSR imports",
+          "then": "contratos legacy y nuevos compilan sin src alias ni singleton duplicado",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-package.mjs",
+          "result": "12 tests tarball React 18/19 con resolvers y sin alias a src"
+        },
+        {
+          "id": "T47.2",
+          "layer": "framework",
+          "file": "scripts/test-frameworks.mjs",
+          "given": "Next/Vite consumidores de tarball",
+          "when": "build, hidratar y editar/exportar",
+          "then": "sin hydration warnings/window en server; CSS/fonts y subpaths resolubles",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-frameworks.mjs",
+          "result": "PASS Vite 7.3.6 y Next 15.5.25 con StrictMode"
+        }
+      ]
+    },
+    {
+      "id": "R48",
+      "title": "Release y documentación honestas",
+      "task": "E21",
+      "acceptance": "Gate publicado distinto de local check.",
+      "tests": [
+        {
+          "id": "T48.1",
+          "layer": "unit",
+          "file": "tests/editor-release.unit.spec.ts",
+          "given": "dist/schema/docs stale o docs prometen API no distribuida",
+          "when": "release verification",
+          "then": "bloqueo con causa, sin cambiar channel a stable por tests locales",
+          "coverage": "implemented",
+          "implementedIn": "tests/release-verification.unit.spec.ts",
+          "result": "bloqueo por evidencia distinta de local check (2 tests PASS)"
+        },
+        {
+          "id": "T48.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-docs.e2e.ts",
+          "given": "docs build con Pages base y snapshot anterior",
+          "when": "recorrer guías/ejemplos/links es/en y sin JS",
+          "then": "rutas correctas y snapshot antiguo preservado; publicación requiere autorización",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/snapshots.e2e.ts",
+          "result": "frozen A conservado tras servir B + docs.e2e (E2E PASS)"
+        }
+      ]
+    },
+    {
+      "id": "R49",
+      "title": "Comparación de documentos",
+      "task": "E22",
+      "acceptance": "Delta exacta sin heurísticas de rename/impact.",
+      "tests": [
+        {
+          "id": "T49.1",
+          "layer": "unit",
+          "file": "tests/editor-compare.unit.spec.ts",
+          "given": "same IDs+label change, moved node, renamed ID y changed sequence order",
+          "when": "compare",
+          "then": "modified semántico, presentation-only, remove+add, reorder semántico respectivamente",
+          "coverage": "missing"
+        },
+        {
+          "id": "T49.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-compare.e2e.ts",
+          "given": "Before/Delta/After y tipo incompatible",
+          "when": "navegar cambios con teclado/export",
+          "then": "IDs exactos, inputs intactos; incompatible rechaza; no claims de merge safety",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R50",
+      "title": "Evidencia declarada versus verificada",
+      "task": "E23",
+      "acceptance": "No confiar badges importados.",
+      "tests": [
+        {
+          "id": "T50.1",
+          "layer": "unit",
+          "file": "tests/editor-evidence.unit.spec.ts",
+          "given": "JSON con verified=true, path traversal, commit/rango inválido",
+          "when": "validate/verify",
+          "then": "unknown field o diagnostics; no acceso a red/fs ni verified desde input",
+          "coverage": "missing"
+        },
+        {
+          "id": "T50.2",
+          "layer": "unit",
+          "file": "tests/editor-evidence.unit.spec.ts",
+          "given": "verifier fake de commit/blob correcto e incorrecto",
+          "when": "resolver receipt",
+          "then": "verified solo match completo; mismatch/unavailable sin false positive",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R51",
+      "title": "Deployment profile explícito",
+      "task": "E23",
+      "acceptance": "Reglas declarativas opt-in y fail-closed.",
+      "tests": [
+        {
+          "id": "T51.1",
+          "layer": "unit",
+          "file": "tests/editor-profiles.unit.spec.ts",
+          "given": "owner faltante, múltiples regiones, db pública, crossing ausente",
+          "when": "validar con perfil on/off",
+          "then": "on falla por facts exactos; off no impone perfil ni descubre infraestructura",
+          "coverage": "missing"
+        },
+        {
+          "id": "T51.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-profiles.e2e.ts",
+          "given": "perfil inválido en inspector",
+          "when": "solicitar export publish",
+          "then": "no se desactiva profile automáticamente; diagnóstico navega al nodo/edge",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R52",
+      "title": "Motion y WebM finitos",
+      "task": "E24",
+      "acceptance": "Capability-gated con recursos liberados.",
+      "tests": [
+        {
+          "id": "T52.1",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-motion.e2e.ts",
+          "given": "codec soportado y story autorada",
+          "when": "grabar y decodificar archivo",
+          "then": "duration bounded, pixels no vacíos, final frame, sin UI overlays",
+          "coverage": "missing"
+        },
+        {
+          "id": "T52.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-motion.e2e.ts",
+          "given": "no codec, onerror, abort, hidden y reduced-motion",
+          "when": "intentar/grabar/cancelar",
+          "then": "unavailable o cancelled real; tracks/URLs/timers liberados, no falso éxito",
+          "coverage": "missing"
+        }
+      ]
+    },
+    {
+      "id": "R53",
+      "title": "Conversión explícita sin pérdida silenciosa",
+      "task": "E03",
+      "acceptance": "Graph nuevo no reemplaza al documento original.",
+      "tests": [
+        {
+          "id": "T53.1",
+          "layer": "unit",
+          "file": "tests/editor-conversion.unit.spec.ts",
+          "given": "sequence con activation, band decisions y ER fields",
+          "when": "convertToGraph",
+          "then": "ID de doc nuevo y receipt enumera campos/semántica no transferida, original intacto",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-conversion.unit.spec.ts",
+          "result": "conversión como documento nuevo con losses declarados (7 tests PASS)"
+        },
+        {
+          "id": "T53.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-conversion.e2e.ts",
+          "given": "documento dirty estructurado",
+          "when": "cancelar y aceptar conversión",
+          "then": "cancel sin cambios; accept abre nuevo documento sin sobreescribir guardado",
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-conversion.e2e.ts",
+          "result": "acción Convert to graph en Studio con losses y confirmación: cancel conserva documento/borrador/guardado; accept abre documento nuevo sin sobrescribir la copia original"
+        }
+      ]
+    },
+    {
+      "id": "R54",
+      "title": "Characterization guard de baseline",
+      "task": "E00",
+      "acceptance": "El punto de partida se mide antes de refactor.",
+      "tests": [
+        {
+          "id": "T54.1",
+          "layer": "unit",
+          "file": "tests/editor-baseline.unit.spec.ts",
+          "given": "siete specs y exports existentes",
+          "when": "resolver geometría y serialize helpers",
+          "then": "mismas identidades públicas y errores esperados reproducibles",
+          "coverage": "implemented",
+          "implementedIn": "tests/contracts.unit.spec.ts",
+          "result": "caracterización legacy de los siete tipos (8 tests PASS)"
+        },
+        {
+          "id": "T54.2",
+          "layer": "package",
+          "file": "scripts/test-package.mjs",
+          "given": "tarball actual limpio",
+          "when": "run consumer characterization",
+          "then": "10 pruebas existentes conservadas, baseline documentada sin fingir disponibilidad npm",
+          "coverage": "implemented",
+          "implementedIn": "scripts/test-package.mjs",
+          "result": "12 tests de consumidor tarball conservados"
+        }
+      ]
+    },
+    {
+      "id": "R55",
+      "title": "API de metadata y source privacy",
+      "task": "E02",
+      "acceptance": "Texto/URL son datos y las policies no viajan desde imports.",
+      "tests": [
+        {
+          "id": "T55.1",
+          "layer": "unit",
+          "file": "tests/editor-security.unit.spec.ts",
+          "given": "hostile-inputs y extensions con límites",
+          "when": "importar y renderizar cada frontera",
+          "then": "texto literal; schemes rechazados; extensions no cargan código ni elevan límites",
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-validation.unit.spec.ts",
+          "result": "extensions acotadas por bytes y namespace sin ejecutar payloads; schemes rechazados"
+        },
+        {
+          "id": "T55.2",
+          "layer": "e2e",
+          "file": "tests/e2e/editor-security.e2e.ts",
+          "given": "HTML export, forged storage y fuente con caracteres especiales",
+          "when": "abrir, restaurar y seguir link con gesto",
+          "then": "CSP sin conexiones, no execute, rel seguro, sin logs de tokens/rutas privadas",
+          "coverage": "partial",
+          "implementedIn": "tests/e2e/editor-security.e2e.ts",
+          "result": "almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y schemes rechazados antes de layout; sin logs privados. Falta CSP/offline del HTML export (depende de E16)"
+        }
+      ]
+    },
+    {
+      "id": "R56",
+      "title": "Auto-layout es asíncrono solo por adapter explícito",
+      "task": "E18",
+      "acceptance": "Provider no controla el documento ni omite locks.",
+      "tests": [
+        {
+          "id": "T56.1",
+          "layer": "unit",
+          "file": "tests/editor-providers.unit.spec.ts",
+          "given": "provider devuelve scene con nodeId ajeno o lock movido",
+          "when": "aplicar resultado con baseRevision correcta",
+          "then": "rechazo semántico, sin side effects ni history parcial",
+          "coverage": "missing"
+        },
+        {
+          "id": "T56.2",
+          "layer": "unit",
+          "file": "tests/editor-providers.unit.spec.ts",
+          "given": "provider valido y otro que rechaza Promise",
+          "when": "request layout y cleanup",
+          "then": "aplicar un commit; error aislado conserva last-good y puede reintentar",
+          "coverage": "missing"
+        }
+      ]
+    }
+  ]
+}

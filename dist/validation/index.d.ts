@@ -1,4 +1,5 @@
-import { DiagramSpec } from '../types.js';
+import { l as DiagramSpec } from '../layout-BFDKbm6N.js';
+import '../theme.js';
 
 interface ValidationIssue {
     path: string;

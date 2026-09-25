@@ -104,7 +104,7 @@ try {
     run(process.execPath, ['--conditions=react-server', 'server-imports.mjs'], consumer)
 
   const imports = Object.keys(manifest.exports)
-    .filter((entry) => entry !== './styles.css')
+    .filter((entry) => typeof manifest.exports[entry] !== 'string')
     .map((entry, index) => {
       const specifier = entry === '.' ? manifest.name : `${manifest.name}/${entry.slice(2)}`
       return `import * as Entry${index} from '${specifier}'\nvoid Entry${index}`
