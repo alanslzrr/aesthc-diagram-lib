@@ -2,7 +2,7 @@
 
 > Ejecución aprobada por el usuario. Implementación en curso: consulta [el informe de ejecución](execution/README.md). La trazabilidad mapea cada escenario a su prueba real (`implementedIn`) con estado y evidencia; `file` sigue siendo el destino propuesto.
 
-**Estado:** especificación aprobada; implementación parcial en curso. La trazabilidad distingue 50 escenarios implementados, 24 parciales y 38 sin cobertura localizada (fecha 2026-09-24). Los contratos describen el destino completo, no solo los exports disponibles. No se ha publicado esta evolución.
+**Estado:** especificación aprobada; implementación parcial en curso. La trazabilidad distingue 80 escenarios implementados, 2 parciales y 30 sin cobertura localizada (fecha 2026-09-25). Los parciales son `T46.1` (protocolo completo de rendimiento/memoria de E19) y `T55.2` (CSP/offline del HTML export, dependiente de E16). Los contratos describen el destino completo, no solo los exports disponibles. No se ha publicado esta evolución.
 **Fecha:** 2026-09-22. **Responsable de aprobación:** mantenedor de `@aesthc/diagram-lib`.
 **Baseline local:** `cdf37a87c94f9ea17f29c62f45e2128bec627763`, paquete `0.3.0`, canal candidate.
 **Referencia auditada:** Archify `1bb61c69538e37d80793b25843f620e55469f3a2`, development `2.17.0-dev.1`.
@@ -58,7 +58,7 @@ node docs/specs/editable-canvas/verify-spec.mjs
 pnpm exec tsc --project docs/specs/editable-canvas/tsconfig.json
 ```
 
-El primer comando verifica referencias, fixtures y trazabilidad del **spec**; el segundo compila los tipos propuestos contra el contrato actual. Ninguno demuestra que exista el editor. Las semillas RED están fuera de `tests/` para no romper la baseline; el plan explica cuándo copiarlas.
+El primer comando verifica referencias, fixtures y trazabilidad del **spec**; el segundo compila los tipos propuestos contra el contrato actual. Ninguno certifica la cobertura funcional completa: el editor y sus superficies existen y se prueban por separado (ver [el informe de ejecución](execution/README.md)), pero el checker no sustituye esos gates. Las semillas RED están fuera de `tests/` para no romper la baseline; el plan explica cuándo copiarlas.
 
 ## Entregables incluidos
 

@@ -1,11 +1,97 @@
 # Ejecución del canvas editable
 
-Fecha: 2026-09-23. Rama: `alanslzrr/editable-canvas-foundation`.
+Fecha: 2026-09-25. Rama `alanslzrr/editable-canvas-foundation` **mergeada** en `main` (PR #24, `0170013`); el árbol de trabajo está limpio. Este informe es un registro cronológico; la sección [Estado consolidado](#estado-consolidado-2026-09-25) describe la situación actual y las secciones posteriores conservan el histórico.
 
 **Estado: integración funcional parcial; el spec completo NO está terminado.**
-No se han publicado paquetes, creado releases ni hecho commits en esta ejecución.
+No se han publicado paquetes, creado releases ni hecho commits fuera de la PR en esta ejecución.
 El catálogo de 25 tareas continúa siendo el alcance objetivo. Tener una API o un
 test semilla verde no cierra todos los escenarios de una tarea.
+
+## Estado consolidado (2026-09-25)
+
+Resumen verificable de `traceability.json` (80 implementados / 2 parciales / 30 missing) más el
+resultado de la PR #24. Se distinguen tres niveles: **implementación** (código y prueba en disco),
+**aceptación completa** (todos los escenarios de la tarea verdes con su gate) y **release**
+(publicación, separada y pendiente de autorización). Un escenario `implemented` no equivale a
+aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
+
+| Tarea | Hito | Escenarios | Estado funcional | Falta para aceptación completa |
+|---|---|---|---|---|
+| E00 | M0 | 2/0/0 | Baseline, harness y caracterización legacy (8 unit + consumidor tarball) | Matriz bundled y visual legacy aprobados con Chromium fijado |
+| E01 | M0 | 6/0/0 | Documento v1, import/round-trip, IDs estables, locale y migración | Revisión final de contratos del candidato |
+| E02 | M0 | 5/1/0 | Schemas generados, límites N/N+1, entrada hostil; `T55.2` parcial | CSP/offline del HTML export (depende de E16) |
+| E03 | M0 | 4/0/0 | Ocho adapters, matriz CRUD/reorder y conversión a graph con losses | Combinaciones CRUD restantes del catálogo |
+| E04 | M0 | 8/0/0 | Store transaccional, historial acotado, perf de commit (1.4 ms a 1000 nodos) | Interleavings y benchmark de memoria del spec |
+| E05 | M1 | 4/0/0 | Primitivos alineados, medición pluggable y paridad de los siete tipos | Certificación visual Chromium fijado y shaping definitivo |
+| E06 | M1 | 6/0/0 | Pan/zoom/pinch, marquee, resize 8 direcciones, teclado y touch | Matriz ampliada de accesibilidad/gestos |
+| E07 | M1 | 6/0/0 | CRUD, conexiones, inspectores estructurados, rutas manuales e IME | Reconexión teclado/touch fuera de Chromium (IME CDP solo Chromium) |
+| E08 | M1 | 6/0/0 | Multiselección, clipboard, grupos, align/distribute y paste estructurado | Matriz de plataforma ampliada |
+| E09 | M1 | 4/0/0 | Composición pública, StrictMode, selectores granulares y scoped settings | Slots/configuración avanzada |
+| E10 | M1 | 6/0/0 | Persistencia opt-in, autosave, conflictos por token, cuarentena y save-as | Escenarios ampliados de fallos de almacenamiento |
+| E11 | M1 | 6/0/0 | Export JSON/SVG/PNG/JPEG/WebP, fuentes aisladas, límites y receipts | Paridad visual certificada y fallas de raster por plataforma |
+| E12 | M1 | 2/0/0 | Studio separado, entrypoints y consumidor del tarball | Cierre formal M1 (depende de gates restantes) |
+| E13 | M2 | 4/0/2 | Queries route/reach dirigidas con IDs exactos (T30–T31) | Viewer semántico: finder, inspector y stale queries (T32.1, T32.2) |
+| E14 | M2 | 0/0/6 | Validación de datos persistibles de vistas/story | Lenses, minimapa, collapse, vistas, story, presentación y deep links |
+| E15 | M2 | 1/0/3 | Diagnósticos geométricos publish (T36.1) | Router A* ortogonal, layout asíncrono con requestId y publish quality (T36.2, T37.x) |
+| E16 | M2 | 0/0/2 | — | HTML autónomo offline, CSP y fallback no-JS (desbloquea T55.2) |
+| E17 | M2 | 1/0/5 | Límites raster y capacidades (T42.2) | Codec `d=`/`v=`, cards 1200×630 y formatos negociados |
+| E18 | M2 | 0/0/4 | — | Registro de renderers por instancia y layout provider explícito |
+| E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
+| E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next | Matriz completa de superficies M2 en consumidores |
+| E21 | M2 | 2/0/0 | Release verification y snapshots de docs | Gates M2 que aún no certifican funcionalidades inexistentes; candidato y changelog |
+| E22 | M3 | 0/0/2 | — | Comparación Before/Delta/After (pendiente, tras M2) |
+| E23 | M3 | 0/0/4 | Validación de datos evidence (declarativos) | Verificador trusted y deployment profile |
+| E24 | M3 | 0/0/2 | — | Playback finito y WebM |
+
+### Riesgos pendientes registrados
+
+- **Retry de Firefox en navegación de documentación (T48.2):** en la corrida final de la PR #24
+  (492 passed) un escenario de Firefox se recuperó en retry; 57 quedaron skipped. No equivale a
+  una matriz estable: requiere re-ejecución y registro por proyecto antes del cierre de E19/E21.
+- **Binarios Playwright:** Chromium fijado del lockfile, Firefox y WebKit no tienen validación
+  completa local; Chrome instalado es evidencia complementaria, no certificación.
+- **IME:** composición nativa solo por CDP en Chromium; otros motores ejercitan eventos de
+  composición DOM simulados, no drivers de sistema operativo.
+- **T46.1:** el p95 cumple (16.8 ms vs 33.3 ms) y el protocolo de long-tasks, raster 2048² y 50
+  ciclos de memoria ya se ejecuta (ver continuación 2026-09-25); falta la certificación en el
+  runner de referencia de CI.
+- **T55.2:** permanece parcial hasta E16 (CSP/offline del HTML export).
+- **Accesibilidad manual (06-tdd §6.5):** la revisión manual de foco/contraste/reflow y la
+  prueba con lector de pantalla (VoiceOver/Safari o NVDA/Firefox) están pendientes de persona;
+  checklist con criterios de cierre en [a11y-checklist.md](a11y-checklist.md).
+
+## Continuación: protocolo E19 de rendimiento y memoria (2026-09-25)
+
+Sin commits ni publicación hasta el cierre de esta revisión. Se completa el protocolo de 06-tdd
+§6.6 y §6.5 en lo ejecutable por máquina; los ítems humanos quedan registrados en
+[a11y-checklist.md](a11y-checklist.md).
+
+- **Drag de 10 s con warmup (browser):** `tests/e2e/editor-performance.e2e.ts` hace un pase de
+  calentamiento de 60 movimientos y después mide un drag sostenido de 333 movimientos a 30 ms
+  (~10 s) sobre el dataset fijado de 1000 nodos/2000 edges. El p95 de frames se calcula solo
+  sobre la ventana medida.
+- **Long-tasks API:** se añade `PerformanceObserver({ type: 'longtask' })` durante el drag; el
+  gate de referencia exige **cero long tasks >100 ms** (6.6: "ninguna >100 ms tras carga"), no
+  solo deltas de RAF que mezclan ruido de planificación. Local (Chrome153 macOS,
+  `PERF_REFERENCE=1`): frame p95 **16.8 ms** sobre 688 frames, **0 long tasks >100 ms** (1 long
+  task total), 2 deltas de RAF >100 ms sin bloqueo asociado; las aserciones de referencia
+  pasan.
+- **Raster fijo 2048×2048:** `scripts/test-memory.mjs` mide la exportación PNG a canvas fijo
+  2048×2048 (seed cuadrado de 900 nodos, layout 3080², escala 2047.999/3080) con protocolo
+  asíncrono 3 warmups + 12 muestras. Local: p95 **302 ms** (≤3000 de referencia; ≤8000 techo
+  local).
+- **Memory gate (50 ciclos):** el mismo harness monta/edita/exporta/dispone 50 veces el editor
+  completo (React + store + surface) con `--expose-gc` y `--enable-precise-memory-info`; blob
+  URLs **0 → 0** (revocadas) y heap post-GC **−2.8 MiB** (≤10 MiB de referencia). Evidencia en
+  `test-results/e19/metrics.json`. Ejecutable con `pnpm test:memory`; en CI corre como gate de
+  referencia en el job `frame-budget`.
+- **Características del runner:** cada medición adjunta plataforma, UA, hardwareConcurrency,
+  deviceMemory, disponibilidad de `performance.memory` y versión de React.
+- **IME:** la distinción nativo (CDP/Chromium) frente a composición simulada (DOM en
+  Firefox/WebKit) queda explícita en [a11y-checklist.md](a11y-checklist.md) y en los tests.
+
+T46.1 pasa de parcial con evidencia a parcial con protocolo ejecutado: queda la certificación en
+el runner de referencia (CI) y la revisión humana de accesibilidad.
 
 ## Implementación disponible
 

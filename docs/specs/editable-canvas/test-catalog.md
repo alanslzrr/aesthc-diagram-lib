@@ -1323,9 +1323,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-performance.e2e.ts`.
 
-**Cobertura:** [partial] `tests/editor-performance.unit.spec.ts`
+**Cobertura:** [partial] `tests/e2e/editor-performance.e2e.ts`
 
-**Evidencia:** algoritmos p95 Node22 cumplen (validate 15.9, resolve 104, commit 26.9, bfs 5.2, export 122ms a 1000 nodos); frame p95 de drag 1000 nodos Chrome153 macOS = 366.7ms con 63 long frames >100ms — el per-frame resolve+validate excede 33.3ms en todas las plataformas medidas; gate de 33.3ms separado y aserrado solo en el runner de referencia (CI Chromium fijado); el editor necesita optimize E19 (worker/incremental) antes de cerrar.
+**Evidencia:** Algoritmos (gate aislado test:perf, mediana de p95, 1000 nodos): validate 21.7, resolve 154.5, commit 1.4, bfs 7.6, export 389.2 ms — dentro de presupuesto. Drag 10 s con warmup sobre 1000 nodos/2000 edges (tests/e2e/editor-performance.e2e.ts): frame p95 16.8 ms sobre 688 frames con la aserción de 33.3 ms (runner Linux de referencia run 36101931596; local Chrome153 macOS PERF_REFERENCE=1 idéntico), y 0 long tasks >100 ms por PerformanceObserver (6.6: ninguna >100 ms tras carga). Raster fijo 2048x2048 (scripts/test-memory.mjs, 3 warmups + 12 muestras): p95 local 302 ms ≤3000. Memory gate: 50 ciclos mount/edit/export/dispose con --expose-gc: blob URLs 0→0 y heap post-GC −2.8 MiB ≤10 MiB; evidencia test-results/e19/metrics.json. Queda parcial únicamente por: certificación de estos gates en el runner de referencia de CI (job frame-budget) y la revisión humana de accesibilidad registrada en execution/a11y-checklist.md.
 
 - **Given:** dataset seed fijada 100/200 y1000/2000.
 - **When:** medir load, frame drag, selection y route en Chromium.
