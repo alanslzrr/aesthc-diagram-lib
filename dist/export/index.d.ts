@@ -1,5 +1,35 @@
-import { D as Diagnostic, b as EntityRef, R as Result, c as DiagramDocument } from '../layout-C01UhqPQ.js';
+import { g as DiagramDocument, R as Result, m as Diagnostic, n as EntityRef } from '../layout-dln3eGv4.js';
 import '../theme.js';
+
+interface ExportHtmlOptions {
+    /** Minified standalone viewer runtime (dist/standalone/viewer.js). */
+    runtime: string;
+    /** Viewer stylesheet (dist/viewer.css). */
+    css: string;
+    fonts: {
+        sans: Uint8Array;
+        mono: Uint8Array;
+    };
+    theme?: 'light' | 'dark';
+    title?: string;
+    /** Embed the canonical source JSON for round-trip recovery. */
+    includeSource?: boolean;
+}
+interface ExportHtmlArtifact {
+    html: string;
+    receipt: {
+        documentId: string;
+        revision: number;
+        mimeType: 'text/html';
+        bytes: number;
+        canonical: boolean;
+        sourceIncluded: boolean;
+        verified: false;
+        runtimeBytes: number;
+        fontBytes: number;
+    };
+}
+declare function exportDocumentHtml(input: DiagramDocument, options: ExportHtmlOptions): Result<ExportHtmlArtifact>;
 
 type ExportFormat = 'json' | 'svg' | 'png' | 'jpeg' | 'webp';
 interface ExportOptions {
@@ -55,4 +85,4 @@ declare function getExportCapabilities(): {
 declare function downloadArtifact(artifact: ExportArtifact, filename: string): Result<void>;
 declare function copyArtifact(artifact: ExportArtifact): Promise<Result<void>>;
 
-export { type ExportArtifact, type ExportFormat, type ExportOptions, copyArtifact, downloadArtifact, exportDocument, getExportCapabilities };
+export { type ExportArtifact, type ExportFormat, type ExportHtmlArtifact, type ExportHtmlOptions, type ExportOptions, copyArtifact, downloadArtifact, exportDocument, exportDocumentHtml, getExportCapabilities };

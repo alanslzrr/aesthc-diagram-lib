@@ -825,6 +825,7 @@ export {
   isNodeLocked,
   pruneReferences,
   applyCommand,
+  estimateTextWidth,
   createCanvasTextMeasurer,
   createEmbeddedFontTextMeasurer,
   anchorPoint,

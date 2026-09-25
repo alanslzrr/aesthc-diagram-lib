@@ -151,7 +151,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /export
 
-`ExportArtifact`, `ExportFormat`, `ExportOptions`, `copyArtifact`, `downloadArtifact`, `exportDocument`, `getExportCapabilities`
+`ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `copyArtifact`, `downloadArtifact`, `exportDocument`, `exportDocumentHtml`, `getExportCapabilities`
 
 ### /persistence
 

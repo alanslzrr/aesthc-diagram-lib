@@ -8,10 +8,10 @@ import {
 } from "../chunk-23MOXLIZ.js";
 import {
   downloadArtifact
-} from "../chunk-BAFGJGDC.js";
+} from "../chunk-RER43UVE.js";
 import {
   resolveDocument
-} from "../chunk-FTHHFRVE.js";
+} from "../chunk-EAOYH4UI.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import "../chunk-3MHLUDWC.js";
@@ -339,7 +339,7 @@ var StoryPlayback = class {
     void this.clock;
   }
   steps;
-  stepIndex = 0;
+  stepIndex = -1;
   timer;
   state = "idle";
   callbacks;
@@ -360,7 +360,7 @@ var StoryPlayback = class {
     if (this.steps.length === 0) return false;
     this.clearTimer(this.timer);
     this.timer = void 0;
-    this.stepIndex = fromIndex === void 0 ? this.stepIndex : Math.max(0, fromIndex);
+    this.stepIndex = Math.max(0, fromIndex ?? this.stepIndex);
     this.state = "playing";
     this.callbacks.onStep(this.stepIndex);
     this.scheduleNext();
@@ -399,7 +399,7 @@ var StoryPlayback = class {
     this.timer = void 0;
     if (this.state !== "idle" && this.state !== "ended") this.callbacks.onStop();
     this.state = "idle";
-    this.stepIndex = 0;
+    this.stepIndex = -1;
   }
   end() {
     this.clearTimer(this.timer);
@@ -411,7 +411,7 @@ var StoryPlayback = class {
     this.clearTimer(this.timer);
     this.timer = void 0;
     this.state = "idle";
-    this.stepIndex = 0;
+    this.stepIndex = -1;
   }
   scheduleNext() {
     if (this.state !== "playing") return;

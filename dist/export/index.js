@@ -2,9 +2,10 @@ import {
   copyArtifact,
   downloadArtifact,
   exportDocument,
+  exportDocumentHtml,
   getExportCapabilities
-} from "../chunk-BAFGJGDC.js";
-import "../chunk-FTHHFRVE.js";
+} from "../chunk-RER43UVE.js";
+import "../chunk-EAOYH4UI.js";
 import "../chunk-VUW7SRON.js";
 import "../chunk-P7FW66WE.js";
 import "../chunk-3MHLUDWC.js";
@@ -19,5 +20,6 @@ export {
   copyArtifact,
   downloadArtifact,
   exportDocument,
+  exportDocumentHtml,
   getExportCapabilities
 };

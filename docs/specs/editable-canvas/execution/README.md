@@ -33,7 +33,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E13 | M2 | 6/0/0 | Queries route/reach con IDs exactos y **viewer semántico completo** (T32.1, T32.2): finder determinista, inspector con paralelas, recibos e invalidación por revisión | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E14 | M2 | 6/0/0 | Lenses (roles/tags) con dimming sin tocar topología, collapse con proxies ligados a IDs originales, minimapa con navegación de cámara, story finita con owner único y reducción de movimiento, presentación con fallback y codec de estado viewer | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E15 | M2 | 3/0/0 | Diagnósticos publish, **router A* ortogonal acotado** y **layout asíncrono latest-wins** | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
-| E16 | M2 | 0/0/2 | — | HTML autónomo offline, CSP y fallback no-JS (desbloquea T55.2) |
+| E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E17 | M2 | 1/0/5 | Límites raster y capacidades (T42.2) | Codec `d=`/`v=`, cards 1200×630 y formatos negociados |
 | E18 | M2 | 0/0/4 | — | Registro de renderers por instancia y layout provider explícito |
 | E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
@@ -55,7 +55,9 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 - **T46.1:** el p95 cumple (16.8 ms vs 33.3 ms) y el protocolo de long-tasks, raster 2048² y 50
   ciclos de memoria ya se ejecuta (ver continuación 2026-09-25); falta la certificación en el
   runner de referencia de CI.
-- **T55.2:** permanece parcial hasta E16 (CSP/offline del HTML export).
+- **T55.2:** cerrado con E16 (2026-09-25): el artefacto HTML aplica CSP `connect-src 'none'`,
+  cero red/storage, sin ejecución de labels hostiles y fallback no-JS verificado en
+  `tests/e2e/editor-html.e2e.ts`.
 - **Accesibilidad manual (06-tdd §6.5):** la revisión manual de foco/contraste/reflow y la
   prueba con lector de pantalla (VoiceOver/Safari o NVDA/Firefox) están pendientes de persona;
   checklist con criterios de cierre en [a11y-checklist.md](a11y-checklist.md).
@@ -169,6 +171,23 @@ Cierra T36.2, T37.1 y T37.2 (cobertura 91 implementados / 2 parciales / 19 missi
   inválidas producen `export.font-invalid` accionable y cero artefactos falsos.
 - **Gates locales**: unit 357 PASS (7 nuevos), tarball PASS, budgets PASS (studio 170.7 KiB,
   viewer 139.1 KiB), E2E 9/9 PASS en chromium.
+
+## Continuación M2: HTML autónomo offline E16 (2026-09-25)
+
+Cierra T38.1, T38.2 y completa T55.2 (cobertura 94 implementados / 1 parcial / 17 missing).
+
+- **`src/export/standalone.tsx` + `scripts/build-standalone.mjs`**: runtime IIFE autocontenido
+  (React + viewer, 644 KB) construido en `pnpm build` y enviado en `dist/standalone/viewer.js`.
+  Valida el documento embebido antes de montar y reemplaza el fallback estático; nunca toca
+  storage ni red.
+- **`exportDocumentHtml`** (`@aesthc/diagram-lib/export`): artefacto HTML único con CSS del
+  viewer, fuentes WOFF2 en data URIs, SVG estático, listado legible de entidades/relaciones,
+  CSP `default-src 'none'; connect-src 'none'`, JSON embebido con `<`/`>` escapados
+  (`\u003c`) para que ningún label rompa el script, y el JSON canónico **solo** con
+  `includeSource: true`. Límite de 8 MiB.
+- **Gates locales**: E2E T38.1/T38.2 PASS en chromium (file:// con 0 red, 0 storage, fuentes
+  activas, búsqueda/ruta/story/tema operativos; scripts deshabilitados muestran el fallback;
+  labels hostiles no ejecutan), tarball PASS, budgets PASS (paquete 930 KB packed), unit 357.
 
 ## Implementación disponible
 

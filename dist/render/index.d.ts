@@ -1,4 +1,4 @@
-import { c as DiagramDocument, j as ResolvedScene } from '../layout-C01UhqPQ.js';
+import { g as DiagramDocument, h as ResolvedScene } from '../layout-dln3eGv4.js';
 import '../theme.js';
 
 /** Only this encoder writes authored strings into SVG/XML. */

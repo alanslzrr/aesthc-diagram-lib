@@ -19,7 +19,7 @@ export interface PlaybackCallbacks {
  * reduced-motion consumer shows static states with working Next/Previous.
  */
 export class StoryPlayback {
-  private stepIndex = 0
+  private stepIndex = -1
   private timer: unknown | undefined
   private state: PlaybackState = 'idle'
   private callbacks: PlaybackCallbacks
@@ -54,7 +54,7 @@ export class StoryPlayback {
     if (this.steps.length === 0) return false
     this.clearTimer(this.timer)
     this.timer = undefined
-    this.stepIndex = fromIndex === undefined ? this.stepIndex : Math.max(0, fromIndex)
+    this.stepIndex = Math.max(0, fromIndex ?? this.stepIndex)
     this.state = 'playing'
     this.callbacks.onStep(this.stepIndex)
     this.scheduleNext()
@@ -93,7 +93,7 @@ export class StoryPlayback {
     this.timer = undefined
     if (this.state !== 'idle' && this.state !== 'ended') this.callbacks.onStop()
     this.state = 'idle'
-    this.stepIndex = 0
+    this.stepIndex = -1
   }
   end(): void {
     this.clearTimer(this.timer)
@@ -105,7 +105,7 @@ export class StoryPlayback {
     this.clearTimer(this.timer)
     this.timer = undefined
     this.state = 'idle'
-    this.stepIndex = 0
+    this.stepIndex = -1
   }
   private scheduleNext(): void {
     if (this.state !== 'playing') return

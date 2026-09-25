@@ -311,3 +311,5 @@ export async function copyArtifact(artifact: ExportArtifact): Promise<Result<voi
     return failure('clipboard.denied')
   }
 }
+export { exportDocumentHtml } from './html'
+export type { ExportHtmlArtifact, ExportHtmlOptions } from './html'

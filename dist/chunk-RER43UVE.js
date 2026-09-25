@@ -1,17 +1,20 @@
 import {
   createCanvasTextMeasurer,
   createEmbeddedFontTextMeasurer,
+  estimateTextWidth,
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-FTHHFRVE.js";
+} from "./chunk-EAOYH4UI.js";
 import {
   serializeDocument
 } from "./chunk-3MHLUDWC.js";
 import {
   canonical,
+  edgesOf,
   failure,
   issue,
+  nodesOf,
   success,
   validateDocument
 } from "./chunk-6NELNSRC.js";
@@ -26,18 +29,118 @@ var notices_default = [
   'Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)\n\nThis Font Software is licensed under the SIL Open Font License, Version 1.1.\nThis license is copied below, and is also available with a FAQ at:\nhttps://openfontlicense.org\n\n\n-----------------------------------------------------------\nSIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\n-----------------------------------------------------------\n\nPREAMBLE\nThe goals of the Open Font License (OFL) are to stimulate worldwide\ndevelopment of collaborative font projects, to support the font creation\nefforts of academic and linguistic communities, and to provide a free and\nopen framework in which fonts may be shared and improved in partnership\nwith others.\n\nThe OFL allows the licensed fonts to be used, studied, modified and\nredistributed freely as long as they are not sold by themselves. The\nfonts, including any derivative works, can be bundled, embedded, \nredistributed and/or sold with any software provided that any reserved\nnames are not used by derivative works. The fonts and derivatives,\nhowever, cannot be released under any other type of license. The\nrequirement for fonts to remain under this license does not apply\nto any document created using the fonts or their derivatives.\n\nDEFINITIONS\n"Font Software" refers to the set of files released by the Copyright\nHolder(s) under this license and clearly marked as such. This may\ninclude source files, build scripts and documentation.\n\n"Reserved Font Name" refers to any names specified as such after the\ncopyright statement(s).\n\n"Original Version" refers to the collection of Font Software components as\ndistributed by the Copyright Holder(s).\n\n"Modified Version" refers to any derivative made by adding to, deleting,\nor substituting -- in part or in whole -- any of the components of the\nOriginal Version, by changing formats or by porting the Font Software to a\nnew environment.\n\n"Author" refers to any designer, engineer, programmer, technical\nwriter or other person who contributed to the Font Software.\n\nPERMISSION & CONDITIONS\nPermission is hereby granted, free of charge, to any person obtaining\na copy of the Font Software, to use, study, copy, merge, embed, modify,\nredistribute, and sell modified and unmodified copies of the Font\nSoftware, subject to the following conditions:\n\n1) Neither the Font Software nor any of its individual components,\nin Original or Modified Versions, may be sold by itself.\n\n2) Original or Modified Versions of the Font Software may be bundled,\nredistributed and/or sold with any software, provided that each copy\ncontains the above copyright notice and this license. These can be\nincluded either as stand-alone text files, human-readable headers or\nin the appropriate machine-readable metadata fields within text or\nbinary files as long as those fields can be easily viewed by the user.\n\n3) No Modified Version of the Font Software may use the Reserved Font\nName(s) unless explicit written permission is granted by the corresponding\nCopyright Holder. This restriction only applies to the primary font name as\npresented to the users.\n\n4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font\nSoftware shall not be used to promote, endorse or advertise any\nModified Version, except to acknowledge the contribution(s) of the\nCopyright Holder(s) and the Author(s) or with their explicit written\npermission.\n\n5) The Font Software, modified or unmodified, in part or in whole,\nmust be distributed entirely under this license, and must not be\ndistributed under any other license. The requirement for fonts to\nremain under this license does not apply to any document created\nusing the Font Software.\n\nTERMINATION\nThis license becomes null and void if any of the above conditions are\nnot met.\n\nDISCLAIMER\nTHE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\nOF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE\nCOPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,\nINCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL\nDAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\nFROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM\nOTHER DEALINGS IN THE FONT SOFTWARE.'
 ];
 
-// src/export/index.ts
+// src/export/html.ts
 function base64(bytes) {
   let raw = "";
   for (const byte of bytes) raw += String.fromCharCode(byte);
   return btoa(raw);
 }
 function fontCss(fonts) {
+  return `@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`;
+}
+function embedJson(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e");
+}
+function minimalDocument(document2) {
+  const reduced = structuredClone(document2);
+  for (const id of Object.keys(reduced.metadata.nodes)) delete reduced.metadata.nodes[id].notes;
+  delete reduced.metadata.engineeringProfile;
+  return reduced;
+}
+function exportDocumentHtml(input, options) {
+  const checked = validateDocument(input);
+  if (!checked.ok) return checked;
+  const document2 = checked.value;
+  const theme = options.theme ?? document2.presentation.theme.mode;
+  const resolved = resolveDocument(document2, {
+    quality: "edit",
+    requestId: "html",
+    measureText: createCanvasTextMeasurer() ?? estimateTextWidth
+  });
+  if (!resolved.ok) return resolved;
+  const svg = renderSvg(document2, resolved.value, {
+    instanceId: "standalone",
+    theme,
+    background: "theme"
+  });
+  const nodes = nodesOf(document2.spec);
+  const edges = edgesOf(document2.spec);
+  const nodeLabel = (id) => nodes.find((node) => node.id === id)?.label ?? id;
+  const locale = document2.locale;
+  const text = (en, es) => locale === "es" ? es : en;
+  const entityList = [
+    `<h2>${escapeXml(text("Entities", "Entidades"))}</h2>`,
+    "<ul>",
+    ...nodes.map((node) => {
+      const description = node.description;
+      return `<li><strong>${escapeXml(node.label)}</strong> <code>${escapeXml(node.id)}</code>${node.kind ? ` \u2014 ${escapeXml(node.kind)}` : ""}${description ? `<p>${escapeXml(description)}</p>` : ""}</li>`;
+    }),
+    "</ul>",
+    `<h2>${escapeXml(text("Relations", "Relaciones"))}</h2>`,
+    "<ul>",
+    ...edges.map(
+      (edge) => `<li><code>${escapeXml(edge.id ?? `${edge.from}\u2192${edge.to}`)}</code>: ${escapeXml(
+        nodeLabel(edge.from)
+      )} \u2192 ${escapeXml(nodeLabel(edge.to))}${edge.label ? ` (${escapeXml(edge.label)})` : ""}</li>`
+    ),
+    "</ul>"
+  ].join("\n");
+  const runtimeDocument = options.includeSource ? document2 : minimalDocument(document2);
+  const sourceSection = options.includeSource ? `<script type="application/json" id="aesthc-source">${canonical(document2).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e")}</script>` : "";
+  const html = [
+    "<!doctype html>",
+    `<html lang="${escapeXml(locale)}">`,
+    "<head>",
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<meta name="color-scheme" content="light dark">',
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">`,
+    `<title>${escapeXml(options.title ?? document2.spec.caption)}</title>`,
+    `<!-- ${escapeXml(notices_default.join(" "))} -->`,
+    `<style>${fontCss(options.fonts)}${options.css}body{margin:0}main{padding:16px}.aesthc-static svg{display:block;max-width:none;height:auto}#aesthc-standalone{min-height:100vh}</style>`,
+    "</head>",
+    "<body>",
+    `<main id="aesthc-fallback" data-theme="${theme}">`,
+    `<div class="aesthc-static">${svg}</div>`,
+    entityList,
+    "</main>",
+    '<div id="aesthc-standalone" hidden></div>',
+    `<script type="application/json" id="aesthc-document">${embedJson(runtimeDocument)}</script>`,
+    sourceSection,
+    `<script>${options.runtime}</script>`,
+    "</body>",
+    "</html>"
+  ].join("\n");
+  const bytes = new TextEncoder().encode(html).byteLength;
+  if (bytes > 8 * 1024 * 1024) return failure("export.bytes");
+  return success({
+    html,
+    receipt: {
+      documentId: document2.id,
+      revision: document2.revision,
+      mimeType: "text/html",
+      bytes,
+      canonical: true,
+      sourceIncluded: !!options.includeSource,
+      verified: false,
+      runtimeBytes: new TextEncoder().encode(options.runtime).byteLength,
+      fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength
+    }
+  });
+}
+
+// src/export/index.ts
+function base642(bytes) {
+  let raw = "";
+  for (const byte of bytes) raw += String.fromCharCode(byte);
+  return btoa(raw);
+}
+function fontCss2(fonts) {
   for (const bytes of [fonts.sans, fonts.mono])
     if (bytes.length > 512 * 1024 || String.fromCharCode(...bytes.slice(0, 4)) !== "wOF2")
       return failure("export.font-invalid");
   return success(
-    `/* ${escapeXml(notices_default.join("\n"))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`
+    `/* ${escapeXml(notices_default.join("\n"))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base642(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base642(fonts.mono)}) format("woff2")}`
   );
 }
 async function raster(svg, mime, width, height, signal) {
@@ -146,7 +249,7 @@ async function exportDocument(input, options) {
     let fonts = "";
     let measurer;
     if (options.fonts) {
-      const result = fontCss(options.fonts);
+      const result = fontCss2(options.fonts);
       if (!result.ok) return result;
       fonts = result.value;
       measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono);
@@ -268,6 +371,7 @@ async function copyArtifact(artifact) {
 }
 
 export {
+  exportDocumentHtml,
   exportDocument,
   getExportCapabilities,
   downloadArtifact,

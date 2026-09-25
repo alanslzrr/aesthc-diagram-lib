@@ -1,4 +1,4 @@
-import { c as DiagramDocument, R as Result, E as EditorStore } from '../layout-C01UhqPQ.js';
+import { g as DiagramDocument, R as Result, E as EditorStore } from '../layout-dln3eGv4.js';
 import '../theme.js';
 
 interface StoredDocument {

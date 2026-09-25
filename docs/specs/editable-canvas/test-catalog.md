@@ -1123,7 +1123,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-html.e2e.ts`
+
+**Evidencia:** artefacto HTML autónomo abierto desde file:// sin red ni storage: runtime standalone embebido (React+viewer), fuentes WOFF2 en data URIs activas, búsqueda, ruta, story manual y tema del documento operativos; 0 recursos http(s), 0 writes de storage y 0 errores de página; tamaño del artefacto ≤8 MiB (E2E chromium PASS).
 
 - **Given:** artifact file:// y todos requests bloqueados.
 - **When:** buscar, route, theme y story manual.
@@ -1133,7 +1135,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-html.e2e.ts`
+
+**Evidencia:** mismo artefacto con JavaScript deshabilitado: SVG estático y listado legible de entidades/relaciones visibles; labels hostiles (`</script>`, `<img onerror>`) permanecen datos escapados (sin ventanas __pwned), sin errores; el JSON canónico solo se embebe con includeSource explícito (E2E chromium PASS).
 
 - **Given:** mismo artifact scripts disabled y malicious label.
 - **When:** abrir archivo.
@@ -1611,9 +1615,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-security.e2e.ts`.
 
-**Cobertura:** [partial] `tests/e2e/editor-security.e2e.ts`
+**Cobertura:** [implemented] `tests/e2e/editor-security.e2e.ts`
 
-**Evidencia:** almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y schemes rechazados antes de layout; sin logs privados. Falta CSP/offline del HTML export (depende de E16).
+**Evidencia:** almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y url.scheme rechazado antes de layout; sin logs privados. El HTML export completa la frontera: artefacto desde file:// con CSP default-src 'none'/connect-src 'none', 0 peticiones de red, 0 storage, scripts deshabilitados muestran el fallback estático y labels hostiles nunca ejecutan (tests/e2e/editor-html.e2e.ts).
 
 - **Given:** HTML export, forged storage y fuente con caracteres especiales.
 - **When:** abrir, restaurar y seguir link con gesto.

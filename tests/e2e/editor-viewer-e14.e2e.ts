@@ -83,6 +83,9 @@ test('T34.2 reduced motion shows static steps with working Next/Previous and dis
   const story = page.getByRole('group', { name: 'Story' })
   await expect(story.getByRole('button', { name: 'Play' })).toBeDisabled()
   await expect(story.getByText('Reduced motion', { exact: false })).toBeVisible()
+  // Static navigation from the stopped state: Next shows 1/3, then 2/3.
+  await story.getByRole('button', { name: 'Next' }).click()
+  await expect(story.getByText('1/3', { exact: true })).toBeVisible()
   await story.getByRole('button', { name: 'Next' }).click()
   await expect(story.getByText('2/3', { exact: true })).toBeVisible()
   await story.getByRole('button', { name: 'Previous' }).click()

@@ -43,7 +43,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e02"></a>
 ## E02 — Schemas, límites y diagnósticos
 
-**Hito:** M0 · **Depende de:** E01 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
+**Hito:** M0 · **Depende de:** E01 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R04, R05, R55.
 
@@ -308,7 +308,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e16"></a>
 ## E16 — HTML viewer autónomo
 
-**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R38.
 

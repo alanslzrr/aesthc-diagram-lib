@@ -1,6 +1,6 @@
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { c as DiagramDocument, L as Locale, b as EntityRef, V as Viewport, s as StoryStep, N as NamedView, R as Result, j as ResolvedScene } from '../layout-C01UhqPQ.js';
+import { g as DiagramDocument, L as Locale, n as EntityRef, V as Viewport, s as StoryStep, N as NamedView, R as Result, h as ResolvedScene } from '../layout-dln3eGv4.js';
 import { GraphSnapshot, RouteResult, ReachResult, GraphFilter } from '../graph/index.js';
 export { GraphNodeInfo, NodeRelations, SearchMatch, SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes } from '../graph/index.js';
 import '../theme.js';
