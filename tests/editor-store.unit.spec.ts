@@ -549,7 +549,7 @@ describe('scene-only optimization boundaries', () => {
       id: 'caption',
       label: 'Caption',
       expectedRevision: 0,
-      commands: [{ type: 'spec.replace', spec }],
+      commands: [{ type: 'spec.replace', spec, references: 'reject' }],
     })
     store.dispatch({
       id: 'move',
