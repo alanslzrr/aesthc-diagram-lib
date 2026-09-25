@@ -25,6 +25,7 @@ body:has([data-theme='dark']) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 24px;
   padding: 24px 32px;
   border-bottom: 1px solid var(--adl-border);
@@ -110,4 +111,23 @@ body:has([data-theme='dark']) {
   justify-content: space-between;
   gap: 8px;
   padding: 4px 0;
+}
+
+.studio-actions > *,
+.studio-header > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.studio-actions label {
+  flex-wrap: wrap;
+}
+.studio-actions select {
+  max-width: 100%;
+}
+.studio-header label {
+  flex-wrap: wrap;
+}
+.studio-header select {
+  min-width: 0;
+  max-width: 100%;
 }

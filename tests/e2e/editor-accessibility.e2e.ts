@@ -67,10 +67,9 @@ test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({
   await page.evaluate(() => {
     ;(document.body.style as unknown as Record<string, string>).zoom = '200%'
   })
-  const noOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth <= window.innerWidth + 2,
-  )
-  expect(noOverflow).toBe(true)
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2))
+    .toBe(true)
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const box = await node.boundingBox()
   expect(box).toBeTruthy()
