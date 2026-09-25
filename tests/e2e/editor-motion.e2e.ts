@@ -80,7 +80,12 @@ async function importFixture(page: import('@playwright/test').Page) {
 
 test('T52.1 a supported codec records a decodable, bounded file with no camera access', async ({
   page,
+  browserName,
 }) => {
+  test.skip(
+    browserName !== 'chromium',
+    'canvas MediaRecorder codecs are certified in Chromium; other engines report unavailable',
+  )
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.addInitScript(() => {
     const state = window as unknown as { __getUserMediaCalls: number }
@@ -164,7 +169,9 @@ test('T52.2 reduced motion, missing codecs and cancellation never report a false
 
 test('T52.2 a browser without a WebM codec disables recording instead of producing a file', async ({
   browser,
+  browserName,
 }) => {
+  test.skip(browserName !== 'chromium', 'MediaRecorder stubbing is Chromium evidence')
   const context = await browser.newContext()
   const page = await context.newPage()
   await page.addInitScript(() => {

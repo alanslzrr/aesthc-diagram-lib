@@ -101,7 +101,11 @@ test('T40.2 a denied clipboard falls back to the JSON download message without a
   await expect(page.getByText('Share link copied.')).toHaveCount(0)
 })
 
-test('T40.2 a shared link opens the shared document in a fresh context', async ({ browser }) => {
+test('T40.2 a shared link opens the shared document in a fresh context', async ({
+  browser,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'clipboard permissions are Chromium evidence')
   const context = await browser.newContext({
     permissions: ['clipboard-read', 'clipboard-write'],
   })
