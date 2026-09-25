@@ -16,15 +16,22 @@ for (const width of [360, 768, 1440]) {
       }))
       expect(fonts.geist).toBe(true)
       expect(fonts.mono).toBe(true)
-      const svg = page.locator('.adl-editor-surface svg')
+      const layers = page.locator('.adl-editor-surface > svg')
       await expect
-        .poll(async () => {
-          const parts = ((await svg.getAttribute('viewBox')) ?? '0 0 1 1').split(' ').map(Number)
-          const box = await svg.boundingBox()
-          if (!box || parts.length !== 4) return Infinity
-          const viewRatio = parts[2] / parts[3]
-          return Math.abs(viewRatio - box.width / box.height) / viewRatio
-        })
+        .poll(() =>
+          layers.evaluateAll((svgs) => {
+            if (!svgs.length) return Infinity
+            return Math.max(
+              ...svgs.map((svg) => {
+                const parts = (svg.getAttribute('viewBox') ?? '0 0 1 1').split(' ').map(Number)
+                const box = svg.getBoundingClientRect()
+                if (parts.length !== 4 || !box.height) return Infinity
+                const viewRatio = parts[2] / parts[3]
+                return Math.abs(viewRatio - box.width / box.height) / viewRatio
+              }),
+            )
+          }),
+        )
         .toBeLessThan(0.02)
       const surfaces = await page.evaluate(() =>
         [...document.querySelectorAll('.adl-editor-inspector')].map((el) => {
