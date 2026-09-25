@@ -65,4 +65,18 @@ instead of regenerating anonymous IDs after reordering. No registry is required.
 Use the [editor guide](./editor.md) for composition, validation, export fonts,
 local persistence and known incomplete milestones. Studio has its own HTML entry
 and does not reinterpret existing playground `s=` links or overwrite its drafts.
+
+## M2 additions (no breaking changes)
+
+- `/viewer` + `/viewer.css`: read-only semantic viewer composition.
+- `/editor-core`: `routeOrthogonal`, `createRendererRegistry`,
+  `renderCustomNode`, `createLayoutProviderRegistry`, `runRegisteredLayout`
+  and the existing document/store/scene APIs.
+- `/export`: `exportDocumentHtml`, `cardSvg`, `exportCard`,
+  `probeExportCapabilities` and the existing JSON/SVG/PNG/JPEG/WebP pipeline.
+- `/persistence`: `encodeShareDocument` / `decodeShareDocument`; legacy `s=`
+  share links remain readable and unchanged.
+- The offline artifact is generated with `exportDocumentHtml` and the bundled
+  runtime in `dist/standalone/`; it is not a published subpath.
+
 These additions have not been published by this implementation task.

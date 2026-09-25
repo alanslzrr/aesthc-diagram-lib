@@ -115,6 +115,18 @@ Autosave is opt-in through `createAutosave(store, adapter, { key, token })`. It 
 
 The separate `studio.html` entry consumes public package exports. It supports local import/save/load, opt-in autosave, node editing and dragging, undo/redo, JSON drafts, appearance controls and file export in both locales. It does not upload documents.
 
+## M2 surfaces
+
+The viewer (finder, inspector, route/reach with receipt invalidation), lenses,
+group collapse with original-ID proxies, minimap, finite stories, presentation,
+bounded shares, 1200x630 cards, the self-contained offline HTML artifact and the
+per-instance renderer/provider registries are implemented and documented in the
+[viewer guide](./viewer.md), the [extending guide](./extending.md) and the
+[share/export guide](./share-export.md).
+
 ## Known limits of this implementation
 
-The exhaustive spec remains the target. Advanced renderer parity, routing certification, viewer stories/lenses, standalone HTML, share cards, plugins, document compare, evidence verification and motion are not established by the basic editor tests. Do not infer their availability from the proposed contract file in the spec.
+Document compare (M3), evidence verification and deployment profiles (M3) and
+WebM motion export (M3) are not implemented. Cross-browser certification runs in
+CI with the pinned browsers; a local Chrome is complementary evidence, not a
+replacement. Human screen-reader review remains a documented manual step.

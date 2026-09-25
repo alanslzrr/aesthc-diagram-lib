@@ -37,8 +37,8 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
 | E18 | M2 | 4/0/0 | **Renderers custom por instancia y providers de layout registrados** con aislamiento, rechazo y retry | T43.1, T43.2, T56.1 y T56.2 cerrados |
 | E19 | M2 | 5/1/0 | Gates a11y, temas/locales, budgets y frame p95 16.8 ms (run 36101931596) | `T46.1`: protocolo completo de rendimiento/memoria (long-tasks, 10 s drag, 50 ciclos, heap ≤10 MiB) y accesibilidad manual |
-| E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next | Matriz completa de superficies M2 en consumidores |
-| E21 | M2 | 2/0/0 | Release verification y snapshots de docs | Gates M2 que aún no certifican funcionalidades inexistentes; candidato y changelog |
+| E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next; documentación M2 publicada (viewer, extending, shares, offline HTML) | Pendiente solo la matriz cross-browser de CI (binarios fijados) |
+| E21 | M2 | 2/0/0 | Release verification, snapshots, changelog M2 y evidencia del candidato | Publicación npm/tags requieren autorización específica |
 | E22 | M3 | 0/0/2 | — | Comparación Before/Delta/After (pendiente, tras M2) |
 | E23 | M3 | 0/0/4 | Validación de datos evidence (declarativos) | Verificador trusted y deployment profile |
 | E24 | M3 | 0/0/2 | — | Playback finito y WebM |
@@ -222,6 +222,28 @@ restantes son M3).
 - **`examples/custom-node.tsx`**: ejemplo externo compilado contra el tarball (renderer metric-card
   y provider slow-grid) en React 18/19 y resolvers NodeNext/Bundler.
 - **Gates locales**: unit 367 PASS (5 nuevos), tarball PASS, budgets PASS, E2E sin regresiones.
+
+## Certificación local del candidato M2 (2026-09-25)
+
+M2 queda implementado a nivel de escenarios (103/1/8; los 8 restantes son M3). Batería local
+completa sobre el commit de esta sesión:
+
+| Gate | Resultado |
+|---|---|
+| `pnpm check` | PASS: **367 unit**, **2 perf**, tarball React 18/19, lint/formato/iconos/schemas/docs/tipos/build/site/budgets |
+| E2E completo, Chrome153 + Pixel7 emulado | **235 passed, 21 skipped, 0 fallos** (incluye viewer E13/E14, HTML offline E16, shares/cards/formatos E17, calidad E15) |
+| Frameworks Vite 7.3.6 / Next 15.5.25 (tarball) | PASS: build, hydration, estilos, teclado, edición/undo |
+| Memoria y raster (referencia) | PASS: raster 2048² p95 ~300 ms, 50 ciclos con heap −2.8 MiB y blobs 0→0 |
+| Frame p95 (drag 10 s) | 16.7-16.8 ms, 0 long tasks >100 ms |
+| `verify-spec.mjs` | PASS: 25 tareas, 56 requisitos, 112 escenarios, 103 implementados / 1 parcial / 8 missing (M3) |
+
+**No certificado en esta sesión (no ocultado):** Chromium fijado del lockfile, Firefox, WebKit y
+los runners de referencia de CI (frame/memoria) siguen pendientes de los binarios/entorno;
+la revisión humana de accesibilidad (lector de pantalla, foco/contraste/reflow) sigue en
+`a11y-checklist.md`; no se publicó npm ni se crearon tags/releases.
+
+Documentación M2 publicada: `docs/guides/viewer.md`, `docs/guides/extending.md`, ampliación de
+`share-export.md`/`editor.md`/`migration.md` y entrada de changelog.
 
 ## Implementación disponible
 
