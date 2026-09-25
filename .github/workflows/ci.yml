@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ci:
     needs: minimum-consumer
-    if: always()
+    if: ${{ !cancelled() }}
     name: Contracts and package
     runs-on: ubuntu-24.04
     steps:
@@ -42,7 +42,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Compare reviewed Chromium visuals
         run: pnpm test:visual
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --project=mobile-chromium --project=chromium --project=firefox --project=webkit --project=mobile
       - run: node scripts/test-frameworks.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
@@ -72,3 +72,29 @@ jobs:
           REACT_VERSION: 18.3.1
           REACT_TYPES_VERSION: 18.3.28
           REACT_DOM_TYPES_VERSION: 18.3.7
+
+  frame-budget:
+    name: Reference frame budget
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build && pnpm site:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Enforce the unchanged reference frame budget without competing browser workers
+        run: pnpm exec playwright test --project=performance --no-deps --workers=1
+        env:
+          PERF_REFERENCE: '1'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: frame-budget-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
