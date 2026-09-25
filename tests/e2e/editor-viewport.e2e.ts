@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test'
 
 async function dragNodeBy(page: import('@playwright/test').Page, dx: number, dy: number) {
   const node = page.getByRole('button', { name: 'Order API', exact: true })
-  await node.scrollIntoViewIfNeeded()
   const box = await node.boundingBox()
   if (!box) throw Error('node absent')
   const x = await node.getAttribute('x')
@@ -33,6 +32,7 @@ test.describe('viewport math under transforms', () => {
     isMobile,
   }) => {
     test.skip(isMobile, 'Mouse transform math; touch drag covered separately')
+    await page.setViewportSize({ width: 1280, height: 1000 })
     await page.goto('/studio.html')
     await page.evaluate(() => {
       const body = document.querySelector('.adl-editor-body') as HTMLElement | null
@@ -56,7 +56,6 @@ test('T08.1 the middle mouse button pans the camera without touching the documen
   test.skip(isMobile, 'Mouse-specific pan')
   await page.goto('/studio.html')
   const node = page.getByRole('button', { name: 'Order API', exact: true })
-  await node.scrollIntoViewIfNeeded()
   const box = await node.boundingBox()
   if (!box) throw Error('node absent')
   const before = await node.getAttribute('x')
