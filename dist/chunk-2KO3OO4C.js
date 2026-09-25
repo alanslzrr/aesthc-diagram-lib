@@ -1,4 +1,7 @@
 import {
+  BrandIcon
+} from "./chunk-GIHY37DH.js";
+import {
   nodeGeometry
 } from "./chunk-YKPE23VO.js";
 import {
@@ -13,9 +16,6 @@ import {
   PILL_H,
   PILL_R
 } from "./chunk-TVEV5XLW.js";
-import {
-  BrandIcon
-} from "./chunk-GIHY37DH.js";
 
 // src/canvas/DiagramCanvas.tsx
 import { useState } from "react";

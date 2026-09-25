@@ -1,4 +1,4 @@
-import { B as BandDiagramSpec, m as DiagramNodeVisual, n as DiagramRegistration } from './layout-BFDKbm6N.js';
+import { B as BandDiagramSpec, m as DiagramNodeVisual, n as DiagramRegistration } from './layout-DyDatn-R.js';
 import './theme.js';
 
 type Locale = 'en' | 'es';

@@ -31,12 +31,12 @@ import {
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-E5BZUBD3.js";
+} from "../chunk-7OXXAMDF.js";
+import "../chunk-KDAWQGDC.js";
 import {
   nodeGeometry
 } from "../chunk-YKPE23VO.js";
 import "../chunk-TVEV5XLW.js";
-import "../chunk-KDAWQGDC.js";
 
 // src/editor/index.tsx
 import {

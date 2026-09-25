@@ -1,4 +1,4 @@
-import { c as DiagramDocument, k as ResolvedScene } from '../layout-BFDKbm6N.js';
+import { c as DiagramDocument, j as ResolvedScene } from '../layout-DyDatn-R.js';
 import '../theme.js';
 
 /** Only this encoder writes authored strings into SVG/XML. */
@@ -22,6 +22,15 @@ interface RenderOptions {
      * keep the baseline free of the entities the delta pass redraws.
      */
     exclude?: {
+        nodes?: ReadonlySet<string>;
+        edges?: ReadonlySet<string>;
+    };
+    /**
+     * Mark exact entity ids for semantic highlighting (viewer routes, reach,
+     * cards). Parallel edges keep their own IDs and are marked individually.
+     * Rendering stays headless; styling is applied by CSS or an inline style.
+     */
+    highlight?: {
         nodes?: ReadonlySet<string>;
         edges?: ReadonlySet<string>;
     };
