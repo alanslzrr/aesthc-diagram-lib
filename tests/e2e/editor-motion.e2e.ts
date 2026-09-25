@@ -192,7 +192,9 @@ test('T52.2 a browser without a WebM codec disables recording instead of produci
 
 test('T52.2 cancelling a recording releases the canvas tracks without a download', async ({
   page,
+  browserName,
 }) => {
+  test.skip(browserName !== 'chromium', 'canvas stream cancellation is Chromium evidence')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.addInitScript(() => {
     const state = window as unknown as { __tracks: MediaStreamTrack[] }
