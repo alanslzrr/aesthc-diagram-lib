@@ -479,7 +479,9 @@ test('Studio resizes a whole selection from one anchored handle in a single undo
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 5 })
-  expect(Number(await api.getAttribute('width'))).toBeGreaterThan(beforeApi.width)
+  await expect
+    .poll(async () => Number(await api.getAttribute('width')))
+    .toBeGreaterThan(beforeApi.width)
   expect(Number(await api.getAttribute('height'))).toBeGreaterThan(beforeApi.height)
   expect(Number(await database.getAttribute('width'))).toBeGreaterThan(beforeDatabase.width)
   expect(Number(await database.getAttribute('y'))).toBeGreaterThan(beforeDatabase.y)
@@ -493,7 +495,9 @@ test('Studio resizes a whole selection from one anchored handle in a single undo
   const keyboard = page.locator('[data-resize-direction="se"][data-resize-selection]')
   await keyboard.focus()
   await page.keyboard.press('Shift+ArrowRight')
-  expect(Number(await api.getAttribute('width'))).toBeGreaterThan(beforeApi.width)
+  await expect
+    .poll(async () => Number(await api.getAttribute('width')))
+    .toBeGreaterThan(beforeApi.width)
   expect(Number(await database.getAttribute('width'))).toBeGreaterThan(beforeDatabase.width)
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   expect(Number(await api.getAttribute('width'))).toBe(beforeApi.width)

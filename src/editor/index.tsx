@@ -364,6 +364,7 @@ function EditorRelayout() {
     const scene = relayoutScene(current.document)
     if (!scene.ok) return
     const id = globalThis.crypto?.randomUUID?.() ?? String(Date.now())
+    transactionRef.current = id
     if (
       !store.beginGesture({ id, label: 'Re-layout', expectedRevision: current.document.revision })
         .ok
@@ -896,6 +897,7 @@ export function EditorSurface({
         event.currentTarget.releasePointerCapture(event.pointerId)
       return
     }
+    if (!cancel) flushMove()
     if (marquee.current?.pointer === event.pointerId) {
       if (cancel) cancelMarquee()
       else {
