@@ -1095,7 +1095,7 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Cobertura:** [implemented] `tests/editor-routing.unit.spec.ts`
 
-**Evidencia:** router ortogonal A* acotado y determinista (routeOrthogonal): clearance 12, presupuesto de bends (router.bends) y de estados (router.budget); ruta imposible reporta router.impossible sin atravesar obstáculos; self-loop sale y vuelve sin cruzar el nodo; dos llamadas idénticas producen puntos idénticos; paralelas separadas por slot del llamador sin fusionarse (unit 5/5 PASS).
+**Evidencia:** router ortogonal A* acotado y determinista (routeOrthogonal): clearance 12, presupuestos de estados y bends (router.bends/router.budget), ruta imposible explícita (router.impossible) y self-loops sin cruzar el nodo. Auditoría corregida: los márgenes se reordenan en los ejes y cada segmento completo (no solo sus vértices) se verifica contra todos los obstáculos expandidos; regresión con el salto del margen que atravesaba (399,98,111,70) y comprobación de no-cruce en geometrías mixtas (unit 8/8 PASS).
 
 - **Given:** obstáculos, parallel, self-loop y ruta imposible.
 - **When:** router a límite exacto de estados.
@@ -1107,7 +1107,7 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Cobertura:** [implemented] `tests/editor-layout-provider.unit.spec.ts`
 
-**Evidencia:** layout asíncrono con requestId, baseRevision y política latest-wins: A lento nunca sobrescribe a B (historial solo B); provider abortado no publica; applyLayoutResult rechaza revisión stale, nodeId desconocido y movimiento de locked (directo o por grupo) sin mutar documento ni historial; el resultado válido conserva los pins (unit 2/2 PASS).
+**Evidencia:** layout asíncrono con requestId, baseRevision y latest-wins; auditoría corregida: applyLayoutResult exige que expectedRevision y baseRevision coincidan con la revisión real del documento y valida el documento resultante completo (NaN, tamaños negativos, zOrder con IDs ajenos se rechazan); runRegisteredLayout re-verifica la revisión tras el await con latestRevision; regresiones unit para revisión real, escena inválida y cambio durante la petición (8/8 PASS).
 
 - **Given:** provider A lento, B nuevo y abort.
 - **When:** resolver A después de B.
@@ -1197,7 +1197,7 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Cobertura:** [implemented] `tests/e2e/editor-share.e2e.ts`
 
-**Evidencia:** documento con enlace por encima del límite: la UI ofrece descarga JSON local, no anuncia éxito y no realiza peticiones fuera del host; portapapeles denegado: mensaje de JSON alternativo sin éxito falso (E2E chromium PASS).
+**Evidencia:** documento sobredimensionado: la UI ofrece descarga JSON local sin anunciar éxito; portapapeles denegado: mensaje alternativo; el Studio ahora consume el enlace al cargar (#d=/#s=): decodifica, valida y reemplaza el documento solo si es válido; un enlace ilegible conserva el documento local y lo informa; E2E compartir → abrir en contexto nuevo → verificar el documento compartido (3/3 PASS).
 
 - **Given:** documento >URL máximo y clipboard denegado.
 - **When:** copy share.
@@ -1275,7 +1275,7 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Cobertura:** [implemented] `tests/editor-renderers.unit.spec.ts`
 
-**Evidencia:** registries por instancia: typeKey desconocido reporta renderer.unsupported sin cargar código (fetch jamás invocado), duplicados rechazados, instancias aisladas (la segunda no ve el registro de la primera), payloads JSON puros sin callbacks serializados, validación del renderer y medición determinista antes de renderizar SVG canónico (unit 2/2 PASS).
+**Evidencia:** registries por instancia con typeKey desconocido → renderer.unsupported sin cargar código; auditoría corregida: el registro se integra al pipeline del documento — resolveDocument mide y renderiza vía renderer (data-custom-renderer, tamaño medido), un typeKey sin registrar produce renderer.unsupported, dibuja placeholder data-renderer-missing (nunca una card ordinaria) y bloquea export publish; exportDocument acepta renderers y propaga el código (4/4 PASS).
 
 - **Given:** dos registries y payload con typeKey no registrado.
 - **When:** resolver/validar/exportar.

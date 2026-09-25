@@ -23,7 +23,7 @@ renderers.register({
 const rendered = renderCustomNode(
   renderers,
   { typeKey: 'metric-card', data: { title: 'RPS', value: '1 240' } },
-  { fontSize: 13, theme: 'light', palette: { /* document palette */ }, x: 24, y: 24 },
+  { fontSize: 13, theme: 'light', palette: {/* document palette */}, x: 24, y: 24 },
 )
 ```
 
@@ -31,6 +31,14 @@ A payload with an unknown `typeKey` is reported as `renderer.unsupported` and is
 never fetched or evaluated. Duplicate registrations are rejected and other
 instances stay isolated. Payloads are plain JSON: callbacks are never serialized
 into documents.
+
+The registry is part of the document pipeline, not a side helper: pass
+`renderers` to `resolveDocument` and `exportDocument`, and nodes declaring a
+`renderer` payload are measured (the measured size becomes their geometry) and
+rendered as the canonical fragment (`data-custom-renderer`). Without a
+registered implementation the node is drawn as a placeholder
+(`data-renderer-missing`) — never as a standard card — and publish export fails
+with `renderer.unsupported`.
 
 ## Registered layout providers
 
@@ -43,7 +51,7 @@ last-good document untouched and allows a retry.
 import { createLayoutProviderRegistry, runRegisteredLayout } from '@aesthc/diagram-lib/editor-core'
 
 const providers = createLayoutProviderRegistry()
-providers.register({ id: 'grid', run: async ({ document, signal }) => ({ /* scene */ }) })
+providers.register({ id: 'grid', run: async ({ document, signal }) => ({/* scene */}) })
 
 const outcome = await runRegisteredLayout(document, providers, 'grid', {
   expectedRevision: document.revision,

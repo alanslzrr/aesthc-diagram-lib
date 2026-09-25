@@ -245,6 +245,31 @@ la revisión humana de accesibilidad (lector de pantalla, foco/contraste/reflow)
 Documentación M2 publicada: `docs/guides/viewer.md`, `docs/guides/extending.md`, ampliación de
 `share-export.md`/`editor.md`/`migration.md` y entrada de changelog.
 
+## Correcciones de la auditoría externa (2026-09-25)
+
+Cuatro bloqueantes reproducidos por la auditoría sobre `880069a`, corregidos con regresiones RED
+y commits separados por responsabilidad:
+
+1. **Resultados del proveedor de layout** (`2253964`): `applyLayoutResult` exige que
+   `expectedRevision` y `baseRevision` coincidan con la revisión **real** del documento y valida
+   el documento resultante completo (NaN, tamaños negativos y `zOrder` con IDs ajenos se
+   rechazan); `runRegisteredLayout` re-verifica la revisión tras el `await` con `latestRevision`.
+2. **Segmentos del router** (`d97047d`): los márgenes se reordenan dentro de cada eje y cada
+   segmento completo se verifica contra todos los obstáculos expandidos. Regresión con el salto
+   del margen que atravesaba `(399,98,111,70)` y comprobación de no-cruce en geometrías mixtas.
+3. **Renderers custom integrados** (`0c8023c`): `resolveDocument`/`renderSvg`/`exportDocument`
+   aceptan el registro; los nodos con `renderer` se miden y renderizan por el renderer
+   (`data-custom-renderer`), un `typeKey` sin registrar produce `renderer.unsupported`, dibuja un
+   placeholder `data-renderer-missing` (nunca una card ordinaria) y bloquea publish.
+4. **Enlaces compartidos** (`dbb143c`): el Studio decodifica `#d=`/`#s=` al cargar, valida y
+   reemplaza el documento; un enlace ilegible conserva el documento local. E2E compartir → abrir
+   en contexto nuevo → verificar.
+
+Batería reejecutada tras las correcciones: `pnpm check` (375 unit + 2 perf + tarball), E2E
+completo Chrome153 + Pixel7 **237 passed / 21 skipped / 0 fallos**, frameworks Vite/Next PASS,
+memoria/raster de referencia PASS (heap −2.7 MiB, blobs 0→0). La cobertura no cambia
+(103/1/8); las evidencias de T37.1, T37.2, T40.2 y T43.1 se rectificaron con los nuevos casos.
+
 ## Implementación disponible
 
 - Documento v1, importación de JSON/spec/localized/legacy explícito, IDs estables,
