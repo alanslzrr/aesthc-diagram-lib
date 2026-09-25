@@ -148,9 +148,51 @@ function pushTextOverflow(
 // Only immutable store specs can be reused. Mutable public inputs always seed afresh.
 const seedLayouts = new WeakMap<DiagramDocument['spec'], DiagramLayout>()
 
+interface PreviewCache {
+  document: DiagramDocument
+  context: ResolveContext
+  scene: ResolvedScene
+  extents: WeakMap<PlacedNode, ReturnType<typeof nodeTextExtent>>
+}
+
+/** Internal, instance-scoped resolver. Only immutable, validated previews are reusable. */
+export function createPreviewResolver() {
+  let previous: PreviewCache | undefined
+  return (document: DiagramDocument, context: ResolveContext): Result<ResolvedScene> => {
+    const immutable = Object.isFrozen(document) && Object.isFrozen(document.scene)
+    const reusable =
+      immutable &&
+      previous &&
+      context.skipDiagnostics &&
+      previous.context.skipDiagnostics &&
+      document.spec === previous.document.spec &&
+      document.presentation === previous.document.presentation &&
+      document.metadata === previous.document.metadata &&
+      context.measureText === previous.context.measureText &&
+      context.quality === previous.context.quality
+        ? previous
+        : undefined
+    const extents =
+      reusable?.extents ?? new WeakMap<PlacedNode, ReturnType<typeof nodeTextExtent>>()
+    const result = resolveScene(document, context, reusable, extents)
+    previous =
+      immutable && result.ok ? { document, context, scene: result.value, extents } : undefined
+    return result
+  }
+}
+
 export function resolveDocument(
   document: DiagramDocument,
   context: ResolveContext,
+): Result<ResolvedScene> {
+  return resolveScene(document, context)
+}
+
+function resolveScene(
+  document: DiagramDocument,
+  context: ResolveContext,
+  previous?: PreviewCache,
+  extents?: WeakMap<PlacedNode, ReturnType<typeof nodeTextExtent>>,
 ): Result<ResolvedScene> {
   if (context.signal?.aborted) return failure('operation.aborted')
   const checked = context.skipValidation ? success(document) : validateDocument(document)
@@ -162,7 +204,14 @@ export function resolveDocument(
     template = seed.value
     if (Object.isFrozen(document.spec)) seedLayouts.set(document.spec, template)
   }
-  const layout = { ...template, nodes: template.nodes.map((node) => ({ ...node })) },
+  const layout = {
+      ...template,
+      nodes: template.nodes.map((node) =>
+        previous && previous.document.scene.nodes[node.id] === document.scene.nodes[node.id]
+          ? previous.scene.layout.nodeById[node.id]
+          : { ...node },
+      ),
+    },
     diagnostics: Diagnostic[] = []
   if (!freeTypes.has(document.spec.type)) {
     if (!context.skipDiagnostics) pushTextOverflow(layout, document, context, diagnostics)
@@ -178,7 +227,7 @@ export function resolveDocument(
   }
   for (const node of layout.nodes) {
     const placement = document.scene.nodes[node.id]
-    if (placement)
+    if (placement && node !== previous?.scene.layout.nodeById[node.id])
       Object.assign(node, {
         x: placement.x,
         y: placement.y,
@@ -199,11 +248,24 @@ export function resolveDocument(
     document.spec.type === 'graph'
       ? new Map(document.spec.edges.map((edge) => [edge.id, edge]))
       : undefined
+  const previousEdges = new Map(previous?.scene.layout.edges.map((edge) => [edge.id, edge]))
   const parallel = new Map<string, number>()
   layout.edges = edgesOf(document.spec).map((edge): PlacedEdge => {
     const from = layout.nodeById[edge.from],
       to = layout.nodeById[edge.to],
       route = document.scene.routes[edge.id!]
+    const key = JSON.stringify([edge.from, edge.to]),
+      ordinal = parallel.get(key) ?? 0
+    parallel.set(key, ordinal + 1)
+    if (
+      previous &&
+      from === previous.scene.layout.nodeById[edge.from] &&
+      to === previous.scene.layout.nodeById[edge.to] &&
+      route === previous.document.scene.routes[edge.id!]
+    ) {
+      const cached = previousEdges.get(edge.id!)
+      if (cached) return cached
+    }
     const horizontal = Math.abs(to.cx - from.cx) >= Math.abs(to.cy - from.cy)
     let source: EndpointAnchor = {
       side: horizontal
@@ -241,9 +303,6 @@ export function resolveDocument(
     }
     const start = anchor(from, source),
       end = anchor(to, target)
-    const key = JSON.stringify([edge.from, edge.to]),
-      ordinal = parallel.get(key) ?? 0
-    parallel.set(key, ordinal + 1)
     const offset = ordinal * 20
     let points: Array<[number, number]>
     if (route?.mode === 'manual')
@@ -336,7 +395,8 @@ export function resolveDocument(
   const points: Array<[number, number]> = []
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])
-    const extent = nodeTextExtent(n, document, context)
+    const extent = extents?.get(n) ?? nodeTextExtent(n, document, context)
+    extents?.set(n, extent)
     if (extent.left < n.x + 14 || extent.right > n.x + n.w - 14) {
       points.push([extent.left, n.y], [extent.right, n.y + n.h])
       if (!context.skipDiagnostics)

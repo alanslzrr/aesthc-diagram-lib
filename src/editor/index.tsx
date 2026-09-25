@@ -38,7 +38,13 @@ import type {
 import { getAdapter } from '../editor-core/adapters'
 import { edgesOf, freeTypes, nodesOf } from '../editor-core/model'
 import { isNodeLocked } from '../editor-core/commands'
-import { resolveDocument, relayoutScene, anchorPoint, anchorFromPoint } from '../editor-core/scene'
+import {
+  resolveDocument,
+  createPreviewResolver,
+  relayoutScene,
+  anchorPoint,
+  anchorFromPoint,
+} from '../editor-core/scene'
 import { fitViewport, zoomAt, screenToWorld } from '../editor-core/viewport'
 import { serializeDocument } from '../editor-core/document'
 import { renderSceneMarkup } from '../render'
@@ -528,6 +534,7 @@ export function EditorSurface({
   const svgRef = useRef<SVGSVGElement>(null),
     [size, setSize] = useState({ width: 800, height: 600 })
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store])
   const committedResolved = useMemo(
     () =>
       resolveDocument(snapshot.document, {
@@ -543,14 +550,14 @@ export function EditorSurface({
     () =>
       activeDoc === snapshot.document
         ? committedResolved
-        : resolveDocument(activeDoc, {
+        : resolvePreview(activeDoc, {
             quality: 'edit',
             requestId: instanceId,
             measureText,
             skipValidation: true,
             skipDiagnostics: true,
           }),
-    [activeDoc, snapshot.document, committedResolved, instanceId],
+    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview],
   )
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]

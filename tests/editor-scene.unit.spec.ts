@@ -259,3 +259,46 @@ describe('immutable seed reuse', () => {
     expect(resolveDocument(changed, context)).not.toEqual(second)
   })
 })
+
+describe('incremental preview resolution', () => {
+  it('reuses untouched geometry while matching a fresh resolution and invalidating context', async () => {
+    const { createPreviewResolver } = await import('../src/editor-core/scene')
+    const { createEditorStore } = await import('../src/editor-core/store')
+    const store = createEditorStore({
+      document: doc(),
+      idFactory: (kind) => kind,
+      permissions: { edit: true, save: true, export: true },
+    })
+    const resolve = createPreviewResolver()
+    const context = {
+      quality: 'edit' as const,
+      requestId: 'incremental',
+      skipValidation: true,
+      skipDiagnostics: true,
+    }
+    const before = resolve(store.getSnapshot().document, context)
+    expect(before.ok).toBe(true)
+    const gesture = store.beginGesture({ id: 'move', label: 'move', expectedRevision: 0 })
+    if (!gesture.ok || !before.ok) throw Error('setup')
+    store.previewGesture([{ type: 'nodes.move', positions: { a: { x: 500, y: 600 } } }])
+    const state = store.getSnapshot()
+    if (state.draft.kind !== 'gesture') throw Error('draft')
+    const after = resolve(state.draft.preview, context)
+    const fresh = resolveDocument(state.draft.preview, context)
+    expect(after).toEqual(fresh)
+    if (!after.ok) throw Error('resolve')
+    expect(after.value.layout.nodeById.b).toBe(before.value.layout.nodeById.b)
+    expect(after.value.layout.nodeById.a).not.toBe(before.value.layout.nodeById.a)
+    expect(after.value.layout.edges.find((e) => e.id === 'cc')).toBe(
+      before.value.layout.edges.find((e) => e.id === 'cc'),
+    )
+    const differentMetrics = { ...context, measureText: () => 999 }
+    expect(resolve(state.draft.preview, differentMetrics)).toEqual(
+      resolveDocument(state.draft.preview, differentMetrics),
+    )
+    const mutable = structuredClone(state.draft.preview)
+    resolve(mutable, context)
+    mutable.scene.nodes.b.x += 100
+    expect(resolve(mutable, context)).toEqual(resolveDocument(mutable, context))
+  })
+})
