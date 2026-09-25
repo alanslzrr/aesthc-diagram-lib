@@ -144,26 +144,115 @@
   border: 1px solid var(--adl-border);
   border-radius: 6px;
 }
-.adl-viewer-canvas {
-  padding: 16px;
-  overflow: auto;
+.adl-viewer [data-lens-dim='true'] {
+  opacity: 0.3;
 }
-.adl-viewer-canvas svg {
+.adl-viewer-lensbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--adl-border);
+}
+.adl-viewer-lensbar label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--adl-muted);
+}
+.adl-viewer-canvas {
+  position: relative;
+  height: 420px;
+  overflow: hidden;
+  padding: 16px;
+}
+.adl-viewer-stage {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+.adl-viewer-stage svg {
   display: block;
   max-width: none;
   height: auto;
 }
-.adl-viewer [data-query-highlight='true'] > rect[data-node-surface],
-.adl-viewer [data-query-highlight='true'] > circle {
-  stroke: var(--adl-cobalt);
-  stroke-width: 2.5;
+.adl-viewer-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  pointer-events: none;
+  transform: translate(0, 0) scale(1);
 }
-.adl-viewer [data-query-highlight='true'] > text {
-  fill: var(--adl-cobalt);
+.adl-viewer-proxy {
+  pointer-events: none;
 }
-.adl-viewer [data-query-highlight='true'] > path {
-  stroke: var(--adl-cobalt) !important;
-  stroke-width: 3;
+.adl-viewer-camera {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 0 16px 10px;
+}
+.adl-viewer-camera button {
+  min-height: 28px;
+  padding: 2px 10px;
+}
+.adl-viewer-minimap {
+  position: relative;
+  margin: 0 16px 16px;
+  padding: 6px;
+  background: var(--adl-card);
+  border: 1px solid var(--adl-border);
+  border-radius: 6px;
+  cursor: crosshair;
+  overflow: hidden;
+}
+.adl-viewer-minimap-svg svg {
+  display: block;
+  max-width: none;
+}
+.adl-viewer-minimap-viewport {
+  position: absolute;
+  border: 1.5px solid var(--adl-cobalt);
+  background: var(--adl-cobalt);
+  opacity: 0.35;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.adl-viewer-story {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 16px 10px;
+  padding: 8px 12px;
+  background: var(--adl-card);
+  border: 1px solid var(--adl-border);
+  border-radius: 6px;
+}
+.adl-viewer-story button {
+  min-height: 28px;
+  padding: 2px 10px;
+}
+.adl-viewer-presentation {
+  position: relative;
+}
+.adl-viewer-presentation-active {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--adl-bg);
+  padding: 24px;
+  overflow: auto;
+}
+.adl-viewer-presentation-active .adl-viewer-canvas {
+  height: calc(100vh - 140px);
+}
+.adl-viewer-presentation-exit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1001;
 }
 .adl-viewer-querybar {
   display: flex;

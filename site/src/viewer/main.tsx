@@ -53,6 +53,45 @@ const initial = createDocument(
 )
 if (!initial.ok) throw Error(initial.diagnostics.map((d) => d.code).join(', '))
 const initialDocument: DiagramDocument = initial.value
+initialDocument.metadata.nodes = {
+  client: { roles: ['frontend'], tags: ['ui'], links: [] },
+  api: { roles: ['backend'], tags: ['core'], links: [] },
+  database: { roles: ['backend'], tags: ['core'], links: [] },
+  worker: { roles: ['backend'], tags: ['async'], links: [] },
+}
+initialDocument.scene.groups = [
+  {
+    id: 'platform',
+    label: 'Platform',
+    kind: 'visual',
+    nodeIds: ['api', 'database'],
+    locked: false,
+  },
+]
+initialDocument.views = [
+  {
+    id: 'v-client',
+    label: 'Client entry',
+    focus: { nodeIds: ['client'], edgeIds: [] },
+    camera: { x: 150, y: 150, zoom: 1.5 },
+  },
+  {
+    id: 'v-orders',
+    label: 'Orders',
+    focus: { nodeIds: ['api', 'database'], edgeIds: ['persist'] },
+  },
+  {
+    id: 'v-worker',
+    label: 'Worker',
+    focus: { nodeIds: ['worker'], edgeIds: [] },
+    camera: { x: 700, y: 150, zoom: 1.5 },
+  },
+]
+initialDocument.story = [
+  { id: 'st1', viewId: 'v-client', durationMs: 1000 },
+  { id: 'st2', viewId: 'v-orders', durationMs: 1000 },
+  { id: 'st3', viewId: 'v-worker', durationMs: 1000 },
+]
 
 function ViewerApp() {
   const [document, setDocument] = useState<DiagramDocument>(initialDocument)

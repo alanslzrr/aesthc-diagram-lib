@@ -1420,7 +1420,7 @@
           "implementedIn": "tests/e2e/editor-viewer.e2e.ts",
           "result": "Finder por ID/label/kind: orden determinista (ID exacto → prefijo label → substring → kind, orden autorado), insensibilidad Unicode con texto original, teclado Enter/Escape con foco restaurado y anuncio de cero resultados (role=status); inspector con IDs exactos de relaciones paralelas y enlaces seguros por scheme; cobertura unit adicional en tests/editor-graph.unit.spec.ts (searchNodes/relationsOf). Viewer público en @aesthc/diagram-lib/viewer con página site/viewer.html (E2E chromium 3/3 PASS)"
         },
-{
+        {
           "id": "T32.2",
           "layer": "e2e",
           "file": "tests/e2e/editor-viewer.e2e.ts",
@@ -1446,7 +1446,9 @@
           "given": "roles/tags, grupo y edges externas",
           "when": "lens, collapse y minimap pan",
           "then": "doc/hash intacto, proxy ligado al ID original y viewport correcto",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewer-e14.e2e.ts",
+          "result": "lens por roles/tags con dimming (data-lens-dim) sin tocar topología (la ruta global sigue atravesando nodos atenuados); collapse de grupos con exclusión de miembros y overlays proxy ligados al ID original de cada relación externa (request/notify); minimapa con viewport arrastrable que mueve la cámara sin cambiar el documento (E2E chromium PASS)"
         },
         {
           "id": "T33.2",
@@ -1455,7 +1457,9 @@
           "given": "lens ocultando nodo necesario",
           "when": "findRoute sin filtro explícito",
           "then": "ruta global no cambia; filtro explícito queda en receipt",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-views.unit.spec.ts",
+          "result": "findRoute sobre el grafo global no cambia aunque la lente oculte un nodo necesario; la consulta con filtro explícito registra el filter en el receipt (unit PASS)"
         }
       ]
     },
@@ -1472,7 +1476,9 @@
           "given": "dos vistas sin edge directa, ruta no contigua y view huérfana",
           "when": "validar story y describir transición",
           "then": "sin inferir relación; inválidos bloqueados por ID",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-views.unit.spec.ts",
+          "result": "describeStoryStep nunca infiere relación: foco sin ruta autorada reporta directRoute null; con ruta real reporta sus edge IDs; pasos con viewId inexistente o route rota se bloquean por ID (view.reference) (unit PASS)"
         },
         {
           "id": "T34.2",
@@ -1481,7 +1487,9 @@
           "given": "story con 3 pasos, duración y control manual",
           "when": "play/next/prev/escape/hidden y reduced-motion",
           "then": "un owner, finito, controles funcionales y cero autoplay",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewer-e14.e2e.ts",
+          "result": "StoryPlayback finito y manual: nunca auto-inicia, Play/Next/Prev/Stop con un único owner (MotionOwnerGuard); Escape, pestaña oculta y beforeprint detienen; reduced-motion deshabilita Play y mantiene Next/Previous estáticos; el playback termina en el último paso (E2E chromium PASS + unit con timers inyectados)"
         }
       ]
     },
@@ -1498,7 +1506,9 @@
           "given": "fullscreen denegado y foco en trigger",
           "when": "entrar/salir presentación",
           "then": "fallback usable, Escape/foco restaurados y documento igual",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-viewer-e14.e2e.ts",
+          "result": "Presentación con fallback CSS cuando fullscreen es denegado; Escape sale, el documento no cambia y el foco vuelve al trigger (E2E chromium PASS)"
         },
         {
           "id": "T35.2",
@@ -1507,7 +1517,9 @@
           "given": "IDs con ~/%/Unicode, parámetros repetidos y unknown view",
           "when": "encode/decode viewer state",
           "then": "round-trip con escaping; contradicción rechazada, unknown overview",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-share.unit.spec.ts",
+          "result": "codec de estado viewer con escaping por componente: round-trip de IDs con ~, % y Unicode; view desconocida degrada a overview sin adivinar focus; contradicción (viewId+focus distinto) e IDs inexistentes rechazados; cámara fuera de rango rechazada (unit PASS)"
         }
       ]
     },

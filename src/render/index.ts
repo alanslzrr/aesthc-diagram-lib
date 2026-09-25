@@ -43,6 +43,9 @@ export interface RenderOptions {
    * Rendering stays headless; styling is applied by CSS or an inline style.
    */
   highlight?: { nodes?: ReadonlySet<string>; edges?: ReadonlySet<string> }
+  /** Reading-only dimming (lens): these entities stay in the topology but are
+   * rendered with `data-lens-dim` for display filtering. */
+  dim?: ReadonlySet<string>
 }
 export function renderSceneMarkup(
   document: DiagramDocument,
@@ -60,6 +63,7 @@ export function renderSceneMarkup(
   const highlightNode = (nodeId: string) => options.highlight?.nodes?.has(nodeId) ?? false
   const highlightEdge = (edgeId: string) => options.highlight?.edges?.has(edgeId) ?? false
   const marked = (active: boolean) => (active ? ' data-query-highlight="true"' : '')
+  const dimmed = (nodeId: string) => (options.dim?.has(nodeId) ? ' data-lens-dim="true"' : '')
   const color = (variant?: string) => (variant === 'branch' ? p.branch : p.cobalt)
   const text = (
     x: number,
@@ -102,7 +106,7 @@ export function renderSceneMarkup(
     if (!includeNode(n.id)) continue
     const visual = document.metadata.visuals[n.id]
     const g = nodeGeometry(n, !!visual)
-    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? '')}</desc>`
+    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}${dimmed(n.id)}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? '')}</desc>`
     if (n.shape === 'bar') {
       out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === 'primary' ? 'main' : 'branch')}" fill-opacity=".22" stroke="${p.border}"/></g>`
       continue

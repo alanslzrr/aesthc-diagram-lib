@@ -271,7 +271,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e14"></a>
 ## E14 — Lenses, vistas, story y presentación
 
-**Hito:** M2 · **Depende de:** E13, E06 · **Cobertura:** 0 implementado / 0 parcial / 6 sin localizar.
+**Hito:** M2 · **Depende de:** E13, E06 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R33, R34, R35.
 

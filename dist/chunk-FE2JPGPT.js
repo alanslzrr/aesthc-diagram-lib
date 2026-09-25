@@ -108,6 +108,7 @@ function renderSceneMarkup(document, scene, options) {
   const highlightNode = (nodeId) => options.highlight?.nodes?.has(nodeId) ?? false;
   const highlightEdge = (edgeId) => options.highlight?.edges?.has(edgeId) ?? false;
   const marked = (active) => active ? ' data-query-highlight="true"' : "";
+  const dimmed = (nodeId) => options.dim?.has(nodeId) ? ' data-lens-dim="true"' : "";
   const color = (variant) => variant === "branch" ? p.branch : p.cobalt;
   const text = (x, y, value, size = 13, fill = p.foreground, anchor = "start", family = "Geist") => `<text x="${x}" y="${y}" font-family="${family}, sans-serif" font-size="${size * document.presentation.textScale}" fill="${fill}" text-anchor="${anchor}">${escapeXml(value)}</text>`;
   const monoLabel = (x, y, value, size, fill, spacing = 0) => `<text x="${x}" y="${y}"${spacing ? ` letter-spacing="${spacing}"` : ""} font-family="Geist Mono, monospace" font-size="${size * document.presentation.textScale}" fill="${fill}">${escapeXml(value)}</text>`;
@@ -130,7 +131,7 @@ function renderSceneMarkup(document, scene, options) {
     if (!includeNode(n.id)) continue;
     const visual = document.metadata.visuals[n.id];
     const g = nodeGeometry(n, !!visual);
-    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? "")}</desc>`;
+    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}${dimmed(n.id)}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? "")}</desc>`;
     if (n.shape === "bar") {
       out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === "primary" ? "main" : "branch")}" fill-opacity=".22" stroke="${p.border}"/></g>`;
       continue;

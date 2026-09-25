@@ -31,7 +31,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E11 | M1 | 6/0/0 | Export JSON/SVG/PNG/JPEG/WebP, fuentes aisladas, límites y receipts | Paridad visual certificada y fallas de raster por plataforma |
 | E12 | M1 | 2/0/0 | Studio separado, entrypoints y consumidor del tarball | Cierre formal M1 (depende de gates restantes) |
 | E13 | M2 | 6/0/0 | Queries route/reach con IDs exactos y **viewer semántico completo** (T32.1, T32.2): finder determinista, inspector con paralelas, recibos e invalidación por revisión | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
-| E14 | M2 | 0/0/6 | Validación de datos persistibles de vistas/story | Lenses, minimapa, collapse, vistas, story, presentación y deep links |
+| E14 | M2 | 6/0/0 | Lenses (roles/tags) con dimming sin tocar topología, collapse con proxies ligados a IDs originales, minimapa con navegación de cámara, story finita con owner único y reducción de movimiento, presentación con fallback y codec de estado viewer | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E15 | M2 | 1/0/3 | Diagnósticos geométricos publish (T36.1) | Router A* ortogonal, layout asíncrono con requestId y publish quality (T36.2, T37.x) |
 | E16 | M2 | 0/0/2 | — | HTML autónomo offline, CSP y fallback no-JS (desbloquea T55.2) |
 | E17 | M2 | 1/0/5 | Límites raster y capacidades (T42.2) | Codec `d=`/`v=`, cards 1200×630 y formatos negociados |
@@ -123,6 +123,31 @@ TDD: los unit de `searchNodes`/`relationsOf` y los E2E se escribieron tras la im
 inicial; la corrección del flujo "el finder debe inspeccionar el nodo elegido" se observó RED en
 el E2E (el inspector no reflejaba la selección del origen) antes de GREEN. El `data-query-highlight`
 se reutilizará en las cards de E17.
+
+## Continuación M2: vistas, story, minimapa y presentación E14 (2026-09-25)
+
+Cierra T33.1, T33.2, T34.1, T34.2, T35.1 y T35.2 (cobertura 88 implementados / 2 parciales / 22 missing).
+
+- **views.ts (headless)**: lentes por roles/tags (dimming por defecto; la topología de consulta
+  nunca cambia, T33.2), `describeStoryStep` truthful (nunca infiere relaciones: sin ruta autorada
+  reporta `directRoute: null`; pasos huérfanos bloqueados por ID, T34.1) y codec de estado viewer
+  `encodeViewerState`/`decodeViewerState` con escaping por componente (~, %, Unicode), view
+  desconocida degrada a overview y contradicciones rechazadas (T35.2).
+- **motion.ts**: `StoryPlayback` finito con reloj/timers inyectables y `MotionOwnerGuard` de un
+  solo propietario (story/ruta/trace). Nunca auto-inicia; Escape, pestaña oculta, print e
+  interacción manual detienen; reduced-motion deja Next/Previous estáticos (T34.2).
+- **DiagramViewer**: cámara con pan/zoom/fit y ajuste por resize; lentes; collapse de grupos con
+  exclusión de miembros y overlays proxy con los IDs originales de cada relación externa (T33.1);
+  controles de story (Play/Pause/Next/Prev/Stop, indicador de paso); minimapa con viewport
+  arrastrable (T33.1); presentación con fallback CSS y restauración de foco (T35.1).
+- **Bugs reales detectados por los E2E (RED→GREEN)**: `StoryPlayback` no pasaba `this.timer` a
+  `clearTimer` (el `clearTimeout(undefined)` lo enmascaraba); `next()` reanudaba la reproducción
+  estando pausado (ahora preserva el estado); `stopStory` no reseteaba el índice; `Presentation`
+  solo renderizaba `children` en modo activo (el canvas principal nunca se mostraba); el select de
+  collapse controlado con `value=""` leía el valor restaurado por React en el handler (select
+  no controlado con reset por ref).
+- **Gates locales**: unit 350 PASS (7 nuevos de E14), tarball PASS, budgets PASS (viewer 139.1 KiB
+  gzip), perf frame p95 16.7 ms / 0 long tasks sin regresión, E2E viewer 8/8 PASS en chromium.
 
 ## Implementación disponible
 

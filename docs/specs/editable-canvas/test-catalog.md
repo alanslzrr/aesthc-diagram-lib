@@ -973,7 +973,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** lens por roles/tags con dimming (data-lens-dim) sin tocar topología (la ruta global sigue atravesando nodos atenuados); collapse de grupos con exclusión de miembros y overlays proxy ligados al ID original de cada relación externa (request/notify); minimapa con viewport arrastrable que mueve la cámara sin cambiar el documento (E2E chromium PASS).
 
 - **Given:** roles/tags, grupo y edges externas.
 - **When:** lens, collapse y minimap pan.
@@ -983,7 +985,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-views.unit.spec.ts`
+
+**Evidencia:** findRoute sobre el grafo global no cambia aunque la lente oculte un nodo necesario; la consulta con filtro explícito registra el filter en el receipt (unit PASS).
 
 - **Given:** lens ocultando nodo necesario.
 - **When:** findRoute sin filtro explícito.
@@ -999,7 +1003,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-views.unit.spec.ts`
+
+**Evidencia:** describeStoryStep nunca infiere relación: foco sin ruta autorada reporta directRoute null; con ruta real reporta sus edge IDs; pasos con viewId inexistente o route rota se bloquean por ID (view.reference) (unit PASS).
 
 - **Given:** dos vistas sin edge directa, ruta no contigua y view huérfana.
 - **When:** validar story y describir transición.
@@ -1009,7 +1015,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-story.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** StoryPlayback finito y manual: nunca auto-inicia, Play/Next/Prev/Stop con un único owner (MotionOwnerGuard); Escape, pestaña oculta y beforeprint detienen; reduced-motion deshabilita Play y mantiene Next/Previous estáticos; el playback termina en el último paso (E2E chromium PASS + unit con timers inyectados).
 
 - **Given:** story con 3 pasos, duración y control manual.
 - **When:** play/next/prev/escape/hidden y reduced-motion.
@@ -1025,7 +1033,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-presentation.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** Presentación con fallback CSS cuando fullscreen es denegado; Escape sale, el documento no cambia y el foco vuelve al trigger (E2E chromium PASS).
 
 - **Given:** fullscreen denegado y foco en trigger.
 - **When:** entrar/salir presentación.
@@ -1035,7 +1045,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-share.unit.spec.ts`
+
+**Evidencia:** codec de estado viewer con escaping por componente: round-trip de IDs con ~, % y Unicode; view desconocida degrada a overview sin adivinar focus; contradicción (viewId+focus distinto) e IDs inexistentes rechazados; cámara fuera de rango rechazada (unit PASS).
 
 - **Given:** IDs con ~/%/Unicode, parámetros repetidos y unknown view.
 - **When:** encode/decode viewer state.

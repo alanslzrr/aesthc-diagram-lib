@@ -5,6 +5,27 @@ export { Finder } from './Finder'
 export type { FinderProps } from './Finder'
 export { Inspector } from './Inspector'
 export type { InspectorProps } from './Inspector'
+export { Minimap } from './Minimap'
+export type { MinimapProps } from './Minimap'
+export { Presentation } from './Presentation'
+export type { PresentationProps } from './Presentation'
+export { StoryPlayback, createMotionOwnerGuard } from './motion'
+export type {
+  MotionOwnerGuard,
+  PlaybackCallbacks,
+  PlaybackEnvironment,
+  PlaybackOwner,
+  PlaybackState,
+} from './motion'
+export {
+  decodeViewerState,
+  describeStoryStep,
+  encodeViewerState,
+  lensFacets,
+  lensMatches,
+  resolveView,
+} from './views'
+export type { ResolvedView, StoryTransition, ViewerLens, ViewerState } from './views'
 export { graphSnapshot, searchNodes, relationsOf, findRoute, findReach } from '../graph'
 export type {
   GraphFilter,

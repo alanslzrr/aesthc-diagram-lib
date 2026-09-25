@@ -18,7 +18,7 @@ import {
 import {
   escapeXml,
   renderSvg
-} from "./chunk-7OXXAMDF.js";
+} from "./chunk-FE2JPGPT.js";
 
 // src/assets/fonts/notices.json
 var notices_default = [

@@ -143,7 +143,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /viewer
 
-`DiagramViewer`, `DiagramViewerProps`, `ExportQuerySvgOptions`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `ViewerQueryState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `searchNodes`
+`DiagramViewer`, `DiagramViewerProps`, `ExportQuerySvgOptions`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
 
 ### /graph
 

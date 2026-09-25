@@ -1,4 +1,4 @@
-import { c as DiagramDocument, j as ResolvedScene } from '../layout-DyDatn-R.js';
+import { c as DiagramDocument, j as ResolvedScene } from '../layout-C01UhqPQ.js';
 import '../theme.js';
 
 /** Only this encoder writes authored strings into SVG/XML. */
@@ -34,6 +34,9 @@ interface RenderOptions {
         nodes?: ReadonlySet<string>;
         edges?: ReadonlySet<string>;
     };
+    /** Reading-only dimming (lens): these entities stay in the topology but are
+     * rendered with `data-lens-dim` for display filtering. */
+    dim?: ReadonlySet<string>;
 }
 declare function renderSceneMarkup(document: DiagramDocument, scene: ResolvedScene, options: RenderOptions): string;
 declare function renderSvg(document: DiagramDocument, scene: ResolvedScene, options: RenderOptions): string;
