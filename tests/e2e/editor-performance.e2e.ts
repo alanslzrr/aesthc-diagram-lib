@@ -165,7 +165,11 @@ test('drag frame p95 stays under the reference budget on the reference runner', 
   })
   const settled = frames.slice(Math.max(0, frames.length - 240))
   const sorted = [...settled].sort((a, b) => a - b)
-  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))]
+  // Timestamp subtraction can produce 33.30000000000018 for an exact 33.3 ms frame.
+  // Normalize only sub-nanosecond arithmetic noise; 33.300001 and 33.4 still fail.
+  const p95 = Number(
+    sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))].toFixed(6),
+  )
   const longTasks = settled.filter((delta) => delta > 100)
   console.log(
     `frame p95 ${p95.toFixed(1)}ms over ${settled.length} frames; long frames >100ms: ${longTasks.length} ` +

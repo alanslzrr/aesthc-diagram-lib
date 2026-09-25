@@ -219,7 +219,7 @@ const EdgeHitRect = memo(function EdgeHitRect({
       height={height}
       rx={6}
       fill="rgba(0, 0, 0, 0.001)"
-      stroke={selected ? stroke : 'rgba(0, 0, 0, 0.001)'}
+      stroke={selected ? stroke : 'transparent'}
       style={{ cursor: 'pointer' }}
       tabIndex={0}
       role="button"
@@ -481,6 +481,36 @@ const SceneHits = memo(function SceneHits({
         </g>
       ))}
     </>
+  )
+})
+
+const BaselineLayer = memo(function BaselineLayer({
+  markup,
+  width,
+  height,
+  x,
+  y,
+  zoom,
+}: {
+  markup: string
+  width: number
+  height: number
+  x: number
+  y: number
+  zoom: number
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      width="100%"
+      height="100%"
+      viewBox={`0 0 ${width} ${height}`}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', willChange: 'transform' }}
+    >
+      <g transform={`translate(${x} ${y}) scale(${zoom})`}>
+        <SceneMarkup markup={markup} />
+      </g>
+    </svg>
   )
 })
 
@@ -1035,7 +1065,18 @@ export function EditorSurface({
   )
   return (
     <div className={`adl-editor-surface ${className ?? ''}`}>
+      {gestureEntities && baseline !== null && (
+        <BaselineLayer
+          markup={baseline}
+          width={size.width}
+          height={size.height}
+          x={snapshot.viewport.x}
+          y={snapshot.viewport.y}
+          zoom={snapshot.viewport.zoom}
+        />
+      )}
       <svg
+        style={{ position: 'relative' }}
         ref={svgRef}
         width="100%"
         height="100%"
@@ -1396,10 +1437,7 @@ export function EditorSurface({
         >
           {/* Markup is generated exclusively by the internal escaped SVG serializer, never imported HTML. */}
           {gestureEntities && baseline !== null ? (
-            <>
-              <SceneMarkup markup={baseline} />
-              <SceneMarkup markup={deltaMarkup ?? ''} />
-            </>
+            <SceneMarkup markup={deltaMarkup ?? ''} />
           ) : (
             <SceneMarkup markup={markup} />
           )}
