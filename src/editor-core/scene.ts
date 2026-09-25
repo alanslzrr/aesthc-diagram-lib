@@ -145,6 +145,9 @@ function pushTextOverflow(
   }
 }
 
+// Only immutable store specs can be reused. Mutable public inputs always seed afresh.
+const seedLayouts = new WeakMap<DiagramDocument['spec'], DiagramLayout>()
+
 export function resolveDocument(
   document: DiagramDocument,
   context: ResolveContext,
@@ -152,9 +155,14 @@ export function resolveDocument(
   if (context.signal?.aborted) return failure('operation.aborted')
   const checked = context.skipValidation ? success(document) : validateDocument(document)
   if (!checked.ok) return checked
-  const seed = getAdapter(document.spec.type).seedLayout(document.spec)
-  if (!seed.ok) return seed
-  const layout = seed.value,
+  let template = Object.isFrozen(document.spec) ? seedLayouts.get(document.spec) : undefined
+  if (!template) {
+    const seed = getAdapter(document.spec.type).seedLayout(document.spec)
+    if (!seed.ok) return seed
+    template = seed.value
+    if (Object.isFrozen(document.spec)) seedLayouts.set(document.spec, template)
+  }
+  const layout = { ...template, nodes: template.nodes.map((node) => ({ ...node })) },
     diagnostics: Diagnostic[] = []
   if (!freeTypes.has(document.spec.type)) {
     if (!context.skipDiagnostics) pushTextOverflow(layout, document, context, diagnostics)
@@ -180,10 +188,17 @@ export function resolveDocument(
         cy: placement.y + placement.height / 2,
       })
   }
-  layout.nodes.sort(
-    (a, b) => document.scene.zOrder.indexOf(a.id) - document.scene.zOrder.indexOf(b.id),
-  )
+  const zOrder = new Map(document.scene.zOrder.map((id, index) => [id, index]))
+  layout.nodes.sort((a, b) => (zOrder.get(a.id) ?? -1) - (zOrder.get(b.id) ?? -1))
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]))
+  const graphNodes =
+    document.spec.type === 'graph'
+      ? new Map(document.spec.nodes.map((node) => [node.id, node]))
+      : undefined
+  const graphEdges =
+    document.spec.type === 'graph'
+      ? new Map(document.spec.edges.map((edge) => [edge.id, edge]))
+      : undefined
   const parallel = new Map<string, number>()
   layout.edges = edgesOf(document.spec).map((edge): PlacedEdge => {
     const from = layout.nodeById[edge.from],
@@ -214,13 +229,9 @@ export function resolveDocument(
       source = route.source
       target = route.target
     } else if (document.spec.type === 'graph') {
-      const authored = document.spec.edges.find((e) => e.id === edge.id)!
-      const sp = document.spec.nodes
-        .find((n) => n.id === edge.from)
-        ?.ports?.find((p) => p.id === authored.sourcePort)
-      const tp = document.spec.nodes
-        .find((n) => n.id === edge.to)
-        ?.ports?.find((p) => p.id === authored.targetPort)
+      const authored = graphEdges!.get(edge.id)!
+      const sp = graphNodes!.get(edge.from)?.ports?.find((p) => p.id === authored.sourcePort)
+      const tp = graphNodes!.get(edge.to)?.ports?.find((p) => p.id === authored.targetPort)
       if (sp) source = sp
       if (tp) target = tp
     }

@@ -227,3 +227,35 @@ describe('geometric quality diagnostics', () => {
     expect(result.diagnostics.some((x) => x.code.startsWith('quality.'))).toBe(false)
   })
 })
+
+describe('immutable seed reuse', () => {
+  it('isolates resolved geometry across frozen previews and changed specs', () => {
+    const original = doc()
+    const freeze = (value: unknown) => {
+      if (value && typeof value === 'object') {
+        Object.values(value).forEach(freeze)
+        Object.freeze(value)
+      }
+    }
+    freeze(original.spec)
+    const context = {
+      quality: 'edit' as const,
+      requestId: 'cache',
+      skipValidation: true,
+      skipDiagnostics: true,
+    }
+    const first = resolveDocument(original, context)
+    const next = { ...original, scene: structuredClone(original.scene) }
+    next.scene.nodes.a.x += 50
+    const second = resolveDocument(next, context)
+    if (!first.ok || !second.ok) throw Error('resolve')
+    expect(first.value.layout.nodeById.a.x).toBe(original.scene.nodes.a.x)
+    expect(second.value.layout.nodeById.a.x).toBe(original.scene.nodes.a.x + 50)
+    const uncached = resolveDocument(structuredClone(next), context)
+    expect(second).toEqual(uncached)
+    const changed = structuredClone(next)
+    if (changed.spec.type !== 'graph') throw Error('type')
+    changed.spec.nodes[0].label = 'Updated label'
+    expect(resolveDocument(changed, context)).not.toEqual(second)
+  })
+})
