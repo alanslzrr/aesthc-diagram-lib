@@ -1075,7 +1075,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-quality.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-quality.e2e.ts`
+
+**Evidencia:** export publish en browser con fuentes embebidas y labels largos es/en: sin clipping (ningún quality.* bloquea); con fuentes inválidas el error es accionable (export.font-invalid) y nunca hay artefacto falso; el Studio expone calidad edit/publish y reporta warnings del receipt (E2E chromium 2/2 PASS).
 
 - **Given:** fuentes cargadas y labels largos es/en.
 - **When:** medir y export publish.
@@ -1091,7 +1093,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-routing.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-routing.unit.spec.ts`
+
+**Evidencia:** router ortogonal A* acotado y determinista (routeOrthogonal): clearance 12, presupuesto de bends (router.bends) y de estados (router.budget); ruta imposible reporta router.impossible sin atravesar obstáculos; self-loop sale y vuelve sin cruzar el nodo; dos llamadas idénticas producen puntos idénticos; paralelas separadas por slot del llamador sin fusionarse (unit 5/5 PASS).
 
 - **Given:** obstáculos, parallel, self-loop y ruta imposible.
 - **When:** router a límite exacto de estados.
@@ -1101,7 +1105,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-layout-provider.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-layout-provider.unit.spec.ts`
+
+**Evidencia:** layout asíncrono con requestId, baseRevision y política latest-wins: A lento nunca sobrescribe a B (historial solo B); provider abortado no publica; applyLayoutResult rechaza revisión stale, nodeId desconocido y movimiento de locked (directo o por grupo) sin mutar documento ni historial; el resultado válido conserva los pins (unit 2/2 PASS).
 
 - **Given:** provider A lento, B nuevo y abort.
 - **When:** resolver A después de B.

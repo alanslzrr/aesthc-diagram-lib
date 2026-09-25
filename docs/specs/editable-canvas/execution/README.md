@@ -32,7 +32,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E12 | M1 | 2/0/0 | Studio separado, entrypoints y consumidor del tarball | Cierre formal M1 (depende de gates restantes) |
 | E13 | M2 | 6/0/0 | Queries route/reach con IDs exactos y **viewer semántico completo** (T32.1, T32.2): finder determinista, inspector con paralelas, recibos e invalidación por revisión | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E14 | M2 | 6/0/0 | Lenses (roles/tags) con dimming sin tocar topología, collapse con proxies ligados a IDs originales, minimapa con navegación de cámara, story finita con owner único y reducción de movimiento, presentación con fallback y codec de estado viewer | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
-| E15 | M2 | 1/0/3 | Diagnósticos geométricos publish (T36.1) | Router A* ortogonal, layout asíncrono con requestId y publish quality (T36.2, T37.x) |
+| E15 | M2 | 3/0/0 | Diagnósticos publish, **router A* ortogonal acotado** y **layout asíncrono latest-wins** | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E16 | M2 | 0/0/2 | — | HTML autónomo offline, CSP y fallback no-JS (desbloquea T55.2) |
 | E17 | M2 | 1/0/5 | Límites raster y capacidades (T42.2) | Codec `d=`/`v=`, cards 1200×630 y formatos negociados |
 | E18 | M2 | 0/0/4 | — | Registro de renderers por instancia y layout provider explícito |
@@ -148,6 +148,27 @@ Cierra T33.1, T33.2, T34.1, T34.2, T35.1 y T35.2 (cobertura 88 implementados / 2
   no controlado con reset por ref).
 - **Gates locales**: unit 350 PASS (7 nuevos de E14), tarball PASS, budgets PASS (viewer 139.1 KiB
   gzip), perf frame p95 16.7 ms / 0 long tasks sin regresión, E2E viewer 8/8 PASS en chromium.
+
+## Continuación M2: router A* y layout asíncrono E15 (2026-09-25)
+
+Cierra T36.2, T37.1 y T37.2 (cobertura 91 implementados / 2 parciales / 19 missing).
+
+- **`src/editor-core/router.ts`**: `routeOrthogonal` — A* ortogonal acotado sobre un grafo de
+  corredores (obstáculos expandidos por clearance 12, líneas medias entre bordes adyacentes y
+  margen exterior para salir del escenario). Determinista (desempate por coste, heurística y
+  orden de coordenadas); presupuesto de estados (router.budget), de bends (router.bends) y
+  diagnóstico explícito de ruta imposible (router.impossible) — nunca anuncia una ruta válida
+  con cruces. Self-loops salen y vuelven fuera del nodo; las paralelas se separan por slot del
+  llamador (el router no fusiona ni inventa relaciones). API pública en `@aesthc/diagram-lib/editor-core`.
+- **`src/editor-core/layout-provider.ts`**: `applyLayoutResult` con contrato estricto
+  (baseRevision, nodeIds conocidos, locked directo/por grupo inamovibles, sin mutación ni
+  historial parcial), `createLayoutProvider` cancelable y `runLayoutProvider` con política
+  latest-wins (requestId más reciente; el abortado nunca publica).
+- **T36.2 (publish en browser)**: el Studio expone calidad edit/publish y muestra los warnings
+  del receipt; export publish con fuentes embebidas y labels largos es/en sin clipping; fuentes
+  inválidas producen `export.font-invalid` accionable y cero artefactos falsos.
+- **Gates locales**: unit 357 PASS (7 nuevos), tarball PASS, budgets PASS (studio 170.7 KiB,
+  viewer 139.1 KiB), E2E 9/9 PASS en chromium.
 
 ## Implementación disponible
 

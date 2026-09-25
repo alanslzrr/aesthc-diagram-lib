@@ -1547,7 +1547,9 @@
           "given": "fuentes cargadas y labels largos es/en",
           "when": "medir y export publish",
           "then": "sin clipping; font/métricas ausentes verified=false y error accionable",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/e2e/editor-quality.e2e.ts",
+          "result": "export publish en browser con fuentes embebidas y labels largos es/en: sin clipping (ningún quality.* bloquea); con fuentes inválidas el error es accionable (export.font-invalid) y nunca hay artefacto falso; el Studio expone calidad edit/publish y reporta warnings del receipt (E2E chromium 2/2 PASS)"
         }
       ]
     },
@@ -1564,7 +1566,9 @@
           "given": "obstáculos, parallel, self-loop y ruta imposible",
           "when": "router a límite exacto de estados",
           "then": "determinismo, clearance12 y bends24; impossible diagnostic sin atraviesos",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-routing.unit.spec.ts",
+          "result": "router ortogonal A* acotado y determinista (routeOrthogonal): clearance 12, presupuesto de bends (router.bends) y de estados (router.budget); ruta imposible reporta router.impossible sin atravesar obstáculos; self-loop sale y vuelve sin cruzar el nodo; dos llamadas idénticas producen puntos idénticos; paralelas separadas por slot del llamador sin fusionarse (unit 5/5 PASS)"
         },
         {
           "id": "T37.2",
@@ -1573,7 +1577,9 @@
           "given": "provider A lento, B nuevo y abort",
           "when": "resolver A después de B",
           "then": "A no aplicado; history solo B; cancel mantiene pins y última scene",
-          "coverage": "missing"
+          "coverage": "implemented",
+          "implementedIn": "tests/editor-layout-provider.unit.spec.ts",
+          "result": "layout asíncrono con requestId, baseRevision y política latest-wins: A lento nunca sobrescribe a B (historial solo B); provider abortado no publica; applyLayoutResult rechaza revisión stale, nodeId desconocido y movimiento de locked (directo o por grupo) sin mutar documento ni historial; el resultado válido conserva los pins (unit 2/2 PASS)"
         }
       ]
     },

@@ -75,4 +75,82 @@ declare function convertToGraph(document: DiagramDocument, options: {
 /** Stateless transaction adapter: no subscriptions, persistence or shared history escape this call. */
 declare function applyTransaction(document: DiagramDocument, transaction: Transaction, permissions: EditorPermissions): CommitResult;
 
-export { CommitResult, type ConversionReceipt, DEFAULT_LIMITS, DiagramDocument, DiagramFragment, DiagramScene, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, ImportOptions, ImportReceipt, Limits, Point, Presentation, Rect, ResolveContext, ResolvedScene, Result, Size, StoreOptions, Transaction, TypeAdapter, Viewport, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, defaultPresentation, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, resolveDocument, screenToWorld, serializeDocument, validateDocument, validateEditorSpec, worldToScreen, zoomAt };
+interface RouteObstacle {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+interface OrthogonalRouteRequest {
+    from: {
+        x: number;
+        y: number;
+    };
+    to: {
+        x: number;
+        y: number;
+    };
+    obstacles: RouteObstacle[];
+    /** Expansion around every obstacle; default 12. */
+    clearance?: number;
+    /** Hard bend budget; default 24. */
+    maxBends?: number;
+    /** Bounded state budget; default 20000. */
+    maxStates?: number;
+    /** Perpendicular stub leaving the anchor; default 16. */
+    stub?: number;
+    /** Anchor direction used to emit the initial stub. */
+    fromSide?: 'left' | 'right' | 'top' | 'bottom';
+    toSide?: 'left' | 'right' | 'top' | 'bottom';
+}
+interface RoutedPath {
+    points: Array<[number, number]>;
+    bends: number;
+    states: number;
+    clearance: number;
+}
+/**
+ * Bounded deterministic orthogonal A* router over an expanded corridor graph.
+ * Obstacles are grown by `clearance`; candidate corners are the expanded
+ * obstacle edges plus the stubbed anchors. Tie-breaking is stable (lower cost,
+ * lower heuristic, then coordinate order), so the same request always yields
+ * the same path. An exhausted budget reports `router.budget` and an enclosed
+ * target `router.impossible`; the receipt never claims a crossing route.
+ */
+declare function routeOrthogonal(request: OrthogonalRouteRequest): Result<RoutedPath>;
+
+interface LayoutProviderResult {
+    requestId: string;
+    baseRevision: number;
+    scene: DiagramScene;
+}
+interface LayoutProvider {
+    /** Stable request identity: a late result with an older requestId is ignored. */
+    requestId: string;
+    baseRevision: number;
+    run(): Promise<LayoutProviderResult>;
+    cancel(): void;
+}
+/**
+ * Applies an asynchronous layout result under a strict contract: the requestId
+ * must be the latest issued, the baseRevision must match the current document,
+ * unknown node ids are rejected and locked nodes (directly or through their
+ * group) can never move. A rejection never mutates the document or the history.
+ */
+declare function applyLayoutResult(document: DiagramDocument, result: LayoutProviderResult, options: {
+    expectedRevision: number;
+}): Result<DiagramDocument>;
+/** Runs a provider under the latest-wins policy: an older requestId or an
+ * aborted provider never publishes its result. The document keeps its last
+ * valid scene on rejection or cancellation. */
+declare function runLayoutProvider(document: DiagramDocument, provider: LayoutProvider, options: {
+    expectedRevision: number;
+    latestRequestId: () => string;
+    onResult: (document: DiagramDocument) => void;
+    onError: (diagnostic: string) => void;
+}): Promise<void>;
+declare function createLayoutProvider(requestId: string, baseRevision: number, work: (signal: {
+    aborted: boolean;
+}) => Promise<DiagramScene>): LayoutProvider;
+
+export { CommitResult, type ConversionReceipt, DEFAULT_LIMITS, DiagramDocument, DiagramFragment, DiagramScene, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, ImportOptions, ImportReceipt, type LayoutProvider, type LayoutProviderResult, Limits, type OrthogonalRouteRequest, Point, Presentation, Rect, ResolveContext, ResolvedScene, Result, type RouteObstacle, type RoutedPath, Size, StoreOptions, Transaction, TypeAdapter, Viewport, applyLayoutResult, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, createLayoutProvider, defaultPresentation, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, resolveDocument, routeOrthogonal, runLayoutProvider, screenToWorld, serializeDocument, validateDocument, validateEditorSpec, worldToScreen, zoomAt };

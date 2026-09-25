@@ -89,6 +89,7 @@ function Workbench() {
     [saving, setSaving] = useState<AutosaveState>({ status: 'idle' }),
     [autosave, setAutosave] = useState(false)
   const [format, setFormat] = useState<ExportFormat>('svg'),
+    [quality, setQuality] = useState<'edit' | 'publish'>('edit'),
     [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
@@ -189,7 +190,7 @@ function Workbench() {
         format,
         scope: { type: 'document' },
         theme: snapshot.document.presentation.theme.mode,
-        quality: 'edit',
+        quality,
         background: 'theme',
         scale: 2,
         includeSource: false,
@@ -200,12 +201,13 @@ function Workbench() {
         setMessage(result.diagnostics.map((d) => d.code).join(', '))
         return
       }
+      const warnings = result.diagnostics.filter((d) => d.severity === 'warning')
       const download = downloadArtifact(result.value, `diagram.${format}`)
       setMessage(
         download.ok
           ? t(
-              `Exported revision ${result.value.receipt.revision}`,
-              `Revisión ${result.value.receipt.revision} exportada`,
+              `Exported revision ${result.value.receipt.revision}${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
+              `Revisión ${result.value.receipt.revision} exportada${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
             )
           : download.diagnostics.map((d) => d.code).join(', '),
       )
@@ -460,6 +462,17 @@ function Workbench() {
                   {f.toUpperCase()}
                 </option>
               ))}
+            </select>
+          </label>
+          <label>
+            {t('Quality', 'Calidad')}{' '}
+            <select
+              aria-label={t('Export quality', 'Calidad de exportación')}
+              value={quality}
+              onChange={(e) => setQuality(e.target.value as 'edit' | 'publish')}
+            >
+              <option value="edit">{t('Edit', 'Edición')}</option>
+              <option value="publish">{t('Publish', 'Publicación')}</option>
             </select>
           </label>
           <button type="button" disabled={busy} onClick={() => void exportFile()}>

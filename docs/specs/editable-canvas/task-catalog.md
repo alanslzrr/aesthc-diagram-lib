@@ -290,7 +290,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e15"></a>
 ## E15 — Calidad geométrica y layout asíncrono
 
-**Hito:** M2 · **Depende de:** E05, E04 · **Cobertura:** 1 implementado / 0 parcial / 3 sin localizar.
+**Hito:** M2 · **Depende de:** E05, E04 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R36, R37.
 

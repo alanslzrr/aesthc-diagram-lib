@@ -9,6 +9,7 @@ import {
 } from "../chunk-SGDUU6YV.js";
 import {
   getAdapter,
+  isNodeLocked,
   relayoutScene,
   resolveDocument
 } from "../chunk-FTHHFRVE.js";
@@ -136,14 +137,191 @@ function applyTransaction(document, transaction, permissions) {
     store.dispose();
   }
 }
+
+// src/editor-core/router.ts
+function routeOrthogonal(request) {
+  const clearance = request.clearance ?? 12;
+  const maxBends = request.maxBends ?? 24;
+  const maxStates = request.maxStates ?? 2e4;
+  const stub = request.stub ?? 16;
+  const grow = (o) => ({
+    x: o.x - clearance,
+    y: o.y - clearance,
+    w: o.w + clearance * 2,
+    h: o.h + clearance * 2
+  });
+  const obstacles = request.obstacles.map(grow);
+  const stubbed = (point, side) => {
+    if (side === "left") return { x: point.x - stub, y: point.y };
+    if (side === "right") return { x: point.x + stub, y: point.y };
+    if (side === "top") return { x: point.x, y: point.y - stub };
+    if (side === "bottom") return { x: point.x, y: point.y + stub };
+    return { ...point };
+  };
+  const start = stubbed(request.from, request.fromSide);
+  const goal = stubbed(request.to, request.toSide);
+  const inside = (x, y) => obstacles.some((o) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h);
+  if (inside(start.x, start.y) || inside(goal.x, goal.y)) return failure("router.budget");
+  const xs = [.../* @__PURE__ */ new Set([start.x, goal.x, ...obstacles.flatMap((o) => [o.x, o.x + o.w])])].sort(
+    (a, b) => a - b
+  );
+  const ys = [.../* @__PURE__ */ new Set([start.y, goal.y, ...obstacles.flatMap((o) => [o.y, o.y + o.h])])].sort(
+    (a, b) => a - b
+  );
+  const margin = clearance * 2 + stub;
+  const withMidpoints = (values) => {
+    const result = [];
+    for (let i = 0; i < values.length; i++) {
+      result.push(values[i]);
+      if (i + 1 < values.length && values[i + 1] > values[i])
+        result.push((values[i] + values[i + 1]) / 2);
+    }
+    result.push(values[0] - margin, values[values.length - 1] + margin);
+    return result;
+  };
+  const axisX = withMidpoints(xs);
+  const axisY = withMidpoints(ys);
+  const xi = new Map(axisX.map((value, index) => [value, index]));
+  const yi = new Map(axisY.map((value, index) => [value, index]));
+  const startIndex = [xi.get(start.x), yi.get(start.y)];
+  const goalIndex = [xi.get(goal.x), yi.get(goal.y)];
+  const key = (x, y) => x * axisY.length + y;
+  const node = (index) => [
+    Math.floor(index / axisY.length),
+    index % axisY.length
+  ];
+  const reachable = (x, y) => !inside(axisX[x], axisY[y]);
+  const goalKey = key(goalIndex[0], goalIndex[1]);
+  const startKey = key(startIndex[0], startIndex[1]);
+  const g = /* @__PURE__ */ new Map([[startKey, 0]]);
+  const came = /* @__PURE__ */ new Map();
+  const open = /* @__PURE__ */ new Map([[startKey, 0]]);
+  const closed = /* @__PURE__ */ new Set();
+  const previousDirection = /* @__PURE__ */ new Map();
+  const neighborsOf = (x, y) => {
+    const result = [];
+    if (x + 1 < axisX.length && reachable(x + 1, y)) result.push([x + 1, y, "h"]);
+    if (x - 1 >= 0 && reachable(x - 1, y)) result.push([x - 1, y, "h"]);
+    if (y + 1 < axisY.length && reachable(x, y + 1)) result.push([x, y + 1, "v"]);
+    if (y - 1 >= 0 && reachable(x, y - 1)) result.push([x, y - 1, "v"]);
+    return result;
+  };
+  const heuristic = (x, y) => Math.abs(axisX[x] - axisX[goalIndex[0]]) + Math.abs(axisY[y] - axisY[goalIndex[1]]);
+  let states = 0;
+  let settled = startKey;
+  while (open.size > 0 && states < maxStates) {
+    const current = [...open.entries()].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
+    const [currentKey] = current;
+    open.delete(currentKey);
+    closed.add(currentKey);
+    states += 1;
+    if (currentKey === goalKey) {
+      settled = currentKey;
+      break;
+    }
+    const [cx, cy] = node(currentKey);
+    for (const [nx, ny, direction] of neighborsOf(cx, cy)) {
+      const neighbor = key(nx, ny);
+      if (closed.has(neighbor)) continue;
+      const step = Math.abs(axisX[nx] - axisX[cx]) + Math.abs(axisY[ny] - axisY[cy]);
+      const previous = previousDirection.get(currentKey);
+      const bendCost = previous !== void 0 && previous !== direction ? 96 : 0;
+      const tentative = g.get(currentKey) + step + bendCost;
+      const existing = open.get(neighbor);
+      if (existing === void 0 || tentative < g.get(neighbor)) {
+        g.set(neighbor, tentative);
+        open.set(neighbor, tentative + heuristic(nx, ny));
+        came.set(neighbor, [currentKey, direction]);
+        previousDirection.set(neighbor, direction);
+      }
+    }
+  }
+  if (settled !== goalKey) {
+    const impossible = closed.size > 0 && open.size === 0;
+    return failure(impossible ? "router.impossible" : "router.budget");
+  }
+  const points = [];
+  let cursor = goalKey;
+  const directions = [];
+  while (cursor !== startKey) {
+    const [previous, direction] = came.get(cursor);
+    const [px, py] = node(cursor);
+    points.push([axisX[px], axisY[py]]);
+    directions.push(direction);
+    cursor = previous;
+  }
+  const [sx, sy] = node(startKey);
+  points.push([axisX[sx], axisY[sy]]);
+  points.reverse();
+  directions.reverse();
+  let bends = 0;
+  for (let i = 1; i < directions.length; i++) if (directions[i] !== directions[i - 1]) bends += 1;
+  if (bends > maxBends) return failure("router.bends");
+  return success({ points, bends, states, clearance });
+}
+
+// src/editor-core/layout-provider.ts
+function applyLayoutResult(document, result, options) {
+  if (result.baseRevision !== options.expectedRevision) return failure("revision.stale");
+  const checked = validateDocument(document);
+  if (!checked.ok) return checked;
+  const current = checked.value;
+  const placed = result.scene.nodes;
+  const known = new Set(
+    current.spec.type === "graph" ? current.spec.nodes.map((n) => n.id) : current.scene.zOrder
+  );
+  for (const id of Object.keys(placed)) {
+    if (!known.has(id)) return failure("reference.missing");
+    if (isNodeLocked(current, id)) return failure("entity.locked");
+  }
+  const next = structuredClone(current);
+  next.scene = {
+    ...next.scene,
+    mode: "manual",
+    nodes: { ...next.scene.nodes, ...structuredClone(placed) },
+    zOrder: result.scene.zOrder ?? next.scene.zOrder
+  };
+  return success(next);
+}
+async function runLayoutProvider(document, provider, options) {
+  const result = await provider.run();
+  if (provider.requestId !== options.latestRequestId()) return;
+  if (result.requestId !== provider.requestId) return;
+  const applied = applyLayoutResult(document, result, {
+    expectedRevision: options.expectedRevision
+  });
+  if (applied.ok) options.onResult(applied.value);
+  else options.onError(applied.diagnostics.map((d) => d.code).join(", "));
+}
+function createLayoutProvider(requestId, baseRevision, work) {
+  let aborted = false;
+  return {
+    requestId,
+    baseRevision,
+    async run() {
+      const scene = await work({
+        get aborted() {
+          return aborted;
+        }
+      });
+      if (aborted) throw new Error("operation.aborted");
+      return { requestId, baseRevision, scene };
+    },
+    cancel() {
+      aborted = true;
+    }
+  };
+}
 export {
   DEFAULT_LIMITS,
+  applyLayoutResult,
   applyTransaction,
   canonicalizeContent,
   convertToGraph,
   createDocument,
   createEditorStore,
   createFragment,
+  createLayoutProvider,
   defaultPresentation,
   exportLegacySpec,
   fitViewport,
@@ -152,6 +330,8 @@ export {
   pasteFragment,
   relayoutScene,
   resolveDocument,
+  routeOrthogonal,
+  runLayoutProvider,
   screenToWorld,
   serializeDocument,
   validateDocument,
