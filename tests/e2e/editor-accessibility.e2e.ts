@@ -67,6 +67,25 @@ test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({
   await page.evaluate(() => {
     ;(document.body.style as unknown as Record<string, string>).zoom = '200%'
   })
+  await test.info().attach('zoom-layout', {
+    body: JSON.stringify(
+      await page.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        elements: [
+          ...document.querySelectorAll(
+            '.studio-header, .studio-actions, .adl-editor-toolbar, .adl-editor-body, .adl-editor-inspector',
+          ),
+        ].map((element) => ({
+          className: element.className,
+          width: element.getBoundingClientRect().width,
+          right: element.getBoundingClientRect().right,
+          scrollWidth: element.scrollWidth,
+        })),
+      })),
+    ),
+    contentType: 'application/json',
+  })
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2))
     .toBe(true)

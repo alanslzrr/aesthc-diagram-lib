@@ -95,6 +95,7 @@
   background: var(--adl-card);
 }
 .adl-editor-inspector {
+  min-width: 0;
   overflow: auto;
   border-left: 1px solid var(--adl-border);
   padding: 20px;
@@ -155,7 +156,7 @@
 }
 @media (max-width: 760px) {
   .adl-editor-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
   .adl-editor-surface {
@@ -232,5 +233,11 @@
   max-width: 100%;
   height: auto;
   text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.adl-editor-toolbar > * {
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
