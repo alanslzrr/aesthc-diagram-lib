@@ -3,6 +3,10 @@ export { DiagramViewer } from './DiagramViewer'
 export type { DiagramViewerProps } from './DiagramViewer'
 export { Finder } from './Finder'
 export type { FinderProps } from './Finder'
+export { Comparison } from './Comparison'
+export type { ComparisonProps } from './Comparison'
+export { Evidence } from './Evidence'
+export type { EvidenceProps } from './Evidence'
 export { Inspector } from './Inspector'
 export type { InspectorProps } from './Inspector'
 export { Minimap } from './Minimap'
@@ -10,6 +14,8 @@ export type { MinimapProps } from './Minimap'
 export { Presentation } from './Presentation'
 export type { PresentationProps } from './Presentation'
 export { StoryPlayback, createMotionOwnerGuard } from './motion'
+export { createTracePlayer } from './trace'
+export type { TraceCallbacks, TraceEnvironment, TraceState } from './trace'
 export type {
   MotionOwnerGuard,
   PlaybackCallbacks,
@@ -28,6 +34,9 @@ export {
 export type { ResolvedView, StoryTransition, ViewerLens, ViewerState } from './views'
 export { graphSnapshot, searchNodes, relationsOf, findRoute, findReach } from '../graph'
 export type {
+  Comparison as DocumentComparison,
+  EntityDelta,
+  FieldChange,
   GraphFilter,
   GraphNodeInfo,
   GraphSnapshot,

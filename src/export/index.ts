@@ -268,3 +268,5 @@ export { CARD_HEIGHT, CARD_WIDTH, cardSvg, exportCard, validateCardQuery } from 
 export type { CardArtifact, CardQueryReceipt, CardSvgOptions, ValidatedQuery } from './cards'
 export { probeExportCapabilities, supportedFormats } from './capabilities'
 export type { ProbedExportCapabilities } from './capabilities'
+export { exportStoryWebm, webmCapability } from './motion'
+export type { MotionArtifact, MotionOptions } from './motion'

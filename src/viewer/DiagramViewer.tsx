@@ -4,13 +4,21 @@ import type { DiagramDocument, EntityRef, Locale, Viewport } from '../editor-cor
 import { resolveDocument } from '../editor-core/scene'
 import { findReach, findRoute, graphSnapshot } from '../graph'
 import { renderSvg } from '../render'
-import { downloadArtifact, exportCard } from '../export'
+import {
+  downloadArtifact,
+  exportCard,
+  exportDocument,
+  exportStoryWebm,
+  webmCapability,
+} from '../export'
 import type { ExportArtifact } from '../export'
+import { Evidence } from './Evidence'
 import { Finder } from './Finder'
 import { Inspector } from './Inspector'
 import { Minimap } from './Minimap'
 import { Presentation } from './Presentation'
 import { StoryPlayback, createMotionOwnerGuard } from './motion'
+import { validateDeploymentProfile } from '../editor-core'
 import { lensFacets, lensMatches, resolveView } from './views'
 import type { ViewerLens } from './views'
 import {
@@ -58,6 +66,12 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
   const [storyFocus, setStoryFocus] = useState<{ nodes: Set<string>; edges: Set<string> } | null>(
     null,
   )
+  const [profileEnabled, setProfileEnabled] = useState(false)
+  const [publishIssue, setPublishIssue] = useState<string[] | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [motionIssue, setMotionIssue] = useState<string | null>(null)
+  const recordAbort = useRef<AbortController | null>(null)
+  const webm = useMemo(() => webmCapability(), [])
   const [reducedMotion, setReducedMotion] = useState(
     () =>
       typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -136,6 +150,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           })
         : '',
     [document, scene, highlight, lensSet, exclude],
+  )
+  const profileReport = useMemo(
+    () => validateDeploymentProfile(document, { enabled: profileEnabled }),
+    [document, profileEnabled],
   )
   const relationsEnabled = graph.edges.length > 0
   const summary = querySummary(query, graph, t)
@@ -313,6 +331,67 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     if (!artifact.ok) return
     downloadArtifact(artifact.value, 'card.png')
   }
+  /** Stops an in-flight recording; the recorder releases tracks and URLs. */
+  function cancelRecording() {
+    recordAbort.current?.abort()
+  }
+  async function exportWebm() {
+    setMotionIssue(null)
+    const controller = new AbortController()
+    recordAbort.current = controller
+    setRecording(true)
+    const result = await exportStoryWebm(document, {
+      signal: controller.signal,
+      reducedMotion,
+    })
+    recordAbort.current = null
+    setRecording(false)
+    if (!result.ok) {
+      setMotionIssue(result.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
+      return
+    }
+    const url = URL.createObjectURL(
+      new Blob([result.value.bytes as BlobPart], { type: result.value.receipt.mimeType }),
+    )
+    const link = window.document.createElement('a')
+    link.href = url
+    link.download = 'story.webm'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  async function exportPublish() {
+    setPublishIssue(null)
+    if (!scene.ok) return
+    const report = validateDeploymentProfile(document, { enabled: profileEnabled })
+    if (!report.ok) {
+      setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code))
+      return
+    }
+    if (report.value.enabled && report.value.diagnostics.length > 0) {
+      // The profile is never auto-disabled; the first diagnostic navigates to
+      // its exact subject and the publish export stays blocked.
+      setPublishIssue(report.value.diagnostics.map((diagnostic) => diagnostic.code))
+      const first = report.value.diagnostics[0].subject
+      if (first) setSelection(first)
+      return
+    }
+    const artifact = await exportDocument(document, {
+      format: 'svg',
+      scope: { type: 'document' },
+      theme: document.presentation.theme.mode,
+      quality: 'publish',
+      background: 'theme',
+      scale: 1,
+      includeSource: false,
+      metadata: 'minimal',
+      fontPolicy: 'fallback',
+    })
+    if (!artifact.ok) {
+      setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code))
+      return
+    }
+    downloadArtifact(artifact.value, 'diagram.svg')
+  }
   function zoomBy(factor: number) {
     setCamera((current) => ({
       ...current,
@@ -418,6 +497,18 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           </button>
           <button type="button" onClick={clearQuery}>
             {t('Clear', 'Limpiar')}
+          </button>
+          <label className="adl-viewer-profile-toggle">
+            <input
+              type="checkbox"
+              checked={profileEnabled}
+              onChange={(event) => setProfileEnabled(event.target.checked)}
+              aria-label={t('Deployment profile', 'Perfil de despliegue')}
+            />
+            {t('Deployment profile', 'Perfil de despliegue')}
+          </label>
+          <button type="button" onClick={() => void exportPublish()}>
+            {t('Publish export', 'Exportar publicación')}
           </button>
         </div>
       </header>
@@ -615,6 +706,45 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
               {t('Reduced motion: static navigation.', 'Movimiento reducido: navegación estática.')}
             </span>
           )}
+          {recording ? (
+            <button type="button" onClick={cancelRecording}>
+              {t('Cancel export', 'Cancelar exportación')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void exportWebm()}
+              disabled={!webm.supported || reducedMotion}
+              title={
+                !webm.supported
+                  ? t(
+                      'WebM is unavailable in this browser.',
+                      'WebM no está disponible en este navegador.',
+                    )
+                  : reducedMotion
+                    ? t(
+                        'Reduced motion: recording is disabled.',
+                        'Movimiento reducido: la grabación está deshabilitada.',
+                      )
+                    : undefined
+              }
+            >
+              {t('Export WebM', 'Exportar WebM')}
+            </button>
+          )}
+          {!webm.supported && (
+            <span className="adl-viewer-muted">
+              {t(
+                'WebM is unavailable in this browser.',
+                'WebM no está disponible en este navegador.',
+              )}
+            </span>
+          )}
+          {motionIssue && (
+            <span className="adl-viewer-muted" role="status">
+              {motionIssue}
+            </span>
+          )}
         </div>
       )}
       {scene.ok && (
@@ -669,10 +799,22 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           </span>
         </div>
       )}
+      {publishIssue && (
+        <p className="adl-viewer-note" role="alert">
+          {publishIssue.join(', ')}
+        </p>
+      )}
       <Inspector
         document={document}
         graph={graph}
         entity={selection}
+        onSelect={setSelection}
+        t={t}
+      />
+      <Evidence
+        document={document}
+        entity={selection}
+        profile={profileReport.ok ? profileReport.value : null}
         onSelect={setSelection}
         t={t}
       />

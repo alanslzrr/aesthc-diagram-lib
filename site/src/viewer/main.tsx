@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createDocument, importDocument } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
-import { DiagramViewer } from '@aesthc/diagram-lib/viewer'
+import { Comparison, DiagramViewer } from '@aesthc/diagram-lib/viewer'
 import '@aesthc/diagram-lib/viewer.css'
 import '../design-system.css'
 import './viewer.css'
@@ -95,9 +95,11 @@ initialDocument.story = [
 
 function ViewerApp() {
   const [document, setDocument] = useState<DiagramDocument>(initialDocument)
+  const [afterDocument, setAfterDocument] = useState<DiagramDocument | null>(null)
   const [locale, setLocale] = useState<Locale>('en')
   const [message, setMessage] = useState('')
   const file = useRef<HTMLInputElement>(null)
+  const compareFile = useRef<HTMLInputElement>(null)
   return (
     <main className="viewer-shell">
       <header className="viewer-header">
@@ -141,10 +143,37 @@ function ViewerApp() {
               } else setMessage(result.diagnostics.map((d) => d.code).join(', '))
             }}
           />
+          <button type="button" onClick={() => compareFile.current?.click()}>
+            Compare with…
+          </button>
+          <input
+            ref={compareFile}
+            hidden
+            type="file"
+            accept=".json,application/json"
+            onChange={async (e) => {
+              const upload = e.target.files?.[0]
+              e.target.value = ''
+              if (!upload) return
+              if (upload.size > 1048576) {
+                setMessage('limit.bytes')
+                return
+              }
+              const result = importDocument(await upload.text(), {
+                id: crypto.randomUUID(),
+                locale,
+              })
+              if (result.ok) {
+                setAfterDocument(result.value.document)
+                setMessage('')
+              } else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+            }}
+          />
           <button
             type="button"
             onClick={() => {
               setDocument(initialDocument)
+              setAfterDocument(null)
               setMessage('')
             }}
           >
@@ -158,6 +187,7 @@ function ViewerApp() {
         </p>
       )}
       <DiagramViewer document={document} locale={locale} />
+      {afterDocument && <Comparison before={document} after={afterDocument} locale={locale} />}
     </main>
   )
 }

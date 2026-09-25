@@ -98,3 +98,35 @@ describe('E14 finite story playback', () => {
     expect(playback.getOwner()).toBeNull()
   })
 })
+
+describe('E24 finite trace playback', () => {
+  it('T52.2 plays an authored route edge by edge and never invents edges', async () => {
+    const { createTracePlayer } = await import('../src/viewer/trace')
+    const timers = fakeTimers()
+    const seen: Array<[number, string]> = []
+    const ended: boolean[] = []
+    const player = createTracePlayer(
+      { edgeIds: ['e1', 'e2', 'e3'] },
+      {
+        onStep: (index, edgeId) => seen.push([index, edgeId]),
+        onEnd: () => ended.push(true),
+        onStop: () => ended.push(false),
+      },
+      { edgeDurationMs: 100, environment: timers },
+    )
+    expect(player.state()).toBe('idle')
+    expect(seen).toEqual([])
+    player.play()
+    expect(player.edgeIds()).toEqual(['e1', 'e2', 'e3'])
+    timers.advance(100)
+    timers.advance(100)
+    expect(seen).toEqual([
+      [0, 'e1'],
+      [1, 'e2'],
+      [2, 'e3'],
+    ])
+    timers.advance(100)
+    expect(ended).toEqual([true])
+    expect(player.state()).toBe('ended')
+  })
+})
