@@ -46,6 +46,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -526,15 +527,35 @@ var SceneHits = memo(function SceneHits2({
 });
 var BaselineLayer = memo(function BaselineLayer2({
   markup,
+  hidden,
   width,
   height,
   x,
   y,
   zoom
 }) {
+  const root = useRef(null);
+  useLayoutEffect(() => {
+    if (!hidden || !root.current) return;
+    const nodeIds = new Set(hidden.nodes), edgeIds = new Set(hidden.edges);
+    const elements = [
+      ...root.current.querySelectorAll(
+        "[data-node-id], [data-edge-id], [data-edge-label]"
+      )
+    ].filter(
+      (element) => nodeIds.has(element.getAttribute("data-node-id") ?? "") || edgeIds.has(
+        element.getAttribute("data-edge-id") ?? element.getAttribute("data-edge-label") ?? ""
+      )
+    );
+    for (const element of elements) element.style.visibility = "hidden";
+    return () => {
+      for (const element of elements) element.style.removeProperty("visibility");
+    };
+  }, [hidden, markup]);
   return /* @__PURE__ */ jsx(
     "svg",
     {
+      ref: root,
       "aria-hidden": "true",
       width: "100%",
       height: "100%",
@@ -573,34 +594,10 @@ function EditorSurface({
     [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview]
   );
   const [gestureEntities, setGestureEntities] = useState(null);
-  const gestureKey = gestureEntities ? `${[...gestureEntities.nodes].sort().join(",")}|${[...gestureEntities.edges].sort().join(",")}` : null;
-  const baselineCache = useRef(null);
-  const baseline = useMemo(() => {
-    if (!gestureEntities || !gestureKey) {
-      baselineCache.current = null;
-      return null;
-    }
-    const cacheKey = `${gestureKey}|${snapshot.document.revision}`;
-    if (baselineCache.current?.key === cacheKey) return baselineCache.current.markup;
-    const baseDoc = snapshot.document;
-    const baseResolved = resolveDocument(baseDoc, {
-      quality: "edit",
-      requestId: `${instanceId}-baseline`,
-      measureText,
-      skipValidation: true,
-      skipDiagnostics: true
-    });
-    if (!baseResolved.ok) return null;
-    const baselineMarkup = renderSceneMarkup(baseDoc, baseResolved.value, {
-      instanceId,
-      exclude: {
-        nodes: new Set(gestureEntities.nodes),
-        edges: new Set(gestureEntities.edges)
-      }
-    });
-    baselineCache.current = { key: cacheKey, markup: baselineMarkup };
-    return baselineMarkup;
-  }, [gestureEntities, gestureKey, snapshot.document, instanceId]);
+  const baseline = useMemo(
+    () => committedResolved.ok ? renderSceneMarkup(snapshot.document, committedResolved.value, { instanceId }) : "",
+    [snapshot.document, committedResolved, instanceId]
+  );
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null;
     return renderSceneMarkup(activeDoc, resolved.value, {
@@ -608,10 +605,6 @@ function EditorSurface({
       only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) }
     });
   }, [activeDoc, resolved, gestureEntities, instanceId]);
-  const markup = useMemo(
-    () => gestureEntities ? "" : resolved.ok ? renderSceneMarkup(activeDoc, resolved.value, { instanceId }) : "",
-    [activeDoc, resolved, gestureEntities, instanceId]
-  );
   const gesture = useRef(null);
   const marquee = useRef(null);
   const [selectionBox, setSelectionBox] = useState(null);
@@ -1012,10 +1005,11 @@ function EditorSurface({
     [store]
   );
   return /* @__PURE__ */ jsxs("div", { className: `adl-editor-surface ${className ?? ""}`, children: [
-    gestureEntities && baseline !== null && /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsx(
       BaselineLayer,
       {
         markup: baseline,
+        hidden: gestureEntities,
         width: size.width,
         height: size.height,
         x: snapshot.viewport.x,
@@ -1184,7 +1178,7 @@ function EditorSurface({
               expectedRevision: snapshot.document.revision
             }).ok)
               return;
-            setGestureEntities({ nodes: [], edges: [] });
+            setGestureEntities({ nodes: [portNodeId], edges: incidentEdges([portNodeId]) });
             const startPoint = local(event);
             gesture.current = {
               pointer: event.pointerId,
@@ -1308,7 +1302,7 @@ function EditorSurface({
           {
             transform: `translate(${snapshot.viewport.x} ${snapshot.viewport.y}) scale(${snapshot.viewport.zoom})`,
             children: [
-              gestureEntities && baseline !== null ? /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" }) : /* @__PURE__ */ jsx(SceneMarkup, { markup }),
+              /* @__PURE__ */ jsx(SceneMarkup, { markup: deltaMarkup ?? "" }),
               /* @__PURE__ */ jsx("g", { pointerEvents: gestureEntities ? "none" : void 0, children: /* @__PURE__ */ jsx(
                 SceneHits,
                 {
