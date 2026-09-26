@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Release candidate: 0.3.0
+## [0.3.0] - 2026-09-26
 
-Prepared for review; public npm availability has not yet been verified.
+Release candidate. Public npm availability is verified only after an authorized
+publication; the acceptance closure and the pending human accessibility session
+are recorded in the
+[execution report](docs/specs/editable-canvas/execution/README.md#cierre-de-aceptación-2026-09-26).
 
 ### Added
 
@@ -33,6 +36,7 @@ Prepared for review; public npm availability has not yet been verified.
 - Share registry state across distribution entrypoints and remove obsolete chunks on full builds.
 - Preserve explicit sequence/parallel relation identities; anonymous parallel identities follow authored order.
 - Correct label-only node alignment and ER field overlap.
+- Meet AA contrast in the light viewer chrome and repair ARIA listbox semantics in the viewer finder and comparison surfaces.
 
 Migration: editor/share input is JSON, not executable JavaScript. See
 [migration notes](docs/guides/migration.md) for identity, styles and import guidance.
@@ -112,6 +116,7 @@ Migration: editor/share input is JSON, not executable JavaScript. See
   in place (Next.js: `transpilePackages`). A JS + `.d.ts` build is a
   deliberate future improvement, not a current blocker.
 
+[0.3.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.3.0
 [0.2.2]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.2
 [0.2.1]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.1
 [0.2.0]: https://github.com/alanslzrr/aesthc-diagram-lib/releases/tag/v0.2.0
