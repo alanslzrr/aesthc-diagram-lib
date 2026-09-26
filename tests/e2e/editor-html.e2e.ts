@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 import { createDocument } from '../../dist/editor-core/index.js'
 import type { DiagramDocument } from '../../dist/editor-core/index.js'
 import { exportDocumentHtml } from '../../dist/export/index.js'
@@ -88,6 +89,13 @@ test('T38.1 the artifact works from file:// with zero network and zero storage',
   await expect(story.getByText('1/2', { exact: true })).toBeVisible()
   await story.getByRole('button', { name: 'Next' }).click()
   await expect(story.getByText('2/2', { exact: true })).toBeVisible()
+  // The self-contained artifact has no serious automated accessibility violations.
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(
+    accessibility.violations.filter(
+      (issue) => issue.impact === 'serious' || issue.impact === 'critical',
+    ),
+  ).toEqual([])
   // Theme comes from the document.
   await expect(viewer).toHaveAttribute('data-theme', 'light')
   // No network, no storage, no page errors.
