@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-09-26
 
 Release candidate. Public npm availability is verified only after an authorized
-publication; the acceptance closure and the pending human accessibility session
-are recorded in the
+publication; the automated acceptance evidence is recorded in the
 [execution report](docs/specs/editable-canvas/execution/README.md#cierre-de-aceptación-2026-09-26).
 
 ### Added
