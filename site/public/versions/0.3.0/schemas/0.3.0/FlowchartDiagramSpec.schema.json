@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/FlowchartDiagramSpec",
+  "definitions": {
+    "FlowchartDiagramSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "flowchart"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "legend": {
+          "type": "object",
+          "properties": {
+            "main": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "main",
+            "branch"
+          ],
+          "additionalProperties": false
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiagramEdge"
+          }
+        },
+        "level": {
+          "type": "number",
+          "description": "Global level override for every node; omit for automatic topological levels."
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "top-down",
+            "left-right"
+          ],
+          "description": "Main flow direction."
+        }
+      },
+      "required": [
+        "type",
+        "caption",
+        "legend",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "DiagramNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Localized explanation shown on hover/focus and available to assistive technology."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Mono micro-label above the title, e.g. 'Trigger', 'Engine', 'Gate'."
+        },
+        "sublabel": {
+          "type": "string"
+        },
+        "weight": {
+          "$ref": "#/definitions/NodeWeight"
+        },
+        "nudge": {
+          "type": "number",
+          "description": "Vertical fine-tune in viewBox units, applied after the layout centres the node."
+        },
+        "shape": {
+          "$ref": "#/definitions/DiagramNodeShape",
+          "description": "Draw this node as something other than a hairline card."
+        },
+        "textAnchor": {
+          "$ref": "#/definitions/DiagramNodeTextAnchor",
+          "description": "Label alignment for `event` shapes (timeline)."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableField"
+          },
+          "description": "ER table rows (only meaningful for `shape: 'table'`)."
+        },
+        "initial": {
+          "type": "boolean",
+          "description": "State-machine: draw a double outline (initial state)."
+        },
+        "final": {
+          "type": "boolean",
+          "description": "State-machine: draw a hollow centre (final state)."
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "NodeWeight": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "muted"
+      ],
+      "description": "Visual weight of a node card."
+    },
+    "DiagramNodeShape": {
+      "type": "string",
+      "enum": [
+        "card",
+        "state",
+        "table",
+        "event",
+        "terminal",
+        "bar"
+      ],
+      "description": "How a node is drawn: hairline card (default), state pill, ER table, timeline event, terminal, activation bar."
+    },
+    "DiagramNodeTextAnchor": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "middle"
+      ],
+      "description": "For `event` shapes, where the label sits relative to the dot."
+    },
+    "TableField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "Optional column type, e.g. `uuid`, `varchar(64)`."
+        },
+        "key": {
+          "type": "string",
+          "enum": [
+            "pk",
+            "fk",
+            "unique"
+          ],
+          "description": "Row badge: primary key / foreign key / unique."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A single row in an ER table node."
+    },
+    "DiagramEdge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identity for parallel relations; recommended when editing/reordering."
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/definitions/EdgeVariant"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "labelPlacement": {
+          "$ref": "#/definitions/EdgeLabelPlacement",
+          "description": "Move a pill into an authored whitespace slot without changing its edge."
+        },
+        "route": {
+          "type": "object",
+          "properties": {
+            "lane": {
+              "$ref": "#/definitions/EdgeLane"
+            },
+            "clearance": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "lane"
+          ],
+          "additionalProperties": false,
+          "description": "Route a cross-band edge around every intervening band on an outer lane."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "EdgeVariant": {
+      "type": "string",
+      "enum": [
+        "main",
+        "branch"
+      ],
+      "description": "Edge flavour: cobalt main path vs amber branch path."
+    },
+    "EdgeLabelPlacement": {
+      "type": "string",
+      "enum": [
+        "above-target",
+        "below-target",
+        "left-of-edge",
+        "right-of-edge"
+      ]
+    },
+    "EdgeLane": {
+      "type": "string",
+      "enum": [
+        "above",
+        "below"
+      ]
+    }
+  }
+}

@@ -6,6 +6,9 @@
 @import './design-system.css';
 @import 'tailwindcss';
 
+/* Frozen version snapshots are copied verbatim; never scan them for utilities. */
+@source not '../public/versions';
+
 @custom-variant dark (&:is([data-theme='dark'] *));
 
 @theme {
