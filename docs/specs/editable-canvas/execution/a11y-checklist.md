@@ -222,12 +222,18 @@ Ejecutada en el commit mergeado y reproducible con `pnpm check` + `pnpm test:e2e
 Evidencia ejecutada en esta máquina, complementaria y no sustituta de la matriz
 fijada de CI:
 
-- `pnpm check`: PASS (lint, formato, iconos, schemas, docs, tipos, unit, perf,
-  tarball React 18/19, site, budgets).
-- `PLAYWRIGHT_CHANNEL=chrome` × `--project=chromium --project=mobile-chromium`:
-  **253 passed / 21 skipped / 0 failed** (2.7 min). Los binarios fijados
-  Chromium 1243 / Firefox 1543 / WebKit 2359 no están instalados localmente; la
-  certificación de esos motores es la del CI del commit mergeado.
+- `pnpm check` con Node 22.23.2: PASS (lint, formato, iconos, schemas, docs,
+  tipos, unit, perf, tarball React 18/19, site, budgets).
+- Chromium **fijado 1243** + mobile-chromium: **253 passed / 21 skipped /
+  0 failed**; repetido con Chrome del sistema, mismo resultado.
+- Firefox **1543** y WebKit **2359** sí se instalaron después, pero en macOS 27
+  Firefox no lanza (`sandbox_extension_issue_file_to_process … Operation not
+  permitted`, limitación del sistema) y WebKit/móvil presentó 8 fallos locales
+  en pruebas preexistentes de descargas/fuentes ajenas a este cambio. La
+  certificación de esos motores es la matriz fijada del CI del commit mergeado.
+- Consumidores contra el tarball retenido: React 19 y React 18.3.1 (13 pruebas
+  cada uno, declaraciones NodeNext/Bundler y ejemplos), más
+  `pnpm test:frameworks` (Vite/Next): PASS.
 - Los escaneos axe de las superficies M2/M3 se añadieron en esta sesión y
   fallaron primero (RED) en cuatro superficies: el contrato de aceptación se
   mantiene exigiendo cero violaciones serious/critical.

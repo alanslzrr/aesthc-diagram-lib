@@ -64,6 +64,12 @@ complementaria; la certificación de motores es la matriz fijada de CI.
   nunca se anuncia como éxito y ofrece descarga como alternativa.
 - **Revisión humana con lector de pantalla:** no ejecutada; combinación
   NVDA/Firefox tampoco disponible en este equipo.
+- **Matriz local:** Chromium fijado 1243 y mobile-chromium certificados
+  localmente (253/21/0) y consumidores React 18/19, Vite y Next verdes contra el
+  tarball retenido. Firefox 1543 no lanza en macOS 27 (sandbox del sistema) y
+  WebKit 2359/móvil presentó fallos locales en pruebas de descarga/fuentes
+  ajenas a este cambio; la certificación de Firefox/WebKit es la del CI de
+  Ubuntu.
 - **Publicación:** el manifiesto mantiene `diagramRelease.channel: candidate` y
   `npmAvailable: false`; no se crean tags, releases ni publicaciones sin
   autorización específica. Los pasos autorizados están en
