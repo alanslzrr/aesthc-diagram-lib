@@ -52,6 +52,7 @@ export function Finder({ graph, label, onSelect, placeholder, disabled }: Finder
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
+        aria-activedescendant={open ? `${listId}-option-${active}` : undefined}
         aria-autocomplete="list"
         value={query}
         disabled={disabled}
@@ -65,21 +66,20 @@ export function Finder({ graph, label, onSelect, placeholder, disabled }: Finder
       {open && (
         <ul className="adl-viewer-finder-results" id={listId} role="listbox" aria-label={label}>
           {results.map((result, index) => (
-            <li key={result.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={index === active}
-                className={index === active ? 'adl-viewer-active' : undefined}
-                onClick={() => choose(result.id)}
-                onMouseEnter={() => setActive(index)}
-              >
-                <span>{result.label}</span>
-                <span className="adl-viewer-finder-meta">
-                  {result.id}
-                  {result.kind ? ` · ${result.kind}` : ''}
-                </span>
-              </button>
+            <li
+              key={result.id}
+              id={`${listId}-option-${index}`}
+              role="option"
+              aria-selected={index === active}
+              className={index === active ? 'adl-viewer-active' : undefined}
+              onClick={() => choose(result.id)}
+              onMouseEnter={() => setActive(index)}
+            >
+              <span>{result.label}</span>
+              <span className="adl-viewer-finder-meta">
+                {result.id}
+                {result.kind ? ` · ${result.kind}` : ''}
+              </span>
             </li>
           ))}
         </ul>

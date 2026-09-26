@@ -159,10 +159,9 @@ export function Comparison({ before, after, locale = 'en' }: ComparisonProps) {
               id={`change-${index}`}
               role="option"
               aria-selected={index === selected}
+              onClick={() => setSelected(index)}
             >
-              <button type="button" onClick={() => setSelected(index)}>
-                <span className="adl-viewer-mono">{item.label}</span>
-              </button>
+              <span className="adl-viewer-mono">{item.label}</span>
             </li>
           ))}
         </ul>
@@ -171,6 +170,7 @@ export function Comparison({ before, after, locale = 'en' }: ComparisonProps) {
             className="adl-viewer-comparison-stage"
             role="img"
             aria-label={t('Comparison preview', 'Vista de comparación')}
+            tabIndex={0}
             dangerouslySetInnerHTML={{ __html: scene.svg }}
           />
         ) : (

@@ -124,6 +124,7 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
         "aria-label": label,
         "aria-expanded": open,
         "aria-controls": open ? listId : void 0,
+        "aria-activedescendant": open ? `${listId}-option-${active}` : void 0,
         "aria-autocomplete": "list",
         value: query,
         disabled,
@@ -135,10 +136,10 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
         onKeyDown
       }
     ),
-    open && /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-finder-results", id: listId, role: "listbox", "aria-label": label, children: results.map((result, index) => /* @__PURE__ */ jsx2("li", { children: /* @__PURE__ */ jsxs2(
-      "button",
+    open && /* @__PURE__ */ jsx2("ul", { className: "adl-viewer-finder-results", id: listId, role: "listbox", "aria-label": label, children: results.map((result, index) => /* @__PURE__ */ jsxs2(
+      "li",
       {
-        type: "button",
+        id: `${listId}-option-${index}`,
         role: "option",
         "aria-selected": index === active,
         className: index === active ? "adl-viewer-active" : void 0,
@@ -151,8 +152,9 @@ function Finder({ graph, label, onSelect, placeholder, disabled }) {
             result.kind ? ` \xB7 ${result.kind}` : ""
           ] })
         ]
-      }
-    ) }, result.id)) }),
+      },
+      result.id
+    )) }),
     query.length > 0 && results.length === 0 && /* @__PURE__ */ jsxs2("p", { className: "adl-viewer-finder-empty", role: "status", children: [
       "No matches for \u201C",
       query,
@@ -1507,7 +1509,8 @@ function Comparison({ before, after, locale = "en" }) {
               id: `change-${index}`,
               role: "option",
               "aria-selected": index === selected,
-              children: /* @__PURE__ */ jsx6("button", { type: "button", onClick: () => setSelected(index), children: /* @__PURE__ */ jsx6("span", { className: "adl-viewer-mono", children: item.label }) })
+              onClick: () => setSelected(index),
+              children: /* @__PURE__ */ jsx6("span", { className: "adl-viewer-mono", children: item.label })
             },
             item.key
           ))
@@ -1519,6 +1522,7 @@ function Comparison({ before, after, locale = "en" }) {
           className: "adl-viewer-comparison-stage",
           role: "img",
           "aria-label": t("Comparison preview", "Vista de comparaci\xF3n"),
+          tabIndex: 0,
           dangerouslySetInnerHTML: { __html: scene.svg }
         }
       ) : /* @__PURE__ */ jsx6("p", { className: "adl-viewer-note", role: "alert", children: t("The preview could not be resolved.", "La vista no se pudo resolver.") })
