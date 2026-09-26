@@ -13,9 +13,9 @@ read the repository's root AGENTS.md. No plugin, skill, CLI or MCP server is nee
    replace its framework, package manager, styling system or build configuration.
 2. Check the installed version. These docs target 0.3.0. Do not assume that `main`
    exports are available in an older installed package. Use version-matched docs.
-3. Install `@aesthc/diagram-lib@0.3.0` using the existing package manager after the
-   release is publicly available. This release candidate is not yet available on npm; no downloadable candidate
-   is advertised here; never silently replace npm installation with copied sources.
+3. Install `@aesthc/diagram-lib@0.3.0` using the existing package manager. The
+   version is published on npm; never silently replace npm installation with
+   copied sources.
 4. Follow [Getting started](../getting-started.md). Use a direct typed spec and
    `layoutDiagram`; registry/localization are optional, not boilerplate requirements.
 5. Choose band for staged pipelines, flowchart for directed workflows, sequence for

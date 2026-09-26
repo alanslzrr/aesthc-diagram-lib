@@ -22,8 +22,10 @@ Remote baseline: [merge CI](https://github.com/alanslzrr/aesthc-diagram-lib/acti
 New PR validation must state its own SHA, versions, commands and results rather
 than treating this dated baseline as current certification.
 
-The current 0.3.0 candidate is not yet available on npm. Passing tests, tags and
-repository files do not establish public availability. See [the release runbook](../maintainers/releasing.md).
+0.3.0 was first published to the public npm registry on 2026-09-26. Passing
+tests, tags and repository files alone do not establish public availability;
+verify the installed artifact as described in
+[the release runbook](../maintainers/releasing.md).
 
 ## Current verification gates
 

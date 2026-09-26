@@ -1,6 +1,6 @@
 # Getting started
 
-Documentation for **0.3.0**. Release candidate—not yet available on npm. The command below is for the future release, not a working installation today.
+Documentation for **0.3.0**. Version 0.3.0 is available on npm.
 
 React `^18.3.1 || ^19.0.0`, ESM and Node 20.19+ are the declared consumer targets.
 See the [support matrix](guides/support.md) for verification scope.

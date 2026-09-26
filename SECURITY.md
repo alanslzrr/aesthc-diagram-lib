@@ -12,9 +12,9 @@ investigate as availability permits; this volunteer project does not offer an SL
 
 ## Supported versions
 
-Security fixes target the latest published minor line. During preparation of
-0.3.0, report issues found in 0.2.x as well; fixes may require upgrading. Unreleased
-`main` is not a supported substitute for a verified release.
+Security fixes target the latest published minor line (0.3.0, first published
+2026-09-26). Report issues found in 0.2.x as well; fixes may require upgrading.
+Unreleased `main` is not a supported substitute for a verified release.
 
 ## Trust boundaries
 
