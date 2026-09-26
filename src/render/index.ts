@@ -37,6 +37,15 @@ export interface RenderOptions {
    * keep the baseline free of the entities the delta pass redraws.
    */
   exclude?: { nodes?: ReadonlySet<string>; edges?: ReadonlySet<string> }
+  /**
+   * Mark exact entity ids for semantic highlighting (viewer routes, reach,
+   * cards). Parallel edges keep their own IDs and are marked individually.
+   * Rendering stays headless; styling is applied by CSS or an inline style.
+   */
+  highlight?: { nodes?: ReadonlySet<string>; edges?: ReadonlySet<string> }
+  /** Reading-only dimming (lens): these entities stay in the topology but are
+   * rendered with `data-lens-dim` for display filtering. */
+  dim?: ReadonlySet<string>
 }
 export function renderSceneMarkup(
   document: DiagramDocument,
@@ -51,6 +60,10 @@ export function renderSceneMarkup(
     (!options.only?.nodes || options.only.nodes.has(nodeId)) && !options.exclude?.nodes?.has(nodeId)
   const includeEdge = (edgeId: string) =>
     (!options.only?.edges || options.only.edges.has(edgeId)) && !options.exclude?.edges?.has(edgeId)
+  const highlightNode = (nodeId: string) => options.highlight?.nodes?.has(nodeId) ?? false
+  const highlightEdge = (edgeId: string) => options.highlight?.edges?.has(edgeId) ?? false
+  const marked = (active: boolean) => (active ? ' data-query-highlight="true"' : '')
+  const dimmed = (nodeId: string) => (options.dim?.has(nodeId) ? ' data-lens-dim="true"' : '')
   const color = (variant?: string) => (variant === 'branch' ? p.branch : p.cobalt)
   const text = (
     x: number,
@@ -84,7 +97,7 @@ export function renderSceneMarkup(
       out += `<path d="M${line.x} ${line.y0}V${line.y1}" fill="none" stroke="${p.border}" stroke-dasharray="2 6"/>`
   for (const e of l.edges)
     if (includeEdge(e.id))
-      out += `<g data-edge-id="${escapeXml(e.id)}"><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ''}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ''}/></g>`
+      out += `<g data-edge-id="${escapeXml(e.id)}"${marked(highlightEdge(e.id))}><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ''}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ''}/></g>`
   if (!delta)
     for (const c of l.continuations)
       out += `<path d="${escapeXml(c.d)}" fill="none" stroke="${color(c.variant)}" stroke-width="${EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${id})"/>`
@@ -93,7 +106,12 @@ export function renderSceneMarkup(
     if (!includeNode(n.id)) continue
     const visual = document.metadata.visuals[n.id]
     const g = nodeGeometry(n, !!visual)
-    out += `<g data-node-id="${escapeXml(n.id)}"><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? '')}</desc>`
+    const custom = (n as { customSvg?: string }).customSvg
+    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}${dimmed(n.id)}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? '')}</desc>`
+    if (custom) {
+      out += `${custom}</g>`
+      continue
+    }
     if (n.shape === 'bar') {
       out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === 'primary' ? 'main' : 'branch')}" fill-opacity=".22" stroke="${p.border}"/></g>`
       continue

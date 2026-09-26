@@ -43,7 +43,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e02"></a>
 ## E02 — Schemas, límites y diagnósticos
 
-**Hito:** M0 · **Depende de:** E01 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
+**Hito:** M0 · **Depende de:** E01 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R04, R05, R55.
 
@@ -252,7 +252,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e13"></a>
 ## E13 — Graph queries y viewer semántico
 
-**Hito:** M2 · **Depende de:** E03, E05, E09 · **Cobertura:** 4 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M2 · **Depende de:** E03, E05, E09 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R30, R31, R32.
 
@@ -271,7 +271,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e14"></a>
 ## E14 — Lenses, vistas, story y presentación
 
-**Hito:** M2 · **Depende de:** E13, E06 · **Cobertura:** 0 implementado / 0 parcial / 6 sin localizar.
+**Hito:** M2 · **Depende de:** E13, E06 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R33, R34, R35.
 
@@ -290,7 +290,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e15"></a>
 ## E15 — Calidad geométrica y layout asíncrono
 
-**Hito:** M2 · **Depende de:** E05, E04 · **Cobertura:** 1 implementado / 0 parcial / 3 sin localizar.
+**Hito:** M2 · **Depende de:** E05, E04 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R36, R37.
 
@@ -308,7 +308,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e16"></a>
 ## E16 — HTML viewer autónomo
 
-**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M2 · **Depende de:** E11, E13, E14, E15 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R38.
 
@@ -326,7 +326,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e17"></a>
 ## E17 — Shares, cards y capacidades raster
 
-**Hito:** M2 · **Depende de:** E11, E13, E14 · **Cobertura:** 1 implementado / 0 parcial / 5 sin localizar.
+**Hito:** M2 · **Depende de:** E11, E13, E14 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R40, R41, R42.
 
@@ -345,7 +345,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e18"></a>
 ## E18 — Extensibilidad por instancia
 
-**Hito:** M2 · **Depende de:** E09, E11, E15 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
+**Hito:** M2 · **Depende de:** E09, E11, E15 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R43, R56.
 
@@ -363,7 +363,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e19"></a>
 ## E19 — Gates a11y, performance y matriz browser
 
-**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Cobertura:** 5 implementado / 1 parcial / 0 sin localizar.
+**Hito:** M2 · **Depende de:** E12, E14, E15, E16, E17, E18 · **Cobertura:** 6 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R44, R45, R46.
 
@@ -421,7 +421,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e22"></a>
 ## E22 — Comparación exacta Before/Delta/After
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R49.
 
@@ -439,7 +439,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e23"></a>
 ## E23 — Evidencia y perfil deployment
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 4 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 4 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R50, R51.
 
@@ -457,7 +457,7 @@ se lista en `test-catalog.md` con su archivo implementado y evidencia. Estados p
 <a id="e24"></a>
 ## E24 — Trace finito y WebM
 
-**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 0 implementado / 0 parcial / 2 sin localizar.
+**Hito:** M3 · **Depende de:** E21 · **Cobertura:** 2 implementado / 0 parcial / 0 sin localizar.
 
 **Requisitos:** R52.
 

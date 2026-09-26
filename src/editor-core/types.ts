@@ -307,10 +307,29 @@ export interface ResolvedScene {
   origin: Point
   diagnostics: Diagnostic[]
 }
+export interface CustomRenderContext {
+  theme: 'light' | 'dark'
+  palette: { background: string; foreground: string; card: string; border: string; muted: string }
+  x: number
+  y: number
+}
+/** Structural contract of a trusted, per-instance custom node renderer. */
+export interface ResolveCustomRenderer {
+  validate(data: unknown): Result<unknown>
+  measure(data: unknown, role: { fontSize: number }): { width: number; height: number }
+  renderSvg(data: unknown, context: CustomRenderContext): string
+}
+export interface ResolveRendererRegistry {
+  resolve(typeKey: string): ResolveCustomRenderer | undefined
+}
 export interface ResolveContext {
   quality: 'edit' | 'publish'
   requestId: string
   signal?: AbortSignal
+  /** Trusted custom node renderers. Without them, nodes declaring a `renderer`
+   * payload are reported as `renderer.unsupported` and published as a
+   * placeholder, never as an ordinary node. */
+  renderers?: ResolveRendererRegistry
   /** Real typographic measurer (e.g. canvas-backed). Falls back to a conservative estimate when absent. */
   measureText?: TextMeasurer
   /**

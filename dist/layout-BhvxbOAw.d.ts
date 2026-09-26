@@ -331,10 +331,40 @@ interface ResolvedScene {
     origin: Point;
     diagnostics: Diagnostic[];
 }
+interface CustomRenderContext {
+    theme: 'light' | 'dark';
+    palette: {
+        background: string;
+        foreground: string;
+        card: string;
+        border: string;
+        muted: string;
+    };
+    x: number;
+    y: number;
+}
+/** Structural contract of a trusted, per-instance custom node renderer. */
+interface ResolveCustomRenderer {
+    validate(data: unknown): Result<unknown>;
+    measure(data: unknown, role: {
+        fontSize: number;
+    }): {
+        width: number;
+        height: number;
+    };
+    renderSvg(data: unknown, context: CustomRenderContext): string;
+}
+interface ResolveRendererRegistry {
+    resolve(typeKey: string): ResolveCustomRenderer | undefined;
+}
 interface ResolveContext {
     quality: 'edit' | 'publish';
     requestId: string;
     signal?: AbortSignal;
+    /** Trusted custom node renderers. Without them, nodes declaring a `renderer`
+     * payload are reported as `renderer.unsupported` and published as a
+     * placeholder, never as an ordinary node. */
+    renderers?: ResolveRendererRegistry;
     /** Real typographic measurer (e.g. canvas-backed). Falls back to a conservative estimate when absent. */
     measureText?: TextMeasurer;
     /**
@@ -757,6 +787,9 @@ interface NodePort {
 }
 interface PlacedNode extends DiagramNode {
     slot?: number;
+    /** Canonical SVG fragment produced by a registered custom renderer, or a
+     * placeholder when the typeKey is unsupported. */
+    customSvg?: string;
     /** Logical column/group index: band column, flowchart level, swimlane row… */
     band: number;
     x: number;
@@ -889,4 +922,4 @@ declare function connectedIds(nodeId: string, adjacency: Adjacency): Highlight;
 /** Returns only real connection points; unused/hollow ports are intentionally absent. */
 declare function nodePorts(node: PlacedNode, edges: PlacedEdge[], continuations?: PlacedContinuation[]): NodePort[];
 
-export { type EntityMetadata as $, type Point as A, type BandDiagramSpec as B, type DiagramScene as C, type Diagnostic as D, type EditorStore as E, type FlowchartDiagramSpec as F, type ResolveContext as G, type Highlight as H, type ImportOptions as I, type DiagramFragment as J, type Transaction as K, type Locale as L, type EditorPermissions as M, type CommitResult as N, type Capability as O, type PlacedNode as P, type ChangeSet as Q, type Result as R, type StoreOptions as S, type TimelineDiagramSpec as T, type DiagramGroup as U, type Viewport as V, type DiagramLink as W, type DocumentMetadata as X, type EditorCommand as Y, type EditorTool as Z, type EndpointAnchor as _, type EditorSnapshot as a, type FocusSet as a0, type GraphDiagramSpec as a1, type GraphEdge as a2, type GraphNode as a3, type GraphPort as a4, type JsonValue as a5, type NamedView as a6, type NodeInput as a7, type NodePlacement as a8, type Palette as a9, type PlacedLifeline as aA, type SemanticNodeIconKey as aB, type SequenceMessage as aC, type SequenceParticipant as aD, type StateMachineState as aE, type StateTransition as aF, type SvglNodeIconKey as aG, type SwimlaneLane as aH, type TableField as aI, type ThesvgNodeIconKey as aJ, type TimelineEvent as aK, buildAdjacency as aL, connectY as aM, connectedIds as aN, diagramEdges as aO, edgeId as aP, identifyEdges as aQ, isMutedNode as aR, labelPillWidth as aS, nodeHeight as aT, nodePorts as aU, roundedPolyline as aV, splitBackEdges as aW, type RelationInput as aa, type ReorderCollection as ab, type RoutePlacement as ac, type SourceEvidence as ad, type StoryStep as ae, type StructuralEdit as af, type LocalizedDiagram as ag, type Adjacency as ah, type BandDiagramNode as ai, type ContinuationAnchor as aj, type ContinuationSide as ak, type DiagramBand as al, type DiagramContinuation as am, type DiagramNodeShape as an, type DiagramNodeTextAnchor as ao, type DiagramType as ap, type EdgeLabelPlacement as aq, type EdgeLane as ar, type ErEntity as as, type ErRelation as at, type NodePort as au, type NodeWeight as av, type PlacedContainer as aw, type PlacedContinuation as ax, type PlacedDecision as ay, type PlacedEdge as az, type EntityRef as b, type DiagramDocument as c, type DiagramEdge as d, type LegacyBandSpec as e, type DiagramLayout as f, type DiagramDecision as g, type DiagramNode as h, type EdgeVariant as i, type PortSide as j, type ResolvedScene as k, type DiagramSpec as l, type DiagramNodeVisual as m, type DiagramRegistration as n, type SequenceDiagramSpec as o, type StateMachineDiagramSpec as p, type ErDiagramSpec as q, type SwimlaneDiagramSpec as r, type EditorSpec as s, type Presentation as t, type ImportReceipt as u, type Limits as v, type EditorDiagramType as w, type TypeAdapter as x, type Rect as y, type Size as z };
+export { type EditorCommand as $, type Rect as A, type BandDiagramSpec as B, type Size as C, type DiagramLayout as D, type EditorStore as E, type FlowchartDiagramSpec as F, type Point as G, type Highlight as H, type ImportOptions as I, type DiagramScene as J, type ResolveContext as K, type Locale as L, type DiagramFragment as M, type NamedView as N, type Transaction as O, type PlacedNode as P, type EditorPermissions as Q, type ResolvedScene as R, type StoreOptions as S, type TimelineDiagramSpec as T, type CommitResult as U, type Viewport as V, type Capability as W, type ChangeSet as X, type DiagramGroup as Y, type DiagramLink as Z, type DocumentMetadata as _, type EditorSnapshot as a, type EditorTool as a0, type EndpointAnchor as a1, type EntityMetadata as a2, type FocusSet as a3, type GraphDiagramSpec as a4, type GraphEdge as a5, type GraphNode as a6, type GraphPort as a7, type JsonValue as a8, type NodeInput as a9, type PlacedDecision as aA, type PlacedEdge as aB, type PlacedLifeline as aC, type SemanticNodeIconKey as aD, type SequenceMessage as aE, type SequenceParticipant as aF, type StateMachineState as aG, type StateTransition as aH, type SvglNodeIconKey as aI, type SwimlaneLane as aJ, type TableField as aK, type ThesvgNodeIconKey as aL, type TimelineEvent as aM, buildAdjacency as aN, connectY as aO, connectedIds as aP, diagramEdges as aQ, edgeId as aR, identifyEdges as aS, isMutedNode as aT, labelPillWidth as aU, nodeHeight as aV, nodePorts as aW, roundedPolyline as aX, splitBackEdges as aY, type NodePlacement as aa, type Palette as ab, type RelationInput as ac, type ReorderCollection as ad, type ResolveCustomRenderer as ae, type RoutePlacement as af, type SourceEvidence as ag, type StructuralEdit as ah, type LocalizedDiagram as ai, type Adjacency as aj, type BandDiagramNode as ak, type ContinuationAnchor as al, type ContinuationSide as am, type DiagramBand as an, type DiagramContinuation as ao, type DiagramNodeShape as ap, type DiagramNodeTextAnchor as aq, type DiagramType as ar, type EdgeLabelPlacement as as, type EdgeLane as at, type ErEntity as au, type ErRelation as av, type NodePort as aw, type NodeWeight as ax, type PlacedContainer as ay, type PlacedContinuation as az, type LegacyBandSpec as b, type DiagramDecision as c, type DiagramNode as d, type EdgeVariant as e, type PortSide as f, type DiagramDocument as g, type DiagramSpec as h, type Diagnostic as i, type Result as j, type DiagramNodeVisual as k, type DiagramRegistration as l, type DiagramEdge as m, type EntityRef as n, type ResolveRendererRegistry as o, type SequenceDiagramSpec as p, type StateMachineDiagramSpec as q, type ErDiagramSpec as r, type SwimlaneDiagramSpec as s, type StoryStep as t, type EditorSpec as u, type Presentation as v, type ImportReceipt as w, type Limits as x, type EditorDiagramType as y, type TypeAdapter as z };

@@ -1,16 +1,151 @@
 import {
   canonicalizeContent,
+  createDocument,
   importDocument,
   serializeDocument
 } from "../chunk-3MHLUDWC.js";
 import "../chunk-QVERY2JP.js";
 import {
+  canonical,
   failure,
   success,
   validateDocument
 } from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-TVEV5XLW.js";
+
+// src/persistence/share.ts
+var SHARE_LIMITS = {
+  encoded: 65536,
+  expanded: 262144,
+  timeoutMs: 5e3,
+  version: 1
+};
+var base64url = (bytes) => {
+  let binary = "";
+  for (let start = 0; start < bytes.length; start += 8192)
+    binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+};
+var fromBase64url = (text) => {
+  const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+async function readBounded(stream, limits, timeoutMs, clock) {
+  const reader = stream.getReader();
+  const chunks = [];
+  let size = 0;
+  const start = clock();
+  try {
+    while (true) {
+      if (clock() - start > timeoutMs) {
+        await reader.cancel().catch(() => {
+        });
+        return failure("share.timeout");
+      }
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > limits.expanded) {
+        await reader.cancel().catch(() => {
+        });
+        return failure("share.expansion");
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return success(bytes);
+  } catch {
+    await reader.cancel().catch(() => {
+    });
+    return failure("share.malformed");
+  } finally {
+    reader.releaseLock();
+  }
+}
+async function encodeShareDocument(input, options = {}) {
+  const limits = options.limits ?? SHARE_LIMITS;
+  const checked = validateDocument(input);
+  if (!checked.ok) return checked;
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({ v: SHARE_LIMITS.version, d: JSON.parse(canonical(checked.value)) })
+  );
+  if (bytes.length > limits.expanded) return failure("share.too-large");
+  let marker = "j", payload = base64url(bytes);
+  if (typeof CompressionStream !== "undefined") {
+    try {
+      const bounded = await readBounded(
+        new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw")),
+        limits,
+        SHARE_LIMITS.timeoutMs,
+        () => performance.now()
+      );
+      if (bounded.ok && bounded.value.length < bytes.length) {
+        marker = "z";
+        payload = base64url(bounded.value);
+      }
+    } catch {
+    }
+  }
+  if (payload.length + 2 > limits.encoded) return failure("share.too-long");
+  return success(`d=${marker}${payload}`);
+}
+async function decodeShareDocument(hash, options = {}) {
+  const limits = options.limits ?? SHARE_LIMITS;
+  const clock = options.clock ?? (() => performance.now());
+  const timeoutMs = options.timeoutMs ?? SHARE_LIMITS.timeoutMs;
+  if (hash.length > limits.encoded + 4) return failure("share.malformed");
+  const match = /^#?(d|s)=([zj])([A-Za-z0-9_-]+)$/.exec(hash);
+  if (!match) return failure("share.malformed");
+  let bytes;
+  try {
+    bytes = fromBase64url(match[3]);
+  } catch {
+    return failure("share.malformed");
+  }
+  if (match[2] === "z") {
+    if (typeof DecompressionStream === "undefined") return failure("share.unsupported");
+    const bounded = await readBounded(
+      new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")),
+      limits,
+      timeoutMs,
+      clock
+    );
+    if (!bounded.ok) return bounded;
+    bytes = bounded.value;
+  }
+  if (bytes.length > limits.expanded) return failure("share.expansion");
+  let parsed;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    return failure("share.malformed");
+  }
+  if (!parsed || typeof parsed !== "object") return failure("share.malformed");
+  const envelope = parsed;
+  if (match[1] === "d") {
+    if (envelope.v !== SHARE_LIMITS.version) return failure("share.future");
+    const imported = validateDocument(envelope.d);
+    if (!imported.ok) return failure("share.malformed");
+    return success({ document: imported.value, source: "d", version: envelope.v });
+  }
+  const version = envelope.v === void 0 ? 0 : envelope.v;
+  if (version !== 0 && version !== 1) return failure("share.future");
+  const spec = envelope.s;
+  const locale = version === 0 ? "en" : envelope.l;
+  if (locale !== "en" && locale !== "es") return failure("share.malformed");
+  const created = createDocument(spec, {
+    id: typeof envelope.k === "string" ? envelope.k : "shared-document",
+    locale
+  });
+  if (!created.ok) return failure("share.malformed");
+  return success({ document: created.value, source: "s", version });
+}
 
 // src/persistence/index.ts
 function createMemoryStorage() {
@@ -251,7 +386,10 @@ function createAutosave(store, adapter, options) {
   };
 }
 export {
+  SHARE_LIMITS,
   createAutosave,
   createLocalStorageAdapter,
-  createMemoryStorage
+  createMemoryStorage,
+  decodeShareDocument,
+  encodeShareDocument
 };

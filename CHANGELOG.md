@@ -13,6 +13,10 @@ Prepared for review; public npm availability has not yet been verified.
 
 ### Added
 
+- Opt-in semantic viewer (`/viewer` + `/viewer.css`): deterministic finder, inspector with exact parallel relation IDs, route/reach highlight with revision-bound receipts, lenses, group collapse with original-ID proxies, minimap, finite stories with a single motion owner, reduced-motion static navigation and fullscreen fallback.
+- Bounded sharing (`d=` documents, legacy `s=` links), 1200x630 context cards with exact-query receipts, real export-format probing and self-contained offline HTML artifacts (CSP, inline fonts, no-JS fallback, explicit source opt-in).
+- Per-instance custom node renderer registry, registered asynchronous layout providers with latest-wins isolation, and a bounded deterministic orthogonal A* router.
+- Exact Before/Delta/After document comparison (ID-matched, no inferred renames), declared-versus-verified evidence with a trusted verifier, an opt-in deployment profile that fails by exact fact, and finite WebM story export with strict capability gating and resource cleanup.
 - Generated schemas, structural/semantic validation, complete tested examples and agent integration guides.
 - Local TheSVG brand icons, explicit node visuals and service-level architecture examples with localized notes and references; legacy mappings/constants remain compatible.
 - Validated JSON playground, bounded locale-aware shared links, standalone SVG/PNG exports and keyboard-accessible action controls.

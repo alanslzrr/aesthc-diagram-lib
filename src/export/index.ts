@@ -7,6 +7,7 @@ import { pruneReferences } from '../editor-core/commands'
 import { resolveDocument } from '../editor-core/scene'
 import { renderSvg, escapeXml } from '../render'
 import { createCanvasTextMeasurer, createEmbeddedFontTextMeasurer } from '../geometry/text'
+import { rasterizeSvg } from './raster'
 import fontNotices from '../assets/fonts/notices.json'
 
 export type ExportFormat = 'json' | 'svg' | 'png' | 'jpeg' | 'webp'
@@ -22,6 +23,8 @@ export interface ExportOptions {
   signal?: AbortSignal
   fonts?: { sans: Uint8Array; mono: Uint8Array }
   fontPolicy?: 'required' | 'fallback'
+  /** Trusted custom node renderers for documents declaring `renderer` payloads. */
+  renderers?: import('../editor-core/types').ResolveRendererRegistry
 }
 export interface ExportArtifact {
   bytes: Uint8Array
@@ -52,67 +55,6 @@ function fontCss(fonts: NonNullable<ExportOptions['fonts']>): Result<string> {
   return success(
     `/* ${escapeXml(fontNotices.join('\n'))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`,
   )
-}
-async function raster(
-  svg: string,
-  mime: string,
-  width: number,
-  height: number,
-  signal?: AbortSignal,
-): Promise<Result<Uint8Array>> {
-  if (typeof document === 'undefined' || typeof Image === 'undefined')
-    return failure('export.environment')
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const context = canvas.getContext('2d')
-  if (!context) return failure('export.context')
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })),
-    image = new Image()
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const abort = () => {
-        cleanup()
-        reject(Error('operation.aborted'))
-      }
-      const cleanup = () => {
-        image.onload = null
-        image.onerror = null
-        signal?.removeEventListener('abort', abort)
-      }
-      image.onload = () => {
-        cleanup()
-        resolve()
-      }
-      image.onerror = () => {
-        cleanup()
-        reject(Error('export.image'))
-      }
-      signal?.addEventListener('abort', abort, { once: true })
-      if (signal?.aborted) abort()
-      else image.src = url
-    })
-    if (signal?.aborted) return failure('operation.aborted')
-    context.drawImage(image, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.92))
-    if (signal?.aborted) return failure('operation.aborted')
-    if (!blob) return failure('export.encode')
-    if (blob.type !== mime) return failure('export.mime')
-    return success(new Uint8Array(await blob.arrayBuffer()))
-  } catch (error) {
-    return failure(
-      error instanceof Error && error.message === 'operation.aborted'
-        ? 'operation.aborted'
-        : error instanceof Error && error.message === 'export.image'
-          ? 'export.image'
-          : 'export.raster',
-    )
-  } finally {
-    image.src = ''
-    URL.revokeObjectURL(url)
-    canvas.width = 0
-    canvas.height = 0
-  }
 }
 export async function exportDocument(
   input: DiagramDocument,
@@ -203,12 +145,21 @@ export async function exportDocument(
       requestId: 'export',
       signal: options.signal,
       measureText: measurer?.measure ?? createCanvasTextMeasurer(),
+      renderers: options.renderers,
     })
     measurer?.dispose()
     if (!resolved.ok) return resolved
     diagnostics.push(...resolved.diagnostics)
-    if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))
-      return failure('export.quality')
+    if (options.quality === 'publish') {
+      const missingRenderer = diagnostics.find(
+        (d) =>
+          d.code === 'renderer.unsupported' ||
+          d.code === 'renderer.invalid' ||
+          d.code === 'renderer.measure',
+      )
+      if (missingRenderer) return failure(missingRenderer.code)
+      if (diagnostics.some((d) => d.code.startsWith('quality.'))) return failure('export.quality')
+    }
     width = Math.ceil(resolved.value.layout.width * options.scale)
     height = Math.ceil(resolved.value.layout.height * options.scale)
     if (
@@ -240,7 +191,7 @@ export async function exportDocument(
       )
       bytes = new TextEncoder().encode(svg)
     } else {
-      const result = await raster(svg, mimeType, width, height, options.signal)
+      const result = await rasterizeSvg(svg, mimeType, width, height, options.signal)
       if (!result.ok) return result
       bytes = result.value
     }
@@ -311,3 +262,11 @@ export async function copyArtifact(artifact: ExportArtifact): Promise<Result<voi
     return failure('clipboard.denied')
   }
 }
+export { exportDocumentHtml } from './html'
+export type { ExportHtmlArtifact, ExportHtmlOptions } from './html'
+export { CARD_HEIGHT, CARD_WIDTH, cardSvg, exportCard, validateCardQuery } from './cards'
+export type { CardArtifact, CardQueryReceipt, CardSvgOptions, ValidatedQuery } from './cards'
+export { probeExportCapabilities, supportedFormats } from './capabilities'
+export type { ProbedExportCapabilities } from './capabilities'
+export { exportStoryWebm, webmCapability } from './motion'
+export type { MotionArtifact, MotionOptions } from './motion'

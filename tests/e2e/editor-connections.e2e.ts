@@ -14,6 +14,9 @@ test('drag from the connect handle to a target creates one undoable relation', a
   isMobile,
 }) => {
   test.skip(isMobile, 'Mouse-specific pointer drag; mobile covered separately')
+  // The M2 studio toolbar wraps into more rows; a taller viewport keeps every
+  // diagram node reachable without scrolling.
+  await page.setViewportSize({ width: 1280, height: 1000 })
   await page.goto('/studio.html')
   await page.getByRole('button', { name: 'Web client', exact: true }).click()
   const handle = page.getByRole('button', { name: 'Connect: Web client', exact: true })

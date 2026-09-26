@@ -19,11 +19,13 @@ The package is ESM. Always use declared exports rather than internal files.
 | `/styles.css` | Generated stylesheet, imported once by the host |
 | `/editor-core` | Opt-in versioned document, validation, adapters, immutable store, scene and viewport math |
 | `/editor` | React editor composition: root, surface, toolbar, inspector and JSON draft panel |
+| `/viewer` | Read-only semantic viewer: finder, inspector, route/reach highlight with receipt-bound queries |
 | `/graph` | Authored directed route and reach queries with stable edge identities |
 | `/export` | Snapshot-based JSON/SVG/PNG/JPEG/WebP export; explicit fonts and side effects |
 | `/persistence` | Memory storage, Web-Locks local storage and opt-in autosave |
 | `/render` | Pure escaped SVG renderer for resolved editor scenes |
 | `/editor.css` | Opt-in editor control styles; does not change legacy canvas styles |
+| `/viewer.css` | Opt-in viewer control styles for the read-only semantic surface |
 | `/fonts/*` | Packaged Geist Sans/Mono WOFF2 assets for same-origin loading and export embedding |
 
 ## Canvas contract
@@ -133,23 +135,27 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /editor-core
 
-`Capability`, `ChangeSet`, `CommitResult`, `ConversionReceipt`, `DEFAULT_LIMITS`, `Diagnostic`, `DiagramDocument`, `DiagramFragment`, `DiagramGroup`, `DiagramLink`, `DiagramScene`, `DocumentMetadata`, `EditorCommand`, `EditorDiagramType`, `EditorPermissions`, `EditorSnapshot`, `EditorSpec`, `EditorStore`, `EditorTool`, `EndpointAnchor`, `EntityMetadata`, `EntityRef`, `FocusSet`, `GraphDiagramSpec`, `GraphEdge`, `GraphNode`, `GraphPort`, `ImportOptions`, `ImportReceipt`, `JsonValue`, `Limits`, `Locale`, `NamedView`, `NodeInput`, `NodePlacement`, `Palette`, `Point`, `Presentation`, `Rect`, `RelationInput`, `ReorderCollection`, `ResolveContext`, `ResolvedScene`, `Result`, `RoutePlacement`, `Size`, `SourceEvidence`, `StoreOptions`, `StoryStep`, `StructuralEdit`, `Transaction`, `TypeAdapter`, `Viewport`, `applyTransaction`, `canonicalizeContent`, `convertToGraph`, `createDocument`, `createEditorStore`, `createFragment`, `defaultPresentation`, `exportLegacySpec`, `fitViewport`, `getAdapter`, `importDocument`, `pasteFragment`, `relayoutScene`, `resolveDocument`, `screenToWorld`, `serializeDocument`, `validateDocument`, `validateEditorSpec`, `worldToScreen`, `zoomAt`
+`Capability`, `ChangeSet`, `CommitResult`, `ConversionReceipt`, `CustomNodePayload`, `CustomNodeRenderer`, `CustomRenderContext`, `DEFAULT_LIMITS`, `DeclaredEvidence`, `DeploymentProfileReport`, `DeploymentRule`, `Diagnostic`, `DiagramDocument`, `DiagramFragment`, `DiagramGroup`, `DiagramLink`, `DiagramScene`, `DocumentMetadata`, `EditorCommand`, `EditorDiagramType`, `EditorPermissions`, `EditorSnapshot`, `EditorSpec`, `EditorStore`, `EditorTool`, `EndpointAnchor`, `EntityMetadata`, `EntityRef`, `EvidenceReceipt`, `EvidenceStatus`, `FocusSet`, `GraphDiagramSpec`, `GraphEdge`, `GraphNode`, `GraphPort`, `ImportOptions`, `ImportReceipt`, `JsonValue`, `LayoutProvider`, `LayoutProviderRegistry`, `LayoutProviderResult`, `Limits`, `Locale`, `NamedView`, `NodeInput`, `NodePlacement`, `OrthogonalRouteRequest`, `Palette`, `Point`, `Presentation`, `Rect`, `RegisteredLayoutOptions`, `RegisteredLayoutOutcome`, `RegisteredLayoutProvider`, `RelationInput`, `RendererRegistry`, `ReorderCollection`, `ResolveContext`, `ResolveCustomRenderer`, `ResolveRendererRegistry`, `ResolvedScene`, `Result`, `RouteObstacle`, `RoutePlacement`, `RoutedPath`, `Size`, `SourceEvidence`, `StoreOptions`, `StoryStep`, `StructuralEdit`, `Transaction`, `TrustedVerifier`, `TypeAdapter`, `Viewport`, `applyLayoutResult`, `applyTransaction`, `canonicalizeContent`, `convertToGraph`, `createDocument`, `createEditorStore`, `createFragment`, `createLayoutProvider`, `createLayoutProviderRegistry`, `createRendererRegistry`, `declaredEvidence`, `defaultPresentation`, `evidenceDiagnostics`, `exportLegacySpec`, `fitViewport`, `getAdapter`, `importDocument`, `pasteFragment`, `relayoutScene`, `renderCustomNode`, `resolveDocument`, `routeOrthogonal`, `runLayoutProvider`, `runRegisteredLayout`, `screenToWorld`, `serializeDocument`, `validateCustomPayload`, `validateDeploymentProfile`, `validateDocument`, `validateEditorSpec`, `verifyEvidence`, `worldToScreen`, `zoomAt`
 
 ### /editor
 
 `EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorStatus`, `EditorStructuredInspector`, `EditorSurface`, `EditorToolbar`, `shallowEqual`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
 
+### /viewer
+
+`Comparison`, `ComparisonProps`, `DiagramViewer`, `DiagramViewerProps`, `DocumentComparison`, `EntityDelta`, `Evidence`, `EvidenceProps`, `ExportQuerySvgOptions`, `FieldChange`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `TraceCallbacks`, `TraceEnvironment`, `TraceState`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `createTracePlayer`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
+
 ### /graph
 
-`GraphFilter`, `GraphSnapshot`, `ReachResult`, `RouteResult`, `findReach`, `findRoute`, `graphSnapshot`
+`Comparison`, `EntityDelta`, `FieldChange`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `compareDocuments`, `findReach`, `findRoute`, `graphSnapshot`, `relationsOf`, `searchNodes`
 
 ### /export
 
-`ExportArtifact`, `ExportFormat`, `ExportOptions`, `copyArtifact`, `downloadArtifact`, `exportDocument`, `getExportCapabilities`
+`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `MotionArtifact`, `MotionOptions`, `ProbedExportCapabilities`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportDocument`, `exportDocumentHtml`, `exportStoryWebm`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`, `webmCapability`
 
 ### /persistence
 
-`AutosaveState`, `SaveResult`, `StorageAdapter`, `StoredDocument`, `StoredEntry`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`
+`AutosaveState`, `DecodedShare`, `SHARE_LIMITS`, `SaveResult`, `ShareDecodeOptions`, `StorageAdapter`, `StoredDocument`, `StoredEntry`, `createAutosave`, `createLocalStorageAdapter`, `createMemoryStorage`, `decodeShareDocument`, `encodeShareDocument`
 
 ### /render
 

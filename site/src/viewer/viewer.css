@@ -1,0 +1,55 @@
+.viewer-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #e9eef4;
+}
+.viewer-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid #aebdcd;
+}
+.viewer-header a {
+  color: #087cbd;
+  text-decoration: none;
+}
+.viewer-header h1 {
+  margin: 0;
+  font-family:
+    Geist Sans,
+    Geist,
+    system-ui,
+    sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+}
+.viewer-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.viewer-actions label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: #536273;
+}
+.viewer-actions button,
+.viewer-actions select {
+  font: inherit;
+  padding: 6px 10px;
+  background: #f9fbfd;
+  border: 1px solid #aebdcd;
+  border-radius: 6px;
+}
+.viewer-message {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  background: #f9fbfd;
+  border: 1px solid #aebdcd;
+  border-radius: 6px;
+}

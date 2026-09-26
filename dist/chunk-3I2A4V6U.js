@@ -3,6 +3,10 @@ import {
   tableFieldGeometry
 } from "./chunk-YKPE23VO.js";
 import {
+  brandIcons,
+  scopeIconMarkup
+} from "./chunk-KDAWQGDC.js";
+import {
   CARD_R,
   DECISION_PILL_H,
   DECISION_PILL_R,
@@ -13,10 +17,6 @@ import {
   PILL_H,
   PILL_R
 } from "./chunk-TVEV5XLW.js";
-import {
-  brandIcons,
-  scopeIconMarkup
-} from "./chunk-KDAWQGDC.js";
 
 // src/brand-icons/semantic-data.ts
 var semanticIcons = {
@@ -105,6 +105,10 @@ function renderSceneMarkup(document, scene, options) {
   const delta = !!options.only;
   const includeNode = (nodeId) => (!options.only?.nodes || options.only.nodes.has(nodeId)) && !options.exclude?.nodes?.has(nodeId);
   const includeEdge = (edgeId) => (!options.only?.edges || options.only.edges.has(edgeId)) && !options.exclude?.edges?.has(edgeId);
+  const highlightNode = (nodeId) => options.highlight?.nodes?.has(nodeId) ?? false;
+  const highlightEdge = (edgeId) => options.highlight?.edges?.has(edgeId) ?? false;
+  const marked = (active) => active ? ' data-query-highlight="true"' : "";
+  const dimmed = (nodeId) => options.dim?.has(nodeId) ? ' data-lens-dim="true"' : "";
   const color = (variant) => variant === "branch" ? p.branch : p.cobalt;
   const text = (x, y, value, size = 13, fill = p.foreground, anchor = "start", family = "Geist") => `<text x="${x}" y="${y}" font-family="${family}, sans-serif" font-size="${size * document.presentation.textScale}" fill="${fill}" text-anchor="${anchor}">${escapeXml(value)}</text>`;
   const monoLabel = (x, y, value, size, fill, spacing = 0) => `<text x="${x}" y="${y}"${spacing ? ` letter-spacing="${spacing}"` : ""} font-family="Geist Mono, monospace" font-size="${size * document.presentation.textScale}" fill="${fill}">${escapeXml(value)}</text>`;
@@ -119,7 +123,7 @@ function renderSceneMarkup(document, scene, options) {
       out += `<path d="M${line.x} ${line.y0}V${line.y1}" fill="none" stroke="${p.border}" stroke-dasharray="2 6"/>`;
   for (const e of l.edges)
     if (includeEdge(e.id))
-      out += `<g data-edge-id="${escapeXml(e.id)}"><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ""}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ""}/></g>`;
+      out += `<g data-edge-id="${escapeXml(e.id)}"${marked(highlightEdge(e.id))}><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ""}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ""}/></g>`;
   if (!delta)
     for (const c of l.continuations)
       out += `<path d="${escapeXml(c.d)}" fill="none" stroke="${color(c.variant)}" stroke-width="${EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${id})"/>`;
@@ -127,7 +131,12 @@ function renderSceneMarkup(document, scene, options) {
     if (!includeNode(n.id)) continue;
     const visual = document.metadata.visuals[n.id];
     const g = nodeGeometry(n, !!visual);
-    out += `<g data-node-id="${escapeXml(n.id)}"><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? "")}</desc>`;
+    const custom = n.customSvg;
+    out += `<g data-node-id="${escapeXml(n.id)}"${marked(highlightNode(n.id))}${dimmed(n.id)}><title>${escapeXml(n.label)}</title><desc>${escapeXml(n.description ?? "")}</desc>`;
+    if (custom) {
+      out += `${custom}</g>`;
+      continue;
+    }
     if (n.shape === "bar") {
       out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === "primary" ? "main" : "branch")}" fill-opacity=".22" stroke="${p.border}"/></g>`;
       continue;

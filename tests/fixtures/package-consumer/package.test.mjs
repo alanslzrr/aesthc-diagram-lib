@@ -94,7 +94,14 @@ test('every declared runtime and type export is present in the tarball', async (
     const specifier = subpath === '.' ? manifest.name : `${manifest.name}/${subpath.slice(2)}`
     if (subpath.endsWith('.css')) {
       const css = readFileSync(fileURLToPath(import.meta.resolve(specifier)), 'utf8')
-      assert.match(css, subpath === './styles.css' ? /@layer diagram-lib/ : /adl-editor/)
+      assert.match(
+        css,
+        subpath === './styles.css'
+          ? /@layer diagram-lib/
+          : subpath === './viewer.css'
+            ? /adl-viewer/
+            : /adl-editor/,
+      )
     } else {
       await import(specifier)
     }
@@ -102,7 +109,7 @@ test('every declared runtime and type export is present in the tarball', async (
 })
 
 test('interactive public entrypoints retain their client directives', () => {
-  for (const entry of ['canvas', 'showcase', 'editor']) {
+  for (const entry of ['canvas', 'showcase', 'editor', 'viewer']) {
     const code = readFileSync(
       fileURLToPath(import.meta.resolve(`${manifest.name}/${entry}`)),
       'utf8',

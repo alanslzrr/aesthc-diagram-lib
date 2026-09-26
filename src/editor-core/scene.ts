@@ -1,4 +1,5 @@
 import { nodeGeometry } from '../geometry/node'
+import { escapeXml } from '../render'
 import { estimateTextWidth, type TextRole } from '../geometry/text'
 import { labelPillWidth, roundedPolyline } from '../layout'
 import type { DiagramLayout, PlacedNode, PlacedEdge } from '../layout'
@@ -240,6 +241,66 @@ function resolveScene(
   const zOrder = new Map(document.scene.zOrder.map((id, index) => [id, index]))
   layout.nodes.sort((a, b) => (zOrder.get(a.id) ?? -1) - (zOrder.get(b.id) ?? -1))
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]))
+  // Custom nodes are measured and rendered through the trusted per-instance
+  // registry. Without a renderer they are reported and shown as a placeholder;
+  // the standard node card is never drawn in their place.
+  if (document.spec.type === 'graph') {
+    const palette = document.presentation.theme[document.presentation.theme.mode]
+    for (const specNode of document.spec.nodes) {
+      if (!specNode.renderer) continue
+      const placed = layout.nodeById[specNode.id]
+      if (!placed) continue
+      const renderer = context.renderers?.resolve(specNode.renderer.typeKey)
+      if (!renderer) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue('renderer.unsupported'),
+            subject: { kind: 'node', id: specNode.id },
+          })
+        placed.customSvg = `<rect data-renderer-missing="${escapeXml(specNode.renderer.typeKey)}" x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" rx="8" fill="none" stroke="${palette.border}" stroke-dasharray="4 4"/><text x="${placed.cx}" y="${placed.cy + 4}" text-anchor="middle" font-family="Geist, sans-serif" font-size="12" fill="${palette.mutedForeground}">${escapeXml(specNode.renderer.typeKey)} unavailable</text>`
+        continue
+      }
+      const validated = renderer.validate(specNode.renderer.data)
+      if (!validated.ok) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue('renderer.invalid'),
+            subject: { kind: 'node', id: specNode.id },
+          })
+        continue
+      }
+      const size = renderer.measure(validated.value, { fontSize: 13 })
+      if (
+        !Number.isFinite(size.width) ||
+        !Number.isFinite(size.height) ||
+        size.width <= 0 ||
+        size.height <= 0
+      ) {
+        if (!context.skipDiagnostics)
+          diagnostics.push({
+            ...issue('renderer.measure'),
+            subject: { kind: 'node', id: specNode.id },
+          })
+        continue
+      }
+      placed.w = size.width
+      placed.h = size.height
+      placed.cx = placed.x + placed.w / 2
+      placed.cy = placed.y + placed.h / 2
+      placed.customSvg = renderer.renderSvg(validated.value, {
+        theme: document.presentation.theme.mode,
+        palette: {
+          background: palette.background,
+          foreground: palette.foreground,
+          card: palette.card,
+          border: palette.border,
+          muted: palette.mutedForeground,
+        },
+        x: placed.x,
+        y: placed.y,
+      })
+    }
+  }
   const graphNodes =
     document.spec.type === 'graph'
       ? new Map(document.spec.nodes.map((node) => [node.id, node]))

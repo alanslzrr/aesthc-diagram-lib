@@ -297,3 +297,5 @@ export function createAutosave(
     },
   }
 }
+export { SHARE_LIMITS, decodeShareDocument, encodeShareDocument } from './share'
+export type { DecodedShare, ShareDecodeOptions } from './share'

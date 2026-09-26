@@ -20,7 +20,11 @@ describe('compiled stylesheet cascade contract', () => {
   })
 
   it('preserves the compiled stylesheet as a package side effect', () => {
-    expect(packageJson.sideEffects).toEqual(['./dist/styles.css', './dist/editor.css'])
+    expect(packageJson.sideEffects).toEqual([
+      './dist/styles.css',
+      './dist/editor.css',
+      './dist/viewer.css',
+    ])
   })
 
   it('keeps icon visibility rules outside the utility layer', () => {

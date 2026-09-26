@@ -1,4 +1,4 @@
-import { l as DiagramSpec, ag as LocalizedDiagram, m as DiagramNodeVisual, n as DiagramRegistration } from './layout-BFDKbm6N.js';
+import { h as DiagramSpec, ai as LocalizedDiagram, k as DiagramNodeVisual, l as DiagramRegistration } from './layout-BhvxbOAw.js';
 import './theme.js';
 
 interface RegistryEntry<T extends DiagramSpec = DiagramSpec> {

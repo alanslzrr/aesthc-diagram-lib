@@ -1,4 +1,4 @@
-import { c as DiagramDocument, k as ResolvedScene } from '../layout-BFDKbm6N.js';
+import { g as DiagramDocument, R as ResolvedScene } from '../layout-BhvxbOAw.js';
 import '../theme.js';
 
 /** Only this encoder writes authored strings into SVG/XML. */
@@ -25,6 +25,18 @@ interface RenderOptions {
         nodes?: ReadonlySet<string>;
         edges?: ReadonlySet<string>;
     };
+    /**
+     * Mark exact entity ids for semantic highlighting (viewer routes, reach,
+     * cards). Parallel edges keep their own IDs and are marked individually.
+     * Rendering stays headless; styling is applied by CSS or an inline style.
+     */
+    highlight?: {
+        nodes?: ReadonlySet<string>;
+        edges?: ReadonlySet<string>;
+    };
+    /** Reading-only dimming (lens): these entities stay in the topology but are
+     * rendered with `data-lens-dim` for display filtering. */
+    dim?: ReadonlySet<string>;
 }
 declare function renderSceneMarkup(document: DiagramDocument, scene: ResolvedScene, options: RenderOptions): string;
 declare function renderSvg(document: DiagramDocument, scene: ResolvedScene, options: RenderOptions): string;

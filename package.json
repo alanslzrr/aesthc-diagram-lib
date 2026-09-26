@@ -5,7 +5,8 @@
   "type": "module",
   "sideEffects": [
     "./dist/styles.css",
-    "./dist/editor.css"
+    "./dist/editor.css",
+    "./dist/viewer.css"
   ],
   "files": [
     "dist",
@@ -85,6 +86,10 @@
       "types": "./dist/editor/index.d.ts",
       "default": "./dist/editor/index.js"
     },
+    "./viewer": {
+      "types": "./dist/viewer/index.d.ts",
+      "default": "./dist/viewer/index.js"
+    },
     "./graph": {
       "types": "./dist/graph/index.d.ts",
       "default": "./dist/graph/index.js"
@@ -102,14 +107,16 @@
       "default": "./dist/render/index.js"
     },
     "./editor.css": "./dist/editor.css",
+    "./viewer.css": "./dist/viewer.css",
     "./fonts/*": "./dist/fonts/*"
   },
   "scripts": {
     "test": "vitest run",
     "test:package": "pnpm build && node ./scripts/test-package.mjs",
+    "test:memory": "pnpm build && node scripts/test-memory.mjs",
     "typecheck": "tsc --noEmit",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs && node scripts/copy-fonts.mjs",
-    "build": "tsup && node ./scripts/inject-use-client.mjs && pnpm build:css",
+    "build": "tsup && node ./scripts/inject-use-client.mjs && node scripts/build-standalone.mjs && pnpm build:css",
     "schemas:generate": "node scripts/generate-schemas.mjs",
     "schemas:check": "node scripts/generate-schemas.mjs --check",
     "docs:generate": "tsx scripts/generate-docs.ts",

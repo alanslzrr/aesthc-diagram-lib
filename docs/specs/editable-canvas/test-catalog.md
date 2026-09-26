@@ -943,7 +943,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer.e2e.ts`
+
+**Evidencia:** Finder por ID/label/kind: orden determinista (ID exacto → prefijo label → substring → kind, orden autorado), insensibilidad Unicode con texto original, teclado Enter/Escape con foco restaurado y anuncio de cero resultados (role=status); inspector con IDs exactos de relaciones paralelas y enlaces seguros por scheme; cobertura unit adicional en tests/editor-graph.unit.spec.ts (searchNodes/relationsOf). Viewer público en @aesthc/diagram-lib/viewer con página site/viewer.html (E2E chromium 3/3 PASS).
 
 - **Given:** Unicode/ID y dos labels iguales.
 - **When:** buscar exact/prefix/substring, abrir relación paralela.
@@ -953,7 +955,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer.e2e.ts`
+
+**Evidencia:** recibos route/reach ligados a documentId+revision (isQueryStale); al importar documento con revisión nueva el highlight desaparece ([data-query-highlight] 5→0), la exportación de la consulta queda deshabilitada y se anuncia 'The document changed'; exportQuerySvg mantiene canonical=false y estilo de highlight inline (E2E chromium PASS).
 
 - **Given:** query receipt rev0, documento cambia rev1.
 - **When:** intentar seguir ruta/card antigua.
@@ -969,7 +973,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-viewer.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** lens por roles/tags con dimming (data-lens-dim) sin tocar topología (la ruta global sigue atravesando nodos atenuados); collapse de grupos con exclusión de miembros y overlays proxy ligados al ID original de cada relación externa (request/notify); minimapa con viewport arrastrable que mueve la cámara sin cambiar el documento (E2E chromium PASS).
 
 - **Given:** roles/tags, grupo y edges externas.
 - **When:** lens, collapse y minimap pan.
@@ -979,7 +985,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-views.unit.spec.ts`
+
+**Evidencia:** findRoute sobre el grafo global no cambia aunque la lente oculte un nodo necesario; la consulta con filtro explícito registra el filter en el receipt (unit PASS).
 
 - **Given:** lens ocultando nodo necesario.
 - **When:** findRoute sin filtro explícito.
@@ -995,7 +1003,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-views.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-views.unit.spec.ts`
+
+**Evidencia:** describeStoryStep nunca infiere relación: foco sin ruta autorada reporta directRoute null; con ruta real reporta sus edge IDs; pasos con viewId inexistente o route rota se bloquean por ID (view.reference) (unit PASS).
 
 - **Given:** dos vistas sin edge directa, ruta no contigua y view huérfana.
 - **When:** validar story y describir transición.
@@ -1005,7 +1015,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-story.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** StoryPlayback finito y manual: nunca auto-inicia, Play/Next/Prev/Stop con un único owner (MotionOwnerGuard); Escape, pestaña oculta y beforeprint detienen; reduced-motion deshabilita Play y mantiene Next/Previous estáticos; el playback termina en el último paso (E2E chromium PASS + unit con timers inyectados).
 
 - **Given:** story con 3 pasos, duración y control manual.
 - **When:** play/next/prev/escape/hidden y reduced-motion.
@@ -1021,7 +1033,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-presentation.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-viewer-e14.e2e.ts`
+
+**Evidencia:** Presentación con fallback CSS cuando fullscreen es denegado; Escape sale, el documento no cambia y el foco vuelve al trigger (E2E chromium PASS).
 
 - **Given:** fullscreen denegado y foco en trigger.
 - **When:** entrar/salir presentación.
@@ -1031,7 +1045,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-share.unit.spec.ts`
+
+**Evidencia:** codec de estado viewer con escaping por componente: round-trip de IDs con ~, % y Unicode; view desconocida degrada a overview sin adivinar focus; contradicción (viewId+focus distinto) e IDs inexistentes rechazados; cámara fuera de rango rechazada (unit PASS).
 
 - **Given:** IDs con ~/%/Unicode, parámetros repetidos y unknown view.
 - **When:** encode/decode viewer state.
@@ -1059,7 +1075,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-quality.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-quality.e2e.ts`
+
+**Evidencia:** export publish en browser con fuentes embebidas y labels largos es/en: sin clipping (ningún quality.* bloquea); con fuentes inválidas el error es accionable (export.font-invalid) y nunca hay artefacto falso; el Studio expone calidad edit/publish y reporta warnings del receipt (E2E chromium 2/2 PASS).
 
 - **Given:** fuentes cargadas y labels largos es/en.
 - **When:** medir y export publish.
@@ -1075,7 +1093,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-routing.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-routing.unit.spec.ts`
+
+**Evidencia:** router ortogonal A* acotado y determinista (routeOrthogonal): clearance 12, presupuestos de estados y bends (router.bends/router.budget), ruta imposible explícita (router.impossible) y self-loops sin cruzar el nodo. Auditoría corregida: los márgenes se reordenan en los ejes y cada segmento completo (no solo sus vértices) se verifica contra todos los obstáculos expandidos; regresión con el salto del margen que atravesaba (399,98,111,70) y comprobación de no-cruce en geometrías mixtas (unit 8/8 PASS).
 
 - **Given:** obstáculos, parallel, self-loop y ruta imposible.
 - **When:** router a límite exacto de estados.
@@ -1085,7 +1105,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-layout-provider.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-layout-provider.unit.spec.ts`
+
+**Evidencia:** layout asíncrono con requestId, baseRevision y latest-wins; auditoría corregida: applyLayoutResult exige que expectedRevision y baseRevision coincidan con la revisión real del documento y valida el documento resultante completo (NaN, tamaños negativos, zOrder con IDs ajenos se rechazan); runRegisteredLayout re-verifica la revisión tras el await con latestRevision; regresiones unit para revisión real, escena inválida y cambio durante la petición (8/8 PASS).
 
 - **Given:** provider A lento, B nuevo y abort.
 - **When:** resolver A después de B.
@@ -1101,7 +1123,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-html.e2e.ts`
+
+**Evidencia:** artefacto HTML autónomo abierto desde file:// sin red ni storage: runtime standalone embebido (React+viewer), fuentes WOFF2 en data URIs activas, búsqueda, ruta, story manual y tema del documento operativos; 0 recursos http(s), 0 writes de storage y 0 errores de página; tamaño del artefacto ≤8 MiB (E2E chromium PASS).
 
 - **Given:** artifact file:// y todos requests bloqueados.
 - **When:** buscar, route, theme y story manual.
@@ -1111,7 +1135,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-html.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-html.e2e.ts`
+
+**Evidencia:** mismo artefacto con JavaScript deshabilitado: SVG estático y listado legible de entidades/relaciones visibles; labels hostiles (`</script>`, `<img onerror>`) permanecen datos escapados (sin ventanas __pwned), sin errores; el JSON canónico solo se embebe con includeSource explícito (E2E chromium PASS).
 
 - **Given:** mismo artifact scripts disabled y malicious label.
 - **When:** abrir archivo.
@@ -1157,7 +1183,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-share.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-share.unit.spec.ts`
+
+**Evidencia:** codec público d= (documento canónico comprimido deflate-raw en base64url) y lectura legacy s= de specs; rechazo explícito de versión futura (share.future), malformado (share.malformed), bomba de expansión >256KiB (share.expansion) y timeout con reloj inyectado (share.timeout), liberando siempre el reader; el encoder rechaza sobredimensionados (share.too-long) sin enlace ambiguo (unit PASS).
 
 - **Given:** hash legacy, d=v1, futuro, malformed y expansión >256KiB.
 - **When:** decode con clock limitado.
@@ -1167,7 +1195,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-share.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-share.e2e.ts`
+
+**Evidencia:** documento sobredimensionado: la UI ofrece descarga JSON local sin anunciar éxito; portapapeles denegado: mensaje alternativo; el Studio ahora consume el enlace al cargar (#d=/#s=): decodifica, valida y reemplaza el documento solo si es válido; un enlace ilegible conserva el documento local y lo informa; E2E compartir → abrir en contexto nuevo → verificar el documento compartido (3/3 PASS).
 
 - **Given:** documento >URL máximo y clipboard denegado.
 - **When:** copy share.
@@ -1183,7 +1213,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-cards.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-cards.e2e.ts`
+
+**Evidencia:** cards de ruta con relación paralela explícita y de alcance en ciclo: PNG descargado y decodificado a 1200×630; el SVG de card incluye todo el grafo (todos los node IDs), marca solo los edge IDs exactos (ab-1 sí, ab-2 no) y canonical=false; la card canónica no lleva highlights (E2E chromium PASS).
 
 - **Given:** ruta con parallel edge explícita y reach en ciclo.
 - **When:** descargar cards y decodificar.
@@ -1193,7 +1225,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-cards.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-cards.unit.spec.ts`
+
+**Evidencia:** validateCardQuery rechaza receipt stale (revisión distinta), alterado (documentId ajeno o IDs inexistentes) y vacío (query.invalid) sin fallback engañoso; la card canónica sigue sin highlights y la consulta marca IDs exactos de paralelas (unit 2/2 PASS).
 
 - **Given:** receipt stale/alterado/vacío/unreachable.
 - **When:** export card.
@@ -1209,7 +1243,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-formats.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-formats.e2e.ts`
+
+**Evidencia:** sin WebP real (toDataURL devuelve PNG) el formato queda deshabilitado con PNG/JPEG habilitados; una codificación WebP que devuelve PNG falla con export.mime y no descarga ni anuncia éxito; JPEG con fondo transparente se rechaza con export.alpha sin cambiar el fondo en silencio (E2E chromium 3/3 PASS).
 
 - **Given:** browser sin WebP real/ClipboardItem y JPEG transparente.
 - **When:** seleccionar export.
@@ -1237,7 +1273,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-renderers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-renderers.unit.spec.ts`
+
+**Evidencia:** registries por instancia con typeKey desconocido → renderer.unsupported sin cargar código; auditoría corregida: el registro se integra al pipeline del documento — resolveDocument mide y renderiza vía renderer (data-custom-renderer, tamaño medido), un typeKey sin registrar produce renderer.unsupported, dibuja placeholder data-renderer-missing (nunca una card ordinaria) y bloquea export publish; exportDocument acepta renderers y propaga el código (4/4 PASS).
 
 - **Given:** dos registries y payload con typeKey no registrado.
 - **When:** resolver/validar/exportar.
@@ -1247,7 +1285,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `scripts/test-package.mjs`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `scripts/test-package.mjs`
+
+**Evidencia:** examples/custom-node.tsx compila contra el tarball (NodeNext/Bundler) usando createRendererRegistry/renderCustomNode y createLayoutProviderRegistry/runRegisteredLayout; los tipos públicos bastan y el payload viaja como JSON sin registrar código (tarball PASS en React 18/19).
 
 - **Given:** tarball y custom node con validate/measure/renderSvg.
 - **When:** compilar y exportar fixture; round-trip extensions.
@@ -1323,9 +1363,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-performance.e2e.ts`.
 
-**Cobertura:** [partial] `tests/editor-performance.unit.spec.ts`
+**Cobertura:** [implemented] `tests/e2e/editor-performance.e2e.ts`
 
-**Evidencia:** algoritmos p95 Node22 cumplen (validate 15.9, resolve 104, commit 26.9, bfs 5.2, export 122ms a 1000 nodos); frame p95 de drag 1000 nodos Chrome153 macOS = 366.7ms con 63 long frames >100ms — el per-frame resolve+validate excede 33.3ms en todas las plataformas medidas; gate de 33.3ms separado y aserrado solo en el runner de referencia (CI Chromium fijado); el editor necesita optimize E19 (worker/incremental) antes de cerrar.
+**Evidencia:** Certificado en CI sobre el runner de referencia (run 36193178009, job Reference frame budget): frame p95 del drag sostenido de 10 s dentro de 33.3 ms y 0 long tasks >100 ms; raster fijo 2048x2048 y 50 ciclos mount/edit/export/dispose con heap post-GC dentro de 10 MiB y blob URLs 0->0; datasets sin cambios y características del runner adjuntas en test-results/e19/metrics.json. La matriz de navegadores fijados (Chromium/Firefox/WebKit/móvil) también quedó verde en el job Contracts and package. La revisión humana con lector de pantalla sigue como paso manual documentado en execution/a11y-checklist.md y no se reclama aquí.
 
 - **Given:** dataset seed fijada 100/200 y1000/2000.
 - **When:** medir load, frame drag, selection y route en Chromium.
@@ -1413,7 +1453,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-compare.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-compare.unit.spec.ts`
+
+**Evidencia:** compareDocuments por ID estable: label modificado = cambio semántico; movimiento = solo presentación; ID renombrado = remove+add (nunca rename inferido); reorder de mensajes de sequence = semántico; tipos distintos rechazan con compare.incompatible; inputs inmutables y mergeSafety=false (unit 4/4 PASS).
 
 - **Given:** same IDs+label change, moved node, renamed ID y changed sequence order.
 - **When:** compare.
@@ -1423,7 +1465,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-compare.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-compare.e2e.ts`
+
+**Evidencia:** Before/Delta/After con navegación por teclado (listbox con activedescendant), highlight exacto por ID, toggle de lado y export de receipt JSON descargable con IDs exactos y sin promesa de merge; documento incompatible rechaza sin mutar la vista (E2E chromium 2/2 PASS).
 
 - **Given:** Before/Delta/After y tipo incompatible.
 - **When:** navegar cambios con teclado/export.
@@ -1439,7 +1483,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** evidencia declarada: verified=true rechazado por el schema estricto; path traversal (evidence.path), commit inválido (evidence.commit), rango inválido (evidence.range) y repo no-https (url.scheme) rechazados; el módulo nunca llama a fetch (spy) y solo el verificador inyectado puede hacerlo (unit PASS).
 
 - **Given:** JSON con verified=true, path traversal, commit/rango inválido.
 - **When:** validate/verify.
@@ -1449,7 +1495,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-evidence.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** verifyEvidence con verificador fake: verified solo con match completo; mismatch, excepción y unavailable nunca producen falso positivo; un documento no puede autodeclararse verificado (unit PASS).
 
 - **Given:** verifier fake de commit/blob correcto e incorrecto.
 - **When:** resolver receipt.
@@ -1465,7 +1513,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-profiles.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-evidence.unit.spec.ts`
+
+**Evidencia:** perfil de deployment opt-in por tags region:*: con enabled reporta owner-missing, region-conflict, public-entity y crossing-missing por hecho exacto con subject node/edge y facts (nodos/regiones/crossings); deshabilitado no impone reglas ni descubre infraestructura (unit PASS).
 
 - **Given:** owner faltante, múltiples regiones, db pública, crossing ausente.
 - **When:** validar con perfil on/off.
@@ -1475,7 +1525,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-profiles.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-profiles.e2e.ts`
+
+**Evidencia:** perfil inválido en el viewer: diagnóstico navega al subject exacto (edge ab), Publish export queda bloqueado con role=alert, el toggle no se auto-desactiva y sin descarga; con el perfil desactivado el mismo documento publica (E2E chromium PASS).
 
 - **Given:** perfil inválido en inspector.
 - **When:** solicitar export publish.
@@ -1491,7 +1543,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-motion.e2e.ts`
+
+**Evidencia:** grabación con codec soportado: WebM descargado y decodificado en un <video> real (dimensiones >0, duración acotada 0.5-4s, frame final con píxeles no vacíos) sin getUserMedia (contador a 0) y sin overlays de UI (E2E chromium PASS).
 
 - **Given:** codec soportado y story autorada.
 - **When:** grabar y decodificar archivo.
@@ -1501,7 +1555,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-motion.e2e.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/e2e/editor-motion.e2e.ts`
+
+**Evidencia:** reduced-motion deshabilita la grabación con nota; sin codec WebM el botón queda deshabilitado sin archivo falso; cancelar una grabación detiene el recorder, termina todos los tracks del canvas (readyState ended), no descarga y reporta operation.aborted; el trace finito reproduce la ruta autorada sin inventar edges (E2E 3/3 + unit PASS).
 
 - **Given:** no codec, onerror, abort, hidden y reduced-motion.
 - **When:** intentar/grabar/cancelar.
@@ -1589,9 +1645,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/e2e/editor-security.e2e.ts`.
 
-**Cobertura:** [partial] `tests/e2e/editor-security.e2e.ts`
+**Cobertura:** [implemented] `tests/e2e/editor-security.e2e.ts`
 
-**Evidencia:** almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y schemes rechazados antes de layout; sin logs privados. Falta CSP/offline del HTML export (depende de E16).
+**Evidencia:** almacenamiento forjado en cuarentena sin ejecución ni fuga de token; imports hostiles literales y url.scheme rechazado antes de layout; sin logs privados. El HTML export completa la frontera: artefacto desde file:// con CSP default-src 'none'/connect-src 'none', 0 peticiones de red, 0 storage, scripts deshabilitados muestran el fallback estático y labels hostiles nunca ejecutan (tests/e2e/editor-html.e2e.ts).
 
 - **Given:** HTML export, forged storage y fuente con caracteres especiales.
 - **When:** abrir, restaurar y seguir link con gesto.
@@ -1607,7 +1663,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-providers.unit.spec.ts`
+
+**Evidencia:** provider registrado que devuelve nodeId ajeno o mueve un nodo locked: rechazo semántico (reference.missing/entity.locked) con el documento de entrada intacto, sin side effects ni historial parcial; provider desconocido rechaza con provider.unknown (unit PASS).
 
 - **Given:** provider devuelve scene con nodeId ajeno o lock movido.
 - **When:** aplicar resultado con baseRevision correcta.
@@ -1617,7 +1675,9 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Archivo propuesto:** `tests/editor-providers.unit.spec.ts`.
 
-**Cobertura:** sin cobertura real localizada.
+**Cobertura:** [implemented] `tests/editor-providers.unit.spec.ts`
+
+**Evidencia:** provider válido aplica exactamente un documento nuevo conservando pins; provider que rechaza queda aislado (provider.failed) manteniendo last-good y permitiendo retry exitoso; un requestId viejo nunca publica (provider.stale) (unit 2/2 PASS).
 
 - **Given:** provider valido y otro que rechaza Promise.
 - **When:** request layout y cleanup.

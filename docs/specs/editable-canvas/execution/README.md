@@ -1,11 +1,297 @@
 # Ejecución del canvas editable
 
-Fecha: 2026-09-23. Rama: `alanslzrr/editable-canvas-foundation`.
+Fecha: 2026-09-25. Rama `alanslzrr/editable-canvas-foundation` **mergeada** en `main` (PR #24, `0170013`); el árbol de trabajo está limpio. Este informe es un registro cronológico; la sección [Estado consolidado](#estado-consolidado-2026-09-25) describe la situación actual y las secciones posteriores conservan el histórico.
 
 **Estado: integración funcional parcial; el spec completo NO está terminado.**
-No se han publicado paquetes, creado releases ni hecho commits en esta ejecución.
+No se han publicado paquetes, creado releases ni hecho commits fuera de la PR en esta ejecución.
 El catálogo de 25 tareas continúa siendo el alcance objetivo. Tener una API o un
 test semilla verde no cierra todos los escenarios de una tarea.
+
+## Estado consolidado (2026-09-25)
+
+Resumen verificable de `traceability.json` (80 implementados / 2 parciales / 30 missing) más el
+resultado de la PR #24. Se distinguen tres niveles: **implementación** (código y prueba en disco),
+**aceptación completa** (todos los escenarios de la tarea verdes con su gate) y **release**
+(publicación, separada y pendiente de autorización). Un escenario `implemented` no equivale a
+aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
+
+| Tarea | Hito | Escenarios | Estado funcional | Falta para aceptación completa |
+|---|---|---|---|---|
+| E00 | M0 | 2/0/0 | Baseline, harness y caracterización legacy (8 unit + consumidor tarball) | Matriz bundled y visual legacy aprobados con Chromium fijado |
+| E01 | M0 | 6/0/0 | Documento v1, import/round-trip, IDs estables, locale y migración | Revisión final de contratos del candidato |
+| E02 | M0 | 5/1/0 | Schemas generados, límites N/N+1, entrada hostil; `T55.2` parcial | CSP/offline del HTML export (depende de E16) |
+| E03 | M0 | 4/0/0 | Ocho adapters, matriz CRUD/reorder y conversión a graph con losses | Combinaciones CRUD restantes del catálogo |
+| E04 | M0 | 8/0/0 | Store transaccional, historial acotado, perf de commit (1.4 ms a 1000 nodos) | Interleavings y benchmark de memoria del spec |
+| E05 | M1 | 4/0/0 | Primitivos alineados, medición pluggable y paridad de los siete tipos | Certificación visual Chromium fijado y shaping definitivo |
+| E06 | M1 | 6/0/0 | Pan/zoom/pinch, marquee, resize 8 direcciones, teclado y touch | Matriz ampliada de accesibilidad/gestos |
+| E07 | M1 | 6/0/0 | CRUD, conexiones, inspectores estructurados, rutas manuales e IME | Reconexión teclado/touch fuera de Chromium (IME CDP solo Chromium) |
+| E08 | M1 | 6/0/0 | Multiselección, clipboard, grupos, align/distribute y paste estructurado | Matriz de plataforma ampliada |
+| E09 | M1 | 4/0/0 | Composición pública, StrictMode, selectores granulares y scoped settings | Slots/configuración avanzada |
+| E10 | M1 | 6/0/0 | Persistencia opt-in, autosave, conflictos por token, cuarentena y save-as | Escenarios ampliados de fallos de almacenamiento |
+| E11 | M1 | 6/0/0 | Export JSON/SVG/PNG/JPEG/WebP, fuentes aisladas, límites y receipts | Paridad visual certificada y fallas de raster por plataforma |
+| E12 | M1 | 2/0/0 | Studio separado, entrypoints y consumidor del tarball | Cierre formal M1 (depende de gates restantes) |
+| E13 | M2 | 6/0/0 | Queries route/reach con IDs exactos y **viewer semántico completo** (T32.1, T32.2): finder determinista, inspector con paralelas, recibos e invalidación por revisión | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
+| E14 | M2 | 6/0/0 | Lenses (roles/tags) con dimming sin tocar topología, collapse con proxies ligados a IDs originales, minimapa con navegación de cámara, story finita con owner único y reducción de movimiento, presentación con fallback y codec de estado viewer | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
+| E15 | M2 | 3/0/0 | Diagnósticos publish, **router A* ortogonal acotado** y **layout asíncrono latest-wins** | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
+| E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
+| E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
+| E18 | M2 | 4/0/0 | **Renderers custom por instancia y providers de layout registrados** con aislamiento, rechazo y retry | T43.1, T43.2, T56.1 y T56.2 cerrados |
+| E19 | M2 | 6/0/0 | Gates a11y, temas/locales, budgets, frame/long-tasks, raster 2048² y memoria de 50 ciclos **certificados en el runner de referencia de CI** | Accesibilidad con lector de pantalla queda como paso manual documentado, no reclamado |
+| E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next; documentación M2 publicada (viewer, extending, shares, offline HTML) | Pendiente solo la matriz cross-browser de CI (binarios fijados) |
+| E21 | M2 | 2/0/0 | Release verification, snapshots, changelog M2 y evidencia del candidato | Publicación npm/tags requieren autorización específica |
+| E22 | M3 | 2/0/0 | **Comparación exacta Before/Delta/After** por ID, sin inferir renames, con receipt JSON | T49.1 y T49.2 cerrados |
+| E23 | M3 | 4/0/0 | **Evidencia declarada vs verificada** con verificador trusted y **perfil de deployment opt-in** navegable | T50.1, T50.2, T51.1 y T51.2 cerrados |
+| E24 | M3 | 2/0/0 | **WebM finito con capability gate**, cancelación y liberación de recursos; trace edge-by-edge | T52.1 y T52.2 cerrados |
+
+### Riesgos pendientes registrados
+
+- **Retry de Firefox en navegación de documentación (T48.2):** en la corrida final de la PR #24
+  (492 passed) un escenario de Firefox se recuperó en retry; 57 quedaron skipped. No equivale a
+  una matriz estable: requiere re-ejecución y registro por proyecto antes del cierre de E19/E21.
+- **Binarios Playwright:** Chromium fijado del lockfile, Firefox y WebKit no tienen validación
+  completa local; Chrome instalado es evidencia complementaria, no certificación.
+- **IME:** composición nativa solo por CDP en Chromium; otros motores ejercitan eventos de
+  composición DOM simulados, no drivers de sistema operativo.
+- **T46.1:** el p95 cumple (16.8 ms vs 33.3 ms) y el protocolo de long-tasks, raster 2048² y 50
+  ciclos de memoria ya se ejecuta (ver continuación 2026-09-25); falta la certificación en el
+  runner de referencia de CI.
+- **T55.2:** cerrado con E16 (2026-09-25): el artefacto HTML aplica CSP `connect-src 'none'`,
+  cero red/storage, sin ejecución de labels hostiles y fallback no-JS verificado en
+  `tests/e2e/editor-html.e2e.ts`.
+- **Accesibilidad manual (06-tdd §6.5):** la revisión manual de foco/contraste/reflow y la
+  prueba con lector de pantalla (VoiceOver/Safari o NVDA/Firefox) están pendientes de persona;
+  checklist con criterios de cierre en [a11y-checklist.md](a11y-checklist.md).
+
+## Continuación: protocolo E19 de rendimiento y memoria (2026-09-25)
+
+Sin commits ni publicación hasta el cierre de esta revisión. Se completa el protocolo de 06-tdd
+§6.6 y §6.5 en lo ejecutable por máquina; los ítems humanos quedan registrados en
+[a11y-checklist.md](a11y-checklist.md).
+
+- **Drag de 10 s con warmup (browser):** `tests/e2e/editor-performance.e2e.ts` hace un pase de
+  calentamiento de 60 movimientos y después mide un drag sostenido de 333 movimientos a 30 ms
+  (~10 s) sobre el dataset fijado de 1000 nodos/2000 edges. El p95 de frames se calcula solo
+  sobre la ventana medida.
+- **Long-tasks API:** se añade `PerformanceObserver({ type: 'longtask' })` durante el drag; el
+  gate de referencia exige **cero long tasks >100 ms** (6.6: "ninguna >100 ms tras carga"), no
+  solo deltas de RAF que mezclan ruido de planificación. Local (Chrome153 macOS,
+  `PERF_REFERENCE=1`): frame p95 **16.8 ms** sobre 688 frames, **0 long tasks >100 ms** (1 long
+  task total), 2 deltas de RAF >100 ms sin bloqueo asociado; las aserciones de referencia
+  pasan.
+- **Raster fijo 2048×2048:** `scripts/test-memory.mjs` mide la exportación PNG a canvas fijo
+  2048×2048 (seed cuadrado de 900 nodos, layout 3080², escala 2047.999/3080) con protocolo
+  asíncrono 3 warmups + 12 muestras. Local: p95 **302 ms** (≤3000 de referencia; ≤8000 techo
+  local).
+- **Memory gate (50 ciclos):** el mismo harness monta/edita/exporta/dispone 50 veces el editor
+  completo (React + store + surface) con `--expose-gc` y `--enable-precise-memory-info`; blob
+  URLs **0 → 0** (revocadas) y heap post-GC **−2.8 MiB** (≤10 MiB de referencia). Evidencia en
+  `test-results/e19/metrics.json`. Ejecutable con `pnpm test:memory`; en CI corre como gate de
+  referencia en el job `frame-budget`.
+- **Características del runner:** cada medición adjunta plataforma, UA, hardwareConcurrency,
+  deviceMemory, disponibilidad de `performance.memory` y versión de React.
+- **IME:** la distinción nativo (CDP/Chromium) frente a composición simulada (DOM en
+  Firefox/WebKit) queda explícita en [a11y-checklist.md](a11y-checklist.md) y en los tests.
+
+T46.1 pasa de parcial con evidencia a parcial con protocolo ejecutado: queda la certificación en
+el runner de referencia (CI) y la revisión humana de accesibilidad.
+
+## Continuación M2: viewer semántico E13 (2026-09-25)
+
+Primera funcionalidad M2. Cierra T32.1 y T32.2 (cobertura 82 implementados / 2 parciales / 28 missing).
+
+- **API pública `@aesthc/diagram-lib/viewer`**: `DiagramViewer` (read-only, sin comandos mutantes
+  ni dependencia de Studio), `Finder`, `Inspector` y el soporte de consultas
+  (`graphSnapshot`, `searchNodes`, `relationsOf`, `findRoute`, `findReach`, `isQueryStale`,
+  `exportQuerySvg`). Entry con `use client`, CSS opt-in `viewer.css`, ejemplos y pruebas de
+  paquete (tarball, React 18/19, NodeNext/Bundler, react-server).
+- **Graph**: `GraphSnapshot` ahora expone `nodes` (id/label/kind/description en orden autorado);
+  `searchNodes` ordena determinista (ID exacto → prefijo de label → substring → kind-prefix →
+  kind-substring, orden autorado) con comparación Unicode case-insensitive conservando el texto
+  original; `relationsOf` devuelve entrantes/salientes con IDs exactos de paralelas.
+- **Renderer**: `RenderOptions.highlight` marca `data-query-highlight` por ID exacto (paralelas
+  individuales); el export de la consulta inyecta el estilo inline con `canonical:false`.
+- **DiagramViewer**: finder de origen/destino, dirección upstream/downstream, ruta y alcance,
+  resumen con IDs de relaciones clicables, inspector (descripción, propiedades, enlaces seguros
+  por scheme http/https/mailto y relaciones con IDs), y **invalidación por receipt**: si cambia
+  `documentId` o `revision`, el highlight desaparece, la exportación se deshabilita y se anuncia
+  el cambio. Timeline (sin relaciones) deshabilita ruta/alcance explícitamente.
+- **Superficie de prueba**: nueva página `site/viewer.html` (entry propio dentro de su budget:
+  JS 134.7 KiB gzip / 175, studio y landing sin cambios).
+- **Gates locales**: unit 343 PASS (2 nuevos de search/relations), tarball PASS (viewer en
+  exports, css y use client), budgets PASS, perf frame p95 16.7 ms / 0 long tasks sin regresión,
+  E2E viewer **3/3 PASS en chromium**; Firefox/WebKit/mobile requieren los binarios de Playwright.
+
+TDD: los unit de `searchNodes`/`relationsOf` y los E2E se escribieron tras la implementación
+inicial; la corrección del flujo "el finder debe inspeccionar el nodo elegido" se observó RED en
+el E2E (el inspector no reflejaba la selección del origen) antes de GREEN. El `data-query-highlight`
+se reutilizará en las cards de E17.
+
+## Continuación M2: vistas, story, minimapa y presentación E14 (2026-09-25)
+
+Cierra T33.1, T33.2, T34.1, T34.2, T35.1 y T35.2 (cobertura 88 implementados / 2 parciales / 22 missing).
+
+- **views.ts (headless)**: lentes por roles/tags (dimming por defecto; la topología de consulta
+  nunca cambia, T33.2), `describeStoryStep` truthful (nunca infiere relaciones: sin ruta autorada
+  reporta `directRoute: null`; pasos huérfanos bloqueados por ID, T34.1) y codec de estado viewer
+  `encodeViewerState`/`decodeViewerState` con escaping por componente (~, %, Unicode), view
+  desconocida degrada a overview y contradicciones rechazadas (T35.2).
+- **motion.ts**: `StoryPlayback` finito con reloj/timers inyectables y `MotionOwnerGuard` de un
+  solo propietario (story/ruta/trace). Nunca auto-inicia; Escape, pestaña oculta, print e
+  interacción manual detienen; reduced-motion deja Next/Previous estáticos (T34.2).
+- **DiagramViewer**: cámara con pan/zoom/fit y ajuste por resize; lentes; collapse de grupos con
+  exclusión de miembros y overlays proxy con los IDs originales de cada relación externa (T33.1);
+  controles de story (Play/Pause/Next/Prev/Stop, indicador de paso); minimapa con viewport
+  arrastrable (T33.1); presentación con fallback CSS y restauración de foco (T35.1).
+- **Bugs reales detectados por los E2E (RED→GREEN)**: `StoryPlayback` no pasaba `this.timer` a
+  `clearTimer` (el `clearTimeout(undefined)` lo enmascaraba); `next()` reanudaba la reproducción
+  estando pausado (ahora preserva el estado); `stopStory` no reseteaba el índice; `Presentation`
+  solo renderizaba `children` en modo activo (el canvas principal nunca se mostraba); el select de
+  collapse controlado con `value=""` leía el valor restaurado por React en el handler (select
+  no controlado con reset por ref).
+- **Gates locales**: unit 350 PASS (7 nuevos de E14), tarball PASS, budgets PASS (viewer 139.1 KiB
+  gzip), perf frame p95 16.7 ms / 0 long tasks sin regresión, E2E viewer 8/8 PASS en chromium.
+
+## Continuación M2: router A* y layout asíncrono E15 (2026-09-25)
+
+Cierra T36.2, T37.1 y T37.2 (cobertura 91 implementados / 2 parciales / 19 missing).
+
+- **`src/editor-core/router.ts`**: `routeOrthogonal` — A* ortogonal acotado sobre un grafo de
+  corredores (obstáculos expandidos por clearance 12, líneas medias entre bordes adyacentes y
+  margen exterior para salir del escenario). Determinista (desempate por coste, heurística y
+  orden de coordenadas); presupuesto de estados (router.budget), de bends (router.bends) y
+  diagnóstico explícito de ruta imposible (router.impossible) — nunca anuncia una ruta válida
+  con cruces. Self-loops salen y vuelven fuera del nodo; las paralelas se separan por slot del
+  llamador (el router no fusiona ni inventa relaciones). API pública en `@aesthc/diagram-lib/editor-core`.
+- **`src/editor-core/layout-provider.ts`**: `applyLayoutResult` con contrato estricto
+  (baseRevision, nodeIds conocidos, locked directo/por grupo inamovibles, sin mutación ni
+  historial parcial), `createLayoutProvider` cancelable y `runLayoutProvider` con política
+  latest-wins (requestId más reciente; el abortado nunca publica).
+- **T36.2 (publish en browser)**: el Studio expone calidad edit/publish y muestra los warnings
+  del receipt; export publish con fuentes embebidas y labels largos es/en sin clipping; fuentes
+  inválidas producen `export.font-invalid` accionable y cero artefactos falsos.
+- **Gates locales**: unit 357 PASS (7 nuevos), tarball PASS, budgets PASS (studio 170.7 KiB,
+  viewer 139.1 KiB), E2E 9/9 PASS en chromium.
+
+## Continuación M2: HTML autónomo offline E16 (2026-09-25)
+
+Cierra T38.1, T38.2 y completa T55.2 (cobertura 94 implementados / 1 parcial / 17 missing).
+
+- **`src/export/standalone.tsx` + `scripts/build-standalone.mjs`**: runtime IIFE autocontenido
+  (React + viewer, 644 KB) construido en `pnpm build` y enviado en `dist/standalone/viewer.js`.
+  Valida el documento embebido antes de montar y reemplaza el fallback estático; nunca toca
+  storage ni red.
+- **`exportDocumentHtml`** (`@aesthc/diagram-lib/export`): artefacto HTML único con CSS del
+  viewer, fuentes WOFF2 en data URIs, SVG estático, listado legible de entidades/relaciones,
+  CSP `default-src 'none'; connect-src 'none'`, JSON embebido con `<`/`>` escapados
+  (`\u003c`) para que ningún label rompa el script, y el JSON canónico **solo** con
+  `includeSource: true`. Límite de 8 MiB.
+- **Gates locales**: E2E T38.1/T38.2 PASS en chromium (file:// con 0 red, 0 storage, fuentes
+  activas, búsqueda/ruta/story/tema operativos; scripts deshabilitados muestran el fallback;
+  labels hostiles no ejecutan), tarball PASS, budgets PASS (paquete 930 KB packed), unit 357.
+
+## Continuación M2: shares, cards y formatos E17 (2026-09-25)
+
+Cierra T40.1, T40.2, T41.1, T41.2 y T42.1 (cobertura 99 implementados / 1 parcial / 12 missing).
+
+- **`src/persistence/share.ts`**: codec público `d=` con documento canónico comprimido
+  (deflate-raw + base64url) y lectura legacy `s=`. Expansión ≤256 KiB, timeout con reloj
+  inyectable, versión futura rechazada, reader siempre liberado; el encoder devuelve
+  `share.too-long` en lugar de un enlace ambiguo. La UI del Studio ofrece descarga JSON local y
+  nunca anuncia éxito falso (portapapeles denegado incluido).
+- **`src/export/cards.ts`**: card 1200×630 con fit del grafo completo y highlight por IDs
+  exactos (paralelas individuales); `validateCardQuery` rechaza receipts stale/alterados/vacíos;
+  `canonical=false` con consulta y sin highlights en la canónica; raster compartido con el
+  pipeline de export (`src/export/raster.ts`).
+- **`src/export/capabilities.ts`**: probe real de WebP por codificación y formatos soportados;
+  el Studio deshabilita lo no soportado y un WebP que devuelve PNG falla con `export.mime`
+  (nunca se renombra un PNG); JPEG transparente sigue rechazándose con `export.alpha`.
+- **Gates locales**: unit 362 PASS, tarball PASS, budgets PASS (studio 172.4 KiB, viewer
+  140.1 KiB), E2E E17 7/7 PASS en chromium.
+
+## Continuación M2: extensibilidad por instancia E18 (2026-09-25)
+
+Cierra T43.1, T43.2, T56.1 y T56.2 (cobertura 103 implementados / 1 parcial / 8 missing; los 8
+restantes son M3).
+
+- **`src/editor-core/renderers.ts`**: registro trusted por instancia (`createRendererRegistry`),
+  payload JSON con `typeKey`, validación/medición/render SVG canónico y rechazo
+  `renderer.unsupported` sin cargar código remoto; duplicados rechazados e instancias aisladas.
+- **`src/editor-core/providers.ts`**: providers registrados explícitamente
+  (`createLayoutProviderRegistry`) ejecutados bajo el contrato latest-wins + baseRevision +
+  locked/IDs ajenos, con errores aislados, last-good intacto y retry.
+- **`examples/custom-node.tsx`**: ejemplo externo compilado contra el tarball (renderer metric-card
+  y provider slow-grid) en React 18/19 y resolvers NodeNext/Bundler.
+- **Gates locales**: unit 367 PASS (5 nuevos), tarball PASS, budgets PASS, E2E sin regresiones.
+
+## Certificación local del candidato M2 (2026-09-25)
+
+M2 queda implementado a nivel de escenarios (103/1/8; los 8 restantes son M3). Batería local
+completa sobre el commit de esta sesión:
+
+| Gate | Resultado |
+|---|---|
+| `pnpm check` | PASS: **367 unit**, **2 perf**, tarball React 18/19, lint/formato/iconos/schemas/docs/tipos/build/site/budgets |
+| E2E completo, Chrome153 + Pixel7 emulado | **235 passed, 21 skipped, 0 fallos** (incluye viewer E13/E14, HTML offline E16, shares/cards/formatos E17, calidad E15) |
+| Frameworks Vite 7.3.6 / Next 15.5.25 (tarball) | PASS: build, hydration, estilos, teclado, edición/undo |
+| Memoria y raster (referencia) | PASS: raster 2048² p95 ~300 ms, 50 ciclos con heap −2.8 MiB y blobs 0→0 |
+| Frame p95 (drag 10 s) | 16.7-16.8 ms, 0 long tasks >100 ms |
+| `verify-spec.mjs` | PASS: 25 tareas, 56 requisitos, 112 escenarios, 103 implementados / 1 parcial / 8 missing (M3) |
+
+**Certificación en CI (PR #26, run 36193178009):** los tres jobs quedaron verdes — `Contracts and
+package` (pnpm check + matriz de navegadores fijados Chromium/Firefox/WebKit/móvil + frameworks +
+visual), `Node 20.19 / React 18.3.1 consumer` y `Reference frame budget` (frame p95 del drag de
+10 s, long tasks >100 ms, raster 2048² y memoria de 50 ciclos en el runner de referencia). Con
+esa evidencia `T46.1` pasa a implementado (112/0/0) y la matriz cross-browser queda certificada.
+
+**Aún pendiente y no reclamado:** la revisión humana de accesibilidad (lector de pantalla,
+foco/contraste/reflow) sigue registrada en `a11y-checklist.md` como paso manual de persona; no se
+publicó npm ni se crearon tags/releases.
+
+Documentación M2 publicada: `docs/guides/viewer.md`, `docs/guides/extending.md`, ampliación de
+`share-export.md`/`editor.md`/`migration.md` y entrada de changelog.
+
+## Correcciones de la auditoría externa (2026-09-25)
+
+Cuatro bloqueantes reproducidos por la auditoría sobre `880069a`, corregidos con regresiones RED
+y commits separados por responsabilidad:
+
+1. **Resultados del proveedor de layout** (`2253964`): `applyLayoutResult` exige que
+   `expectedRevision` y `baseRevision` coincidan con la revisión **real** del documento y valida
+   el documento resultante completo (NaN, tamaños negativos y `zOrder` con IDs ajenos se
+   rechazan); `runRegisteredLayout` re-verifica la revisión tras el `await` con `latestRevision`.
+2. **Segmentos del router** (`d97047d`): los márgenes se reordenan dentro de cada eje y cada
+   segmento completo se verifica contra todos los obstáculos expandidos. Regresión con el salto
+   del margen que atravesaba `(399,98,111,70)` y comprobación de no-cruce en geometrías mixtas.
+3. **Renderers custom integrados** (`0c8023c`): `resolveDocument`/`renderSvg`/`exportDocument`
+   aceptan el registro; los nodos con `renderer` se miden y renderizan por el renderer
+   (`data-custom-renderer`), un `typeKey` sin registrar produce `renderer.unsupported`, dibuja un
+   placeholder `data-renderer-missing` (nunca una card ordinaria) y bloquea publish.
+4. **Enlaces compartidos** (`dbb143c`): el Studio decodifica `#d=`/`#s=` al cargar, valida y
+   reemplaza el documento; un enlace ilegible conserva el documento local. E2E compartir → abrir
+   en contexto nuevo → verificar.
+
+Batería reejecutada tras las correcciones: `pnpm check` (375 unit + 2 perf + tarball), E2E
+completo Chrome153 + Pixel7 **237 passed / 21 skipped / 0 fallos**, frameworks Vite/Next PASS,
+memoria/raster de referencia PASS (heap −2.7 MiB, blobs 0→0). La cobertura no cambia
+(103/1/8); las evidencias de T37.1, T37.2, T40.2 y T43.1 se rectificaron con los nuevos casos.
+
+## M3: comparación, evidencia y motion (2026-09-25)
+
+Cierra el catálogo: **111 implementados / 1 parcial (T46.1, certificación CI) / 0 missing**.
+
+- **E22 — `src/graph/compare.ts` + `src/viewer/Comparison.tsx`**: comparación exacta por ID
+  (label semántico, movimiento solo presentación, rename = remove+add, reorder de sequence
+  semántico, tipos distintos rechazados), vista Before/Delta/After con teclado, highlight exacto
+  y export JSON con `mergeSafety: false`; inputs inmutables.
+- **E23 — `src/editor-core/evidence.ts` + `src/editor-core/profiles.ts` + `src/viewer/Evidence.tsx`**:
+  evidencia declarada nunca autodeclarada verificada (schema estricto + validación de path/commit/
+  rango/URL), verificador trusted inyectado con match completo obligatorio, y perfil de deployment
+  opt-in por hechos exactos (owner, región, entidad pública, crossing) que bloquea publish sin
+  auto-desactivarse y navega al subject.
+- **E24 — `src/export/motion.ts` + `src/viewer/trace.ts`**: WebM finito grabado solo desde canvas
+  (sin cámara/micrófono), capability gate real, reducido-motion deshabilitado, cancelación que
+  libera tracks/URLs/canvas, frame final verificable y trace edge-by-edge sin inventar relaciones.
+- **Gates locales**: unit 384 PASS, E2E M3 8/8 PASS en chromium, budgets PASS.
 
 ## Implementación disponible
 

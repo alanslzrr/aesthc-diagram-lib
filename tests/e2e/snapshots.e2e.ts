@@ -46,6 +46,7 @@ test('frozen A remains complete after rebuilding and serving only B', async ({ b
       'site/index.html',
       'site/docs.html',
       'site/studio.html',
+      'site/viewer.html',
       'package.json',
       'tsconfig.json',
       'pnpm-workspace.yaml',

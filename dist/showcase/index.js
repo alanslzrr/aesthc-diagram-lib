@@ -4,7 +4,8 @@ import {
 } from "../chunk-LALSN5FV.js";
 import {
   DiagramCanvas
-} from "../chunk-TSORMAZM.js";
+} from "../chunk-2KO3OO4C.js";
+import "../chunk-GIHY37DH.js";
 import "../chunk-IDNRW7UP.js";
 import {
   getDiagram,
@@ -21,9 +22,8 @@ import {
   diagramEdges
 } from "../chunk-QVERY2JP.js";
 import "../chunk-YKPE23VO.js";
-import "../chunk-TVEV5XLW.js";
-import "../chunk-GIHY37DH.js";
 import "../chunk-KDAWQGDC.js";
+import "../chunk-TVEV5XLW.js";
 
 // src/showcase/Showcase.tsx
 import { useEffect, useId, useMemo, useState } from "react";

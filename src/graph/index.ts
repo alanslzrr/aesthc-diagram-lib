@@ -7,10 +7,18 @@ export interface GraphFilter {
   variants?: Array<'main' | 'branch'>
   nodeRoles?: string[]
 }
+export interface GraphNodeInfo {
+  id: string
+  label: string
+  kind?: string
+  description?: string
+}
 export interface GraphSnapshot {
   documentId: string
   revision: number
   nodeIds: string[]
+  /** Authored order with the same role filter applied to `nodeIds`. */
+  nodes: GraphNodeInfo[]
   edges: Array<DiagramEdge & { id: string }>
   filter?: GraphFilter
 }
@@ -44,10 +52,19 @@ export function graphSnapshot(document: DiagramDocument, filter?: GraphFilter): 
     )
     .map((n) => n.id)
   const ids = new Set(nodes)
+  const info = nodesOf(document.spec).filter((n) => ids.has(n.id))
   return freezeData({
     documentId: document.id,
     revision: document.revision,
     nodeIds: nodes,
+    nodes: info.map((n) => ({
+      id: n.id,
+      label: n.label ?? '',
+      ...(n.kind ? { kind: n.kind } : {}),
+      ...((n as { description?: string }).description
+        ? { description: (n as { description?: string }).description }
+        : {}),
+    })),
     edges: edgesOf(document.spec)
       .filter(
         (e) =>
@@ -140,3 +157,60 @@ export function findReach(
   }
   return success({ ...identity(graph), origin, direction, nodeIds, edgeIds, depth, truncated })
 }
+export type SearchMatch =
+  'exact-id' | 'label-prefix' | 'label-substring' | 'kind-prefix' | 'kind-substring'
+export interface SearchResult {
+  id: string
+  label: string
+  kind?: string
+  match: SearchMatch
+}
+/** Unicode case-insensitive search in authored order: exact ID, label prefix,
+ * label substring, kind prefix, kind substring. The original text is kept. */
+export function searchNodes(graph: GraphSnapshot, query: string, limit = 20): SearchResult[] {
+  const needle = query.toLocaleLowerCase()
+  if (!needle) return []
+  const matched: SearchResult[] = []
+  const rank: Record<SearchMatch, SearchResult[]> = {
+    'exact-id': [],
+    'label-prefix': [],
+    'label-substring': [],
+    'kind-prefix': [],
+    'kind-substring': [],
+  }
+  for (const node of graph.nodes) {
+    if (node.id.toLocaleLowerCase() === needle)
+      rank['exact-id'].push({ ...node, match: 'exact-id' })
+    else if (node.label.toLocaleLowerCase().startsWith(needle))
+      rank['label-prefix'].push({ ...node, match: 'label-prefix' })
+    else if (node.label.toLocaleLowerCase().includes(needle))
+      rank['label-substring'].push({ ...node, match: 'label-substring' })
+    else if (node.kind?.toLocaleLowerCase().startsWith(needle))
+      rank['kind-prefix'].push({ ...node, match: 'kind-prefix' })
+    else if (node.kind?.toLocaleLowerCase().includes(needle))
+      rank['kind-substring'].push({ ...node, match: 'kind-substring' })
+  }
+  for (const key of Object.keys(rank) as SearchMatch[])
+    for (const entry of rank[key]) {
+      matched.push(entry)
+      if (matched.length >= limit) return matched
+    }
+  return matched
+}
+export interface NodeRelations {
+  incoming: Array<{ edgeId: string; from: string }>
+  outgoing: Array<{ edgeId: string; to: string }>
+}
+/** Authored edge order; parallel relations keep their distinct IDs. */
+export function relationsOf(graph: GraphSnapshot, nodeId: string): Result<NodeRelations> {
+  if (!graph.nodeIds.includes(nodeId)) return failure('graph.unknown-node')
+  const incoming: NodeRelations['incoming'] = [],
+    outgoing: NodeRelations['outgoing'] = []
+  for (const edge of graph.edges) {
+    if (edge.to === nodeId) incoming.push({ edgeId: edge.id, from: edge.from })
+    if (edge.from === nodeId) outgoing.push({ edgeId: edge.id, to: edge.to })
+  }
+  return success({ incoming, outgoing })
+}
+export { compareDocuments } from './compare'
+export type { Comparison, EntityDelta, FieldChange } from './compare'

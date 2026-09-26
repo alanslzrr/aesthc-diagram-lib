@@ -32,6 +32,7 @@ test.describe('viewport math under transforms', () => {
     isMobile,
   }) => {
     test.skip(isMobile, 'Mouse transform math; touch drag covered separately')
+    await page.setViewportSize({ width: 1280, height: 1000 })
     await page.goto('/studio.html')
     await page.evaluate(() => {
       const body = document.querySelector('.adl-editor-body') as HTMLElement | null
