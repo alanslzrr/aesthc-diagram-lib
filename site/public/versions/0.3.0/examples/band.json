@@ -1,0 +1,37 @@
+{
+  "type": "band",
+  "caption": "Request pipeline",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "bands": [
+    {
+      "title": "Input"
+    },
+    {
+      "title": "Output"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "a",
+      "label": "Request",
+      "description": "Receive a request.",
+      "band": 0
+    },
+    {
+      "id": "b",
+      "label": "Response",
+      "description": "Return a response.",
+      "band": 1
+    }
+  ],
+  "edges": [
+    {
+      "id": "request",
+      "from": "a",
+      "to": "b"
+    }
+  ]
+}

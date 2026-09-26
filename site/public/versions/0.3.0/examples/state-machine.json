@@ -1,0 +1,28 @@
+{
+  "type": "state-machine",
+  "caption": "Job lifecycle",
+  "legend": {
+    "main": "Main path",
+    "branch": "Alternative"
+  },
+  "states": [
+    {
+      "id": "a",
+      "label": "Pending",
+      "initial": true
+    },
+    {
+      "id": "b",
+      "label": "Complete",
+      "final": true
+    }
+  ],
+  "transitions": [
+    {
+      "id": "finish",
+      "from": "a",
+      "to": "b",
+      "label": "finish"
+    }
+  ]
+}
