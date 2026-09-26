@@ -3,7 +3,7 @@
 Documentation for **0.3.0**. Version 0.3.0 is available on npm.
 
 React `^18.3.1 || ^19.0.0`, ESM and Node 20.19+ are the declared consumer targets.
-See the [support matrix](/versions/0.3.0/docs/guides/support/) for verification scope.
+See the [support matrix](/aesthc-diagram-lib/versions/0.3.0/docs/guides/support/) for verification scope.
 
 ## Installation
 
@@ -12,7 +12,7 @@ npm install @aesthc/diagram-lib@0.3.0
 ```
 
 Use your existing package manager; npm, pnpm, yarn and bun can install the same package.
-Import the stylesheet and define the host variables in [Theming](/versions/0.3.0/docs/guides/theming/).
+Import the stylesheet and define the host variables in [Theming](/aesthc-diagram-lib/versions/0.3.0/docs/guides/theming/).
 Tailwind is not required.
 
 ## First diagram
@@ -75,7 +75,7 @@ export function Diagram() {
 
 ## Next steps
 
-For Next App Router, add a client boundary as described in [React integration](/versions/0.3.0/docs/guides/react/).
-For untrusted JSON, validate before rendering using the [API](/versions/0.3.0/docs/api/).
+For Next App Router, add a client boundary as described in [React integration](/aesthc-diagram-lib/versions/0.3.0/docs/guides/react/).
+For untrusted JSON, validate before rendering using the [API](/aesthc-diagram-lib/versions/0.3.0/docs/api/).
 All seven examples are included in the package. A coding agent can start with
-the [integration guide](/versions/0.3.0/agents/), without installing extra tools.
+the [integration guide](/aesthc-diagram-lib/versions/0.3.0/agents/), without installing extra tools.

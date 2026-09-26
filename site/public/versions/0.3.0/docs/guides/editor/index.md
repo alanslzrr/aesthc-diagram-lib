@@ -121,8 +121,8 @@ The viewer (finder, inspector, route/reach with receipt invalidation), lenses,
 group collapse with original-ID proxies, minimap, finite stories, presentation,
 bounded shares, 1200x630 cards, the self-contained offline HTML artifact and the
 per-instance renderer/provider registries are implemented and documented in the
-[viewer guide](/versions/0.3.0/docs/guides/viewer/), the [extending guide](/versions/0.3.0/docs/guides/extending/) and the
-[share/export guide](/versions/0.3.0/docs/guides/share-export/).
+[viewer guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/viewer/), the [extending guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/extending/) and the
+[share/export guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/share-export/).
 
 ## Known limits of this implementation
 

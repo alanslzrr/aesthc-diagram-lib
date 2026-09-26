@@ -75,5 +75,5 @@ import { routeOrthogonal } from '@aesthc/diagram-lib/editor-core'
 const route = routeOrthogonal({ from, to, obstacles, fromSide: 'right' })
 ```
 
-See the [editor guide](/versions/0.3.0/docs/guides/editor/) for composition, persistence and export, and
-the [viewer guide](/versions/0.3.0/docs/guides/viewer/) for read-only exploration.
+See the [editor guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/editor/) for composition, persistence and export, and
+the [viewer guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/viewer/) for read-only exploration.

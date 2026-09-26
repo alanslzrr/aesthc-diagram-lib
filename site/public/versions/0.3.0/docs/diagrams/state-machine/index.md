@@ -1,8 +1,8 @@
 # State machine diagrams
 
 Version 0.3.0. The minimal spec below is validated and its complete React
-example is compiled against the package tarball. See [API](/versions/0.3.0/docs/api/) for
-defaults, [React](/versions/0.3.0/docs/guides/react/) for state/SSR and [Theming](/versions/0.3.0/docs/guides/theming/)
+example is compiled against the package tarball. See [API](/aesthc-diagram-lib/versions/0.3.0/docs/api/) for
+defaults, [React](/aesthc-diagram-lib/versions/0.3.0/docs/guides/react/) for state/SSR and [Theming](/aesthc-diagram-lib/versions/0.3.0/docs/guides/theming/)
 for required host variables. For richer localized examples use the public examples entrypoint.
 
 ```json

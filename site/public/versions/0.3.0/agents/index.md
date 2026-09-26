@@ -16,19 +16,19 @@ read the repository's root AGENTS.md. No plugin, skill, CLI or MCP server is nee
 3. Install `@aesthc/diagram-lib@0.3.0` using the existing package manager. The
    version is published on npm; never silently replace npm installation with
    copied sources.
-4. Follow [Getting started](/versions/0.3.0/docs/getting-started/). Use a direct typed spec and
+4. Follow [Getting started](/aesthc-diagram-lib/versions/0.3.0/docs/getting-started/). Use a direct typed spec and
    `layoutDiagram`; registry/localization are optional, not boilerplate requirements.
 5. Choose band for staged pipelines, flowchart for directed workflows, sequence for
    messages over time, state-machine for transitions, ER for entities/fields,
    timeline for ordered milestones, or swimlane for responsibility handoffs.
-6. Include the stylesheet once and the host variables in [Theming](/versions/0.3.0/docs/guides/theming/).
+6. Include the stylesheet once and the host variables in [Theming](/aesthc-diagram-lib/versions/0.3.0/docs/guides/theming/).
    Tailwind is not required by the consumer. Do not import `src`, internal chunks,
    unexported entries or undocumented future APIs.
 7. For external JSON, call `validateDiagramSpec` from the validation subpath before
    layout. Schemas validate structure; the runtime helper also checks references.
 8. Keep interaction state in the client component. Use `useId` for each canvas;
    use explicit relation IDs for editable/parallel connections. Next App Router
-   needs a client boundary for hooks and callbacks; see [React](/versions/0.3.0/docs/guides/react/).
+   needs a client boundary for hooks and callbacks; see [React](/aesthc-diagram-lib/versions/0.3.0/docs/guides/react/).
 9. Compile against the actual installed package, render in the host, inspect both
    themes, test focus/Enter/Escape and verify multiple instances do not collide.
 10. Report changed files, installed version, commands run, results and limitations.
@@ -40,7 +40,7 @@ read the repository's root AGENTS.md. No plugin, skill, CLI or MCP server is nee
 Root: data types, theme, common geometry and registry. `/layouts`: dispatcher and
 layout functions. `/canvas`: renderer. `/validation`: structural + semantic checks.
 `/examples`: curated data and architecture examples. `/icons`: local brand artwork. `/showcase`: showcase and `DEFAULT_SHOWCASE_ENTRIES`.
-`/styles.css`: compiled stylesheet. Consult the [API](/versions/0.3.0/docs/api/) before importing.
+`/styles.css`: compiled stylesheet. Consult the [API](/aesthc-diagram-lib/versions/0.3.0/docs/api/) before importing.
 
 ## Context and security
 

@@ -76,7 +76,7 @@ export function PackageMark() {
 `BrandIconName` is the supported name union; icons are local, not a remote loader.
 For diagram nodes, use explicit `nodeVisuals` with `source: 'thesvg'`; names and
 provenance live in [the icon contribution recipe](https://github.com/alanslzrr/aesthc-diagram-lib/blob/v0.3.0/CONTRIBUTING.md).
-See [Theming](/versions/0.3.0/docs/guides/theming/) for architecture examples and compatibility constants.
+See [Theming](/aesthc-diagram-lib/versions/0.3.0/docs/guides/theming/) for architecture examples and compatibility constants.
 
 <!-- generated-export-inventory -->
 ## Complete public symbol inventory

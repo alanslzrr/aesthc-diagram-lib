@@ -62,7 +62,7 @@ documents are deliberately not accepted by the legacy layout dispatcher.
 `createDocument` materializes relation IDs once. Persist the resulting document
 instead of regenerating anonymous IDs after reordering. No registry is required.
 
-Use the [editor guide](/versions/0.3.0/docs/guides/editor/) for composition, validation, export fonts,
+Use the [editor guide](/aesthc-diagram-lib/versions/0.3.0/docs/guides/editor/) for composition, validation, export fonts,
 local persistence and known incomplete milestones. Studio has its own HTML entry
 and does not reinterpret existing playground `s=` links or overwrite its drafts.
 

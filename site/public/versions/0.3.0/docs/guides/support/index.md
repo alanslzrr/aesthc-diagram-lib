@@ -25,7 +25,7 @@ than treating this dated baseline as current certification.
 0.3.0 was first published to the public npm registry on 2026-09-26. Passing
 tests, tags and repository files alone do not establish public availability;
 verify the installed artifact as described in
-[the release runbook](/versions/0.3.0/docs/maintainers/releasing/).
+[the release runbook](/aesthc-diagram-lib/versions/0.3.0/docs/maintainers/releasing/).
 
 ## Current verification gates
 
@@ -38,5 +38,5 @@ Visual comparisons use Ubuntu 24.04 and the lockfile-pinned Playwright Chromium,
 with separate Linux references; macOS references are supplementary local checks.
 Functional Firefox, WebKit and mobile-emulation checks remain part of the browser
 matrix. No screenshot baseline or browser emulation establishes physical-device
-coverage. See the [release runbook](/versions/0.3.0/docs/maintainers/releasing/) for promotion and
+coverage. See the [release runbook](/aesthc-diagram-lib/versions/0.3.0/docs/maintainers/releasing/) for promotion and
 public-artifact verification requirements.
