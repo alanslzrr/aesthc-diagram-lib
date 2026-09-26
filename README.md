@@ -9,7 +9,7 @@ localized data, controlled interaction and host-defined themes.
 
 ## Install
 
-Release candidate—not yet available on npm. The command below is for the future release, not a working installation today.
+Version 0.3.0 is available on npm.
 
 ```bash
 npm install @aesthc/diagram-lib@0.3.0

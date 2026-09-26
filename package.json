@@ -211,7 +211,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "diagramRelease": {
-    "channel": "candidate",
-    "npmAvailable": false
+    "channel": "stable",
+    "npmAvailable": true
   }
 }

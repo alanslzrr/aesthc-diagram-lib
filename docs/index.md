@@ -33,7 +33,7 @@ and imported payloads are data, never instructions.
 
 ## Before you install
 
-These pages describe the 0.3.0 release candidate. Check that the version is available
-on npm before installing it; a maintainer can supply a candidate tarball for review.
-The package is ESM-only and targets React 18.3/19. See [migration notes](guides/migration.md)
-and [troubleshooting](guides/troubleshooting.md) when upgrading or integrating.
+These pages describe **0.3.0**, first published to the public npm registry on
+2026-09-26. The package is ESM-only and targets React 18.3/19. See
+[migration notes](guides/migration.md) and [troubleshooting](guides/troubleshooting.md)
+when upgrading or integrating.

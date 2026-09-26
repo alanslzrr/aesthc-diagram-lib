@@ -8,13 +8,14 @@ paquetes ni creado releases: la publicación requiere autorización específica.
 ## Cierre de aceptación (2026-09-26)
 
 Commit de referencia: `1d1156f211d049349961bb4962112f7e4b57bd09`
-(merge de la PR #26 en `main`).
+(merge de la PR #26 en `main`). La publicación se hizo desde el tag `v0.3.0`
+sobre `f8cf41a75e71c289047627a4101645bee44383e0`.
 
 | Nivel | Estado | Evidencia |
 |---|---|---|
 | Implementación | Completa según el catálogo: **112 implementados / 0 parciales / 0 sin localizar** | `node docs/specs/editable-canvas/verify-spec.mjs` |
 | Aceptación automatizada | Completa y certificada en CI sobre el commit mergeado | [CI push 36234713367](https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/36234713367), 3 jobs verdes |
-| Publicación | **No disponible**: candidato `0.3.0`, `npmAvailable: false` | Verificación anónima `npm view` devuelve 404; ver más abajo |
+| Publicación | **Publicada**: `0.3.0` en npm desde 2026-09-26 | Tag `v0.3.0` (`f8cf41a…`); integridad `sha512-evuODzaj…`; verificación anónima con `scripts/verify-public-release.mjs` |
 
 ### Evidencia de CI del commit mergeado
 
@@ -66,10 +67,12 @@ complementaria; la certificación de motores es la matriz fijada de CI.
   WebKit 2359/móvil presentó fallos locales en pruebas de descarga/fuentes
   ajenas a este cambio; la certificación de Firefox/WebKit es la del CI de
   Ubuntu.
-- **Publicación:** el manifiesto mantiene `diagramRelease.channel: candidate` y
-  `npmAvailable: false`; no se crean tags, releases ni publicaciones sin
-  autorización específica. Los pasos autorizados están en
-  [releasing.md](../../../maintainers/releasing.md).
+- **Publicación:** `0.3.0` se publicó en npm el 2026-09-26 desde el tag `v0.3.0`
+  sobre `f8cf41a…`, usando el artefacto verificado del tag
+  (`sha512-evuODzaj…`). El primer publish fue autenticado por el mantenedor
+  porque npm no permite OIDC para un paquete inexistente; el trusted publisher
+  queda configurado para las siguientes versiones, que publicarán por CI. El
+  canal de documentación pasa a `stable` en el PR de seguimiento.
 
 ## Estado consolidado (2026-09-25)
 
