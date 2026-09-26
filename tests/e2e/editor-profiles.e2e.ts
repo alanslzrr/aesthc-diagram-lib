@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 function profileFixture() {
   return JSON.stringify({
@@ -102,6 +103,13 @@ test('T51.2 an invalid deployment profile is not auto-disabled and its diagnosti
   await expect(alert).toContainText('profile.owner-missing')
   await expect(toggle).toBeChecked()
   expect(downloads).toEqual([])
+  // The blocked profile state has no serious automated accessibility violations.
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(
+    accessibility.violations.filter(
+      (issue) => issue.impact === 'serious' || issue.impact === 'critical',
+    ),
+  ).toEqual([])
   // Disabled (opt-out): the same document publishes without profile rules.
   await toggle.uncheck()
   const downloadPromise = page.waitForEvent('download')

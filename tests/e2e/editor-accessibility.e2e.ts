@@ -1,4 +1,12 @@
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+async function expectNoSeriousAXEViolations(page: import('@playwright/test').Page) {
+  const result = await new AxeBuilder({ page }).analyze()
+  expect(
+    result.violations.filter((issue) => issue.impact === 'serious' || issue.impact === 'critical'),
+  ).toEqual([])
+}
 
 test('T44.1 the full editing workflow runs with the keyboard alone', async ({ page }) => {
   await page.goto('/studio.html')
@@ -97,4 +105,31 @@ test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({
   const surfaceBox = await surface.boundingBox()
   expect(surfaceBox).toBeTruthy()
   if (surfaceBox) expect(surfaceBox.width).toBeGreaterThan(200)
+})
+
+test('T44.3 viewer, lenses, collapse, story and M3 controls have no serious axe violations', async ({
+  page,
+}) => {
+  await page.goto('/viewer.html')
+  await expect(page.getByRole('heading', { name: 'Semantic viewer' })).toBeVisible()
+  await expectNoSeriousAXEViolations(page)
+  await page.getByLabel('Collapse group').selectOption('platform')
+  await page.getByLabel('Role lens').selectOption('backend')
+  const origin = page.getByRole('combobox', { name: 'Origin node' })
+  await origin.fill('api')
+  await expect(page.getByRole('listbox', { name: 'Origin node' })).toBeVisible()
+  await expectNoSeriousAXEViolations(page)
+  await page.keyboard.press('Enter')
+  const destination = page.getByRole('combobox', { name: 'Destination node' })
+  await destination.fill('database')
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Show route', exact: true }).click()
+  await expect(page.getByText('Route', { exact: false }).first()).toBeVisible()
+  await page
+    .getByRole('group', { name: 'Story' })
+    .getByRole('button', { name: 'Next', exact: true })
+    .click()
+  await page.getByLabel('Deployment profile').check()
+  await expect(page.locator('.adl-viewer-evidence')).toBeVisible()
+  await expectNoSeriousAXEViolations(page)
 })

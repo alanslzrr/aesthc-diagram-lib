@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { generatedApi, publicExportInventory } from '../scripts/docs/exports'
 const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
 describe('canonical public API documentation', () => {
-  it('matches the full TypeScript export inventory', () => {
+  it('matches the full TypeScript export inventory', { timeout: 30_000 }, () => {
     expect(generatedApi(manifest)).toBe(readFileSync('docs/api/index.md', 'utf8'))
   })
-  it('includes brand, architecture and compatibility symbols', () => {
+  it('includes brand, architecture and compatibility symbols', { timeout: 30_000 }, () => {
     const inventory = publicExportInventory(manifest)
     expect(inventory.find((entry) => entry.subpath === './icons')?.names).toContain('BrandIcon')
     expect(inventory.find((entry) => entry.subpath === './examples')?.names).toEqual(

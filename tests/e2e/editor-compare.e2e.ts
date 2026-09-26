@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 function fixture(overrides: {
   revision: number
@@ -141,6 +142,13 @@ test('T49.2 before/delta/after navigation keeps exact IDs and exports a receipt'
   await comparison.getByLabel('Before', { exact: true }).check()
   await expect(comparison.locator('.adl-viewer-comparison-stage svg')).toBeVisible()
   await comparison.getByLabel('After', { exact: true }).check()
+  // The comparison surface has no serious automated accessibility violations.
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(
+    accessibility.violations.filter(
+      (issue) => issue.impact === 'serious' || issue.impact === 'critical',
+    ),
+  ).toEqual([])
   // Export: real download with exact IDs and no merge-safety claim.
   const downloadPromise = page.waitForEvent('download')
   await comparison.getByRole('button', { name: 'Export comparison JSON' }).click()

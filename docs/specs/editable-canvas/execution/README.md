@@ -1,11 +1,73 @@
 # Ejecución del canvas editable
 
-Fecha: 2026-09-25. Rama `alanslzrr/editable-canvas-foundation` **mergeada** en `main` (PR #24, `0170013`); el árbol de trabajo está limpio. Este informe es un registro cronológico; la sección [Estado consolidado](#estado-consolidado-2026-09-25) describe la situación actual y las secciones posteriores conservan el histórico.
+Fecha: 2026-09-26. Este informe es un registro cronológico. La sección
+[Cierre de aceptación](#cierre-de-aceptación-2026-09-26) describe el estado
+actual; las secciones posteriores conservan el histórico. No se han publicado
+paquetes ni creado releases: la publicación requiere autorización específica.
 
-**Estado: integración funcional parcial; el spec completo NO está terminado.**
-No se han publicado paquetes, creado releases ni hecho commits fuera de la PR en esta ejecución.
-El catálogo de 25 tareas continúa siendo el alcance objetivo. Tener una API o un
-test semilla verde no cierra todos los escenarios de una tarea.
+## Cierre de aceptación (2026-09-26)
+
+Commit de referencia: `1d1156f211d049349961bb4962112f7e4b57bd09`
+(merge de la PR #26 en `main`).
+
+| Nivel | Estado | Evidencia |
+|---|---|---|
+| Implementación | Completa según el catálogo: **112 implementados / 0 parciales / 0 sin localizar** | `node docs/specs/editable-canvas/verify-spec.mjs` |
+| Aceptación automatizada | Completa y certificada en CI sobre el commit mergeado | [CI push 36234713367](https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/36234713367), 3 jobs verdes |
+| Aceptación humana (accesibilidad) | **Pendiente de persona**; combinación NVDA/Firefox documentada como no ejecutada | [a11y-checklist.md](a11y-checklist.md) §7 |
+| Publicación | **No disponible**: candidato `0.3.0`, `npmAvailable: false` | Verificación anónima `npm view` devuelve 404; ver más abajo |
+
+### Evidencia de CI del commit mergeado
+
+Todos los jobs de la ejecución de push a `main` terminaron en `success`:
+
+- **Contracts and package**: `pnpm check` + matriz fijada
+  Chromium/Firefox/WebKit/móvil + frameworks (Vite/Next) + comparación visual.
+- **Node 20.19 / React 18.3.1 consumer**: consumidor del tarball con el mínimo
+  declarado.
+- **Reference frame budget**: frame p95 del drag sostenido de 10 s dentro de
+  33.3 ms, cero long tasks >100 ms, raster fijo 2048² y 50 ciclos
+  mount/edit/export/dispose con heap post-GC ≤10 MiB y blob URLs 0→0.
+
+### Evidencia de despliegue
+
+- Run de Pages: [36235599979](https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/36235599979),
+  mismo SHA `1d1156f`.
+- `https://alanslzrr.github.io/aesthc-diagram-lib/deployment.json` publica
+  `{"version":"0.3.0","channel":"candidate","sha":"1d1156f211d049349961bb4962112f7e4b57bd09"}`.
+- Respuesta 200 comprobada en `docs/getting-started/`, `agents/index.md`,
+  `studio.html` y `viewer.html`.
+
+### Aceptación de accesibilidad (automatizado ejecutado, humano pendiente)
+
+La sesión humana con lector de pantalla sigue **pendiente de persona** y no se
+reclama. En esta fecha se ampliaron los gates axe a las superficies M2/M3
+(viewer, lentes, colapso, story, comparación, perfil de despliegue y HTML
+offline), se ejecutó la suite local `chromium + mobile-chromium` con Chrome del
+sistema (**253 passed / 21 skipped / 0 failed**) y se corrigieron cuatro
+hallazgos reales antes de la sesión humana: contraste del cobalto claro en el
+chrome del viewer, opciones anidadas en el listbox de `Comparison`, estructura
+ARIA del `Finder` y región desplazable no enfocable en el preview de
+comparación. Detalle, límites y registro de sesión en
+[a11y-checklist.md](a11y-checklist.md). Chrome local es evidencia
+complementaria; la certificación de motores es la matriz fijada de CI.
+
+### Limitaciones de plataforma que permanecen explícitas
+
+- **IME:** la cobertura nativa (`imeSetComposition`/`insertText`) solo existe
+  por CDP en Chromium; Firefox/WebKit ejercitan eventos de composición DOM
+  simulados, no un IME de sistema operativo.
+- **WebM:** capability-gated; sin códec disponible el control queda
+  deshabilitado y se anuncia el motivo, y la grabación real solo se reclama
+  donde el entorno la soporta.
+- **Clipboard:** depende de permisos y soporte del navegador; la denegación
+  nunca se anuncia como éxito y ofrece descarga como alternativa.
+- **Revisión humana con lector de pantalla:** no ejecutada; combinación
+  NVDA/Firefox tampoco disponible en este equipo.
+- **Publicación:** el manifiesto mantiene `diagramRelease.channel: candidate` y
+  `npmAvailable: false`; no se crean tags, releases ni publicaciones sin
+  autorización específica. Los pasos autorizados están en
+  [releasing.md](../../../maintainers/releasing.md).
 
 ## Estado consolidado (2026-09-25)
 
