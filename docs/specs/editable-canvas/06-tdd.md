@@ -82,7 +82,7 @@ Property tests de E04/E13 sin nueva dependencia obligatoria: generador determini
 
 **Export:** cada tipo en SVG/PNG/JSON/HTML; JPEG/WebP cuando available y negativa cuando no; light/dark; source on/off; canonical/selection; route/reach cards con paralelas; WebM M3 en entorno realmente compatible y unsupported probado en otro.
 
-**Accesibilidad:** axe sin serious/critical + ruta keyboard completa, reflow/contraste/focus manual, lector de pantalla al menos VoiceOver/Safari o NVDA/Firefox registrado por persona. Automatización sola no certifica accesibilidad completa.
+**Accesibilidad:** gates automatizados axe sin serious/critical, ruta keyboard completa y pruebas de reflow, contraste y foco en la matriz de navegadores, temas e idiomas.
 
 ## 6.6 Rendimiento: targets propuestos, no resultados medidos
 

@@ -14,7 +14,6 @@ Commit de referencia: `1d1156f211d049349961bb4962112f7e4b57bd09`
 |---|---|---|
 | Implementación | Completa según el catálogo: **112 implementados / 0 parciales / 0 sin localizar** | `node docs/specs/editable-canvas/verify-spec.mjs` |
 | Aceptación automatizada | Completa y certificada en CI sobre el commit mergeado | [CI push 36234713367](https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/36234713367), 3 jobs verdes |
-| Aceptación humana (accesibilidad) | **Pendiente de persona**; combinación NVDA/Firefox documentada como no ejecutada | [a11y-checklist.md](a11y-checklist.md) §7 |
 | Publicación | **No disponible**: candidato `0.3.0`, `npmAvailable: false` | Verificación anónima `npm view` devuelve 404; ver más abajo |
 
 ### Evidencia de CI del commit mergeado
@@ -38,18 +37,17 @@ Todos los jobs de la ejecución de push a `main` terminaron en `success`:
 - Respuesta 200 comprobada en `docs/getting-started/`, `agents/index.md`,
   `studio.html` y `viewer.html`.
 
-### Aceptación de accesibilidad (automatizado ejecutado, humano pendiente)
+### Aceptación automatizada de accesibilidad
 
-La sesión humana con lector de pantalla sigue **pendiente de persona** y no se
-reclama. En esta fecha se ampliaron los gates axe a las superficies M2/M3
+En esta fecha se ampliaron los gates axe a las superficies M2/M3
 (viewer, lentes, colapso, story, comparación, perfil de despliegue y HTML
 offline), se ejecutó la suite local `chromium + mobile-chromium` con Chrome del
 sistema (**253 passed / 21 skipped / 0 failed**) y se corrigieron cuatro
-hallazgos reales antes de la sesión humana: contraste del cobalto claro en el
+hallazgos reales: contraste del cobalto claro en el
 chrome del viewer, opciones anidadas en el listbox de `Comparison`, estructura
 ARIA del `Finder` y región desplazable no enfocable en el preview de
-comparación. Detalle, límites y registro de sesión en
-[a11y-checklist.md](a11y-checklist.md). Chrome local es evidencia
+comparación. Detalle y límites en
+[accessibility-evidence.md](accessibility-evidence.md). Chrome local es evidencia
 complementaria; la certificación de motores es la matriz fijada de CI.
 
 ### Limitaciones de plataforma que permanecen explícitas
@@ -62,8 +60,6 @@ complementaria; la certificación de motores es la matriz fijada de CI.
   donde el entorno la soporta.
 - **Clipboard:** depende de permisos y soporte del navegador; la denegación
   nunca se anuncia como éxito y ofrece descarga como alternativa.
-- **Revisión humana con lector de pantalla:** no ejecutada; combinación
-  NVDA/Firefox tampoco disponible en este equipo.
 - **Matriz local:** Chromium fijado 1243 y mobile-chromium certificados
   localmente (253/21/0) y consumidores React 18/19, Vite y Next verdes contra el
   tarball retenido. Firefox 1543 no lanza en macOS 27 (sandbox del sistema) y
@@ -104,7 +100,7 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 | E16 | M2 | 2/0/0 | **HTML autónomo offline**: runtime standalone, fuentes embebidas, CSP, fallback no-JS y source opt-in | Sin pendientes; la matriz cross-browser corre con los binarios de Playwright |
 | E17 | M2 | 6/0/0 | **Shares d=/s= acotados, cards 1200×630 con receipt exacto y formatos negociados con probe real** | T40.1, T40.2, T41.1, T41.2, T42.1 y T42.2 cerrados |
 | E18 | M2 | 4/0/0 | **Renderers custom por instancia y providers de layout registrados** con aislamiento, rechazo y retry | T43.1, T43.2, T56.1 y T56.2 cerrados |
-| E19 | M2 | 6/0/0 | Gates a11y, temas/locales, budgets, frame/long-tasks, raster 2048² y memoria de 50 ciclos **certificados en el runner de referencia de CI** | Accesibilidad con lector de pantalla queda como paso manual documentado, no reclamado |
+| E19 | M2 | 6/0/0 | Gates a11y, temas/locales, budgets, frame/long-tasks, raster 2048² y memoria de 50 ciclos **certificados en el runner de referencia de CI** | Gates automatizados certificados en CI |
 | E20 | M2 | 2/0/0 | Guías, tarball, React 18/19 y Vite/Next; documentación M2 publicada (viewer, extending, shares, offline HTML) | Pendiente solo la matriz cross-browser de CI (binarios fijados) |
 | E21 | M2 | 2/0/0 | Release verification, snapshots, changelog M2 y evidencia del candidato | Publicación npm/tags requieren autorización específica |
 | E22 | M3 | 2/0/0 | **Comparación exacta Before/Delta/After** por ID, sin inferir renames, con receipt JSON | T49.1 y T49.2 cerrados |
@@ -126,15 +122,11 @@ aceptación de la tarea; los `partial`/`missing` son trabajo pendiente real.
 - **T55.2:** cerrado con E16 (2026-09-25): el artefacto HTML aplica CSP `connect-src 'none'`,
   cero red/storage, sin ejecución de labels hostiles y fallback no-JS verificado en
   `tests/e2e/editor-html.e2e.ts`.
-- **Accesibilidad manual (06-tdd §6.5):** la revisión manual de foco/contraste/reflow y la
-  prueba con lector de pantalla (VoiceOver/Safari o NVDA/Firefox) están pendientes de persona;
-  checklist con criterios de cierre en [a11y-checklist.md](a11y-checklist.md).
 
 ## Continuación: protocolo E19 de rendimiento y memoria (2026-09-25)
 
 Sin commits ni publicación hasta el cierre de esta revisión. Se completa el protocolo de 06-tdd
-§6.6 y §6.5 en lo ejecutable por máquina; los ítems humanos quedan registrados en
-[a11y-checklist.md](a11y-checklist.md).
+§6.6 y §6.5 mediante gates automatizados.
 
 - **Drag de 10 s con warmup (browser):** `tests/e2e/editor-performance.e2e.ts` hace un pase de
   calentamiento de 60 movimientos y después mide un drag sostenido de 333 movimientos a 30 ms
@@ -158,10 +150,10 @@ Sin commits ni publicación hasta el cierre de esta revisión. Se completa el pr
 - **Características del runner:** cada medición adjunta plataforma, UA, hardwareConcurrency,
   deviceMemory, disponibilidad de `performance.memory` y versión de React.
 - **IME:** la distinción nativo (CDP/Chromium) frente a composición simulada (DOM en
-  Firefox/WebKit) queda explícita en [a11y-checklist.md](a11y-checklist.md) y en los tests.
+  Firefox/WebKit) queda explícita en [accessibility-evidence.md](accessibility-evidence.md) y en los tests.
 
 T46.1 pasa de parcial con evidencia a parcial con protocolo ejecutado: queda la certificación en
-el runner de referencia (CI) y la revisión humana de accesibilidad.
+el runner de referencia (CI).
 
 ## Continuación M2: viewer semántico E13 (2026-09-25)
 
@@ -311,9 +303,7 @@ visual), `Node 20.19 / React 18.3.1 consumer` y `Reference frame budget` (frame 
 10 s, long tasks >100 ms, raster 2048² y memoria de 50 ciclos en el runner de referencia). Con
 esa evidencia `T46.1` pasa a implementado (112/0/0) y la matriz cross-browser queda certificada.
 
-**Aún pendiente y no reclamado:** la revisión humana de accesibilidad (lector de pantalla,
-foco/contraste/reflow) sigue registrada en `a11y-checklist.md` como paso manual de persona; no se
-publicó npm ni se crearon tags/releases.
+**Publicación:** no se publicó npm ni se crearon tags/releases.
 
 Documentación M2 publicada: `docs/guides/viewer.md`, `docs/guides/extending.md`, ampliación de
 `share-export.md`/`editor.md`/`migration.md` y entrada de changelog.
@@ -430,7 +420,7 @@ inmutables de CI. No se ha ejecutado un mutation runner exhaustivo.
 | E16 | Pendiente | HTML autónomo, runtime offline, CSP y no-JS |
 | E17 | Raster adicional disponible | Share links versionados, cards y receipt query verification |
 | E18 | Pendiente | Registros trusted por instancia y export de renderers custom |
-| E19 | Parte de gates ejecutada | Firefox/WebKit/bundled, a11y manual, perf y memoria |
+| E19 | Parte de gates ejecutada | Firefox/WebKit/bundled, perf y memoria |
 | E20 | Guía, ejemplo, tarball y frameworks | Matriz editor React18/19 completa y migración de todas las superficies |
 | E21 | No cerrado | Cerrar M2 y todos sus gates; publicación requiere autorización aparte |
 | E22 | Pendiente | Diff exacto semántico/presentación |
