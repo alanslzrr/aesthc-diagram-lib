@@ -75,7 +75,7 @@ jobs:
           NODE
       - name: Publish the verified artifact with OIDC
         if: steps.registry.outputs.exists != 'true'
-        run: npm publish package/*.tgz --ignore-scripts --access public --provenance
+        run: npm publish ./package/*.tgz --ignore-scripts --access public --provenance
   verify-public:
     needs: publish
     runs-on: ubuntu-24.04
