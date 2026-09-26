@@ -1365,7 +1365,7 @@ Cada R tiene tarea, criterio verificable y dos casos Given/When/Then. `file` es 
 
 **Cobertura:** [implemented] `tests/e2e/editor-performance.e2e.ts`
 
-**Evidencia:** Certificado en CI sobre el runner de referencia (run 36193178009, job Reference frame budget): frame p95 del drag sostenido de 10 s dentro de 33.3 ms y 0 long tasks >100 ms; raster fijo 2048x2048 y 50 ciclos mount/edit/export/dispose con heap post-GC dentro de 10 MiB y blob URLs 0->0; datasets sin cambios y características del runner adjuntas en test-results/e19/metrics.json. La matriz de navegadores fijados (Chromium/Firefox/WebKit/móvil) también quedó verde en el job Contracts and package. La revisión humana con lector de pantalla sigue como paso manual documentado en execution/a11y-checklist.md y no se reclama aquí.
+**Evidencia:** Certificado en CI sobre el runner de referencia (run 36193178009, job Reference frame budget): frame p95 del drag sostenido de 10 s dentro de 33.3 ms y 0 long tasks >100 ms; raster fijo 2048x2048 y 50 ciclos mount/edit/export/dispose con heap post-GC dentro de 10 MiB y blob URLs 0->0; datasets sin cambios y características del runner adjuntas en test-results/e19/metrics.json. La matriz de navegadores fijados (Chromium/Firefox/WebKit/móvil) también quedó verde en el job Contracts and package.
 
 - **Given:** dataset seed fijada 100/200 y1000/2000.
 - **When:** medir load, frame drag, selection y route en Chromium.

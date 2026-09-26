@@ -129,6 +129,7 @@ per-instance renderer/provider registries are implemented and documented in the
 Document compare, evidence verification, deployment profiles and finite WebM
 motion export are implemented and covered by unit and browser tests. Cross-browser
 certification runs in CI with the pinned browsers; a local Chrome is complementary
-evidence, not a replacement. Human screen-reader review remains a documented
-manual step, and the reference-runner performance protocol (long tasks, memory)
-is certified in CI.
+evidence, not a replacement. Accessibility acceptance relies on the automated axe,
+keyboard, reflow and browser-matrix gates; it does not include a person-recorded
+screen-reader review. The reference-runner performance protocol (long tasks,
+memory) is certified in CI.

@@ -1838,7 +1838,7 @@
           "then": "satisface p95 y reporte ambiente de 06-tdd; no cambiar dataset para pasar",
           "coverage": "implemented",
           "implementedIn": "tests/e2e/editor-performance.e2e.ts",
-          "result": "Certificado en CI sobre el runner de referencia (run 36193178009, job Reference frame budget): frame p95 del drag sostenido de 10 s dentro de 33.3 ms y 0 long tasks >100 ms; raster fijo 2048x2048 y 50 ciclos mount/edit/export/dispose con heap post-GC dentro de 10 MiB y blob URLs 0->0; datasets sin cambios y características del runner adjuntas en test-results/e19/metrics.json. La matriz de navegadores fijados (Chromium/Firefox/WebKit/móvil) también quedó verde en el job Contracts and package. La revisión humana con lector de pantalla sigue como paso manual documentado en execution/a11y-checklist.md y no se reclama aquí"
+          "result": "Certificado en CI sobre el runner de referencia (run 36193178009, job Reference frame budget): frame p95 del drag sostenido de 10 s dentro de 33.3 ms y 0 long tasks >100 ms; raster fijo 2048x2048 y 50 ciclos mount/edit/export/dispose con heap post-GC dentro de 10 MiB y blob URLs 0->0; datasets sin cambios y características del runner adjuntas en test-results/e19/metrics.json. La matriz de navegadores fijados (Chromium/Firefox/WebKit/móvil) también quedó verde en el job Contracts and package"
         },
         {
           "id": "T46.2",
