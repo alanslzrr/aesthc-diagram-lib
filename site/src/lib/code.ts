@@ -92,32 +92,163 @@ export interface ThemeTokens {
   branch: string
 }
 
+export type ThemeMode = 'light' | 'dark'
+
+/** Per-mode values shared by every surface: the live host stylesheet
+ * (site/src/theme-tokens.css), the Theme Studio copy action and the documented
+ * snippet in docs/guides/theming.md. Node/structure outlines stay strong and
+ * secondary surfaces stay opaque in both modes; `transparent` is never a
+ * secondary fill. Edge colors use the accent tokens, readable text uses the
+ * ink tokens. */
+export interface ThemeContract {
+  muted: string
+  borderSubtle: string
+  borderStrong: string
+  nodeBorder: string
+  structure: string
+  nodeFill: string
+  secondaryFill: string
+  containerFill: string
+  gridOpacity: string
+  mainTailOpacity: string
+  branchTailOpacity: string
+  cobaltInk: string
+  branchInk: string
+  ring: string
+  code: string
+}
+
+export const THEME_CONTRACT: Record<ThemeMode, ThemeContract> = {
+  light: {
+    muted: '#f2f2f2',
+    borderSubtle: 'color-mix(in srgb, var(--border) 42%, transparent)',
+    borderStrong: 'color-mix(in srgb, var(--border) 88%, var(--foreground) 8%)',
+    nodeBorder: 'color-mix(in srgb, var(--foreground) 42%, var(--border))',
+    structure: 'color-mix(in srgb, var(--foreground) 42%, var(--border))',
+    nodeFill: 'var(--card)',
+    secondaryFill: 'color-mix(in srgb, var(--card) 55%, var(--background))',
+    containerFill: 'color-mix(in srgb, var(--foreground) 2%, var(--background))',
+    gridOpacity: '0.18',
+    mainTailOpacity: '0.62',
+    branchTailOpacity: '0.48',
+    cobaltInk: '#0060df',
+    branchInk: '#8a6425',
+    ring: '#0070f3',
+    code: '#dde5ee',
+  },
+  dark: {
+    muted: '#141414',
+    borderSubtle: 'color-mix(in srgb, var(--border) 62%, transparent)',
+    borderStrong: 'color-mix(in srgb, var(--border) 80%, var(--foreground) 10%)',
+    nodeBorder: 'color-mix(in srgb, var(--foreground) 34%, var(--border))',
+    structure: 'color-mix(in srgb, var(--foreground) 34%, var(--border))',
+    nodeFill: 'color-mix(in srgb, var(--foreground) 4%, var(--background))',
+    secondaryFill: 'color-mix(in srgb, var(--foreground) 6%, var(--background))',
+    containerFill: 'color-mix(in srgb, var(--foreground) 4%, var(--background))',
+    gridOpacity: '0.12',
+    mainTailOpacity: '0.24',
+    branchTailOpacity: '0.12',
+    cobaltInk: '#3291ff',
+    branchInk: 'var(--branch)',
+    ring: '#3291ff',
+    code: '#121212',
+  },
+}
+
 export const isHexColor = (value: string): boolean =>
   /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)
 
-export function themeCss(light: ThemeTokens, dark: ThemeTokens, scope = ':root'): string {
-  // The node-border formula is per-theme by design: light themes mix extra
-  // foreground into the outline for contrast, dark themes use the border.
+interface ThemeSource {
+  background: string
+  foreground: string
+  card: string
+  mutedForeground: string
+  border: string
+  cobalt: string
+  branch: string
+}
+
+const hostSource = (): ThemeSource => ({
+  background: 'var(--palette-background)',
+  foreground: 'var(--palette-foreground)',
+  card: 'var(--palette-card)',
+  mutedForeground: 'var(--palette-muted-foreground)',
+  border: 'var(--palette-border)',
+  cobalt: 'var(--palette-cobalt)',
+  branch: 'var(--palette-branch)',
+})
+
+const tokenSource = (tokens: ThemeTokens): ThemeSource => {
   const color = (value: string): string => {
     if (!isHexColor(value)) throw new Error('Expected a complete hexadecimal color')
     return value
   }
-  const block = (tokens: ThemeTokens, nodeBorder: string, lightMode = false): string =>
-    [
-      `  --background: ${color(tokens.background)};`,
-      `  --foreground: ${color(tokens.foreground)};`,
-      `  --card: ${color(tokens.card)};`,
-      `  --border: ${color(tokens.border)};`,
-      `  --muted-foreground: ${color(tokens.mutedForeground)};`,
-      `  --diagram-node-border: ${nodeBorder};`,
-      `  --diagram-node-fill: ${lightMode ? 'var(--card)' : 'color-mix(in srgb, var(--foreground) 4%, var(--background))'};`,
-      `  --diagram-secondary-fill: ${lightMode ? 'color-mix(in srgb, var(--card) 38%, var(--background))' : 'transparent'};`,
-      `  --diagram-grid-opacity: ${lightMode ? '0.18' : '0.12'};`,
-      `  --diagram-main-tail-opacity: ${lightMode ? '0.62' : '0.24'};`,
-      `  --diagram-branch-tail-opacity: ${lightMode ? '0.48' : '0.12'};`,
-      `  --cobalt: ${color(tokens.cobalt)};`,
-      `  --branch: ${color(tokens.branch)};`,
-    ].join('\n')
+  return {
+    background: color(tokens.background),
+    foreground: color(tokens.foreground),
+    card: color(tokens.card),
+    mutedForeground: color(tokens.mutedForeground),
+    border: color(tokens.border),
+    cobalt: color(tokens.cobalt),
+    branch: color(tokens.branch),
+  }
+}
 
-  return `${scope} {\n${block(light, 'color-mix(in srgb, var(--foreground) 20%, var(--border))', true)}\n}\n\n[data-theme='dark']${scope === ':root' ? '' : ` ${scope}`} {\n${block(dark, 'var(--border)')}\n}\n`
+const declarations = (source: ThemeSource, mode: ThemeMode): string[] => {
+  const contract = THEME_CONTRACT[mode]
+  return [
+    `  color-scheme: ${mode};`,
+    `  --background: ${source.background};`,
+    `  --foreground: ${source.foreground};`,
+    `  --card: ${source.card};`,
+    `  --muted: ${contract.muted};`,
+    `  --muted-foreground: ${source.mutedForeground};`,
+    `  --border: ${source.border};`,
+    `  --border-subtle: ${contract.borderSubtle};`,
+    `  --border-strong: ${contract.borderStrong};`,
+    `  --diagram-node-border: ${contract.nodeBorder};`,
+    `  --diagram-structure: ${contract.structure};`,
+    `  --diagram-node-fill: ${contract.nodeFill};`,
+    `  --diagram-secondary-fill: ${contract.secondaryFill};`,
+    `  --diagram-container-fill: ${contract.containerFill};`,
+    `  --diagram-grid-opacity: ${contract.gridOpacity};`,
+    `  --diagram-main-tail-opacity: ${contract.mainTailOpacity};`,
+    `  --diagram-branch-tail-opacity: ${contract.branchTailOpacity};`,
+    `  --cobalt: ${source.cobalt};`,
+    `  --cobalt-ink: ${contract.cobaltInk};`,
+    `  --branch: ${source.branch};`,
+    `  --branch-ink: ${contract.branchInk};`,
+    `  --ring: ${contract.ring};`,
+  ]
+}
+
+/** The copied/documented theme block: literal palette values plus the shared
+ * contract declarations, scoped so the Theme Studio preview never overrides
+ * the host root. */
+export function themeCss(light: ThemeTokens, dark: ThemeTokens, scope = ':root'): string {
+  const block = (tokens: ThemeTokens, mode: ThemeMode): string =>
+    declarations(tokenSource(tokens), mode).join('\n')
+  return `${scope} {\n${block(light, 'light')}\n}\n\n[data-theme='dark']${scope === ':root' ? '' : ` ${scope}`} {\n${block(dark, 'dark')}\n}\n`
+}
+
+export const THEME_SNIPPET_START = '<!-- theme-snippet:start -->'
+export const THEME_SNIPPET_END = '<!-- theme-snippet:end -->'
+
+/** The documented snippet, marker-delimited so `pnpm docs:generate` can keep
+ * docs/guides/theming.md and the copied CSS byte-identical. */
+export function themeSnippet(light: ThemeTokens, dark: ThemeTokens): string {
+  return `${THEME_SNIPPET_START}\n\`\`\`css\n${themeCss(light, dark)}\`\`\`\n${THEME_SNIPPET_END}`
+}
+
+/** Live host stylesheet (site/src/theme-tokens.css) generated from the same
+ * contract; palette values stay references to site/src/generated/palette.css. */
+export function hostThemeCss(): string {
+  const block = (mode: ThemeMode): string =>
+    declarations(hostSource(), mode)
+      .concat(
+        `  --diagram-font-display: 'Geist', system-ui, sans-serif;`,
+        `  --code: ${THEME_CONTRACT[mode].code};`,
+      )
+      .join('\n')
+  return `/* Generated from site/src/lib/code.ts by pnpm docs:generate. */\n:root {\n${block('light')}\n}\n[data-theme='dark'] {\n${block('dark')}\n}\n`
 }

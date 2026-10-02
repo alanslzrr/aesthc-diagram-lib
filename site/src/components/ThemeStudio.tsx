@@ -117,12 +117,21 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
           className="mx-auto mt-6 w-full max-w-2xl px-5"
         >
           <rect
+            x="0"
+            y="8"
+            width="640"
+            height="124"
+            rx="10"
+            fill="var(--diagram-container-fill)"
+            stroke="var(--diagram-structure)"
+          />
+          <rect
             x="10"
             y="20"
             width="220"
             height="100"
             rx="8"
-            fill="var(--card)"
+            fill="var(--diagram-node-fill)"
             stroke="var(--diagram-node-border)"
           />
           <rect
@@ -131,7 +140,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
             width="220"
             height="100"
             rx="8"
-            fill="var(--card)"
+            fill="var(--diagram-secondary-fill)"
             stroke="var(--diagram-node-border)"
           />
           <path d="M230 70H410" stroke="var(--cobalt)" strokeWidth="2" />

@@ -4,45 +4,68 @@ Import `@aesthc/diagram-lib/styles.css` once. It contains generated canvas utili
 inside `@layer diagram-lib`, without a global reset. Tailwind is a build dependency
 of this repository, not a requirement in your application.
 
+<!-- theme-snippet:start -->
 ```css
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #0a0a0a;
   --card: #fafafa;
-  --border: #eaeaea;
   --muted: #f2f2f2;
   --muted-foreground: #666666;
-  --cobalt: #0070f3;
-  --branch: #a66b21;
-  --diagram-font-display: Geist, system-ui, sans-serif;
-  --diagram-font-sans: Geist, system-ui, sans-serif;
-  --diagram-font-mono: 'Geist Mono', ui-monospace, monospace;
-  --diagram-node-border: color-mix(in srgb, var(--foreground) 20%, var(--border));
+  --border: #eaeaea;
+  --border-subtle: color-mix(in srgb, var(--border) 42%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 88%, var(--foreground) 8%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 42%, var(--border));
   --diagram-node-fill: var(--card);
-  --diagram-secondary-fill: color-mix(in srgb, var(--card) 38%, var(--background));
+  --diagram-secondary-fill: color-mix(in srgb, var(--card) 55%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 2%, var(--background));
   --diagram-grid-opacity: 0.18;
   --diagram-main-tail-opacity: 0.62;
   --diagram-branch-tail-opacity: 0.48;
-  color-scheme: light;
+  --cobalt: #0070f3;
+  --cobalt-ink: #0060df;
+  --branch: #a66b21;
+  --branch-ink: #8a6425;
+  --ring: #0070f3;
 }
+
 [data-theme='dark'] {
+  color-scheme: dark;
   --background: #000000;
   --foreground: #ededed;
   --card: #0a0a0a;
-  --border: #1f1f1f;
   --muted: #141414;
   --muted-foreground: #a1a1a1;
-  --cobalt: #3291ff;
-  --branch: #d6a55e;
-  --diagram-node-border: var(--border);
+  --border: #1f1f1f;
+  --border-subtle: color-mix(in srgb, var(--border) 62%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 80%, var(--foreground) 10%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 34%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 34%, var(--border));
   --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
-  --diagram-secondary-fill: transparent;
+  --diagram-secondary-fill: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
   --diagram-grid-opacity: 0.12;
   --diagram-main-tail-opacity: 0.24;
   --diagram-branch-tail-opacity: 0.12;
-  color-scheme: dark;
+  --cobalt: #3291ff;
+  --cobalt-ink: #3291ff;
+  --branch: #d6a55e;
+  --branch-ink: var(--branch);
+  --ring: #3291ff;
 }
 ```
+<!-- theme-snippet:end -->
+
+This block is the same contract the Theme Studio copies and the live host
+stylesheet uses. It carries the complete surface set: node outline, structure,
+container, node fill and an opaque secondary fill, plus the edge/text ink policy.
+The secondary surface is never `transparent`; light and dark both keep a visible
+outline (`--diagram-node-border`, `--diagram-structure`) so hairlines survive on
+projector and low-contrast displays. Edge strokes use `--cobalt`/`--branch`;
+readable text uses `--cobalt-ink`/`--branch-ink`. If you replace the accents,
+replace the ink tokens with a value that keeps contrast on your background.
 
 Place the theme attribute on the document root when using portalled tooltips.
 A theme only on a nested canvas wrapper does not automatically reach a portal in
@@ -65,12 +88,29 @@ wrap it in a labelled, keyboard-focusable horizontal scroll region.
 
 The example light palette uses white and near-black surfaces with Vercel-blue
 and ochre accents. `--diagram-node-fill` and `--diagram-secondary-fill`
-separate primary and secondary cards without changing geometry.
+separate primary and secondary cards without changing geometry; both stay opaque
+so text never sits on a see-through card. `--diagram-container-fill` separates
+lanes, bands and lifeline containers from the backdrop without a second border.
 `--diagram-grid-opacity`, `--diagram-main-tail-opacity` and
 `--diagram-branch-tail-opacity` keep dots and connection ends visible on light
 backgrounds. These tokens are optional: omitting them preserves the original
 canvas defaults. Define both theme scopes when overriding them, as shown above.
-The playground's Theme Studio and copied CSS use the same per-theme values.
+The playground's Theme Studio and copied CSS use the same per-theme values
+because all four surfaces are generated from one contract.
+
+### Migrating from earlier snippets
+
+Earlier copies of this block (and the Theme Studio output) used a 20% light
+outline, the bare `--border` in dark, and `--diagram-secondary-fill:
+transparent` in dark. The strengthened block above is a drop-in replacement:
+it adds `--diagram-structure`, `--diagram-container-fill`, `--border-subtle`,
+`--border-strong`, `--cobalt-ink`, `--branch-ink`, `--ring` and `color-scheme`.
+If you paste the block over an existing override, remove any older duplicate
+declarations for those tokens; the package defaults apply when a token is
+absent, but a stale duplicate later in your stylesheet wins. The block also no
+longer repeats `--diagram-font-sans`, `--diagram-font-display` and
+`--diagram-font-mono`: the package stylesheet already ships the Geist defaults,
+and font overrides stay yours to keep.
 
 ## Editor view appearance
 

@@ -1,12 +1,11 @@
-/* Generated from site/src/lib/code.ts by pnpm docs:generate. */
 :root {
   color-scheme: light;
-  --background: var(--palette-background);
-  --foreground: var(--palette-foreground);
-  --card: var(--palette-card);
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #fafafa;
   --muted: #f2f2f2;
-  --muted-foreground: var(--palette-muted-foreground);
-  --border: var(--palette-border);
+  --muted-foreground: #666666;
+  --border: #eaeaea;
   --border-subtle: color-mix(in srgb, var(--border) 42%, transparent);
   --border-strong: color-mix(in srgb, var(--border) 88%, var(--foreground) 8%);
   --diagram-node-border: color-mix(in srgb, var(--foreground) 42%, var(--border));
@@ -17,22 +16,21 @@
   --diagram-grid-opacity: 0.18;
   --diagram-main-tail-opacity: 0.62;
   --diagram-branch-tail-opacity: 0.48;
-  --cobalt: var(--palette-cobalt);
+  --cobalt: #0070f3;
   --cobalt-ink: #0060df;
-  --branch: var(--palette-branch);
+  --branch: #a66b21;
   --branch-ink: #8a6425;
   --ring: #0070f3;
-  --diagram-font-display: 'Geist', system-ui, sans-serif;
-  --code: #dde5ee;
 }
+
 [data-theme='dark'] {
   color-scheme: dark;
-  --background: var(--palette-background);
-  --foreground: var(--palette-foreground);
-  --card: var(--palette-card);
+  --background: #000000;
+  --foreground: #ededed;
+  --card: #0a0a0a;
   --muted: #141414;
-  --muted-foreground: var(--palette-muted-foreground);
-  --border: var(--palette-border);
+  --muted-foreground: #a1a1a1;
+  --border: #1f1f1f;
   --border-subtle: color-mix(in srgb, var(--border) 62%, transparent);
   --border-strong: color-mix(in srgb, var(--border) 80%, var(--foreground) 10%);
   --diagram-node-border: color-mix(in srgb, var(--foreground) 34%, var(--border));
@@ -43,11 +41,9 @@
   --diagram-grid-opacity: 0.12;
   --diagram-main-tail-opacity: 0.24;
   --diagram-branch-tail-opacity: 0.12;
-  --cobalt: var(--palette-cobalt);
+  --cobalt: #3291ff;
   --cobalt-ink: #3291ff;
-  --branch: var(--palette-branch);
+  --branch: #d6a55e;
   --branch-ink: var(--branch);
   --ring: #3291ff;
-  --diagram-font-display: 'Geist', system-ui, sans-serif;
-  --code: #121212;
 }

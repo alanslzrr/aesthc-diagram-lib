@@ -3,7 +3,14 @@ import { dirname } from 'node:path'
 import { DEFAULT_LIGHT, DEFAULT_DARK } from '../site/src/lib/palette'
 import { generatedApi } from './docs/exports'
 import { minimalSpecs } from '../examples/specs'
-import { usageSnippet } from '../site/src/lib/code'
+import {
+  hostThemeCss,
+  themeCss,
+  themeSnippet,
+  THEME_SNIPPET_START,
+  THEME_SNIPPET_END,
+  usageSnippet,
+} from '../site/src/lib/code'
 import { validateDiagramSpec } from '../src/validation'
 const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
 const release = manifest.diagramRelease
@@ -22,6 +29,14 @@ function output(path: string, value: string) {
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, value)
   }
+}
+/** Replace a marker-delimited region inside an otherwise hand-written document. */
+function inject(path: string, markers: [string, string], value: string) {
+  const source = readFileSync(path, 'utf8')
+  const start = source.indexOf(markers[0])
+  const end = source.indexOf(markers[1])
+  if (start < 0 || end < start) throw new Error(`Missing snippet markers: ${path}`)
+  output(path, source.slice(0, start) + value + source.slice(end + markers[1].length))
 }
 const titles: Record<string, string> = {
   band: 'Band',
@@ -80,6 +95,15 @@ const paletteBlock = (tokens: Record<string, string>) =>
 output(
   'site/src/generated/palette.css',
   `/* Generated from site/src/lib/palette.ts by pnpm docs:generate. */\n:root {\n${paletteBlock(DEFAULT_LIGHT)}\n}\n[data-theme='dark'] {\n${paletteBlock(DEFAULT_DARK)}\n}\n`,
+)
+// One contract feeds the live host stylesheet, the Theme Studio copy action,
+// the documented snippet and the tarball-consumer fixture.
+output('site/src/theme-tokens.css', hostThemeCss())
+output('tests/fixtures/package-consumer/theme-copy.css', themeCss(DEFAULT_LIGHT, DEFAULT_DARK))
+inject(
+  'docs/guides/theming.md',
+  [THEME_SNIPPET_START, THEME_SNIPPET_END],
+  themeSnippet(DEFAULT_LIGHT, DEFAULT_DARK),
 )
 output('docs/api/index.md', generatedApi(manifest))
 const quick = usageSnippet('example-flowchart', 'flowchart', minimalSpecs.flowchart)
