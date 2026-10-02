@@ -293,6 +293,63 @@ button {
   color: var(--muted-foreground);
   font-size: var(--ui-text-control);
 }
+/* Movement contract strip: states what a drag changes for this type and
+ * offers Convert to graph without opening the full inspector. */
+.playground-movement {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--card));
+  color: var(--muted-foreground);
+  font-size: var(--ui-text-caption);
+}
+.playground-movement-model {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0;
+  min-width: 0;
+}
+.playground-movement-label {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.playground-movement > button {
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius-control);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: var(--ui-text-caption);
+}
+.playground-movement-convert {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+}
+.playground-movement-convert ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.playground-movement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.playground-movement > [role='status'] {
+  flex-basis: 100%;
+  margin: 0;
+}
 /* The host owns the effective appearance: map the editor chrome to the same
  * semantic tokens as the playground shell instead of a second palette. */
 .playground-editor.adl-editor,

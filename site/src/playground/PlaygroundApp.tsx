@@ -11,12 +11,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react'
 
-import {
-  createDocument,
-  createEditorStore,
-  importDocument,
-  serializeDocument,
-} from '@aesthc/diagram-lib/editor-core'
+import { createDocument, createEditorStore, importDocument } from '@aesthc/diagram-lib/editor-core'
 import {
   EditorInspector,
   EditorPanelTabs,
@@ -29,10 +24,12 @@ import {
 import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'
 
 import { GITHUB_URL, STRINGS, SECTIONS, type Locale, type SectionEntry } from '../content'
+import { ExportDialog } from '../components/ExportDialog'
 import { saveLocale, savedLocale } from '../lib/locale'
 import { writeHandoff } from '../lib/handoff'
 import { clearSessionDraft, readSessionDraft, writeSessionDraft } from '../lib/session-draft'
 import { useThemePreference } from '../lib/theme'
+import { MovementPanel } from './MovementPanel'
 
 const DEFAULT_ENTRY = SECTIONS[0]
 const STUDIO_URL = `${import.meta.env.BASE_URL}studio.html`
@@ -153,6 +150,7 @@ function EditorWorkspace({
       data-dirty={snapshot.dirty ? '' : undefined}
     >
       <EditorToolbar />
+      <MovementPanel />
       <div className="adl-editor-body">
         <EditorSurface
           key={sessionKey}
@@ -181,6 +179,7 @@ function PlaygroundSurface({
   const file = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
   const sessionKey = `${entry.key}:${locale}`
   const currentSession = useRef(sessionKey)
   currentSession.current = sessionKey
@@ -307,16 +306,6 @@ function PlaygroundSurface({
     setMessage(result.status === 'committed' ? '' : COPY.importFailed[locale])
   }
 
-  function downloadJson() {
-    const text = serializeDocument(store.getSnapshot().document)
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${entry.key}-${locale}.json`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
-
   async function importFile(upload: File) {
     // Capture the destination before the asynchronous read; the import must not
     // land on a different example or a document edited while it was reading.
@@ -384,8 +373,8 @@ function PlaygroundSurface({
               if (upload) void importFile(upload)
             }}
           />
-          <button type="button" onClick={downloadJson}>
-            {locale === 'es' ? 'Descargar JSON' : 'Download JSON'}
+          <button type="button" onClick={() => setExportOpen(true)}>
+            {locale === 'es' ? 'Exportar' : 'Export'}
           </button>
           <button type="button" onClick={resetExample}>
             {locale === 'es' ? 'Restaurar ejemplo' : 'Reset example'}
@@ -448,6 +437,12 @@ function PlaygroundSurface({
           entry={entry}
           hostTheme={hostTheme}
           autoFit={firstOpen}
+        />
+        <ExportDialog
+          locale={locale}
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          filenameBase={`${entry.key}-${locale}`}
         />
       </EditorRoot>
     </div>
@@ -624,8 +619,8 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
             </nav>
             <p className="playground-sidebar-footer">
               {locale === 'es'
-                ? 'Seleccioná, mové, editá etiquetas, conectá nodos y deshacé. Cada ejemplo conserva su propia sesión de edición.'
-                : 'Select, move, edit labels, connect nodes and undo. Each example keeps its own editing session.'}
+                ? 'El playground es el editor principal de este documento; Studio es la herramienta avanzada del mismo documento; el visor semántico es de solo lectura. Cada ejemplo conserva su propia sesión.'
+                : 'The playground is the primary editor of this document; Studio is advanced tooling for the same document; the semantic viewer is read-only. Each example keeps its own session.'}
             </p>
           </aside>
           <main id="main" tabIndex={-1} className="playground-main">
