@@ -129,7 +129,7 @@ test('T44.3 viewer, lenses, collapse, story and M3 controls have no serious axe 
     .getByRole('group', { name: 'Story' })
     .getByRole('button', { name: 'Next', exact: true })
     .click()
-  await page.getByLabel('Deployment profile').check()
+  await page.getByLabel('Show deployment profile').check()
   await expect(page.locator('.adl-viewer-evidence')).toBeVisible()
   await expectNoSeriousAXEViolations(page)
 })

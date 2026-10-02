@@ -66,7 +66,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
   const [storyFocus, setStoryFocus] = useState<{ nodes: Set<string>; edges: Set<string> } | null>(
     null,
   )
-  const [profileEnabled, setProfileEnabled] = useState(false)
+  const [profileShown, setProfileShown] = useState(true)
   const [publishIssue, setPublishIssue] = useState<string[] | null>(null)
   const [recording, setRecording] = useState(false)
   const [motionIssue, setMotionIssue] = useState<string | null>(null)
@@ -155,10 +155,8 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
         : '',
     [document, scene, highlight, lensSet, exclude],
   )
-  const profileReport = useMemo(
-    () => validateDeploymentProfile(document, { enabled: profileEnabled }),
-    [document, profileEnabled],
-  )
+  // Activation is authored, never a viewer checkbox.
+  const profileReport = useMemo(() => validateDeploymentProfile(document), [document])
   const relationsEnabled = graph.edges.length > 0
   const summary = querySummary(query, graph, t)
   const edgeIds = queryEdgeIds(query)
@@ -366,7 +364,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
   async function exportPublish() {
     setPublishIssue(null)
     if (!scene.ok) return
-    const report = validateDeploymentProfile(document, { enabled: profileEnabled })
+    const report = validateDeploymentProfile(document)
     if (!report.ok) {
       setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code))
       return
@@ -533,11 +531,11 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           <label className="adl-viewer-profile-toggle">
             <input
               type="checkbox"
-              checked={profileEnabled}
-              onChange={(event) => setProfileEnabled(event.target.checked)}
-              aria-label={t('Deployment profile', 'Perfil de despliegue')}
+              checked={profileShown}
+              onChange={(event) => setProfileShown(event.target.checked)}
+              aria-label={t('Show deployment profile', 'Mostrar perfil de despliegue')}
             />
-            {t('Deployment profile', 'Perfil de despliegue')}
+            {t('Show deployment profile', 'Mostrar perfil de despliegue')}
           </label>
           <button type="button" onClick={() => void exportPublish()}>
             {t('Publish export', 'Exportar publicación')}
@@ -893,7 +891,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
       <Evidence
         document={document}
         entity={selection}
-        profile={profileReport.ok ? profileReport.value : null}
+        profile={profileShown && profileReport.ok ? profileReport.value : null}
         onSelect={setSelection}
         t={t}
       />

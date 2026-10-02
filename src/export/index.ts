@@ -1,6 +1,7 @@
 import type { Diagnostic, DiagramDocument, EntityRef, Result } from '../editor-core/types'
 import { canonical, failure, issue, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
+import { validateDeploymentProfile } from '../editor-core/profiles'
 import { serializeDocument } from '../editor-core/document'
 import { getAdapter } from '../editor-core/adapters'
 import { pruneReferences } from '../editor-core/commands'
@@ -81,6 +82,14 @@ export async function exportDocument(
     return failure('export.source-format')
   if (options.format === 'jpeg' && options.background === 'transparent')
     return failure('export.alpha')
+  if (options.quality === 'publish') {
+    // An authored deployment profile is authoritative and cannot be disabled
+    // through an export option; publish blocks on its exact diagnostics.
+    const profile = validateDeploymentProfile(checked.value)
+    if (!profile.ok) return profile
+    if (profile.value.enabled && profile.value.diagnostics.length)
+      return { ok: false, diagnostics: profile.value.diagnostics }
+  }
   if (options.scope.type === 'selection') {
     if (options.format === 'json') return failure('export.scope')
     const selected = new Set(

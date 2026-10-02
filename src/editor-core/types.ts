@@ -93,6 +93,11 @@ export interface DiagramGroup {
   nodeIds: string[]
   parentGroup?: string
   locked: boolean
+  /**
+   * Explicit group visibility. Missing is not implicitly private while the
+   * deployment profile is active; security groups must declare `private`.
+   */
+  visibility?: 'public' | 'private'
 }
 export interface DiagramScene {
   mode: 'auto' | 'manual' | 'hybrid'
