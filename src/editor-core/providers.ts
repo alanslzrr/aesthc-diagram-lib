@@ -119,8 +119,7 @@ export async function runRegisteredLayout(
       provider.run({ document: snapshot, requestId, signal: controller.signal }),
       controller.signal,
     )
-    if (options.signal?.aborted || controller.signal.aborted)
-      return failure('operation.aborted')
+    if (options.signal?.aborted || controller.signal.aborted) return failure('operation.aborted')
     const currentRevision = options.latestRevision?.() ?? document.revision
     if (currentRevision !== options.expectedRevision)
       return success({ status: 'rejected', document, diagnostics: ['revision.stale'] })

@@ -162,18 +162,9 @@ describe('E23 declared evidence versus verification', () => {
   it('T50.2 verification requires a complete match: mismatch, errors and unavailable never verify', async () => {
     const document = evidenceDocument(validEvidence)
     const cases: Array<[TrustedVerifier, string]> = [
-      [
-        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'match' },
-        'verified',
-      ],
-      [
-        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'mismatch' },
-        'mismatch',
-      ],
-      [
-        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'unavailable' },
-        'unavailable',
-      ],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'match' }, 'verified'],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'mismatch' }, 'mismatch'],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'unavailable' }, 'unavailable'],
       [
         {
           contract: EVIDENCE_RANGE_CONTRACT,
@@ -328,7 +319,9 @@ describe('E23 deployment profile is authored and fails by exact facts', () => {
     )
     expect(owners.map((diagnostic) => diagnostic.subject?.id)).toEqual(['e'])
     const subjects = report.value.diagnostics.map((diagnostic) =>
-      diagnostic.subject ? `${diagnostic.code}:${diagnostic.subject.kind}:${diagnostic.subject.id}` : '',
+      diagnostic.subject
+        ? `${diagnostic.code}:${diagnostic.subject.kind}:${diagnostic.subject.id}`
+        : '',
     )
     expect(subjects).toContain('profile.public-entity:group:sg-public')
     expect(subjects).toContain('profile.public-entity:group:sg-orphan')
@@ -364,8 +357,8 @@ describe('E23 deployment profile is authored and fails by exact facts', () => {
     })
     expect(publish.ok).toBe(false)
     if (!publish.ok)
-      expect(publish.diagnostics.some((diagnostic) => diagnostic.code === 'profile.owner-missing')).toBe(
-        true,
-      )
+      expect(
+        publish.diagnostics.some((diagnostic) => diagnostic.code === 'profile.owner-missing'),
+      ).toBe(true)
   })
 })

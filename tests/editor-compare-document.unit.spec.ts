@@ -270,9 +270,9 @@ describe('F25 document-level comparison', () => {
           status: 'modified',
           semantics: 'unknown',
         })
-        expect(
-          comparison.document.extensions[0].changes.map((change) => change.path),
-        ).toContain('/extensions/acme.theme/accent')
+        expect(comparison.document.extensions[0].changes.map((change) => change.path)).toContain(
+          '/extensions/acme.theme/accent',
+        )
       },
     },
     {
@@ -347,17 +347,10 @@ describe('F25 document-level comparison', () => {
       after.views = [{ ...after.views[1] }]
       after.story = []
     })
-    expect(comparison.document.groups).toEqual([
-      { id: 'g1', status: 'removed', changes: [] },
-    ])
-    expect(comparison.document.views).toEqual([
-      { id: 'v1', status: 'removed', changes: [] },
-    ])
+    expect(comparison.document.groups).toEqual([{ id: 'g1', status: 'removed', changes: [] }])
+    expect(comparison.document.views).toEqual([{ id: 'v1', status: 'removed', changes: [] }])
     expect(comparison.document.story).toHaveLength(2)
-    expect(comparison.document.story.map((entry) => entry.status)).toEqual([
-      'removed',
-      'removed',
-    ])
+    expect(comparison.document.story.map((entry) => entry.status)).toEqual(['removed', 'removed'])
   })
 
   it('object key insertion order never creates false document differences', () => {
@@ -415,9 +408,9 @@ describe('F25 document-level comparison', () => {
     if (!sequence.ok) throw Error(JSON.stringify(sequence.diagnostics))
     const result = compareDocuments(before, sequence.value)
     expect(result.ok).toBe(false)
-    expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'compare.incompatible')).toBe(
-      true,
-    )
+    expect(
+      result.diagnostics.some((diagnostic) => diagnostic.code === 'compare.incompatible'),
+    ).toBe(true)
     expect(
       result.diagnostics.some((diagnostic) => diagnostic.code === 'compare.incompatible-type'),
     ).toBe(true)

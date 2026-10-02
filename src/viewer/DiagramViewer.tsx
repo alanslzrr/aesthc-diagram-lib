@@ -49,7 +49,12 @@ const ZOOM_MAX = 4
 /** Read-only semantic viewer: finder, inspector, exact route/reach highlight,
  * receipt-bound export, lenses, minimap, finite story and presentation.
  * Never mutates the document or the store. */
-export function DiagramViewer({ document, locale = 'en', className, registry }: DiagramViewerProps) {
+export function DiagramViewer({
+  document,
+  locale = 'en',
+  className,
+  registry,
+}: DiagramViewerProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   const graph = useMemo(() => graphSnapshot(document), [document])
   const scene = useMemo(

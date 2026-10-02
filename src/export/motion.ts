@@ -213,9 +213,10 @@ export async function exportStoryWebm(
         /* already stopped */
       }
     }
-    if (stream) for (const activeTrack of stream.getTracks()) {
-      if (activeTrack.readyState !== 'ended') activeTrack.stop()
-    }
+    if (stream)
+      for (const activeTrack of stream.getTracks()) {
+        if (activeTrack.readyState !== 'ended') activeTrack.stop()
+      }
     // Only an active, successfully started recorder can emit `stop`; never
     // wait for an event an inactive recorder cannot produce.
     if (started && recorder && recorder.state !== 'inactive')

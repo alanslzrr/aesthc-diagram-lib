@@ -248,10 +248,7 @@ function documentDelta(before: DiagramDocument, after: DiagramDocument): Documen
     )
     if (order) reorder.push({ collection, ...order })
   }
-  const { entries: extensions, namespaces } = extensionDeltas(
-    before.extensions,
-    after.extensions,
-  )
+  const { entries: extensions, namespaces } = extensionDeltas(before.extensions, after.extensions)
   return {
     fields,
     metadata,

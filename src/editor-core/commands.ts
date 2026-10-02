@@ -65,7 +65,11 @@ function lockedTransition(baseline: DiagramDocument, candidate: DiagramDocument)
     const after = candidate.scene.nodes[id]
     if (before && after) {
       if ((before.locked === true) !== (after.locked === true))
-        return failure('entity.locked', `/scene/nodes/${id}`, 'lock transitions require nodes.set-lock')
+        return failure(
+          'entity.locked',
+          `/scene/nodes/${id}`,
+          'lock transitions require nodes.set-lock',
+        )
       if (
         locked &&
         (before.x !== after.x ||
@@ -90,7 +94,11 @@ function lockedTransition(baseline: DiagramDocument, candidate: DiagramDocument)
       const before = [...group.nodeIds].sort()
       const after = [...next.nodeIds].sort()
       if (before.length !== after.length || before.some((id, index) => id !== after[index]))
-        return failure('entity.locked', `/scene/groups/${group.id}`, 'locked group keeps its members')
+        return failure(
+          'entity.locked',
+          `/scene/groups/${group.id}`,
+          'locked group keeps its members',
+        )
     }
   }
   return success(undefined)
@@ -110,7 +118,11 @@ export function applyCommand(
       if (candidate.format !== doc.format || candidate.schemaVersion !== doc.schemaVersion)
         return failure('replacement.schema-mismatch', '/format', 'Use import for another schema')
       if (candidate.spec.type !== doc.spec.type)
-        return failure('replacement.type-mismatch', '/spec/type', 'Use import for another diagram type')
+        return failure(
+          'replacement.type-mismatch',
+          '/spec/type',
+          'Use import for another diagram type',
+        )
       if (candidate.id !== doc.id)
         return failure('replacement.id-mismatch', '/id', 'Use import for another document id')
       const guarded = lockedTransition(doc, candidate)

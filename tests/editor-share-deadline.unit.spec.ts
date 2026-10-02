@@ -59,8 +59,6 @@ describe('F29 share pending-read deadline', () => {
     )
     expect(result.ok).toBe(false)
     if (!result.ok)
-      expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'share.future')).toBe(
-        true,
-      )
+      expect(result.diagnostics.some((diagnostic) => diagnostic.code === 'share.future')).toBe(true)
   })
 })

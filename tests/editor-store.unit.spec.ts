@@ -688,9 +688,9 @@ describe('locked transition invariants', () => {
   )
   it('keeps scene previews of locked nodes rejected and the last draft intact', () => {
     const store = locked('node')
-    expect(store.beginGesture({ id: 'locked-preview', label: 'Move', expectedRevision: 0 }).ok).toBe(
-      true,
-    )
+    expect(
+      store.beginGesture({ id: 'locked-preview', label: 'Move', expectedRevision: 0 }).ok,
+    ).toBe(true)
     const scene = structuredClone(store.getSnapshot().document.scene)
     scene.nodes.a.x += 40
     const rejected = store.previewGesture([{ type: 'scene.set', scene }], { skipValidation: true })
@@ -809,19 +809,18 @@ describe('preview validation allowlist', () => {
     )
     const valid = structuredClone(store.getSnapshot().document.scene)
     valid.nodes.a.x = 25
-    expect(store.previewGesture([{ type: 'scene.set', scene: valid }], { skipValidation: true }).ok).toBe(
-      true,
-    )
+    expect(
+      store.previewGesture([{ type: 'scene.set', scene: valid }], { skipValidation: true }).ok,
+    ).toBe(true)
     return store
   }
   it('fully validates presentation previews instead of trusting the skip flag', () => {
     const store = previewing()
     const presentation = structuredClone(store.getSnapshot().document.presentation)
     presentation.textScale = Number.NaN
-    const rejected = store.previewGesture(
-      [{ type: 'presentation.set', presentation }],
-      { skipValidation: true },
-    )
+    const rejected = store.previewGesture([{ type: 'presentation.set', presentation }], {
+      skipValidation: true,
+    })
     expect(rejected.ok).toBe(false)
     if (!rejected.ok)
       expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('data.finite')

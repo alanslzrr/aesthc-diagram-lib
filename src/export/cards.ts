@@ -99,11 +99,7 @@ export function cardSvg(
   const padding = options.padding ?? 40
   // Reject nonfinite, negative or consuming padding before rendering: a
   // success receipt never carries an invalid transform.
-  if (
-    !Number.isFinite(padding) ||
-    padding < 0 ||
-    padding * 2 >= Math.min(CARD_WIDTH, CARD_HEIGHT)
-  )
+  if (!Number.isFinite(padding) || padding < 0 || padding * 2 >= Math.min(CARD_WIDTH, CARD_HEIGHT))
     return failure('export.options')
   const scale = Math.min(
     (CARD_WIDTH - padding * 2) / layout.width,

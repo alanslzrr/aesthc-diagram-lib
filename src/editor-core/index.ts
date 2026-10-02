@@ -33,7 +33,12 @@ export type {
   RegisteredLayoutOutcome,
   RegisteredLayoutProvider,
 } from './providers'
-export { EVIDENCE_RANGE_CONTRACT, declaredEvidence, evidenceDiagnostics, verifyEvidence } from './evidence'
+export {
+  EVIDENCE_RANGE_CONTRACT,
+  declaredEvidence,
+  evidenceDiagnostics,
+  verifyEvidence,
+} from './evidence'
 export type {
   DeclaredEvidence,
   EvidenceReceipt,
