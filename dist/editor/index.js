@@ -2885,7 +2885,8 @@ function EditorStructuredInspector() {
               type: "button",
               disabled: lanes.length <= 1,
               "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
-              onClick: () => {
+              onClick: (event) => {
+                event.currentTarget.focus();
                 if (members.length === 0)
                   replaceLanes(
                     lanes.filter((candidate) => candidate.id !== lane.id),

@@ -10,8 +10,7 @@ async function exportNow(page: import('@playwright/test').Page, format: string) 
   if (!path) throw Error('download without path')
   return readFile(path, 'utf8')
 }
-const exportError = (page: import('@playwright/test').Page) =>
-  page.locator('[data-export-error]')
+const exportError = (page: import('@playwright/test').Page) => page.locator('[data-export-error]')
 const exportReceipt = (page: import('@playwright/test').Page) =>
   page.locator('[data-export-receipt]')
 

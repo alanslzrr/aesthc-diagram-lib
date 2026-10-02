@@ -31,9 +31,7 @@ test('T42.1 a WebP encode that returns PNG fails with export.mime and downloads 
     state.__webpEncodeLies = false
     HTMLCanvasElement.prototype.toDataURL = function (type?: string) {
       const value = nativeToDataURL.call(this, type)
-      return type === 'image/webp'
-        ? value.replace(/^data:image\/[a-z]+/, 'data:image/webp')
-        : value
+      return type === 'image/webp' ? value.replace(/^data:image\/[a-z]+/, 'data:image/webp') : value
     }
     HTMLCanvasElement.prototype.toBlob = function (
       callback: BlobCallback,
