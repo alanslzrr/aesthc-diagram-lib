@@ -65,7 +65,7 @@ test('T08.1 the middle mouse button pans the camera without touching the documen
   await page.mouse.up({ button: 'middle' })
   expect(await node.getAttribute('x')).toBe(before)
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T09.1 a node id equal to an edge id stays a distinct selectable entity', async ({ page }) => {

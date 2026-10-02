@@ -60,19 +60,31 @@ import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
 import { createCanvasTextMeasurer } from '../geometry/text'
 import type { StoreOptions } from '../editor-core/types'
 
-const Context = createContext<{ store: EditorStore; locale: Locale } | null>(null)
+const Context = createContext<{
+  store: EditorStore
+  locale: Locale
+  /**
+   * View-only appearance override. Rendering follows this mode while the
+   * document keeps its own presentation in JSON; the inspector hides the
+   * document theme control because the host owns the effective appearance.
+   */
+  theme?: 'light' | 'dark'
+} | null>(null)
 /** Real font widths once Geist is loaded; conservative estimate otherwise. */
 const measureText = createCanvasTextMeasurer()
 export function EditorRoot({
   store,
   locale,
+  theme,
   children,
 }: {
   store: EditorStore
   locale: Locale
+  /** Effective view theme. Omit to follow the document's own presentation. */
+  theme?: 'light' | 'dark'
   children: ReactNode
 }) {
-  const value = useMemo(() => ({ store, locale }), [store, locale])
+  const value = useMemo(() => ({ store, locale, theme }), [store, locale, theme])
   return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export function useEditor() {
@@ -280,11 +292,17 @@ function materialize(document: DiagramDocument) {
 export function EditorStatus() {
   const dirty = useEditorSelector((s) => s.dirty),
     t = useLabels()
+  const text = dirty
+    ? t('Unsaved changes', 'Cambios sin guardar')
+    : t('No pending changes', 'Sin cambios pendientes')
   return (
-    <span className="adl-editor-status" role="status">
-      {dirty
-        ? t('Unsaved changes', 'Cambios sin guardar')
-        : t('No pending changes', 'Sin cambios pendientes')}
+    <span className="adl-editor-status" role="status" aria-label={text}>
+      <span
+        className="adl-editor-status-dot"
+        aria-hidden="true"
+        data-dirty={dirty ? '' : undefined}
+      />
+      <span className="adl-editor-status-text">{text}</span>
     </span>
   )
 }
@@ -302,57 +320,83 @@ export function EditorToolbar() {
       shallowEqual,
     ),
     t = useLabels()
+  const fit = () => {
+    const result = resolveDocument(store.getSnapshot().document, {
+      quality: 'edit',
+      requestId: 'toolbar-fit',
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true,
+    })
+    if (result.ok) {
+      const svg = document.querySelector<SVGSVGElement>('.adl-editor-surface > svg[role="group"]')
+      const rect = svg?.getBoundingClientRect()
+      if (rect && rect.width > 0 && rect.height > 0)
+        store.setViewport(fitViewport(result.value.worldBounds, rect, 24))
+    }
+  }
   return (
     <div
       className="adl-editor-toolbar"
       role="toolbar"
       aria-label={t('Editor tools', 'Herramientas de edición')}
     >
-      <button
-        type="button"
-        aria-pressed={snapshot.tool === 'select'}
-        onClick={() => store.setTool('select')}
-      >
-        {t('Select', 'Seleccionar')}
-      </button>
-      <button
-        type="button"
-        aria-pressed={snapshot.tool === 'hand'}
-        onClick={() => store.setTool('hand')}
-      >
-        {t('Pan', 'Desplazar')}
-      </button>
-      <button type="button" disabled={!snapshot.canUndo} onClick={() => store.undo()}>
-        {t('Undo', 'Deshacer')}
-      </button>
-      <button type="button" disabled={!snapshot.canRedo} onClick={() => store.redo()}>
-        {t('Redo', 'Rehacer')}
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          store.setViewport({
-            ...snapshot.viewport,
-            zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25),
-          })
-        }
-        aria-label={t('Zoom out', 'Alejar')}
-      >
-        −
-      </button>
-      <output aria-label={t('Zoom', 'Zoom')}>{Math.round(snapshot.viewport.zoom * 100)}%</output>
-      <button
-        type="button"
-        onClick={() =>
-          store.setViewport({
-            ...snapshot.viewport,
-            zoom: Math.min(4, snapshot.viewport.zoom * 1.25),
-          })
-        }
-        aria-label={t('Zoom in', 'Acercar')}
-      >
-        +
-      </button>
+      <div className="adl-editor-group" role="group" aria-label={t('Tools', 'Herramientas')}>
+        <button
+          type="button"
+          aria-pressed={snapshot.tool === 'select'}
+          onClick={() => store.setTool('select')}
+        >
+          {t('Select', 'Seleccionar')}
+        </button>
+        <button
+          type="button"
+          aria-pressed={snapshot.tool === 'hand'}
+          onClick={() => store.setTool('hand')}
+        >
+          {t('Pan', 'Desplazar')}
+        </button>
+      </div>
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div className="adl-editor-group" role="group" aria-label={t('History', 'Historial')}>
+        <button type="button" disabled={!snapshot.canUndo} onClick={() => store.undo()}>
+          {t('Undo', 'Deshacer')}
+        </button>
+        <button type="button" disabled={!snapshot.canRedo} onClick={() => store.redo()}>
+          {t('Redo', 'Rehacer')}
+        </button>
+      </div>
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div className="adl-editor-group" role="group" aria-label={t('Camera', 'Cámara')}>
+        <button
+          type="button"
+          onClick={() =>
+            store.setViewport({
+              ...snapshot.viewport,
+              zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25),
+            })
+          }
+          aria-label={t('Zoom out', 'Alejar')}
+        >
+          −
+        </button>
+        <output aria-label={t('Zoom', 'Zoom')}>{Math.round(snapshot.viewport.zoom * 100)}%</output>
+        <button
+          type="button"
+          onClick={() =>
+            store.setViewport({
+              ...snapshot.viewport,
+              zoom: Math.min(4, snapshot.viewport.zoom * 1.25),
+            })
+          }
+          aria-label={t('Zoom in', 'Acercar')}
+        >
+          +
+        </button>
+        <button type="button" onClick={fit}>
+          {t('Fit diagram', 'Ajustar diagrama')}
+        </button>
+      </div>
       <EditorSelectionTools />
       <EditorRelayout />
       <EditorStatus />
@@ -411,6 +455,79 @@ function EditorRelayout() {
 // Keep the static SVG subtree out of React's innerHTML update path during gestures.
 const SceneMarkup = memo(function SceneMarkup({ markup }: { markup: string }) {
   return <g dangerouslySetInnerHTML={{ __html: markup }} />
+})
+
+/**
+ * Viewport-continuous dot grid for the editable surface. The pattern lives in
+ * world units inside the camera group and its phase follows the camera, so the
+ * grid covers every corner of the viewport at any pan, zoom or document size.
+ * Display density drops at extreme zoom-out without touching document snap.
+ */
+const ViewportGrid = memo(function ViewportGrid({
+  width,
+  height,
+  viewport,
+  cell,
+  color,
+}: {
+  width: number
+  height: number
+  viewport: { x: number; y: number; zoom: number }
+  cell: number
+  color: string
+}) {
+  const base = Number.isFinite(cell) && cell > 0 ? cell : 16
+  let step = base
+  let spacing = step * viewport.zoom
+  while (spacing < 12 && step < base * 16) {
+    step *= 2
+    spacing = step * viewport.zoom
+  }
+  const unique = useId().replaceAll(':', '')
+  const patternId = `adl-viewport-grid-${unique}`
+  const fadeId = `adl-viewport-grid-fade-${unique}`
+  const maskId = `adl-viewport-grid-mask-${unique}`
+  const x0 = -viewport.x / viewport.zoom
+  const y0 = -viewport.y / viewport.zoom
+  const w = width / viewport.zoom
+  const h = height / viewport.zoom
+  return (
+    <>
+      <defs>
+        {/* World-space pattern inside the camera group: the group transform
+         * already moves the dots with pan and zoom, so no extra phase. */}
+        <pattern id={patternId} width={step} height={step} patternUnits="userSpaceOnUse">
+          <circle cx={1} cy={1} r={1} fill={color} fillOpacity={0.12} />
+        </pattern>
+        {/* Attenuate only the decorative pattern at the viewport perimeter;
+         * the layer still covers every corner and keeps camera phase. */}
+        <radialGradient
+          id={fadeId}
+          gradientUnits="userSpaceOnUse"
+          cx={x0 + w / 2}
+          cy={y0 + h / 2}
+          r={Math.max(w, h) * 0.75}
+        >
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="62%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <mask id={maskId} maskUnits="userSpaceOnUse" x={x0} y={y0} width={w} height={h}>
+          <rect x={x0} y={y0} width={w} height={h} fill={`url(#${fadeId})`} />
+        </mask>
+      </defs>
+      <rect
+        data-editor-grid="true"
+        x={x0}
+        y={y0}
+        width={w}
+        height={h}
+        fill={`url(#${patternId})`}
+        mask={`url(#${maskId})`}
+        pointerEvents="none"
+      />
+    </>
+  )
 })
 
 const SceneHits = memo(function SceneHits({
@@ -500,6 +617,9 @@ const BaselineLayer = memo(function BaselineLayer({
   x,
   y,
   zoom,
+  gridVisible,
+  gridCell,
+  gridColor,
 }: {
   markup: string
   hidden: { nodes: string[]; edges: string[] } | null
@@ -508,6 +628,10 @@ const BaselineLayer = memo(function BaselineLayer({
   x: number
   y: number
   zoom: number
+  /** Decorative viewport grid; always below the confirmed geometry. */
+  gridVisible: boolean
+  gridCell: number
+  gridColor: string
 }) {
   const root = useRef<SVGSVGElement>(null)
   useLayoutEffect(() => {
@@ -540,18 +664,53 @@ const BaselineLayer = memo(function BaselineLayer({
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none', willChange: 'transform' }}
     >
       <g transform={`translate(${x} ${y}) scale(${zoom})`}>
+        {gridVisible && (
+          <ViewportGrid
+            width={width}
+            height={height}
+            viewport={{ x, y, zoom }}
+            cell={gridCell}
+            color={gridColor}
+          />
+        )}
         <SceneMarkup markup={markup} />
       </g>
     </svg>
   )
 })
 
+/**
+ * Structured layouts have no free coordinates. Dragging still moves the node
+ * by editing the authored structure: band/lane assignment plus order, or the
+ * sequence/timeline order, and never converts the document to a graph.
+ */
+type StructuredKind = 'band' | 'lane' | 'order'
+interface StructuredGesture {
+  kind: StructuredKind
+  nodeId: string
+  placements: Array<{ id: string; cx: number; cy: number; x: number; width: number }>
+  containers: Array<{ id: string; y: number; h: number }>
+  signature: string
+}
+/** Move one item so it lands immediately before `before`, or at the end. */
+function moveWithinOrder<T extends { id: string }>(items: T[], id: string, before?: string): T[] {
+  const current = items.findIndex((item) => item.id === id)
+  if (current < 0) return items
+  const next = items.slice()
+  const [moved] = next.splice(current, 1)
+  const index = before === undefined ? -1 : next.findIndex((item) => item.id === before)
+  next.splice(index < 0 ? next.length : index, 0, moved)
+  return next
+}
 export function EditorSurface({
   ariaLabel,
   className,
+  autoFit = true,
 }: {
   ariaLabel?: string
   className?: string
+  /** Fit the camera on first measure. Restored sessions pass false to keep their camera. */
+  autoFit?: boolean
 }) {
   const { store } = useEditor(),
     snapshot = useEditorSnapshot(),
@@ -559,7 +718,10 @@ export function EditorSurface({
     instanceId = useId()
   const svgRef = useRef<SVGSVGElement>(null),
     [size, setSize] = useState({ width: 800, height: 600 })
+  const { theme: viewTheme } = useEditor()
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
+  const effectiveTheme = viewTheme ?? activeDoc.presentation.theme.mode
+  const palette = activeDoc.presentation.theme[effectiveTheme]
   const resolvePreview = useMemo(() => createPreviewResolver(), [store])
   const committedResolved = useMemo(
     () =>
@@ -592,17 +754,22 @@ export function EditorSurface({
   const baseline = useMemo(
     () =>
       committedResolved.ok
-        ? renderSceneMarkup(snapshot.document, committedResolved.value, { instanceId })
+        ? renderSceneMarkup(snapshot.document, committedResolved.value, {
+            instanceId,
+            theme: effectiveTheme,
+            grid: 'none',
+          })
         : '',
-    [snapshot.document, committedResolved, instanceId],
+    [snapshot.document, committedResolved, instanceId, effectiveTheme],
   )
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null
     return renderSceneMarkup(activeDoc, resolved.value, {
       instanceId,
+      theme: effectiveTheme,
       only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) },
     })
-  }, [activeDoc, resolved, gestureEntities, instanceId])
+  }, [activeDoc, resolved, gestureEntities, instanceId, effectiveTheme])
   const gesture = useRef<{
     pointer: number
     start: Point
@@ -619,6 +786,7 @@ export function EditorSurface({
     }
     port?: { nodeId: string; portId: string; pointerWorld: Point }
     connect?: { sourceId: string }
+    structured?: StructuredGesture
   } | null>(null)
   const marquee = useRef<{
     pointer: number
@@ -672,6 +840,7 @@ export function EditorSurface({
   } | null>(null)
   const spacePan = useRef(false)
   const fitted = useRef(false)
+  const fittedViewport = useRef<typeof snapshot.viewport | null>(null)
   /** One gesture update per animation frame: pointermove can outrun paint. */
   const moveRaf = useRef(0)
   const pendingMove = useRef<Point | null>(null)
@@ -730,6 +899,96 @@ export function EditorSurface({
         source = current.scene.nodes[current.connect.sourceId]
       const anchor = source ? anchorPoint(source, { side: 'right', offset: 0.5 }) : { x: 0, y: 0 }
       setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y })
+      return
+    }
+    if (current.structured) {
+      const structured = current.structured
+      const world = screenToWorld(point, current.viewport)
+      const spec = snapshot.document.spec
+      const placed = (id: string) => structured.placements.find((entry) => entry.id === id)
+      let next: typeof spec | null = null
+      if (structured.kind === 'band' && spec.type === 'band') {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId)
+        if (dragged) {
+          const ranges = spec.bands.map((_band, index) => {
+            const members = structured.placements.filter((entry) => {
+              const node = spec.nodes.find((candidate) => candidate.id === entry.id)
+              return node?.band === index
+            })
+            if (!members.length) return { index, x0: Infinity, x1: -Infinity, cx: 0 }
+            const x0 = Math.min(...members.map((member) => member.x))
+            const x1 = Math.max(...members.map((member) => member.x + member.width))
+            return { index, x0, x1, cx: (x0 + x1) / 2 }
+          })
+          const target =
+            ranges.find((range) => world.x >= range.x0 && world.x <= range.x1) ??
+            ranges.reduce((best, range) =>
+              Math.abs(range.cx - world.x) < Math.abs(best.cx - world.x) ? range : best,
+            )
+          const siblings = spec.nodes.filter(
+            (node) => node.band === target.index && node.id !== dragged.id,
+          )
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cy ?? 0) > world.y)
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map((node) =>
+              node.id === dragged.id ? { ...dragged, band: target.index } : node,
+            ),
+          }
+        }
+      } else if (structured.kind === 'lane' && spec.type === 'swimlane') {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId)
+        const lanes = structured.containers
+        if (dragged && lanes.length) {
+          const target =
+            lanes.find((lane) => world.y >= lane.y && world.y <= lane.y + lane.h) ??
+            lanes.reduce((best, lane) =>
+              Math.abs(lane.y + lane.h / 2 - world.y) < Math.abs(best.y + best.h / 2 - world.y)
+                ? lane
+                : best,
+            )
+          const siblings = spec.nodes.filter(
+            (node) => node.lane === target.id && node.id !== dragged.id,
+          )
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cx ?? 0) > world.x)
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map((node) =>
+              node.id === dragged.id ? { ...dragged, lane: target.id } : node,
+            ),
+          }
+        }
+      } else if (structured.kind === 'order' && spec.type === 'sequence') {
+        const dragged = spec.participants.find(
+          (participant) => participant.id === structured.nodeId,
+        )
+        if (dragged) {
+          const others = spec.participants.filter((participant) => participant.id !== dragged.id)
+          const slot = others.findIndex(
+            (participant) => (placed(participant.id)?.cx ?? 0) > world.x,
+          )
+          next = {
+            ...spec,
+            participants: moveWithinOrder(spec.participants, dragged.id, others[slot]?.id),
+          }
+        }
+      } else if (structured.kind === 'order' && spec.type === 'timeline') {
+        const dragged = spec.events.find((event) => event.id === structured.nodeId)
+        if (dragged) {
+          const others = spec.events.filter((event) => event.id !== dragged.id)
+          const slot = others.findIndex((event) => (placed(event.id)?.cx ?? 0) > world.x)
+          next = { ...spec, events: moveWithinOrder(spec.events, dragged.id, others[slot]?.id) }
+        }
+      }
+      if (next) {
+        const signature = JSON.stringify(next)
+        if (signature !== structured.signature) {
+          structured.signature = signature
+          store.previewGesture([{ type: 'spec.replace', spec: next, references: 'reject' }], {
+            skipValidation: true,
+          })
+        }
+      }
       return
     }
     const sceneCommands: EditorCommand[] =
@@ -872,17 +1131,31 @@ export function EditorSurface({
       if (r.width > 0 && r.height > 0) {
         const measured = { width: r.width, height: r.height }
         setSize(measured)
-        if (!fitted.current) {
-          const current = resolveDocument(store.getSnapshot().document, {
-            quality: 'edit',
-            requestId: 'initial-fit',
-            measureText,
-            skipValidation: true,
-          })
-          if (current.ok) {
-            fitted.current = true
-            store.setViewport(fitViewport(current.value.worldBounds, measured, 24))
-          }
+        if (!autoFit) {
+          fitted.current = true
+          return
+        }
+        const current = resolveDocument(store.getSnapshot().document, {
+          quality: 'edit',
+          requestId: 'initial-fit',
+          measureText,
+          skipValidation: true,
+        })
+        if (!current.ok) return
+        const next = fitViewport(current.value.worldBounds, measured, 24)
+        // Re-fit while the camera is untouched, so a later layout change
+        // (stacked inspector, mobile reflow) keeps the diagram centered.
+        const latest = store.getSnapshot().viewport
+        const untouched =
+          !fitted.current ||
+          (fittedViewport.current !== null &&
+            latest.x === fittedViewport.current.x &&
+            latest.y === fittedViewport.current.y &&
+            latest.zoom === fittedViewport.current.zoom)
+        if (untouched) {
+          fitted.current = true
+          fittedViewport.current = next
+          store.setViewport(next)
         }
       }
     })
@@ -891,7 +1164,7 @@ export function EditorSurface({
       observer.disconnect()
       store.cancelGesture()
     }
-  }, [store])
+  }, [store, autoFit])
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
@@ -1074,6 +1347,9 @@ export function EditorSurface({
         x={snapshot.viewport.x}
         y={snapshot.viewport.y}
         zoom={snapshot.viewport.zoom}
+        gridVisible={activeDoc.presentation.grid.visible}
+        gridCell={activeDoc.presentation.grid.size}
+        gridColor={palette.foreground}
       />
       <svg
         style={{ position: 'relative' }}
@@ -1357,11 +1633,61 @@ export function EditorSurface({
                   ? [...snapshot.selection]
                   : [{ kind: 'node' as const, id }]
             store.setSelection(selection)
-            if (
-              !getAdapter(snapshot.document.spec.type).capabilities.includes('move-free') ||
-              isNodeLocked(snapshot.document, id)
-            )
+            if (isNodeLocked(snapshot.document, id)) return
+            const adapter = getAdapter(snapshot.document.spec.type)
+            if (!adapter.capabilities.includes('move-free')) {
+              const kind: StructuredKind | undefined =
+                snapshot.document.spec.type === 'band'
+                  ? 'band'
+                  : snapshot.document.spec.type === 'swimlane'
+                    ? 'lane'
+                    : snapshot.document.spec.type === 'sequence' ||
+                        snapshot.document.spec.type === 'timeline'
+                      ? 'order'
+                      : undefined
+              if (!kind) return
+              const placements = nodesOf(snapshot.document.spec).map((n) => {
+                const placed = resolved.ok ? resolved.value.layout.nodeById[n.id] : undefined
+                return {
+                  id: n.id,
+                  cx: placed?.cx ?? 0,
+                  cy: placed?.cy ?? 0,
+                  x: placed?.x ?? 0,
+                  width: placed?.w ?? 0,
+                }
+              })
+              if (
+                !store.beginGesture({
+                  id: globalThis.crypto.randomUUID(),
+                  label: t('Move node', 'Mover nodo'),
+                  expectedRevision: snapshot.document.revision,
+                }).ok
+              )
+                return
+              setGestureEntities({
+                nodes: nodesOf(snapshot.document.spec).map((node) => node.id),
+                edges: edgesOf(snapshot.document.spec).map((edge) => edge.id!),
+              })
+              gesture.current = {
+                pointer: event.pointerId,
+                start: local(event),
+                viewport: { ...snapshot.viewport },
+                positions: {},
+                scene: materialize(snapshot.document),
+                pan: false,
+                structured: {
+                  kind,
+                  nodeId: id,
+                  placements,
+                  containers: (resolved.ok ? (resolved.value.layout.containers ?? []) : []).map(
+                    (container) => ({ id: container.id, y: container.y, h: container.h }),
+                  ),
+                  signature: JSON.stringify(snapshot.document.spec),
+                },
+              }
+              event.currentTarget.setPointerCapture(event.pointerId)
               return
+            }
             if (resizeId) resizeIds = [id]
           }
           const scene = materialize(snapshot.document),
@@ -1443,7 +1769,7 @@ export function EditorSurface({
               edges={hitBaseline.edges}
               selection={snapshot.selection}
               zoom={snapshot.viewport.zoom}
-              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              color={palette.cobalt}
               connectionLabel={t('Connection', 'Conexión')}
               selectEdge={selectEdge}
               selectNode={selectNode}
@@ -1456,7 +1782,7 @@ export function EditorSurface({
               edges={authoredEdges.filter((edge) => gestureEntities.edges.includes(edge.id))}
               selection={snapshot.selection}
               zoom={snapshot.viewport.zoom}
-              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              color={palette.cobalt}
               connectionLabel={t('Connection', 'Conexión')}
               selectEdge={selectEdge}
               selectNode={selectNode}
@@ -1521,15 +1847,37 @@ export function EditorSurface({
                   resizeTarget ? 'Resize node' : 'Resize selection',
                 )
               }
+              // Touch-sized handle targets must never cover the node body at
+              // low zoom, or dragging the card turns into a resize gesture.
+              // Capping every half-size at a quarter of the group keeps the
+              // eight targets pairwise disjoint (adjacent centres are at least
+              // half an edge apart), so a point painted by one marker cannot
+              // be stolen by a later handle in DOM order. The painted marker
+              // derives from the same effective half-size (minus half of its
+              // stroke), so every visible pixel belongs to the matching
+              // handle's action instead of the canvas below. Under extreme
+              // zoom-out the policy is to shrink the marker with its target,
+              // never to paint an affordance outside its hit area.
+              const handleHalf = Math.min(
+                22 / snapshot.viewport.zoom,
+                group.width / 4,
+                group.height / 4,
+              )
+              const strokeHalf = 0.5 / snapshot.viewport.zoom
+              const markerHalf = Math.max(
+                0,
+                Math.min(5 / snapshot.viewport.zoom, handleHalf - strokeHalf),
+              )
               return RESIZE_HANDLES.map((handle) => (
                 <g key={`resize-group-${handle.direction}`}>
                   <rect
-                    x={group.x + group.width * handle.x - 5 / snapshot.viewport.zoom}
-                    y={group.y + group.height * handle.y - 5 / snapshot.viewport.zoom}
-                    width={10 / snapshot.viewport.zoom}
-                    height={10 / snapshot.viewport.zoom}
-                    fill={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].card}
-                    stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+                    data-resize-marker={handle.direction}
+                    x={group.x + group.width * handle.x - markerHalf}
+                    y={group.y + group.height * handle.y - markerHalf}
+                    width={markerHalf * 2}
+                    height={markerHalf * 2}
+                    fill={palette.card}
+                    stroke={palette.cobalt}
                     strokeWidth={1 / snapshot.viewport.zoom}
                     pointerEvents="none"
                   />
@@ -1538,10 +1886,10 @@ export function EditorSurface({
                       ? { 'data-resize-node': resizeTarget }
                       : { 'data-resize-selection': '' })}
                     data-resize-direction={handle.direction}
-                    x={group.x + group.width * handle.x - 22 / snapshot.viewport.zoom}
-                    y={group.y + group.height * handle.y - 22 / snapshot.viewport.zoom}
-                    width={44 / snapshot.viewport.zoom}
-                    height={44 / snapshot.viewport.zoom}
+                    x={group.x + group.width * handle.x - handleHalf}
+                    y={group.y + group.height * handle.y - handleHalf}
+                    width={handleHalf * 2}
+                    height={handleHalf * 2}
                     fill="transparent"
                     style={{ cursor: handle.cursor }}
                     tabIndex={0}
@@ -1583,7 +1931,6 @@ export function EditorSurface({
               }
               const source = anchorPoint(from, route.source)
               const target = anchorPoint(to, route.target)
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
               const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
               return (
                 <g>
@@ -1662,8 +2009,23 @@ export function EditorSurface({
                   : undefined)
               const ports = authored?.ports ?? []
               if (!rect || !ports.length) return null
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
-              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              // Port targets share the node-relative budget with the resize
+              // handles: a fixed 44px target on a node that is smaller than
+              // that on screen would cover the whole card and steal corner
+              // handles. The painted dot shrinks with the target so it never
+              // extends past its own hit area.
+              const portTarget = Math.min(
+                Math.max(16, 22 / snapshot.viewport.zoom),
+                rect.width / 4,
+                rect.height / 4,
+              )
+              const portDot = Math.max(
+                0,
+                Math.min(
+                  Math.max(5, 5 / snapshot.viewport.zoom),
+                  portTarget - 0.75 / snapshot.viewport.zoom,
+                ),
+              )
               return (
                 <g>
                   {ports.map((port) => {
@@ -1673,7 +2035,7 @@ export function EditorSurface({
                         <circle
                           cx={position.x}
                           cy={position.y}
-                          r={dot(5)}
+                          r={portDot}
                           fill={palette.background}
                           stroke={palette.cobalt}
                           strokeWidth={1.5 / snapshot.viewport.zoom}
@@ -1684,7 +2046,7 @@ export function EditorSurface({
                           data-port-node={id}
                           cx={position.x}
                           cy={position.y}
-                          r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                          r={portTarget}
                           fill="transparent"
                           style={{ cursor: 'crosshair' }}
                           tabIndex={0}
@@ -1714,14 +2076,26 @@ export function EditorSurface({
                   : undefined)
               if (!authored || !rect) return null
               const anchor = anchorPoint(rect, { side: 'right', offset: 0.5 })
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
-              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              // Same node-relative budget as ports and resize handles: the
+              // branch dot must not swallow the card or its corner handles.
+              const connectTarget = Math.min(
+                Math.max(16, 22 / snapshot.viewport.zoom),
+                rect.width / 4,
+                rect.height / 4,
+              )
+              const connectDot = Math.max(
+                0,
+                Math.min(
+                  Math.max(5, 5 / snapshot.viewport.zoom),
+                  connectTarget - 0.75 / snapshot.viewport.zoom,
+                ),
+              )
               return (
                 <g>
                   <circle
                     cx={anchor.x}
                     cy={anchor.y}
-                    r={dot(5)}
+                    r={connectDot}
                     fill={palette.background}
                     stroke={palette.branch}
                     strokeWidth={1.5 / snapshot.viewport.zoom}
@@ -1731,7 +2105,7 @@ export function EditorSurface({
                     data-connect-source={id}
                     cx={anchor.x}
                     cy={anchor.y}
-                    r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                    r={connectTarget}
                     fill="transparent"
                     style={{ cursor: 'crosshair' }}
                     tabIndex={0}
@@ -1750,7 +2124,6 @@ export function EditorSurface({
             })()}
           {connectSource &&
             (() => {
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
               return (
                 <g pointerEvents="none">
                   {authoredNodes
@@ -1778,7 +2151,7 @@ export function EditorSurface({
               y1={connectLine.y1}
               x2={connectLine.x2}
               y2={connectLine.y2}
-              stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              stroke={palette.cobalt}
               strokeWidth={2 / snapshot.viewport.zoom}
               strokeDasharray="4 4"
               pointerEvents="none"
@@ -1791,24 +2164,15 @@ export function EditorSurface({
               y={selectionBox.y}
               width={selectionBox.width}
               height={selectionBox.height}
-              fill={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              fill={palette.cobalt}
               fillOpacity={0.08}
-              stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              stroke={palette.cobalt}
               strokeWidth={1 / snapshot.viewport.zoom}
               pointerEvents="none"
             />
           )}
         </g>
       </svg>
-      <button
-        className="adl-editor-fit"
-        type="button"
-        onClick={() => {
-          if (resolved.ok) store.setViewport(fitViewport(resolved.value.worldBounds, size, 24))
-        }}
-      >
-        {t('Fit diagram', 'Ajustar diagrama')}
-      </button>
       {!resolved.ok && <p role="alert">{resolved.diagnostics.map((d) => d.code).join(', ')}</p>}
       {connectSource && (
         <p role="status" className="adl-editor-connect-hint">
@@ -1822,7 +2186,7 @@ export function EditorSurface({
   )
 }
 export function EditorInspector() {
-  const { store } = useEditor(),
+  const { store, theme: viewTheme } = useEditor(),
     snapshot = useEditorSelector(
       (s) => ({ selection: s.selection, document: s.document }),
       shallowEqual,
@@ -1939,21 +2303,23 @@ export function EditorInspector() {
       <EditorRelations />
       <EditorRoute />
       <h3>{t('Appearance', 'Apariencia')}</h3>
-      <label>
-        {t('Theme', 'Tema')}
-        <select
-          aria-label={t('Theme', 'Tema')}
-          value={snapshot.document.presentation.theme.mode}
-          onChange={(event) => {
-            const presentation = structuredClone(snapshot.document.presentation)
-            presentation.theme.mode = event.target.value as 'light' | 'dark'
-            dispatch(store, [{ type: 'presentation.set', presentation }], 'Change theme')
-          }}
-        >
-          <option value="light">{t('Light', 'Claro')}</option>
-          <option value="dark">{t('Dark', 'Oscuro')}</option>
-        </select>
-      </label>
+      {!viewTheme && (
+        <label>
+          {t('Theme', 'Tema')}
+          <select
+            aria-label={t('Theme', 'Tema')}
+            value={snapshot.document.presentation.theme.mode}
+            onChange={(event) => {
+              const presentation = structuredClone(snapshot.document.presentation)
+              presentation.theme.mode = event.target.value as 'light' | 'dark'
+              dispatch(store, [{ type: 'presentation.set', presentation }], 'Change theme')
+            }}
+          >
+            <option value="light">{t('Light', 'Claro')}</option>
+            <option value="dark">{t('Dark', 'Oscuro')}</option>
+          </select>
+        </label>
+      )}
       <label>
         <input
           type="checkbox"
@@ -1989,15 +2355,15 @@ export function EditorJsonPanel() {
   const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document])
   const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
   return (
-    <details className="adl-editor-json">
-      <summary>{t('Document JSON', 'JSON del documento')}</summary>
+    <section className="adl-editor-json" aria-label={t('Document JSON', 'JSON del documento')}>
+      <h2 className="adl-editor-panel-title">{t('Document JSON', 'JSON del documento')}</h2>
       <textarea
         aria-label={t('Document JSON', 'JSON del documento')}
         value={text}
         onChange={(event) => store.setTextDraft(event.target.value)}
         spellCheck={false}
       />
-      <div>
+      <div className="adl-editor-json-actions">
         <button
           type="button"
           disabled={snapshot.draft.kind !== 'text'}
@@ -2012,7 +2378,88 @@ export function EditorJsonPanel() {
       {snapshot.draft.kind === 'text' && snapshot.draft.diagnostics.length > 0 && (
         <p role="alert">{snapshot.draft.diagnostics.map((d) => d.code).join(', ')}</p>
       )}
-    </details>
+    </section>
+  )
+}
+
+/** Tabbed document panels: no collapsible summaries, explicit navigation. */
+export function EditorPanelTabs({ className }: { className?: string }) {
+  const snapshot = useEditorSelector((s) => ({ document: s.document }), shallowEqual),
+    t = useLabels()
+  const [tab, setTab] = useState<'outline' | 'json' | 'connections'>('outline')
+  const connections = edgesOf(snapshot.document.spec).length
+  const tabs = [
+    { id: 'outline' as const, label: t('Outline', 'Estructura') },
+    { id: 'json' as const, label: t('JSON', 'JSON') },
+    ...(snapshot.document.spec.type === 'timeline'
+      ? []
+      : [
+          {
+            id: 'connections' as const,
+            label: `${t('Connections', 'Conexiones')} (${connections})`,
+          },
+        ]),
+  ]
+  const move = (direction: 1 | -1) => {
+    const index = tabs.findIndex((entry) => entry.id === tab)
+    const next = tabs[(index + direction + tabs.length) % tabs.length]
+    setTab(next.id)
+    const button = document.getElementById(`adl-editor-tab-${next.id}`)
+    if (button) (button as HTMLElement).focus()
+  }
+  return (
+    <section
+      className={`adl-editor-panels ${className ?? ''}`}
+      aria-label={t('Document panels', 'Paneles del documento')}
+    >
+      <div
+        className="adl-editor-tabs"
+        role="tablist"
+        aria-label={t('Document panels', 'Paneles del documento')}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowRight') {
+            event.preventDefault()
+            move(1)
+          } else if (event.key === 'ArrowLeft') {
+            event.preventDefault()
+            move(-1)
+          }
+        }}
+      >
+        {tabs.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            role="tab"
+            id={`adl-editor-tab-${entry.id}`}
+            aria-selected={tab === entry.id}
+            aria-controls={`adl-editor-tabpanel-${entry.id}`}
+            tabIndex={tab === entry.id ? 0 : -1}
+            onClick={() => setTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="adl-editor-tabpanel"
+        role="tabpanel"
+        id={`adl-editor-tabpanel-${tab}`}
+        aria-labelledby={`adl-editor-tab-${tab}`}
+      >
+        <div hidden={tab !== 'outline'}>
+          <EditorOutline />
+        </div>
+        <div hidden={tab !== 'json'}>
+          <EditorJsonPanel />
+        </div>
+        {snapshot.document.spec.type !== 'timeline' && (
+          <div hidden={tab !== 'connections'}>
+            <EditorRelations />
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -2107,138 +2554,207 @@ export function EditorSelectionTools() {
     }
   }
   const nodeIds = snapshot.selection.filter((r) => r.kind === 'node').map((r) => r.id)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== 'Escape') return
+      } else if (menuRef.current?.contains(event.target as Node)) return
+      setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [menuOpen])
+  const arrange = () => {
+    const current = store.getSnapshot().document
+    const scene = materialize(current)
+    const positions = arrangeRects(
+      nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
+      arrangement,
+    )
+    const result = dispatch(
+      store,
+      [
+        { type: 'scene.set', scene },
+        { type: 'nodes.move', positions },
+      ],
+      'Arrange selection',
+    )
+    setError(result.diagnostics.map((d) => d.code).join(', '))
+  }
+  const group = () => {
+    const groups = structuredClone(snapshot.document.scene.groups)
+    groups.forEach((g) => {
+      g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id))
+    })
+    dispatch(
+      store,
+      [
+        { type: 'scene.set', scene: { ...structuredClone(snapshot.document.scene), groups } },
+        {
+          type: 'group.upsert',
+          group: {
+            id: crypto.randomUUID(),
+            label: t('Group', 'Grupo'),
+            kind: 'visual',
+            nodeIds,
+            locked: false,
+          },
+        },
+      ],
+      'Group selection',
+    )
+  }
+  const ungroup = () => {
+    const scene = structuredClone(snapshot.document.scene)
+    const removed = new Set(
+      scene.groups.filter((g) => g.nodeIds.some((id) => nodeIds.includes(id))).map((g) => g.id),
+    )
+    scene.groups = scene.groups.filter((g) => !removed.has(g.id))
+    scene.groups.forEach((g) => {
+      if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup
+    })
+    dispatch(store, [{ type: 'scene.set', scene }], 'Ungroup selection')
+  }
+  const groupDisabled =
+    nodeIds.length < 2 || !free || nodeIds.some((id) => isNodeLocked(snapshot.document, id))
+  const ungroupDisabled =
+    !nodeIds.length ||
+    !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
   return (
     <>
-      <select
-        aria-label={t('Arrangement', 'Alineación y distribución')}
-        value={arrangement}
-        onChange={(event) => setArrangement(event.target.value as Arrangement)}
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div
+        className="adl-editor-group"
+        role="group"
+        aria-label={t('Selection actions', 'Acciones de selección')}
       >
-        {(
-          [
-            ['left', t('Align left', 'Alinear izquierda')],
-            ['right', t('Align right', 'Alinear derecha')],
-            ['top', t('Align top', 'Alinear arriba')],
-            ['bottom', t('Align bottom', 'Alinear abajo')],
-            ['center-x', t('Center horizontally', 'Centrar horizontalmente')],
-            ['center-y', t('Center vertically', 'Centrar verticalmente')],
-            ['horizontal', t('Distribute horizontally', 'Distribuir horizontalmente')],
-            ['vertical', t('Distribute vertically', 'Distribuir verticalmente')],
-          ] as const
-        ).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={
-          !free ||
-          nodeIds.length < (arrangement === 'horizontal' || arrangement === 'vertical' ? 3 : 2) ||
-          nodeIds.some((id) => isNodeLocked(snapshot.document, id))
-        }
-        onClick={() => {
-          const current = store.getSnapshot().document
-          const scene = materialize(current)
-          const positions = arrangeRects(
-            nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
-            arrangement,
-          )
-          const result = dispatch(
-            store,
-            [
-              { type: 'scene.set', scene },
-              { type: 'nodes.move', positions },
-            ],
-            'Arrange selection',
-          )
-          setError(result.diagnostics.map((d) => d.code).join(', '))
-        }}
-      >
-        {t('Arrange selection', 'Organizar selección')}
-      </button>
-      <button type="button" disabled={!snapshot.selection.length} onClick={() => copy()}>
-        {t('Copy', 'Copiar')}
-      </button>
-      <button type="button" disabled={!hasCopy || !free} onClick={() => paste()}>
-        {t('Paste', 'Pegar')}
-      </button>
-      <button
-        type="button"
-        disabled={clipboardBusy || !snapshot.selection.length}
-        onClick={() => void systemClipboard('copy')}
-      >
-        {t('Copy to clipboard', 'Copiar al portapapeles')}
-      </button>
-      <button
-        type="button"
-        disabled={clipboardBusy || !free}
-        onClick={() => void systemClipboard('paste')}
-      >
-        {t('Paste from clipboard', 'Pegar del portapapeles')}
-      </button>
-      <button
-        type="button"
-        disabled={!snapshot.selection.length || !free}
-        onClick={() => {
-          const result = copy()
-          if (result.ok) paste(result.value)
-        }}
-      >
-        {t('Duplicate', 'Duplicar')}
-      </button>
-      <button
-        type="button"
-        disabled={nodeIds.length < 2 || !free}
-        onClick={() => {
-          const groups = structuredClone(snapshot.document.scene.groups)
-          groups.forEach((g) => {
-            g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id))
-          })
-          dispatch(
-            store,
-            [
-              { type: 'scene.set', scene: { ...structuredClone(snapshot.document.scene), groups } },
-              {
-                type: 'group.upsert',
-                group: {
-                  id: crypto.randomUUID(),
-                  label: t('Group', 'Grupo'),
-                  kind: 'visual',
-                  nodeIds,
-                  locked: false,
-                },
-              },
-            ],
-            'Group selection',
-          )
-        }}
-      >
-        {t('Group', 'Agrupar')}
-      </button>
-      <button
-        type="button"
-        disabled={
-          !nodeIds.length ||
-          !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
-        }
-        onClick={() => {
-          const scene = structuredClone(snapshot.document.scene)
-          const removed = new Set(
-            scene.groups
-              .filter((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
-              .map((g) => g.id),
-          )
-          scene.groups = scene.groups.filter((g) => !removed.has(g.id))
-          scene.groups.forEach((g) => {
-            if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup
-          })
-          dispatch(store, [{ type: 'scene.set', scene }], 'Ungroup selection')
-        }}
-      >
-        {t('Ungroup', 'Desagrupar')}
-      </button>
+        <button type="button" disabled={!snapshot.selection.length} onClick={() => copy()}>
+          {t('Copy', 'Copiar')}
+        </button>
+        <button type="button" disabled={!hasCopy || !free} onClick={() => paste()}>
+          {t('Paste', 'Pegar')}
+        </button>
+        <button
+          type="button"
+          disabled={!snapshot.selection.length || !free}
+          onClick={() => {
+            const result = copy()
+            if (result.ok) paste(result.value)
+          }}
+        >
+          {t('Duplicate', 'Duplicar')}
+        </button>
+        <div className="adl-editor-menu" data-open={menuOpen ? '' : undefined} ref={menuRef}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {t('More actions', 'Más acciones')}
+          </button>
+          {menuOpen && (
+            <div className="adl-editor-menu-list">
+              <div role="menu" aria-label={t('More actions', 'Más acciones')}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={clipboardBusy || !snapshot.selection.length}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void systemClipboard('copy')
+                  }}
+                >
+                  {t('Copy to clipboard', 'Copiar al portapapeles')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={clipboardBusy || !free}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void systemClipboard('paste')
+                  }}
+                >
+                  {t('Paste from clipboard', 'Pegar del portapapeles')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={groupDisabled}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    group()
+                  }}
+                >
+                  {t('Group', 'Agrupar')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={ungroupDisabled}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    ungroup()
+                  }}
+                >
+                  {t('Ungroup', 'Desagrupar')}
+                </button>
+              </div>
+              <div className="adl-editor-menu-section">
+                <label className="adl-editor-menu-field">
+                  {t('Arrangement', 'Alineación y distribución')}
+                  <select
+                    aria-label={t('Arrangement', 'Alineación y distribución')}
+                    value={arrangement}
+                    onChange={(event) => setArrangement(event.target.value as Arrangement)}
+                  >
+                    {(
+                      [
+                        ['left', t('Align left', 'Alinear izquierda')],
+                        ['right', t('Align right', 'Alinear derecha')],
+                        ['top', t('Align top', 'Alinear arriba')],
+                        ['bottom', t('Align bottom', 'Alinear abajo')],
+                        ['center-x', t('Center horizontally', 'Centrar horizontalmente')],
+                        ['center-y', t('Center vertically', 'Centrar verticalmente')],
+                        ['horizontal', t('Distribute horizontally', 'Distribuir horizontalmente')],
+                        ['vertical', t('Distribute vertically', 'Distribuir verticalmente')],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="adl-editor-menu-action"
+                  disabled={
+                    !free ||
+                    nodeIds.length <
+                      (arrangement === 'horizontal' || arrangement === 'vertical' ? 3 : 2) ||
+                    nodeIds.some((id) => isNodeLocked(snapshot.document, id))
+                  }
+                  onClick={() => {
+                    setMenuOpen(false)
+                    arrange()
+                  }}
+                >
+                  {t('Arrange selection', 'Organizar selección')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       {error && <span role="alert">{error}</span>}
     </>
   )
@@ -2730,32 +3246,40 @@ export function EditorRelations() {
           {t('Connect', 'Conectar')}
         </button>
       </form>
-      <details>
-        <summary>
+      <div className="adl-editor-relations">
+        <h4>
           {t('Existing connections', 'Conexiones existentes')} (
           {edgesOf(snapshot.document.spec).length})
-        </summary>
-        {edgesOf(snapshot.document.spec).map((e) => (
-          <div className="adl-editor-relation" key={e.id}>
-            <span>{e.label || `${e.from} → ${e.to}`}</span>
-            <button
-              type="button"
-              aria-label={t(`Delete connection ${e.id}`, `Eliminar conexión ${e.id}`)}
-              onClick={() => {
-                const result = adapter.removeRelations(snapshot.document.spec, [e.id!])
-                if (result.ok)
-                  dispatch(
-                    store,
-                    [{ type: 'spec.replace', spec: result.value, references: 'prune-references' }],
-                    'Delete connection',
-                  )
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </details>
+        </h4>
+        <ul className="adl-editor-relation-list">
+          {edgesOf(snapshot.document.spec).map((e) => (
+            <li className="adl-editor-relation" key={e.id}>
+              <span>{e.label || `${e.from} → ${e.to}`}</span>
+              <button
+                type="button"
+                aria-label={t(`Delete connection ${e.id}`, `Eliminar conexión ${e.id}`)}
+                onClick={() => {
+                  const result = adapter.removeRelations(snapshot.document.spec, [e.id!])
+                  if (result.ok)
+                    dispatch(
+                      store,
+                      [
+                        {
+                          type: 'spec.replace',
+                          spec: result.value,
+                          references: 'prune-references',
+                        },
+                      ],
+                      'Delete connection',
+                    )
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       {error && <p role="alert">{error}</p>}
     </section>
   )
@@ -2926,8 +3450,11 @@ export function EditorOutline({ className }: { className?: string }) {
     },
   ]
   return (
-    <details className={`adl-editor-outline ${className ?? ''}`}>
-      <summary>{t('Diagram outline', 'Estructura del diagrama')}</summary>
+    <section
+      className={`adl-editor-outline ${className ?? ''}`}
+      aria-label={t('Diagram outline', 'Estructura del diagrama')}
+    >
+      <h2 className="adl-editor-panel-title">{t('Diagram outline', 'Estructura del diagrama')}</h2>
       <section role="region" aria-label={t('Diagram outline', 'Estructura del diagrama')}>
         {sections.map((section) => (
           <div key={section.kind}>
@@ -2963,6 +3490,6 @@ export function EditorOutline({ className }: { className?: string }) {
           </div>
         ))}
       </section>
-    </details>
+    </section>
   )
 }

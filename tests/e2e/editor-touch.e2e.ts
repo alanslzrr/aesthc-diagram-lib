@@ -36,7 +36,7 @@ test('two-finger pinch pans and zooms without committing node edits', async ({
   await expect(page.getByLabel('Zoom', { exact: true })).not.toHaveText(before ?? '')
   expect(await node.getAttribute('x')).toBe(x)
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
   await cdp.detach()
 })
 

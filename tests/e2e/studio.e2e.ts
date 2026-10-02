@@ -1,6 +1,30 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
+
+// Less frequent selection commands live in the explicit actions menu.
+async function menuAction(page: Page, name: string) {
+  await page.getByRole('button', { name: 'More actions', exact: true }).click()
+  await page.getByRole('menuitem', { name, exact: true }).click()
+}
+
+async function zoomOutTo(page: Page, percent: number) {
+  const zoom = page.getByLabel('Zoom', { exact: true })
+  const read = async () => Number.parseInt((await zoom.textContent()) ?? '100', 10)
+  for (let step = 0; step < 16 && (await read()) > percent; step++) {
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click()
+  }
+  return read()
+}
+
+async function geometry(locator: Locator) {
+  return {
+    x: Number(await locator.getAttribute('x')),
+    y: Number(await locator.getAttribute('y')),
+    width: Number(await locator.getAttribute('width')),
+    height: Number(await locator.getAttribute('height')),
+  }
+}
 
 test('Studio edits, undoes, validates drafts and restores a saved document', async ({ page }) => {
   await page.goto('/studio.html')
@@ -114,7 +138,7 @@ test('Studio creates, resizes, connects, duplicates and groups nodes', async ({ 
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Audit service', exact: true })).toHaveCount(2)
   await page.getByRole('button', { name: 'Order API', exact: true }).click({ modifiers: ['Shift'] })
-  await page.getByRole('button', { name: 'Group', exact: true }).click()
+  await menuAction(page, 'Group')
   await page.getByText('Document JSON', { exact: true }).click()
   const document = JSON.parse(
     await page.getByRole('textbox', { name: 'Document JSON' }).inputValue(),
@@ -190,7 +214,7 @@ test('Studio marquee selects across zoom, cancels without edits and supports add
     await nodes.count(),
   )
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('Studio selects timeline labels and excludes sequence activation bars from focus targets', async ({
@@ -290,13 +314,13 @@ test('Studio system clipboard validates fragments and handles denied access with
   })
   await page.goto('/studio.html')
   await page.getByRole('button', { name: 'Order API', exact: true }).click()
-  await page.getByRole('button', { name: 'Copy to clipboard', exact: true }).click()
-  await page.getByRole('button', { name: 'Paste from clipboard', exact: true }).click()
+  await menuAction(page, 'Copy to clipboard')
+  await menuAction(page, 'Paste from clipboard')
   await expect(page.getByRole('button', { name: 'Order API', exact: true })).toHaveCount(2)
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Order API', exact: true })).toHaveCount(1)
   await page.evaluate(() => navigator.clipboard.writeText('{"not":"a fragment"}'))
-  await page.getByRole('button', { name: 'Paste from clipboard', exact: true }).click()
+  await menuAction(page, 'Paste from clipboard')
   await expect(page.getByRole('alert')).toContainText('clipboard.invalid')
   await page.evaluate(() =>
     Object.defineProperty(navigator, 'clipboard', {
@@ -308,7 +332,7 @@ test('Studio system clipboard validates fragments and handles denied access with
       },
     }),
   )
-  await page.getByRole('button', { name: 'Paste from clipboard', exact: true }).click()
+  await menuAction(page, 'Paste from clipboard')
   await expect(page.getByRole('alert')).toContainText('clipboard.denied')
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
   await page.getByRole('button', { name: 'Order API', exact: true }).click()
@@ -324,7 +348,7 @@ test('Studio system clipboard validates fragments and handles denied access with
       },
     })
   })
-  await page.getByRole('button', { name: 'Paste from clipboard', exact: true }).click()
+  await menuAction(page, 'Paste from clipboard')
   await page.getByLabel('Label', { exact: true }).fill('Newer revision')
   await page.getByRole('button', { name: 'Apply label', exact: true }).click()
   await page.evaluate(() =>
@@ -381,6 +405,7 @@ test('Studio aligns a selection in one undoable transaction', async ({ page }) =
   const before = await api.getAttribute('x')
   await api.click()
   await orders.click({ modifiers: ['Shift'] })
+  await page.getByRole('button', { name: 'More actions', exact: true }).click()
   await page.getByLabel('Arrangement', { exact: true }).selectOption('left')
   await page.getByRole('button', { name: 'Arrange selection', exact: true }).click()
   expect(await api.getAttribute('x')).toBe(await orders.getAttribute('x'))
@@ -504,6 +529,165 @@ test('Studio resizes a whole selection from one anchored handle in a single undo
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   expect(Number(await api.getAttribute('width'))).toBe(beforeApi.width)
   expect(Number(await database.getAttribute('width'))).toBe(beforeDatabase.width)
+})
+
+test('low zoom keeps every painted resize marker on its own actionable target', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Desktop pointer precision')
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/studio.html')
+  await page.getByRole('button', { name: 'Order API', exact: true }).click()
+  // The audit reproduced the mismatch at 11%; go all the way to the 10% floor.
+  expect(await zoomOutTo(page, 10)).toBeLessThanOrEqual(10)
+  const sample = (kind: 'node' | 'selection') =>
+    page.evaluate((kind) => {
+      const directions = ['nw', 'n', 'ne', 'e', 's', 'sw', 'w', 'se'] as const
+      const target = (direction: string) =>
+        document.querySelector(
+          kind === 'node'
+            ? `[data-resize-node][data-resize-direction="${direction}"]`
+            : `[data-resize-selection][data-resize-direction="${direction}"]`,
+        )
+      const classify = (hit: Element | null) => {
+        if (!hit) return 'none'
+        const handle = hit.closest('[data-resize-direction]')
+        if (handle) {
+          const wall = kind === 'node' ? 'data-resize-node' : 'data-resize-selection'
+          const scope = handle.hasAttribute(wall)
+          return `${scope ? 'resize' : 'other-resize'}:${handle.getAttribute('data-resize-direction')}`
+        }
+        if (hit.closest('[data-connect-source]')) return 'connect'
+        if (hit.closest('[data-port]')) return 'port'
+        return `other:${hit.tagName.toLowerCase()}`
+      }
+      return directions.map((direction) => {
+        const marker = document.querySelector<SVGGraphicsElement>(
+          `[data-resize-marker="${direction}"]`,
+        )
+        if (!marker || !target(direction))
+          return { direction, present: false, width: 0, hits: [] as string[] }
+        const box = marker.getBoundingClientRect()
+        const inset = Math.min(1.5, box.width / 4, box.height / 4)
+        const points: [number, number][] = [
+          [box.x + box.width / 2, box.y + box.height / 2],
+          [box.x + inset, box.y + inset],
+          [box.x + box.width - inset, box.y + inset],
+          [box.x + inset, box.y + box.height - inset],
+          [box.x + box.width - inset, box.y + box.height - inset],
+          [box.x + box.width / 2, box.y + inset],
+          [box.x + inset, box.y + box.height / 2],
+        ]
+        return {
+          direction,
+          present: true,
+          width: box.width,
+          hits: points.map(([x, y]) => classify(document.elementFromPoint(x, y))),
+        }
+      })
+    }, kind)
+  // Order API carries an inbound port on the left and a connect dot (plus an
+  // outbound port) on the right. Those dots are painted after the resize
+  // handles, so they own the exact edge midpoint; every other pixel of a
+  // resize marker must belong to its own target, and the occupied midpoints
+  // may only resolve to their visible dot or the resize target, never to a
+  // different direction or the canvas.
+  const occupants: Record<string, string> = { w: 'port', e: 'connect' }
+  for (const item of await sample('node')) {
+    expect(item.present, `marker ${item.direction} must be painted`).toBe(true)
+    expect(item.width, `marker ${item.direction} must be visible`).toBeGreaterThan(0)
+    if (occupants[item.direction]) {
+      expect(item.hits[0], `marker ${item.direction} midpoint owner`).toBe(
+        occupants[item.direction],
+      )
+      for (const hit of item.hits)
+        expect([`resize:${item.direction}`, occupants[item.direction]]).toContain(hit)
+    } else {
+      expect(item.hits, `marker ${item.direction} must hit its own target`).toEqual(
+        Array(item.hits.length).fill(`resize:${item.direction}`),
+      )
+    }
+  }
+  // A multi-selection renders no port or connect targets, so all eight
+  // directions must resolve to their own handle.
+  await page.getByRole('button', { name: 'Orders', exact: true }).click({ modifiers: ['Shift'] })
+  for (const item of await sample('selection')) {
+    expect(item.present, `selection marker ${item.direction} must be painted`).toBe(true)
+    expect(item.hits, `selection marker ${item.direction} must hit its own target`).toEqual(
+      Array(item.hits.length).fill(`resize:${item.direction}`),
+    )
+  }
+})
+
+test('low zoom resize keeps the opposite anchor, distinguishes body drags and undoes once', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Mouse resize gesture')
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/studio.html')
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const database = page.getByRole('button', { name: 'Orders', exact: true })
+  await node.click()
+  expect(await zoomOutTo(page, 10)).toBeLessThanOrEqual(10)
+  const undo = page.getByRole('button', { name: 'Undo', exact: true })
+  // Dragging the body may move the node but never resize it.
+  const before = await geometry(node)
+  const body = await node.boundingBox()
+  if (!body) throw Error('node absent')
+  await page.mouse.move(body.x + body.width / 2, body.y + body.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(body.x + body.width / 2 + 24, body.y + body.height / 2 + 12, { steps: 4 })
+  await page.mouse.up()
+  const moved = await geometry(node)
+  expect(moved.width).toBe(before.width)
+  expect(moved.height).toBe(before.height)
+  expect(moved.x).not.toBe(before.x)
+  await undo.click()
+  expect(await geometry(node)).toEqual(before)
+  await expect(undo).toBeDisabled()
+  // The southeast marker grows the node while the northwest corner stays fixed.
+  await node.click()
+  const handle = page.locator('[data-resize-node][data-resize-direction="se"]')
+  const box = await handle.boundingBox()
+  if (!box) throw Error('missing southeast handle')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 16, box.y + box.height / 2 + 16, { steps: 4 })
+  await page.mouse.up()
+  const resized = await geometry(node)
+  expect(resized.x).toBe(before.x)
+  expect(resized.y).toBe(before.y)
+  expect(resized.width).toBeGreaterThan(before.width)
+  expect(resized.height).toBeGreaterThan(before.height)
+  await undo.click()
+  expect(await geometry(node)).toEqual(before)
+  await expect(undo).toBeDisabled()
+  // A whole selection resizes from one marker in a single undoable edit.
+  await node.click()
+  await database.click({ modifiers: ['Shift'] })
+  const beforeDatabase = await geometry(database)
+  const selectionHandle = page.locator('[data-resize-selection][data-resize-direction="se"]')
+  const selectionBox = await selectionHandle.boundingBox()
+  if (!selectionBox) throw Error('missing selection handle')
+  await page.mouse.move(
+    selectionBox.x + selectionBox.width / 2,
+    selectionBox.y + selectionBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    selectionBox.x + selectionBox.width / 2 + 16,
+    selectionBox.y + selectionBox.height / 2 + 16,
+    { steps: 4 },
+  )
+  await page.mouse.up()
+  expect((await geometry(node)).width).toBeGreaterThan(before.width)
+  expect((await geometry(database)).width).toBeGreaterThan(beforeDatabase.width)
+  await undo.click()
+  expect(await geometry(node)).toEqual(before)
+  expect(await geometry(database)).toEqual(beforeDatabase)
+  await expect(undo).toBeDisabled()
 })
 
 test('Studio selects connections and edits manual routes through draggable waypoints and anchors', async ({

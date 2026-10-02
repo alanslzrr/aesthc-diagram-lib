@@ -28,7 +28,7 @@ test('T44.1 the full editing workflow runs with the keyboard alone', async ({ pa
   const before = await node.getAttribute('x')
   await page.keyboard.press('ArrowRight')
   expect(await node.getAttribute('x')).not.toBe(before)
-  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'Unsaved changes' })).toBeVisible()
   const handle = page.getByRole('button', { name: 'Connect: Keyboard node', exact: true })
   await handle.focus()
   await page.keyboard.press('Enter')
@@ -67,7 +67,7 @@ test('T44.2 editor shortcuts do not hijack keys while focus is outside the canva
   }
   await expect(node).toBeVisible()
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({ page }) => {

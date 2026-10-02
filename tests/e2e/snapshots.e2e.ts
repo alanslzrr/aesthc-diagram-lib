@@ -44,12 +44,14 @@ test('frozen A remains complete after rebuilding and serving only B', async ({ b
       'site/tsconfig.json',
       'site/vite.config.ts',
       'site/index.html',
+      'site/playground.html',
       'site/docs.html',
       'site/studio.html',
       'site/viewer.html',
       'package.json',
       'tsconfig.json',
       'pnpm-workspace.yaml',
+      'heyo-docs.config.mjs',
     ])
       cpSync(join(root, path), join(directory, path), { recursive: true })
     symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir')

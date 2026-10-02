@@ -34,7 +34,7 @@ test('T53.2 cancel keeps the document, draft and saved copy untouched', async ({
   await expect(notice).toBeHidden()
   await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()
   await page.getByText('Saved copies', { exact: true }).click()
-  const savedCopies = page.locator('details.studio-copies')
+  const savedCopies = page.locator('.studio-copies')
   await expect(savedCopies.getByText('Order intake', { exact: false })).toBeVisible()
 })
 
@@ -55,7 +55,7 @@ test('T53.2 accepting opens a new graph document without overwriting the origina
   await page.getByRole('button', { name: 'Save locally', exact: true }).click()
   await expect(page.getByText('Saved on this device.', { exact: false })).toBeVisible()
   await page.getByText('Saved copies', { exact: true }).click()
-  const copies = page.locator('details.studio-copies')
+  const copies = page.locator('.studio-copies')
   await expect(copies.locator('li')).toHaveCount(2)
   await copies.getByRole('button', { name: 'Open', exact: true }).first().click()
   await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()

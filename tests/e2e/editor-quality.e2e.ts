@@ -86,7 +86,11 @@ test('T36.2 publish export measures long labels with embedded fonts without clip
     ]),
   )
   await page.getByRole('button', { name: 'Apply JSON' }).click()
-  await expect(page.getByRole('button', { name: /Kafka event gateway/ })).toBeVisible()
+  await expect(
+    page
+      .locator('.adl-editor-surface')
+      .getByRole('button', { name: 'Kafka event gateway consumption pipeline', exact: true }),
+  ).toBeVisible()
   await page.getByLabel('Export quality').selectOption('publish')
   await page.getByLabel('Export format').selectOption('svg')
   const downloadPromise = page.waitForEvent('download')

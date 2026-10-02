@@ -59,7 +59,7 @@ test('T29.2 raster image failures report precise codes and a retry succeeds', as
   await page.getByLabel('Export format').selectOption('PNG')
   await page.getByRole('button', { name: 'Download', exact: true }).click()
   await expect(status(page)).toContainText('export.image')
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
   await page.evaluate(() => {
     ;(window as unknown as { Image: unknown }).Image = (
       window as unknown as { __originalImage: unknown }
@@ -82,7 +82,7 @@ test('T29.2 a null canvas blob fails encoding without reporting success', async 
   await page.getByLabel('Export format').selectOption('PNG')
   await page.getByRole('button', { name: 'Download', exact: true }).click()
   await expect(status(page)).toContainText('export.encode')
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T39.2 exports keep notes, links and extensions out of the SVG and JSON carries source', async ({
