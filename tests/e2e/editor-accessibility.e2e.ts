@@ -59,15 +59,57 @@ test('T44.2 editor shortcuts do not hijack keys while focus is outside the canva
   page,
 }) => {
   await page.goto('/studio.html')
+  const url = page.url()
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   await node.click()
-  await page.getByLabel('Language').focus()
+  // WebKit turns Backspace on a non-editable target into history navigation,
+  // so the destructive-shortcut probe is an editable, test-owned host control
+  // outside the diagram: browser-native editing consumes Delete/Backspace.
+  await page.evaluate(() => {
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.value = 'probe'
+    input.setAttribute('aria-label', 'External shortcut probe')
+    document.body.appendChild(input)
+  })
+  const probe = page.getByLabel('External shortcut probe')
+  await probe.focus()
+  await expect(probe).toBeFocused()
+  // Record what the page did with each shortcut once the event bubbled: the
+  // editor must leave the browser-native copy/save behavior alone off-canvas.
+  await page.evaluate(() => {
+    const log: { key: string; prevented: boolean }[] = []
+    ;(window as unknown as { shortcutLog: typeof log }).shortcutLog = log
+    document.addEventListener('keydown', (event) =>
+      log.push({ key: event.key, prevented: event.defaultPrevented }),
+    )
+  })
   for (const key of ['Delete', 'Backspace', 'ControlOrMeta+c', 'ControlOrMeta+s']) {
     await page.keyboard.press(key)
   }
+  expect(await probe.inputValue(), 'Backspace edited only the host input').toBe('prob')
+  expect(page.url(), 'shortcuts outside the canvas must not navigate').toBe(url)
+  await expect(probe).toBeFocused()
   await expect(node).toBeVisible()
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
   await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
+  const log = await page.evaluate(
+    () => (window as unknown as { shortcutLog: { key: string; prevented: boolean }[] }).shortcutLog,
+  )
+  expect(
+    log.filter((entry) => entry.prevented),
+    'the editor must not hijack off-canvas keys',
+  ).toEqual([])
+  // Independent focus check for the language select: it keeps focus while the
+  // same permitted browser shortcuts arrive, without pressing Backspace.
+  const language = page.getByLabel('Language')
+  await language.focus()
+  await expect(language).toBeFocused()
+  await page.keyboard.press('ControlOrMeta+c')
+  await page.keyboard.press('ControlOrMeta+s')
+  await expect(language).toBeFocused()
+  expect(page.url()).toBe(url)
+  await expect(node).toBeVisible()
 })
 
 test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({ page }) => {

@@ -4,16 +4,21 @@ import { test, expect, type Page } from '@playwright/test'
 // every corner at any pan/zoom/document size, follows the camera phase, and
 // disappears completely when the document turns the grid off.
 
-/** Screen-pixel shift of the dot pattern between two fixed clips. */
+/**
+ * CSS-pixel shift of the dot pattern between two fixed clips. Both bitmaps must
+ * be CSS-scaled (`page.screenshot({ clip, scale: 'css' })`) so the bitmap, the
+ * projected spacing and the expected geometry motion are all in the same unit.
+ */
 async function dotShift(
   page: Page,
   first: Buffer,
   second: Buffer,
   spacing: number,
   expected: { x: number; y: number },
+  clip: { width: number; height: number },
 ) {
   return page.evaluate(
-    async ({ a, b, spacing, expected }) => {
+    async ({ a, b, spacing, expected, clip }) => {
       const load = (source: string) =>
         new Promise<HTMLImageElement>((resolve, reject) => {
           const image = new Image()
@@ -36,6 +41,10 @@ async function dotShift(
       }
       const source = draw(imageA)
       const target = draw(imageB)
+      if (source.width !== clip.width || source.height !== clip.height)
+        throw new Error(
+          `dotShift needs ${clip.width}x${clip.height} CSS-pixel bitmaps, decoded ${source.width}x${source.height}`,
+        )
       let best = { sx: 0, sy: 0, cost: Number.POSITIVE_INFINITY }
       for (let sx = -12; sx <= 12; sx++)
         for (let sy = -12; sy <= 12; sy++) {
@@ -76,6 +85,7 @@ async function dotShift(
       b: `data:image/png;base64,${second.toString('base64')}`,
       spacing,
       expected,
+      clip,
     },
   )
 }
@@ -169,7 +179,9 @@ test('grid covers the viewport in every corner and reacts to pan and resize', as
   const scrollBefore = await page.evaluate(() => window.scrollY)
   const clip = await emptyCanvasClip(page)
   const surfaceBefore = (await surface.boundingBox())!
-  const firstClip = await page.screenshot({ clip, animations: 'disabled' })
+  // CSS scale keeps the correlation in CSS pixels, the unit of the geometry
+  // bounds, zoom and projected spacing, on every device pixel ratio.
+  const firstClip = await page.screenshot({ clip, scale: 'css', animations: 'disabled' })
   const node = page.locator('.adl-editor-surface [data-hit-node]').first()
   const nodeBefore = (await node.boundingBox())!
   const drag = { x: 5, y: 3 }
@@ -184,9 +196,9 @@ test('grid covers the viewport in every corner and reacts to pan and resize', as
   const nodeAfter = (await node.boundingBox())!
   const moved = { x: nodeAfter.x - nodeBefore.x, y: nodeAfter.y - nodeBefore.y }
   expect(Math.hypot(moved.x - drag.x, moved.y - drag.y)).toBeLessThan(1)
-  const secondClip = await page.screenshot({ clip, animations: 'disabled' })
+  const secondClip = await page.screenshot({ clip, scale: 'css', animations: 'disabled' })
   const projectedSpacing = Number(initial.spacing ?? '16') * zoom
-  const shift = await dotShift(page, firstClip, secondClip, projectedSpacing, moved)
+  const shift = await dotShift(page, firstClip, secondClip, projectedSpacing, moved, clip)
   expect(
     Math.hypot(shift.matched.x - moved.x, shift.matched.y - moved.y),
     `dots moved (${shift.matched.x}, ${shift.matched.y}), geometry moved (${moved.x}, ${moved.y})`,
@@ -206,6 +218,52 @@ test('grid covers the viewport in every corner and reacts to pan and resize', as
       return Math.max(...Object.values(resized.cover ?? { gap: 999 }).map(Math.abs))
     })
     .toBeLessThanOrEqual(1)
+})
+
+// Negative control for the CSS-unit contract: a deliberately doubled pan
+// transform (10x6 bitmap motion against an expected CSS motion of 5x3, exactly
+// the DPR 2 mismatch this file used to compare) must exceed the tolerance,
+// while the same bitmaps still match once the expected motion uses their unit.
+test('grid correlation rejects a doubled transform in mixed units', async ({ page }) => {
+  const { first, second } = await page.evaluate(() => {
+    let seed = 0x2f6e2b1
+    const random = () => {
+      seed ^= seed << 13
+      seed ^= seed >>> 17
+      seed ^= seed << 5
+      seed >>>= 0
+      return seed
+    }
+    const base = document.createElement('canvas')
+    base.width = 80
+    base.height = 80
+    const context = base.getContext('2d')!
+    const pixels = context.createImageData(80, 80)
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      pixels.data[i] = random() & 0xff
+      pixels.data[i + 1] = random() & 0xff
+      pixels.data[i + 2] = random() & 0xff
+      pixels.data[i + 3] = 0xff
+    }
+    context.putImageData(pixels, 0, 0)
+    const shifted = document.createElement('canvas')
+    shifted.width = 80
+    shifted.height = 80
+    shifted.getContext('2d')!.drawImage(base, 10, 6)
+    return { first: base.toDataURL('image/png'), second: shifted.toDataURL('image/png') }
+  })
+  const decode = (url: string) => Buffer.from(url.slice(url.indexOf(',') + 1), 'base64')
+  const clip = { width: 80, height: 80 }
+  const doubled = await dotShift(page, decode(first), decode(second), 5, { x: 5, y: 3 }, clip)
+  expect(
+    Math.hypot(doubled.matched.x - 5, doubled.matched.y - 3),
+    `doubled motion (${doubled.matched.x}, ${doubled.matched.y}) must exceed the tolerance`,
+  ).toBeGreaterThan(1.5)
+  const aligned = await dotShift(page, decode(first), decode(second), 5, { x: 10, y: 6 }, clip)
+  expect(
+    Math.hypot(aligned.matched.x - 10, aligned.matched.y - 6),
+    'the correlator must match the same motion once the expected unit agrees',
+  ).toBeLessThanOrEqual(1.5)
 })
 
 test('Show grid removes the single grid layer everywhere', async ({ page }) => {
