@@ -83,8 +83,9 @@ const initial = createDocument(
   { id: 'studio-document', locale: 'en' },
 )
 if (!initial.ok) throw Error(initial.diagnostics.map((d) => d.code).join(', '))
+const initialDocument = initial.value
 const store = createEditorStore({
-  document: initial.value,
+  document: initialDocument,
   permissions: { edit: true, save: true, export: true },
 })
 const storage = createLocalStorageAdapter('studio')
@@ -109,6 +110,7 @@ function Workbench() {
     document: DiagramDocument
     losses: ConversionReceipt['losses']
   } | null>(null)
+  const [activeKey, setActiveKey] = useState(initialDocument.id)
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
@@ -139,6 +141,7 @@ function Workbench() {
     })
     if (commit.status !== 'rejected') {
       token.current = result.value.token
+      setActiveKey(key)
       setDraft(null)
       setMessage(t('Saved copy opened.', 'Copia guardada abierta.'))
     }
@@ -172,6 +175,7 @@ function Workbench() {
       })
       if (commit.status !== 'rejected') {
         token.current = null
+        setActiveKey(decoded.value.document.id)
         setMessage(t('Shared document loaded.', 'Documento compartido cargado.'))
       } else {
         setMessage(commit.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
@@ -184,7 +188,7 @@ function Workbench() {
   }, [])
   useEffect(() => {
     let cancelled = false
-    void storage.load(snapshot.document.id).then((result) => {
+    void storage.load(activeKey).then((result) => {
       if (cancelled || !result.ok) return
       if (!result.value) return
       if (canonicalizeContent(result.value.document) === canonicalizeContent(snapshot.document))
@@ -195,12 +199,12 @@ function Workbench() {
     return () => {
       cancelled = true
     }
-    // Only the initial document identity matters; edits do not reopen the notice.
-  }, [snapshot.document.id])
+    // Only the active storage identity matters; edits do not reopen the notice.
+  }, [activeKey])
   useEffect(() => {
     if (!autosave) return
     const controller = createAutosave(store, storage, {
-      key: snapshot.document.id,
+      key: activeKey,
       token: token.current,
       onState: (state) => {
         setSaving(state)
@@ -212,7 +216,7 @@ function Workbench() {
       controller.dispose()
       saveController.current = null
     }
-  }, [autosave, snapshot.document.id])
+  }, [autosave, activeKey])
   useEffect(() => {
     if (!snapshot.dirty) return
     const handler = (event: BeforeUnloadEvent) => {
@@ -318,6 +322,7 @@ function Workbench() {
       return
     }
     token.current = null
+    setActiveKey(conversion.document.id)
     setDraft(null)
     setConversion(null)
     setMessage(
@@ -334,7 +339,7 @@ function Workbench() {
     }
     setSaving({ status: 'saving' })
     const document = snapshot.document
-    const result = await storage.save(document.id, document, token.current)
+    const result = await storage.save(activeKey, document, token.current)
     if (result.status === 'saved') {
       token.current = result.token
       store.markSaved(document)
@@ -342,7 +347,7 @@ function Workbench() {
     } else setSaving(result)
   }
   async function load() {
-    const result = await storage.load(snapshot.document.id)
+    const result = await storage.load(activeKey)
     if (!result.ok) {
       if (result.diagnostics.some((d) => d.code === 'storage.corrupt')) setQuarantined(true)
       else setMessage(result.diagnostics.map((d) => d.code).join(', '))
@@ -384,14 +389,36 @@ function Workbench() {
       setMessage(t('Save-as name is invalid.', 'El nombre de guardar como no es válido.'))
       return
     }
+    const key = `saveas:${slug}`
+    const existing = await storage.load(key)
+    let expectedToken: string | null = null
+    if (existing.ok && existing.value) {
+      if (
+        !window.confirm(
+          t(
+            `A saved copy named ${slug} already exists. Overwrite it?`,
+            `Ya existe una copia guardada llamada ${slug}. ¿Sobrescribirla?`,
+          ),
+        )
+      )
+        return
+      expectedToken = existing.value.token
+    }
     setSaving({ status: 'saving' })
-    const result = await storage.save(`saveas:${slug}`, snapshot.document, null)
-    setSaving(result.status === 'saved' ? { status: 'saved', token: result.token } : result)
-    setMessage(
-      result.status === 'saved'
-        ? t(`Saved a copy as ${slug}.`, `Copia guardada como ${slug}.`)
-        : t('Save-as failed.', 'Guardar como falló.'),
-    )
+    const result = await storage.save(key, snapshot.document, expectedToken)
+    if (result.status === 'saved') {
+      // Save as activates the copy: key, token and autosave ownership switch
+      // together, the snapshot is marked saved and history stays intact.
+      token.current = result.token
+      setActiveKey(key)
+      store.markSaved(snapshot.document)
+      setDraft(null)
+      setSaving({ status: 'saved', token: result.token })
+      setMessage(t(`Saved a copy as ${slug}.`, `Copia guardada como ${slug}.`))
+    } else {
+      setSaving(result)
+      setMessage(t('Save-as failed.', 'Guardar como falló.'))
+    }
   }
   async function discardQuarantined() {
     if (
@@ -403,7 +430,7 @@ function Workbench() {
       )
     )
       return
-    const result = await storage.purge(snapshot.document.id)
+    const result = await storage.purge(activeKey)
     if (result.ok) {
       setQuarantined(false)
       setMessage(t('Corrupted copy discarded.', 'Copia corrupta descartada.'))
@@ -426,6 +453,8 @@ function Workbench() {
       history: 'reset',
     })
     if (commit.status !== 'rejected') {
+      token.current = null
+      setActiveKey(draft.document.id)
       setDraft(null)
       setMessage(t('Draft restored.', 'Borrador restaurado.'))
     }
@@ -438,6 +467,7 @@ function Workbench() {
       return
     setAutosave(false)
     token.current = null
+    setActiveKey(document.id)
     store.replaceDocument(document, {
       expectedRevision: store.getSnapshot().document.revision,
       history: 'reset',
