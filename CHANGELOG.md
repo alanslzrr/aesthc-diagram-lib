@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Audit remediation (2026-10-02)
+
+Fixed the full-scope audit findings. Highlights:
+
+- **Editor contracts:** replacement commands (`scene.set`, `document.replace-content`) preserve locked nodes, group locks and lock transitions and reject foreign id/type/schema replacements; the optimized `skipValidation` preview path is limited to fully delta-validated scene batches; conversion confirmations bind to their source document and revision; save-as switches an explicit active storage key, token and autosave ownership atomically; the playground hands its current document to Studio through a bounded local record and guards dirty work and unapplied JSON buffers.
+- **Exports:** portable HTML applies one allowlisted metadata projection with explicit `metadata:'all'`, carries the effective theme into the standalone runtime and allows only the SHA-256 hash of the emitted runtime script; cards reject invalid padding; the WebM lifecycle always settles and releases its tracks; the export menu is pointer-safe on WebKit.
+- **Profiles and renderers:** the deployment profile activates from `metadata.engineeringProfile` (external exempts owner only, database/storage and security groups require explicit privacy, regions resolve through ancestor groups, boundary crossings require metadata); optional `registry` props on `EditorRoot`/`DiagramViewer` plus portable-selector failures replace placeholder exports; one effective theme reaches custom nodes.
+- **Library contracts:** `compareDocuments` reports complete document-level deltas (metadata, groups, views, story, locale, extensions); evidence verification requires the declared range under `evidence.range.v1`; registered layout providers receive an isolated snapshot and honor pre-abort/midflight cancellation; share reads settle against a real deadline.
+- **Site:** panel tabs are instance-scoped and normalize on document-type changes; Apply JSON surfaces commit-time conflicts; deleting an occupied lane asks for an explicit policy; async imports are owned by request and revision; filtered landing links resolve; host theme and locale are shared across landing, docs, playground, Studio and Viewer; theme tokens, copied CSS and docs share one contract; the export workflow and movement model are shared and capability-aware; docs previews and the mobile header hold their legibility bounds.
+- **Tests:** WebKit grid correlation measures CSS pixels, shortcut tests isolate browser defaults, and the cross-engine matrix (Chromium, mobile Chromium, WebKit, mobile WebKit) passes. Known gap: the local long-task budget (`F33`) still reports one task over 100 ms on the development machine; the GitHub Actions `frame-budget` job is the reference gate.
+
 ### Added
 
 - Dedicated `/playground.html` editable workspace backed by the public editor store: one session per example (history, dirty baseline, selection and drafts survive switching), visual selection and movement, label editing, connections, undo/redo, contextual inspector, JSON panel, confirmed JSON import/export and a host theme control separate from the document appearance.
