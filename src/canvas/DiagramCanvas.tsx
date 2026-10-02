@@ -39,12 +39,30 @@ export interface DiagramCanvasProps {
   instanceId: string
   ariaLabel: string
   nodeVisuals: Record<string, DiagramNodeVisual>
+  /**
+   * Paint the document dot grid. Set false when the host already renders a
+   * single decorative backdrop behind the diagram (gallery, docs previews).
+   */
+  showGrid?: boolean
+  /**
+   * `natural` keeps the legibility floor for wide artboards; `contain` scales
+   * the whole SVG down to the container instead of forcing a horizontal scroll.
+   */
+  fit?: 'natural' | 'contain'
+  /**
+   * Visible frame. Defaults to the full artboard. Pass `previewBounds(layout)`
+   * (or your own useful bounds) to crop authored empty margins while keeping
+   * every node inside the frame.
+   */
+  view?: { x: number; y: number; width: number; height: number }
 }
 
 const strokeForVariant = (variant: EdgeVariant) =>
   variant === 'branch' ? 'var(--color-branch)' : 'var(--color-cobalt)'
 
-const NODE_BORDER = 'var(--diagram-node-border, var(--border))'
+// Decorative panel hairlines are not valid outlines for diagram semantics.
+const NODE_BORDER = 'var(--diagram-node-border, var(--diagram-structure, var(--border)))'
+const STRUCTURE = 'var(--diagram-structure, var(--border))'
 
 const nodeOpacity = (node: PlacedNode, highlight: Highlight | null) =>
   !highlight || highlight.nodes.has(node.id) ? 1 : DIMMED_OPACITY
@@ -68,6 +86,9 @@ export function DiagramCanvas({
   instanceId,
   ariaLabel,
   nodeVisuals,
+  showGrid = true,
+  fit = 'natural',
+  view,
 }: DiagramCanvasProps) {
   const [dismissedNodeId, setDismissedNodeId] = useState<string | null>(null)
   const dismissNode = (id: string) => {
@@ -84,16 +105,21 @@ export function DiagramCanvas({
 
   return (
     <svg
-      viewBox={`0 0 ${layout.width} ${layout.height}`}
+      viewBox={
+        view
+          ? `${view.x} ${view.y} ${view.width} ${view.height}`
+          : `0 0 ${layout.width} ${layout.height}`
+      }
       preserveAspectRatio="xMidYMid meet"
       role="group"
       aria-label={ariaLabel}
       className="diagram-canvas mx-auto block h-auto w-full"
       style={{
         // Never upscale past 1 unit = 1px (typography stays true to the band
-        // reference), and keep the legibility floor for wide artboards.
-        minWidth: Math.min(CANVAS_MIN_WIDTH, layout.width),
-        maxWidth: layout.width,
+        // reference); `natural` keeps the legibility floor for wide artboards,
+        // `contain` drops it so the host fits the preview proportionally.
+        minWidth: fit === 'contain' ? 0 : Math.min(CANVAS_MIN_WIDTH, view?.width ?? layout.width),
+        maxWidth: view?.width ?? layout.width,
       }}
     >
       <defs>
@@ -162,13 +188,16 @@ export function DiagramCanvas({
         })}
       </defs>
 
-      <rect
-        width={layout.width}
-        height={layout.height}
-        fill={`url(#${dotsId})`}
-        mask={`url(#${maskId})`}
-        className="opacity-[var(--diagram-grid-opacity,0.075)] dark:opacity-[var(--diagram-grid-opacity,0.12)]"
-      />
+      {showGrid ? (
+        <rect
+          data-diagram-grid="true"
+          width={layout.width}
+          height={layout.height}
+          fill={`url(#${dotsId})`}
+          mask={`url(#${maskId})`}
+          className="opacity-[var(--diagram-grid-opacity,0.075)] dark:opacity-[var(--diagram-grid-opacity,0.12)]"
+        />
+      ) : null}
 
       {/* Swimlane / group containers sit behind everything else. */}
       {layout.containers?.map((container) => (
@@ -179,8 +208,8 @@ export function DiagramCanvas({
             width={container.w}
             height={container.h}
             rx={6}
-            fill="color-mix(in srgb, var(--foreground) 2%, transparent)"
-            stroke="var(--border)"
+            fill="var(--diagram-container-fill, color-mix(in srgb, var(--foreground) 2%, transparent))"
+            stroke={STRUCTURE}
             strokeWidth={1}
           />
           {container.label ? (
@@ -209,9 +238,9 @@ export function DiagramCanvas({
             y1={lifeline.y0}
             x2={lifeline.x}
             y2={lifeline.y1}
-            stroke="var(--border)"
-            strokeWidth={1}
-            strokeDasharray="2 6"
+            stroke={STRUCTURE}
+            strokeWidth={1.2}
+            strokeDasharray="3 5"
           />
         </g>
       ))}
@@ -398,6 +427,7 @@ export function DiagramCanvas({
                               </text>
                             ) : null}
                             <text
+                              data-node-label="true"
                               x={node.cx}
                               y={node.y}
                               textAnchor="middle"
@@ -444,13 +474,9 @@ export function DiagramCanvas({
                           fill={
                             node.weight === 'primary'
                               ? 'var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))'
-                              : 'var(--diagram-secondary-fill, transparent)'
+                              : 'var(--diagram-secondary-fill, var(--diagram-node-fill, var(--card)))'
                           }
-                          stroke={
-                            node.weight === 'primary'
-                              ? 'color-mix(in srgb, var(--foreground) 28%, var(--border))'
-                              : NODE_BORDER
-                          }
+                          stroke={NODE_BORDER}
                           strokeWidth={1}
                         />
                         <path
@@ -458,6 +484,7 @@ export function DiagramCanvas({
                           fill="color-mix(in srgb, var(--foreground) 6%, transparent)"
                         />
                         <text
+                          data-node-label="true"
                           x={node.x + 14}
                           y={node.y + 17.5}
                           className={
@@ -471,11 +498,12 @@ export function DiagramCanvas({
                         {(node.fields ?? []).map((field, fieldIndex) => (
                           <g key={`${node.id}-${field.name}`}>
                             <line
+                              data-structure="er-separator"
                               x1={node.x}
                               y1={node.y + 26 + fieldIndex * 22}
                               x2={node.x + node.w}
                               y2={node.y + 26 + fieldIndex * 22}
-                              stroke={NODE_BORDER}
+                              stroke={STRUCTURE}
                               strokeWidth={0.75}
                             />
                             {field.key === 'pk' || field.key === 'fk' ? (
@@ -522,7 +550,7 @@ export function DiagramCanvas({
                         y1={node.y + node.h}
                         x2={node.x + node.w}
                         y2={node.y + node.h}
-                        stroke={NODE_BORDER}
+                        stroke={STRUCTURE}
                         strokeWidth={1}
                       />
                     ) : (
@@ -536,17 +564,10 @@ export function DiagramCanvas({
                         fill={
                           weight === 'primary'
                             ? 'var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))'
-                            : 'var(--diagram-secondary-fill, transparent)'
+                            : 'var(--diagram-secondary-fill, var(--diagram-node-fill, var(--card)))'
                         }
-                        stroke={
-                          weight === 'primary'
-                            ? 'color-mix(in srgb, var(--foreground) 28%, var(--border))'
-                            : NODE_BORDER
-                        }
+                        stroke={NODE_BORDER}
                         strokeWidth={1}
-                        className={
-                          weight === 'primary' ? 'opacity-100' : 'opacity-[0.84] dark:opacity-70'
-                        }
                       />
                     )}
 
@@ -580,13 +601,14 @@ export function DiagramCanvas({
                       <>
                         {node.initial ? (
                           <rect
+                            data-structure="state-outline"
                             x={node.x + 4}
                             y={node.y + 4}
                             width={node.w - 8}
                             height={node.h - 8}
                             rx={radius - 4}
                             fill="none"
-                            stroke={NODE_BORDER}
+                            stroke={STRUCTURE}
                             strokeWidth={1}
                             className="pointer-events-none"
                           />
@@ -719,7 +741,7 @@ export function DiagramCanvas({
             height={DECISION_PILL_H}
             rx={DECISION_PILL_R}
             fill="var(--background)"
-            stroke="color-mix(in srgb, var(--foreground) 24%, var(--border))"
+            stroke={STRUCTURE}
             strokeWidth={1}
           />
           <text
@@ -753,7 +775,7 @@ export function DiagramCanvas({
                 height={PILL_H}
                 rx={PILL_R}
                 fill="var(--background)"
-                stroke="var(--border)"
+                stroke={STRUCTURE}
                 strokeWidth={1}
               />
               <text

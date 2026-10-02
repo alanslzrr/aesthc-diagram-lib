@@ -176,10 +176,14 @@ describe('DiagramCanvas renders every type', () => {
     expect(markup).toContain('data-node-surface="true"')
   })
 
-  it('uses the host node-border token for secondary outlines', () => {
+  it('uses the host node-border token for every outline and keeps fills opaque', () => {
     const markup = render(EXAMPLE_DIAGRAMS['example-flowchart'].diagram.en)
-    expect(markup).toContain('stroke="var(--diagram-node-border, var(--border))"')
-    expect(markup).toContain('opacity-[0.84] dark:opacity-70')
+    expect(markup).toContain(
+      'stroke="var(--diagram-node-border, var(--diagram-structure, var(--border)))"',
+    )
+    expect(markup).toContain('var(--diagram-secondary-fill, var(--diagram-node-fill, var(--card)))')
+    // Secondary weight changes surface and ink, never node opacity.
+    expect(markup).not.toContain('opacity-[0.84]')
   })
 
   it('flowchart renders terminal shapes and edge pills', () => {

@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { registerDiagram, type FlowchartDiagramSpec } from '@aesthc/diagram-lib'
 import { getDiagram } from '@aesthc/diagram-lib/registry'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
-import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
+import { DiagramCanvas, previewBounds } from '@aesthc/diagram-lib/canvas'
 import { DiagramShowcase } from '@aesthc/diagram-lib/showcase'
 
 const spec = {
@@ -29,6 +29,26 @@ export const canvas = createElement(DiagramCanvas, {
   instanceId: 'package-consumer',
   ariaLabel: spec.caption,
   nodeVisuals: {},
+})
+
+const bounds = previewBounds(layout)
+
+export const framedCanvas = createElement(DiagramCanvas, {
+  layout,
+  highlight: null,
+  activeNodeId: null,
+  focusedNodeId: null,
+  selectedNodeId: null,
+  onTooltipNodeChange: () => {},
+  onFocusNode: () => {},
+  onSelectNode: () => {},
+  onDismissNode: () => {},
+  instanceId: 'package-consumer-framed',
+  ariaLabel: spec.caption,
+  nodeVisuals: {},
+  showGrid: false,
+  fit: 'contain',
+  view: bounds,
 })
 
 export const showcase = createElement(DiagramShowcase, {
