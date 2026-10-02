@@ -1,35 +1,26 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/common'
+import heyoConfig from '../../heyo-docs.config.mjs'
 import { renderDocument } from './render.tsx'
-export const groups = [
-  [
-    'Start here',
-    ['docs/index.md', 'docs/getting-started.md', 'docs/guides/react.md', 'docs/guides/theming.md'],
-  ],
-  [
-    'Diagram layouts',
-    ['band', 'flowchart', 'sequence', 'state-machine', 'er', 'timeline', 'swimlane'].map(
-      (type) => `docs/diagrams/${type}.md`,
-    ),
-  ],
-  [
-    'Reference',
-    [
-      'docs/api/index.md',
-      'docs/guides/share-export.md',
-      'docs/guides/migration.md',
-      'docs/guides/troubleshooting.md',
-      'docs/guides/support.md',
-    ],
-  ],
-  ['Work together', ['docs/agents/integrate.md', 'docs/maintainers/releasing.md']],
-]
+// Heyo Docs owns the content model: groups → sections → pages. Pages are
+// extensionless MDX references there; this pipeline serves the Markdown twins.
+const docFile = (page) => `docs/${page}.md`
+export const groups = heyoConfig.groups.map((group) => {
+  const files = (group.sections ?? []).flatMap((section) => section.pages ?? []).map(docFile)
+  for (const file of files)
+    if (!existsSync(file)) throw new Error(`Heyo config references a missing page: ${file}`)
+  if (!files.length) throw new Error(`Heyo config group without pages: ${group.group}`)
+  return [group.group, files]
+})
 const labels = {
   'docs/index.md': 'Introduction',
   'docs/getting-started.md': 'Getting started',
+  'docs/guides/editor.md': 'Editor guide',
   'docs/guides/react.md': 'React & Next.js',
   'docs/guides/theming.md': 'Theming',
+  'docs/guides/viewer.md': 'Viewer guide',
+  'docs/guides/extending.md': 'Extending',
   'docs/api/index.md': 'API reference',
   'docs/guides/share-export.md': 'Sharing & exports',
   'docs/guides/migration.md': 'Migration',
@@ -85,10 +76,11 @@ export function renderPage({ file, markdown, destination, routes, base, origin, 
   const type = file.startsWith('docs/diagrams/')
     ? file.split('/').at(-1).replace('.md', '')
     : file === 'docs/index.md'
-      ? 'band'
+      ? 'overview'
       : file === 'docs/getting-started.md'
         ? 'flowchart'
         : null
+  const previewCode = type === 'overview' ? 'band' : type
   const nav = groups.map(([name, files]) => ({
     name,
     pages: files.map((source) => ({
@@ -123,9 +115,10 @@ export function renderPage({ file, markdown, destination, routes, base, origin, 
     preview: type
       ? {
           type,
+          playground: previewCode,
           html: readFileSync(`site/dist/docs-assets/previews/${type}.html`, 'utf8'),
-          code: readFileSync(`examples/${type}.tsx`, 'utf8'),
-          highlighted: hljs.highlight(readFileSync(`examples/${type}.tsx`, 'utf8'), {
+          code: readFileSync(`examples/${previewCode}.tsx`, 'utf8'),
+          highlighted: hljs.highlight(readFileSync(`examples/${previewCode}.tsx`, 'utf8'), {
             language: 'typescript',
           }).value,
         }

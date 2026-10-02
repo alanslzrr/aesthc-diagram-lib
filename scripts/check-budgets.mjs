@@ -4,6 +4,26 @@ import { execFileSync } from 'node:child_process'
 
 // Multi-entry site: enforce the existing transfer limits on each entry graph,
 // counting shared and lazy chunks for every entry that can load them.
+//
+// Reviewed editor-entry budget: `playground.html` and `studio.html` embed the
+// full public editor (store, surface, inspector, toolbar). Their measured
+// graphs sit just under 180 KiB gzip, above the 175 KiB ceiling that still
+// applies to every reader-facing entry. This is a measured ceiling for the two
+// editor surfaces, not a general increase.
+//
+// Reviewed docs-entry budget: `docs.html` mounts the real `@heyo-sh/heyo-docs`
+// runtime shell under /docs. Its measured graph is ~233 KiB gzip (DocsApp,
+// base-ui primitives, search, MDX/OpenAPI surfaces and shared React chunks),
+// so the 175 KiB reader ceiling cannot cover a full documentation runtime.
+// The ceiling below is the measured graph plus ~7 KiB of headroom; review it
+// with `pnpm docs:build && pnpm check:budgets` after every Heyo upgrade.
+const editorEntryBudgets = {
+  'playground.html': 180 * 1024,
+  'studio.html': 180 * 1024,
+}
+const docsEntryBudgets = {
+  'docs.html': 240 * 1024,
+}
 const manifest = JSON.parse(readFileSync('site/dist/.vite/manifest.json', 'utf8'))
 for (const [entry, _value] of Object.entries(manifest).filter(([, value]) => value.isEntry)) {
   const files = new Set()
@@ -19,7 +39,7 @@ for (const [entry, _value] of Object.entries(manifest).filter(([, value]) => val
   }
   visit(entry)
   for (const [extension, maximum] of [
-    ['js', 175 * 1024],
+    ['js', docsEntryBudgets[entry] ?? editorEntryBudgets[entry] ?? 175 * 1024],
     ['css', 12 * 1024],
   ]) {
     const bytes = [...files]
