@@ -6,7 +6,7 @@ import '@aesthc/diagram-lib/styles.css'
 
 const spec = {
   "type": "sequence",
-  "caption": "Request and response",
+  "caption": "Client retry",
   "legend": {
     "main": "Main path",
     "branch": "Alternative"
@@ -15,24 +15,14 @@ const spec = {
     {
       "id": "a",
       "label": "Client"
-    },
-    {
-      "id": "b",
-      "label": "Server"
     }
   ],
   "messages": [
     {
-      "id": "request",
+      "id": "retry",
       "from": "a",
-      "to": "b",
-      "label": "GET /"
-    },
-    {
-      "id": "response",
-      "from": "b",
       "to": "a",
-      "label": "200 OK"
+      "label": "retry"
     }
   ]
 } satisfies DiagramSpec

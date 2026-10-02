@@ -8,7 +8,7 @@ for required host variables. For richer localized examples use the public exampl
 ```json
 {
   "type": "er",
-  "caption": "Users and orders",
+  "caption": "Order rows",
   "legend": {
     "main": "Main path",
     "branch": "Alternative"
@@ -16,19 +16,13 @@ for required host variables. For richer localized examples use the public exampl
   "entities": [
     {
       "id": "a",
-      "label": "User",
+      "label": "Order",
       "fields": [
         {
           "name": "id",
           "type": "uuid",
           "key": "pk"
-        }
-      ]
-    },
-    {
-      "id": "b",
-      "label": "Order",
-      "fields": [
+        },
         {
           "name": "user_id",
           "type": "uuid",
@@ -37,14 +31,7 @@ for required host variables. For richer localized examples use the public exampl
       ]
     }
   ],
-  "relations": [
-    {
-      "id": "orders",
-      "from": "a",
-      "to": "b",
-      "label": "places"
-    }
-  ]
+  "relations": []
 }
 ```
 
@@ -91,4 +78,8 @@ for required host variables. For richer localized examples use the public exampl
 
 IDs must be unique; references must exist. Parallel relations need explicit IDs
 when their identity must survive reordering. Large graphs and very long labels
-need host-specific testing; there is no automatic text measurement or drag editor.
+need host-specific testing. The declarative `DiagramCanvas` is render-only: it
+does not measure text or handle dragging. Editing is an opt-in entrypoint —
+`@aesthc/diagram-lib/editor` adds selection, movement, label editing, connections
+and undo with measured layout, as shown in the [editor guide](../guides/editor.md)
+and the [playground](https://alanslzrr.github.io/aesthc-diagram-lib/playground.html).

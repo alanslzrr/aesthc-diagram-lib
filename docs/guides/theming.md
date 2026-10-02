@@ -6,13 +6,13 @@ of this repository, not a requirement in your application.
 
 ```css
 :root {
-  --background: #e9eef4;
-  --foreground: #202b38;
-  --card: #f9fbfd;
-  --border: #aebdcd;
-  --muted: #dde5ee;
-  --muted-foreground: #536273;
-  --cobalt: #087cbd;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #fafafa;
+  --border: #eaeaea;
+  --muted: #f2f2f2;
+  --muted-foreground: #666666;
+  --cobalt: #0070f3;
   --branch: #a66b21;
   --diagram-font-display: Geist, system-ui, sans-serif;
   --diagram-font-sans: Geist, system-ui, sans-serif;
@@ -26,13 +26,13 @@ of this repository, not a requirement in your application.
   color-scheme: light;
 }
 [data-theme='dark'] {
-  --background: #070707;
-  --foreground: #f2f2ee;
-  --card: #101010;
-  --border: #242424;
-  --muted: #151515;
-  --muted-foreground: #a8a8a1;
-  --cobalt: #14a8ff;
+  --background: #000000;
+  --foreground: #ededed;
+  --card: #0a0a0a;
+  --border: #1f1f1f;
+  --muted: #141414;
+  --muted-foreground: #a1a1a1;
+  --cobalt: #3291ff;
   --branch: #d6a55e;
   --diagram-node-border: var(--border);
   --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
@@ -63,14 +63,38 @@ wrap it in a labelled, keyboard-focusable horizontal scroll region.
 
 ### Detail on light surfaces
 
-The example light palette uses a blue-gray canvas and lighter node surfaces,
-with darker blue/ochre accents. `--diagram-node-fill` and
-`--diagram-secondary-fill` separate primary and secondary cards without changing
-geometry. `--diagram-grid-opacity`, `--diagram-main-tail-opacity` and
+The example light palette uses white and near-black surfaces with Vercel-blue
+and ochre accents. `--diagram-node-fill` and `--diagram-secondary-fill`
+separate primary and secondary cards without changing geometry.
+`--diagram-grid-opacity`, `--diagram-main-tail-opacity` and
 `--diagram-branch-tail-opacity` keep dots and connection ends visible on light
 backgrounds. These tokens are optional: omitting them preserves the original
 canvas defaults. Define both theme scopes when overriding them, as shown above.
 The playground's Theme Studio and copied CSS use the same per-theme values.
+
+## Editor view appearance
+
+`DiagramDocument.presentation.theme` remains part of the document contract:
+each mode carries its own palette and the mode is serialized in JSON.
+`EditorRoot` accepts an optional `theme` prop that overrides only the *effective
+view appearance* while the override is supplied:
+
+```tsx
+<EditorRoot store={store} locale="en" theme={hostTheme}>
+  <EditorSurface />
+  <EditorInspector />
+</EditorRoot>
+```
+
+- Rendering (surface and overlays) uses the override mode's palette; the
+  serialized document is untouched.
+- While the override is active the inspector hides its own document theme
+  select, so a single host control remains the authority.
+- Changing the override is not a document edit: revision, undo history and dirty
+  state do not change, and importing a document with the opposite theme renders
+  with the override immediately.
+- Omit the prop for the standalone studio or any consumer that wants the
+  document's own mode to drive rendering.
 
 ## Brand icons and architecture providers
 

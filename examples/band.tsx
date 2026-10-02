@@ -13,10 +13,7 @@ const spec = {
   },
   "bands": [
     {
-      "title": "Input"
-    },
-    {
-      "title": "Output"
+      "title": "Pipeline"
     }
   ],
   "nodes": [
@@ -30,7 +27,7 @@ const spec = {
       "id": "b",
       "label": "Response",
       "description": "Return a response.",
-      "band": 1
+      "band": 0
     }
   ],
   "edges": [

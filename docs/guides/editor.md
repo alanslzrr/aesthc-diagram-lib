@@ -15,14 +15,21 @@ Import `@aesthc/diagram-lib/editor.css` once. Wrap controls in an `adl-editor` e
 ```tsx
 import { type DiagramDocument } from '@aesthc/diagram-lib/editor-core'
 import {
-  EditorRoot, EditorToolbar, EditorSurface, EditorInspector, EditorJsonPanel, EditorOutline,
-  EditorStatus, useEditorStore,
+  EditorRoot,
+  EditorToolbar,
+  EditorSurface,
+  EditorInspector,
+  EditorJsonPanel,
+  EditorOutline,
+  EditorStatus,
+  useEditorStore,
 } from '@aesthc/diagram-lib/editor'
 import '@aesthc/diagram-lib/editor.css'
 
 export function Editor({ document }: { document: DiagramDocument }) {
   const store = useEditorStore({
-    document, permissions: { edit: true, save: true, export: true },
+    document,
+    permissions: { edit: true, save: true, export: true },
   })
   return (
     <EditorRoot store={store} locale="en">
@@ -51,7 +58,7 @@ A store captures its initial document; later host changes must use `replaceDocum
 
 ## Keyboard and touch navigation
 
-`EditorOutline` provides a collapsible native-button list of authored nodes, connections and groups. Enter/Space selects an entity; Shift adds or removes it without editing content. Synthetic activation bars are not listed.
+The document panels present the authored nodes, connections and groups in an `Outline` tab (no disclosure triangle), with the JSON editor and the connections list in sibling tabs. Enter/Space selects an entity; Shift adds or removes it without editing content. Synthetic activation bars are not listed.
 
 Ordinary wheel input retains native page scrolling. Ctrl/Meta + wheel zooms around the cursor; the toolbar provides an alternative. Hold Space while the canvas itself is focused and drag to pan, or select the Pan tool. Two touch pointers pan and zoom around their midpoint; starting a pinch cancels any in-progress node drag instead of committing it. Navigation never enters document history.
 
@@ -76,7 +83,8 @@ const updated = getAdapter('band').editStructure(document.spec, {
 })
 if (updated.ok) {
   store.dispatch({
-    id: 'merge-bands', label: 'Merge bands',
+    id: 'merge-bands',
+    label: 'Merge bands',
     expectedRevision: document.revision,
     commands: [{ type: 'spec.replace', spec: updated.value, references: 'prune-references' }],
   })
@@ -89,7 +97,7 @@ The adapter leaves the original spec unchanged. Removed nodes and their dependen
 
 Drag empty canvas space in Select mode to draw a selection rectangle; any positive overlap selects a node. Shift adds to the previous selection. Reverse drags and zoom are supported. Escape or pointer cancellation restores the previous selection. Selection does not create undo entries, dirty the document or appear in exports. In Pan mode, dragging the background still moves the camera.
 
-A single unlocked node in a free-layout diagram exposes eight edge/corner resize handles. Drag it to preview a snapped size and release to commit one undoable transaction; Escape cancels. Each handle has a 44-screen-pixel target at every zoom. Focus it and use arrow keys for one-pixel resizing (Shift for 16 pixels), or use the inspector's width/height fields. Pointer resizing clamps sizes to 96×48 through 4096×4096. The opposite edge/corner stays fixed, including at the size limits; edges change only their own axis. Multi-node resizing remains pending. Structured diagrams retain their semantic geometry.
+A single unlocked node in a free-layout diagram exposes eight edge/corner resize handles. Drag it to preview a snapped size and release to commit one undoable transaction; Escape cancels. Handle targets stay 44 screen pixels when there is room and clamp to a fraction of the node at low zoom, so a handle never covers the card body and dragging a selected card still moves it. Focus it and use arrow keys for one-pixel resizing (Shift for 16 pixels), or use the inspector's width/height fields. Pointer resizing clamps sizes to 96×48 through 4096×4096. The opposite edge/corner stays fixed, including at the size limits; edges change only their own axis. Multi-node resizing from one anchored handle is supported and covered by the studio suite. Structured diagrams retain their semantic geometry.
 
 With two unlocked free-layout nodes selected, arrangement controls align their edges or centers to the selection bounds. Three or more nodes can be distributed with equal gaps, preserving the first and last positions on that axis. Arrangement preserves sizes, does not grid-round the resulting coordinates and commits one undo entry. A selection containing a locked node disables arrangement rather than moving only part of it.
 

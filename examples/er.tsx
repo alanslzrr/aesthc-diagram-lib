@@ -6,7 +6,7 @@ import '@aesthc/diagram-lib/styles.css'
 
 const spec = {
   "type": "er",
-  "caption": "Users and orders",
+  "caption": "Order rows",
   "legend": {
     "main": "Main path",
     "branch": "Alternative"
@@ -14,19 +14,13 @@ const spec = {
   "entities": [
     {
       "id": "a",
-      "label": "User",
+      "label": "Order",
       "fields": [
         {
           "name": "id",
           "type": "uuid",
           "key": "pk"
-        }
-      ]
-    },
-    {
-      "id": "b",
-      "label": "Order",
-      "fields": [
+        },
         {
           "name": "user_id",
           "type": "uuid",
@@ -35,14 +29,7 @@ const spec = {
       ]
     }
   ],
-  "relations": [
-    {
-      "id": "orders",
-      "from": "a",
-      "to": "b",
-      "label": "places"
-    }
-  ]
+  "relations": []
 } satisfies DiagramSpec
 
 export function Diagram() {

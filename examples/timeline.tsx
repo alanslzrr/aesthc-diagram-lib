@@ -14,11 +14,6 @@ const spec = {
   "events": [
     {
       "id": "a",
-      "label": "Design",
-      "description": "Agree on the contract."
-    },
-    {
-      "id": "b",
       "label": "Release",
       "description": "Publish the verified package."
     }

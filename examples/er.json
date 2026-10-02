@@ -1,6 +1,6 @@
 {
   "type": "er",
-  "caption": "Users and orders",
+  "caption": "Order rows",
   "legend": {
     "main": "Main path",
     "branch": "Alternative"
@@ -8,19 +8,13 @@
   "entities": [
     {
       "id": "a",
-      "label": "User",
+      "label": "Order",
       "fields": [
         {
           "name": "id",
           "type": "uuid",
           "key": "pk"
-        }
-      ]
-    },
-    {
-      "id": "b",
-      "label": "Order",
-      "fields": [
+        },
         {
           "name": "user_id",
           "type": "uuid",
@@ -29,12 +23,5 @@
       ]
     }
   ],
-  "relations": [
-    {
-      "id": "orders",
-      "from": "a",
-      "to": "b",
-      "label": "places"
-    }
-  ]
+  "relations": []
 }

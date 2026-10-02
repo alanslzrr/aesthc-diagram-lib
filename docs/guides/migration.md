@@ -66,6 +66,31 @@ Use the [editor guide](./editor.md) for composition, validation, export fonts,
 local persistence and known incomplete milestones. Studio has its own HTML entry
 and does not reinterpret existing playground `s=` links or overwrite its drafts.
 
+## Canvas presentation additions (no breaking changes)
+
+`DiagramCanvas` accepts three optional props and one new helper export:
+
+- `showGrid` (default `true`) and `fit` (default `'natural'`) — see the
+  [canvas contract](../api/index.md#presentation-framing).
+- `view` plus `previewBounds(layout)` from `/canvas` to crop authored empty
+  margins while keeping every node inside the frame.
+
+The optional props preserve their own defaults, but this release also trims
+shared layout geometry so compact examples stay legible on phones:
+
+| Constant            | Before | Now | Observable effect                                 |
+| ------------------- | ------ | --- | ------------------------------------------------- |
+| `SWIMLANE_HEADER_W` | 140    | 118 | Swimlane columns start at `118 + padding`.        |
+| `SWIMLANE_PAD`      | 24     | 8   | Smaller outer offsets; narrower layouts.          |
+| Timeline `MARGIN_X` | 96     | 64  | One-event timelines shift their centre and width. |
+
+Types and APIs are unchanged, but exact coordinates, exported bounds and visual
+snapshots shift. Re-verify manual scenes and exports if you depend on them. The
+longest shipped lane label (`ENGINEERING`, ~92px at 11.25px Geist Mono with
+tracking) still fits the header; `tests/layout-geometry.unit.spec.ts` guards
+that contract and the column/timeline spacing. Hosts that adopt
+`view`/`fit="contain"` take over the legibility check at the rendered width.
+
 ## M2 additions (no breaking changes)
 
 - `/viewer` + `/viewer.css`: read-only semantic viewer composition.
