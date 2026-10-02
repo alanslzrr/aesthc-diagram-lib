@@ -1,20 +1,22 @@
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { g as DiagramDocument, L as Locale, n as EntityRef, V as Viewport, t as StoryStep, N as NamedView, j as Result, R as ResolvedScene } from '../layout-BhvxbOAw.js';
+import { g as DiagramDocument, L as Locale, R as ResolveRendererRegistry, o as EntityRef, V as Viewport, t as StoryStep, N as NamedView, k as Result, h as ResolvedScene } from '../layout-B9EEWMV7.js';
 import { GraphSnapshot, RouteResult, ReachResult, GraphFilter } from '../graph/index.js';
 export { Comparison as DocumentComparison, EntityDelta, FieldChange, GraphNodeInfo, NodeRelations, SearchMatch, SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes } from '../graph/index.js';
-import { D as DeploymentProfileReport } from '../profiles-BU8Kb50T.js';
+import { D as DeploymentProfileReport } from '../profiles-CPgNfHct.js';
 import '../theme.js';
 
 interface DiagramViewerProps {
     document: DiagramDocument;
     locale?: Locale;
     className?: string;
+    /** Trusted per-instance custom node renderers; never loaded from the document. */
+    registry?: ResolveRendererRegistry;
 }
 /** Read-only semantic viewer: finder, inspector, exact route/reach highlight,
  * receipt-bound export, lenses, minimap, finite story and presentation.
  * Never mutates the document or the store. */
-declare function DiagramViewer({ document, locale, className }: DiagramViewerProps): react.JSX.Element;
+declare function DiagramViewer({ document, locale, className, registry, }: DiagramViewerProps): react.JSX.Element;
 
 interface FinderProps {
     graph: GraphSnapshot;

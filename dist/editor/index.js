@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-GSAEMTC2.js";
+} from "../chunk-DFEIZ57Q.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,18 +16,18 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-3N7YC3GS.js";
+} from "../chunk-FJJDAGJJ.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import {
   serializeDocument
-} from "../chunk-WD7BRA7G.js";
+} from "../chunk-TSYG4LOT.js";
 import "../chunk-BBMS4ALE.js";
 import {
   edgesOf,
   freeTypes,
   nodesOf
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-TN5OC77A.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
@@ -168,6 +168,23 @@ function intersectsMarquee(a, b) {
   return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0 && a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+// src/editor/panel-tabs.ts
+function panelTabsFor(type) {
+  return type === "timeline" ? ["outline", "json"] : ["outline", "json", "connections"];
+}
+function coercePanelTab(tab, supported) {
+  return supported.includes(tab) ? tab : supported[0];
+}
+function panelTabId(scope, tab) {
+  return `adl-editor-tab-${scope}-${tab}`;
+}
+function panelTabPanelId(scope, tab) {
+  return `adl-editor-tabpanel-${scope}-${tab}`;
+}
+function panelTabScope(reactId) {
+  return reactId.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
 // src/editor/index.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 var Context = createContext(null);
@@ -176,9 +193,13 @@ function EditorRoot({
   store,
   locale,
   theme,
+  registry,
   children
 }) {
-  const value = useMemo(() => ({ store, locale, theme }), [store, locale, theme]);
+  const value = useMemo(
+    () => ({ store, locale, theme, registry }),
+    [store, locale, theme, registry]
+  );
   return /* @__PURE__ */ jsx(Context.Provider, { value, children });
 }
 function useEditor() {
@@ -189,6 +210,10 @@ function useEditor() {
 function useEditorSnapshot() {
   const { store } = useEditor();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+function useEditorResolveContext() {
+  const { theme, registry } = useEditor();
+  return useMemo(() => ({ theme, renderers: registry }), [theme, registry]);
 }
 var shallowEqual = (a, b) => {
   if (Object.is(a, b)) return true;
@@ -321,13 +346,15 @@ function dispatch(store, commands, label) {
     commands
   });
 }
-function materialize(document2) {
+function materialize(document2, resolve) {
   const result = resolveDocument(document2, {
     quality: "edit",
     requestId: "gesture",
     measureText,
     skipValidation: true,
-    skipDiagnostics: true
+    skipDiagnostics: true,
+    theme: resolve?.theme,
+    renderers: resolve?.renderers
   });
   if (!result.ok) return document2.scene;
   return {
@@ -363,7 +390,7 @@ function EditorStatus() {
   ] });
 }
 function EditorToolbar() {
-  const { store } = useEditor(), snapshot = useEditorSelector(
+  const { store, registry } = useEditor(), snapshot = useEditorSelector(
     (s) => ({
       tool: s.tool,
       selection: s.selection,
@@ -380,7 +407,8 @@ function EditorToolbar() {
       requestId: "toolbar-fit",
       measureText,
       skipValidation: true,
-      skipDiagnostics: true
+      skipDiagnostics: true,
+      renderers: registry
     });
     if (result.ok) {
       const svg = document.querySelector('.adl-editor-surface > svg[role="group"]');
@@ -690,10 +718,14 @@ function EditorSurface({
 }) {
   const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels(), instanceId = useId();
   const svgRef = useRef(null), [size, setSize] = useState({ width: 800, height: 600 });
-  const { theme: viewTheme } = useEditor();
+  const { theme: viewTheme, registry } = useEditor();
   const activeDoc = snapshot.draft.kind === "gesture" ? snapshot.draft.preview : snapshot.document;
   const effectiveTheme = viewTheme ?? activeDoc.presentation.theme.mode;
   const palette = activeDoc.presentation.theme[effectiveTheme];
+  const resolveContext = useMemo(
+    () => ({ theme: effectiveTheme, renderers: registry }),
+    [effectiveTheme, registry]
+  );
   const resolvePreview = useMemo(() => createPreviewResolver(), [store]);
   const committedResolved = useMemo(
     () => resolveDocument(snapshot.document, {
@@ -701,9 +733,11 @@ function EditorSurface({
       requestId: instanceId,
       measureText,
       skipValidation: true,
-      skipDiagnostics: true
+      skipDiagnostics: true,
+      theme: effectiveTheme,
+      renderers: registry
     }),
-    [snapshot.document, instanceId]
+    [snapshot.document, instanceId, effectiveTheme, registry]
   );
   const resolved = useMemo(
     () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {
@@ -711,9 +745,19 @@ function EditorSurface({
       requestId: instanceId,
       measureText,
       skipValidation: true,
-      skipDiagnostics: true
+      skipDiagnostics: true,
+      theme: effectiveTheme,
+      renderers: registry
     }),
-    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview]
+    [
+      activeDoc,
+      snapshot.document,
+      committedResolved,
+      instanceId,
+      resolvePreview,
+      effectiveTheme,
+      registry
+    ]
   );
   const [gestureEntities, setGestureEntities] = useState(null);
   const baseline = useMemo(
@@ -1045,7 +1089,9 @@ function EditorSurface({
           quality: "edit",
           requestId: "initial-fit",
           measureText,
-          skipValidation: true
+          skipValidation: true,
+          theme: effectiveTheme,
+          renderers: registry
         });
         if (!current.ok) return;
         const next = fitViewport(current.value.worldBounds, measured, 24);
@@ -1293,7 +1339,7 @@ function EditorSurface({
             removeSelection();
           } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && getAdapter(snapshot.document.spec.type).capabilities.includes("move-free")) {
             event.preventDefault();
-            const scene = materialize(snapshot.document), positions = {};
+            const scene = materialize(snapshot.document, resolveContext), positions = {};
             for (const ref of snapshot.selection)
               if (ref.kind === "node" && scene.nodes[ref.id] && !isNodeLocked(snapshot.document, ref.id)) {
                 const p = scene.nodes[ref.id], step = event.shiftKey ? 16 : 1;
@@ -1380,7 +1426,7 @@ function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
@@ -1407,7 +1453,7 @@ function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               port: {
                 nodeId: portNodeId,
@@ -1427,7 +1473,7 @@ function EditorSurface({
             }).ok)
               return;
             const startPoint = local(event);
-            const scene2 = materialize(snapshot.document), source = scene2.nodes[connectSourceId];
+            const scene2 = materialize(snapshot.document, resolveContext), source = scene2.nodes[connectSourceId];
             const anchor = source ? anchorPoint(source, { side: "right", offset: 0.5 }) : { x: 0, y: 0 };
             const startWorld = screenToWorld(startPoint, snapshot.viewport);
             gesture.current = {
@@ -1489,7 +1535,7 @@ function EditorSurface({
                 start: local(event),
                 viewport: { ...snapshot.viewport },
                 positions: {},
-                scene: materialize(snapshot.document),
+                scene: materialize(snapshot.document, resolveContext),
                 pan: false,
                 structured: {
                   kind,
@@ -1506,7 +1552,7 @@ function EditorSurface({
             }
             if (resizeId) resizeIds = [id];
           }
-          const scene = materialize(snapshot.document), positions = {};
+          const scene = materialize(snapshot.document, resolveContext), positions = {};
           for (const ref of store.getSnapshot().selection)
             if (ref.kind === "node" && scene.nodes[ref.id])
               positions[ref.id] = { x: scene.nodes[ref.id].x, y: scene.nodes[ref.id].y };
@@ -1607,7 +1653,7 @@ function EditorSurface({
                 const resizeTarget = selected.length === 1 ? selected[0].id : void 0;
                 const name = selected.length === 1 ? `${t("Resize", "Redimensionar")} ${selected[0].label}` : t("Resize selection", "Redimensionar selecci\xF3n");
                 const apply = (direction, delta, step) => {
-                  const scene = materialize(store.getSnapshot().document);
+                  const scene = materialize(store.getSnapshot().document, resolveContext);
                   const ids = resizeTarget ? [resizeTarget] : snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
                   const rects = ids.map((resizeId) => scene.nodes[resizeId]).filter((node) => node).map((node) => ({
                     x: node.x,
@@ -1951,6 +1997,7 @@ function EditorInspector() {
     (s) => ({ selection: s.selection, document: s.document }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const id = snapshot.selection.find((r) => r.kind === "node")?.id, node = nodesOf(snapshot.document.spec).find((n) => n.id === id);
   const [label, setLabel] = useState(""), [error, setError] = useState("");
   useEffect(() => {
@@ -2027,7 +2074,7 @@ function EditorInspector() {
         {
           type: "button",
           onClick: () => {
-            const scene = materialize(snapshot.document);
+            const scene = materialize(snapshot.document, resolveContext);
             dispatch(
               store,
               [
@@ -2104,8 +2151,21 @@ function EditorInspector() {
 }
 function EditorJsonPanel() {
   const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
+  const [commitDiagnostics, setCommitDiagnostics] = useState([]);
   const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document]);
   const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized;
+  const draftKind = snapshot.draft.kind;
+  useEffect(() => {
+    if (draftKind !== "text") setCommitDiagnostics([]);
+  }, [draftKind]);
+  const applyDraft = () => {
+    const result = store.commitTextDraft();
+    setCommitDiagnostics(result.status === "rejected" ? result.diagnostics.map((d) => d.code) : []);
+  };
+  const parseDiagnostics = snapshot.draft.kind === "text" ? snapshot.draft.diagnostics : [];
+  const parseCodes = parseDiagnostics.map((d) => d.code);
+  const commitCodes = commitDiagnostics.filter((code) => !parseCodes.includes(code));
+  const stale = commitCodes.includes("revision.stale");
   return /* @__PURE__ */ jsxs("section", { className: "adl-editor-json", "aria-label": t("Document JSON", "JSON del documento"), children: [
     /* @__PURE__ */ jsx("h2", { className: "adl-editor-panel-title", children: t("Document JSON", "JSON del documento") }),
     /* @__PURE__ */ jsx(
@@ -2113,45 +2173,65 @@ function EditorJsonPanel() {
       {
         "aria-label": t("Document JSON", "JSON del documento"),
         value: text,
-        onChange: (event) => store.setTextDraft(event.target.value),
+        onChange: (event) => {
+          setCommitDiagnostics([]);
+          store.setTextDraft(event.target.value);
+        },
         spellCheck: false
       }
     ),
     /* @__PURE__ */ jsxs("div", { className: "adl-editor-json-actions", children: [
+      /* @__PURE__ */ jsx("button", { type: "button", disabled: snapshot.draft.kind !== "text", onClick: applyDraft, children: t("Apply JSON", "Aplicar JSON") }),
       /* @__PURE__ */ jsx(
         "button",
         {
           type: "button",
-          disabled: snapshot.draft.kind !== "text",
-          onClick: () => store.commitTextDraft(),
-          children: t("Apply JSON", "Aplicar JSON")
+          onClick: () => {
+            setCommitDiagnostics([]);
+            store.cancelTextDraft();
+          },
+          children: t("Discard draft", "Descartar borrador")
         }
-      ),
-      /* @__PURE__ */ jsx("button", { type: "button", onClick: () => store.cancelTextDraft(), children: t("Discard draft", "Descartar borrador") })
+      )
     ] }),
-    snapshot.draft.kind === "text" && snapshot.draft.diagnostics.length > 0 && /* @__PURE__ */ jsx("p", { role: "alert", children: snapshot.draft.diagnostics.map((d) => d.code).join(", ") })
+    parseDiagnostics.length > 0 && /* @__PURE__ */ jsx("p", { role: "alert", children: parseDiagnostics.map((d) => d.code).join(", ") }),
+    commitCodes.length > 0 && /* @__PURE__ */ jsxs("p", { role: "alert", className: "adl-editor-json-commit-alert", children: [
+      t("Draft not applied", "Borrador no aplicado"),
+      ": ",
+      commitCodes.join(", ")
+    ] }),
+    stale && /* @__PURE__ */ jsx("p", { className: "adl-editor-json-commit-hint", children: t(
+      "The document changed while this draft was open. Your text is preserved; discard the draft to start again from the current revision.",
+      "El documento cambi\xF3 mientras este borrador estaba abierto. Tu texto se conserva; descarta el borrador para empezar de nuevo desde la revisi\xF3n actual."
+    ) })
   ] });
 }
 function EditorPanelTabs({ className }) {
   const snapshot = useEditorSelector((s) => ({ document: s.document }), shallowEqual), t = useLabels();
+  const scope = panelTabScope(useId());
   const [tab, setTab] = useState("outline");
+  const tabRefs = useRef({});
   const connections = edgesOf(snapshot.document.spec).length;
+  const supported = panelTabsFor(snapshot.document.spec.type);
+  const activeTab = coercePanelTab(tab, supported);
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab);
+  }, [activeTab, tab]);
   const tabs = [
     { id: "outline", label: t("Outline", "Estructura") },
     { id: "json", label: t("JSON", "JSON") },
-    ...snapshot.document.spec.type === "timeline" ? [] : [
+    ...supported.includes("connections") ? [
       {
         id: "connections",
         label: `${t("Connections", "Conexiones")} (${connections})`
       }
-    ]
+    ] : []
   ];
   const move = (direction) => {
-    const index = tabs.findIndex((entry) => entry.id === tab);
-    const next = tabs[(index + direction + tabs.length) % tabs.length];
-    setTab(next.id);
-    const button = document.getElementById(`adl-editor-tab-${next.id}`);
-    if (button) button.focus();
+    const index = supported.indexOf(activeTab);
+    const next = supported[(index + direction + supported.length) % supported.length];
+    setTab(next);
+    tabRefs.current[next]?.focus();
   };
   return /* @__PURE__ */ jsxs(
     "section",
@@ -2177,12 +2257,15 @@ function EditorPanelTabs({ className }) {
             children: tabs.map((entry) => /* @__PURE__ */ jsx(
               "button",
               {
+                ref: (element) => {
+                  tabRefs.current[entry.id] = element;
+                },
                 type: "button",
                 role: "tab",
-                id: `adl-editor-tab-${entry.id}`,
-                "aria-selected": tab === entry.id,
-                "aria-controls": `adl-editor-tabpanel-${entry.id}`,
-                tabIndex: tab === entry.id ? 0 : -1,
+                id: panelTabId(scope, entry.id),
+                "aria-selected": activeTab === entry.id,
+                "aria-controls": panelTabPanelId(scope, entry.id),
+                tabIndex: activeTab === entry.id ? 0 : -1,
                 onClick: () => setTab(entry.id),
                 children: entry.label
               },
@@ -2195,12 +2278,12 @@ function EditorPanelTabs({ className }) {
           {
             className: "adl-editor-tabpanel",
             role: "tabpanel",
-            id: `adl-editor-tabpanel-${tab}`,
-            "aria-labelledby": `adl-editor-tab-${tab}`,
+            id: panelTabPanelId(scope, activeTab),
+            "aria-labelledby": panelTabId(scope, activeTab),
             children: [
-              /* @__PURE__ */ jsx("div", { hidden: tab !== "outline", children: /* @__PURE__ */ jsx(EditorOutline, {}) }),
-              /* @__PURE__ */ jsx("div", { hidden: tab !== "json", children: /* @__PURE__ */ jsx(EditorJsonPanel, {}) }),
-              snapshot.document.spec.type !== "timeline" && /* @__PURE__ */ jsx("div", { hidden: tab !== "connections", children: /* @__PURE__ */ jsx(EditorRelations, {}) })
+              /* @__PURE__ */ jsx("div", { hidden: activeTab !== "outline", children: /* @__PURE__ */ jsx(EditorOutline, {}) }),
+              /* @__PURE__ */ jsx("div", { hidden: activeTab !== "json", children: /* @__PURE__ */ jsx(EditorJsonPanel, {}) }),
+              supported.includes("connections") && /* @__PURE__ */ jsx("div", { hidden: activeTab !== "connections", children: /* @__PURE__ */ jsx(EditorRelations, {}) })
             ]
           }
         )
@@ -2213,6 +2296,7 @@ function EditorSelectionTools() {
     (s) => ({ document: s.document, selection: s.selection }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const fragment = useRef(null), [hasCopy, setHasCopy] = useState(false), [clipboardBusy, setClipboardBusy] = useState(false), [arrangement, setArrangement] = useState("left"), [error, setError] = useState("");
   const free = getAdapter(snapshot.document.spec.type).capabilities.includes("move-free");
   function copy() {
@@ -2310,7 +2394,7 @@ function EditorSelectionTools() {
   }, [menuOpen]);
   const arrange = () => {
     const current = store.getSnapshot().document;
-    const scene = materialize(current);
+    const scene = materialize(current, resolveContext);
     const positions = arrangeRects(
       nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
       arrangement
@@ -2494,6 +2578,54 @@ function EditorSelectionTools() {
     error && /* @__PURE__ */ jsx("span", { role: "alert", children: error })
   ] });
 }
+function EditorDialog({
+  open,
+  titleId,
+  onClose,
+  children
+}) {
+  const dialogRef = useRef(null);
+  const openerRef = useRef(null);
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      dialog.showModal();
+      dialog.querySelector("[data-dialog-initial-focus]")?.focus();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  useEffect(
+    () => () => {
+      const dialog = dialogRef.current;
+      if (dialog?.open) dialog.close();
+    },
+    []
+  );
+  return /* @__PURE__ */ jsx(
+    "dialog",
+    {
+      ref: dialogRef,
+      className: "adl-editor-dialog",
+      "aria-labelledby": titleId,
+      onCancel: (event) => {
+        event.preventDefault();
+        onClose();
+      },
+      onClose: () => {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        if (opener?.isConnected) opener.focus();
+      },
+      onClick: (event) => {
+        if (event.target === event.currentTarget) onClose();
+      },
+      children
+    }
+  );
+}
 function EditorStructuredInspector() {
   const { store } = useEditor(), snapshot = useEditorSelector(
     (s) => ({ selection: s.selection, document: s.document }),
@@ -2501,6 +2633,10 @@ function EditorStructuredInspector() {
   ), t = useLabels();
   const type = snapshot.document.spec.type, ref = snapshot.selection.find((r) => r.kind === "node"), node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : void 0;
   const [error, setError] = useState("");
+  const [pendingLaneId, setPendingLaneId] = useState(null);
+  const [laneAction, setLaneAction] = useState(null);
+  const [laneDestination, setLaneDestination] = useState("");
+  const laneDialogTitleId = useId();
   if (!node) return null;
   const commitNode = (next, label) => {
     const result = getAdapter(type).replaceNode(snapshot.document.spec, {
@@ -2661,19 +2797,69 @@ function EditorStructuredInspector() {
     const swimNode = node;
     const laneId = swimNode.lane;
     const lanes = spec.lanes;
-    const replaceLanes = (nextLanes, assignment, label) => {
-      const nodes = nodesOf(spec);
+    const laneNodes = nodesOf(spec);
+    const replaceLanes = (nextLanes, assignment, label, removeNodeIds = []) => {
+      const removed = new Set(removeNodeIds);
       const assignments = {};
-      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n);
+      for (const n of laneNodes)
+        if (!removed.has(n.id)) assignments[n.id] = assignment(n.lane, n.id, n);
       const result = getAdapter("swimlane").editStructure(spec, {
         type: "lanes.replace",
         lanes: nextLanes,
         assignments,
-        removeNodeIds: []
+        removeNodeIds
       });
-      if (result.ok)
-        dispatch(store, [{ type: "spec.replace", spec: result.value, references: "reject" }], label);
-      else setError(result.diagnostics.map((d) => d.code).join(", "));
+      if (!result.ok) {
+        setError(result.diagnostics.map((d) => d.code).join(", "));
+        return;
+      }
+      const commit = dispatch(
+        store,
+        [
+          {
+            type: "spec.replace",
+            spec: result.value,
+            references: removeNodeIds.length ? "prune-references" : "reject"
+          }
+        ],
+        label
+      );
+      if (commit.status === "rejected") setError(commit.diagnostics.map((d) => d.code).join(", "));
+    };
+    const laneMembers = (id) => laneNodes.filter((candidate) => candidate.lane === id);
+    const pendingLane = pendingLaneId ? lanes.find((candidate) => candidate.id === pendingLaneId) : void 0;
+    const pendingMembers = pendingLane ? laneMembers(pendingLane.id) : [];
+    const pendingMemberIds = new Set(pendingMembers.map((member) => member.id));
+    const pendingConnections = edgesOf(spec).filter(
+      (edge) => pendingMemberIds.has(edge.from) || pendingMemberIds.has(edge.to)
+    );
+    const destinationLanes = pendingLane ? lanes.filter((candidate) => candidate.id !== pendingLane.id) : [];
+    const closeLaneDialog = () => {
+      setPendingLaneId(null);
+      setLaneAction(null);
+      setLaneDestination("");
+    };
+    const openLaneDialog = (id) => {
+      setPendingLaneId(id);
+      setLaneAction(null);
+      setLaneDestination(lanes.find((candidate) => candidate.id !== id)?.id ?? "");
+    };
+    const confirmLaneRemoval = () => {
+      if (!pendingLane || !laneAction) return;
+      const nextLanes = lanes.filter((candidate) => candidate.id !== pendingLane.id);
+      if (laneAction === "move") {
+        if (!destinationLanes.some((candidate) => candidate.id === laneDestination)) return;
+        replaceLanes(
+          nextLanes,
+          (source) => source === pendingLane.id ? laneDestination : source,
+          "Move lane members"
+        );
+      } else {
+        replaceLanes(nextLanes, (source) => source, "Delete lane and members", [
+          ...pendingMemberIds
+        ]);
+      }
+      closeLaneDialog();
     };
     return /* @__PURE__ */ jsxs("section", { "aria-label": t("Swimlane lanes", "Carriles"), children: [
       /* @__PURE__ */ jsx("h3", { children: t("Swimlane lanes", "Carriles") }),
@@ -2689,26 +2875,30 @@ function EditorStructuredInspector() {
           }
         )
       ] }),
-      /* @__PURE__ */ jsx("ol", { children: lanes.map((lane) => /* @__PURE__ */ jsxs("li", { children: [
-        /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: lane.label }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            disabled: lanes.length <= 1,
-            "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
-            onClick: () => {
-              const first = lanes.find((candidate) => candidate.id !== lane.id);
-              replaceLanes(
-                lanes.filter((candidate) => candidate.id !== lane.id),
-                (source) => source === lane.id ? first.id : source,
-                "Remove lane"
-              );
-            },
-            children: "\xD7"
-          }
-        )
-      ] }, lane.id)) }),
+      /* @__PURE__ */ jsx("ol", { children: lanes.map((lane) => {
+        const members = laneMembers(lane.id);
+        return /* @__PURE__ */ jsxs("li", { children: [
+          /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: lane.label }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              disabled: lanes.length <= 1,
+              "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
+              onClick: () => {
+                if (members.length === 0)
+                  replaceLanes(
+                    lanes.filter((candidate) => candidate.id !== lane.id),
+                    (source) => source,
+                    "Remove lane"
+                  );
+                else openLaneDialog(lane.id);
+              },
+              children: "\xD7"
+            }
+          )
+        ] }, lane.id);
+      }) }),
       /* @__PURE__ */ jsx(
         "button",
         {
@@ -2724,7 +2914,84 @@ function EditorStructuredInspector() {
           children: t("Add lane", "A\xF1adir carril")
         }
       ),
-      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error }),
+      /* @__PURE__ */ jsx(
+        EditorDialog,
+        {
+          open: pendingLane !== void 0,
+          titleId: laneDialogTitleId,
+          onClose: closeLaneDialog,
+          children: pendingLane && /* @__PURE__ */ jsxs(Fragment, { children: [
+            /* @__PURE__ */ jsxs("h2", { id: laneDialogTitleId, children: [
+              t("Remove lane", "Quitar carril"),
+              ": ",
+              pendingLane.label
+            ] }),
+            /* @__PURE__ */ jsxs("p", { className: "adl-editor-dialog-count", children: [
+              t("Members affected", "Miembros afectados"),
+              ": ",
+              pendingMembers.length
+            ] }),
+            /* @__PURE__ */ jsxs("fieldset", { children: [
+              /* @__PURE__ */ jsx("legend", { children: t("What happens to the members?", "\xBFQu\xE9 ocurre con los miembros?") }),
+              /* @__PURE__ */ jsxs("label", { className: "adl-editor-dialog-choice", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: `${laneDialogTitleId}-action`,
+                    value: "move",
+                    checked: laneAction === "move",
+                    onChange: () => setLaneAction("move")
+                  }
+                ),
+                t("Move them to another lane", "Moverlos a otro carril")
+              ] }),
+              laneAction === "move" && /* @__PURE__ */ jsxs("label", { children: [
+                t("Destination lane", "Carril de destino"),
+                /* @__PURE__ */ jsx(
+                  "select",
+                  {
+                    "aria-label": t("Destination lane", "Carril de destino"),
+                    value: laneDestination,
+                    onChange: (event) => setLaneDestination(event.target.value),
+                    children: destinationLanes.map((candidate) => /* @__PURE__ */ jsx("option", { value: candidate.id, children: candidate.label }, candidate.id))
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("label", { className: "adl-editor-dialog-choice", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: `${laneDialogTitleId}-action`,
+                    value: "delete",
+                    checked: laneAction === "delete",
+                    onChange: () => setLaneAction("delete")
+                  }
+                ),
+                t("Delete the members with the lane", "Eliminar los miembros con el carril")
+              ] }),
+              laneAction === "delete" && /* @__PURE__ */ jsx("p", { className: "adl-editor-dialog-consequence", children: pendingConnections.length ? t(
+                `Deleting the members also removes ${pendingConnections.length} connection${pendingConnections.length === 1 ? "" : "s"} that reference them.`,
+                `Eliminar los miembros tambi\xE9n quita ${pendingConnections.length} conexi\xF3n${pendingConnections.length === 1 ? "" : "es"} que los referencia${pendingConnections.length === 1 ? "" : "n"}.`
+              ) : t("The members have no connections.", "Los miembros no tienen conexiones.") })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "adl-editor-dialog-actions", children: [
+              /* @__PURE__ */ jsx("button", { type: "button", "data-dialog-initial-focus": true, onClick: closeLaneDialog, children: t("Cancel", "Cancelar") }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  disabled: !laneAction || laneAction === "move" && !laneDestination,
+                  onClick: confirmLaneRemoval,
+                  children: laneAction === "delete" ? t("Delete lane and members", "Eliminar carril y miembros") : t("Move members and remove lane", "Mover miembros y quitar carril")
+                }
+              )
+            ] })
+          ] })
+        }
+      )
     ] });
   }
   if (type === "graph") {
@@ -2802,7 +3069,11 @@ function EditorNodeGeometry({ nodeId }) {
     (s) => ({ document: s.document, selection: s.selection }),
     shallowEqual
   ), t = useLabels();
-  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document]);
+  const resolveContext = useEditorResolveContext();
+  const scene = useMemo(
+    () => materialize(snapshot.document, resolveContext),
+    [snapshot.document, resolveContext]
+  );
   const placement = scene.nodes[nodeId];
   const [values, setValues] = useState({ x: "0", y: "0", width: "240", height: "64" }), [error, setError] = useState("");
   useEffect(() => {
@@ -2820,7 +3091,7 @@ function EditorNodeGeometry({ nodeId }) {
     {
       onSubmit: (event) => {
         event.preventDefault();
-        const scene2 = materialize(snapshot.document), result = dispatch(
+        const scene2 = materialize(snapshot.document, resolveContext), result = dispatch(
           store,
           [
             { type: "scene.set", scene: scene2 },
@@ -2969,6 +3240,7 @@ function EditorRoute() {
     (s) => ({ selection: s.selection, document: s.document }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const ref = snapshot.selection.find((r) => r.kind === "edge"), edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : void 0;
   const [error, setError] = useState("");
   if (!edge || !edge.id || !freeTypes.has(snapshot.document.spec.type)) return null;
@@ -2976,7 +3248,7 @@ function EditorRoute() {
   const route = snapshot.document.scene.routes[edgeId];
   const manual = route?.mode === "manual" ? route : void 0;
   const setRoute = (next, label) => {
-    const scene = materialize(snapshot.document);
+    const scene = materialize(snapshot.document, resolveContext);
     const commit = dispatch(
       store,
       [
@@ -2991,7 +3263,9 @@ function EditorRoute() {
     const result = resolveDocument(snapshot.document, {
       quality: "edit",
       requestId: "route-manual",
-      skipValidation: true
+      skipValidation: true,
+      theme: resolveContext.theme,
+      renderers: resolveContext.renderers
     });
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(", "));

@@ -860,7 +860,8 @@ function DiagramCanvas({
 var DiagramCanvas_default = DiagramCanvas;
 
 // src/canvas/bounds.ts
-function previewBounds(layout) {
+function previewBounds(layout, options = {}) {
+  const margin = Math.max(0, options.margin ?? 32);
   const points = [];
   const add = (x2, y2) => points.push([x2, y2]);
   const number = /-?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi;
@@ -899,13 +900,13 @@ function previewBounds(layout) {
     add(Math.max(...events.map((node) => node.cx)) + 48, events[0].cy);
   }
   if (!points.length) return { x: 0, y: 0, width: layout.width, height: layout.height };
-  const x = Math.floor(Math.min(...points.map(([x2]) => x2)) - 32);
-  const y = Math.floor(Math.min(...points.map(([, y2]) => y2)) - 32);
+  const x = Math.floor(Math.min(...points.map(([x2]) => x2)) - margin);
+  const y = Math.floor(Math.min(...points.map(([, y2]) => y2)) - margin);
   return {
     x,
     y,
-    width: Math.ceil(Math.max(...points.map(([x2]) => x2)) + 32) - x,
-    height: Math.ceil(Math.max(...points.map(([, y2]) => y2)) + 32) - y
+    width: Math.ceil(Math.max(...points.map(([x2]) => x2)) + margin) - x,
+    height: Math.ceil(Math.max(...points.map(([, y2]) => y2)) + margin) - y
   };
 }
 

@@ -1,4 +1,5 @@
 import {
+  EVIDENCE_RANGE_CONTRACT,
   applyLayoutResult,
   applyTransaction,
   convertToGraph,
@@ -12,9 +13,8 @@ import {
   runLayoutProvider,
   runRegisteredLayout,
   validateCustomPayload,
-  validateDeploymentProfile,
   verifyEvidence
-} from "../chunk-HF6PLESJ.js";
+} from "../chunk-5RTXMMMR.js";
 import {
   createEditorStore,
   createFragment,
@@ -23,12 +23,15 @@ import {
   screenToWorld,
   worldToScreen,
   zoomAt
-} from "../chunk-GSAEMTC2.js";
+} from "../chunk-DFEIZ57Q.js";
+import {
+  validateDeploymentProfile
+} from "../chunk-5MVOLWEF.js";
 import {
   getAdapter,
   relayoutScene,
   resolveDocument
-} from "../chunk-3N7YC3GS.js";
+} from "../chunk-FJJDAGJJ.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import {
@@ -38,13 +41,13 @@ import {
   exportLegacySpec,
   importDocument,
   serializeDocument
-} from "../chunk-WD7BRA7G.js";
+} from "../chunk-TSYG4LOT.js";
 import "../chunk-BBMS4ALE.js";
 import {
   DEFAULT_LIMITS,
   validateDocument,
   validateEditorSpec
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-TN5OC77A.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-S6PSHJSL.js";
 import "../chunk-KKMUFXA6.js";
@@ -52,6 +55,7 @@ import "../chunk-KDAWQGDC.js";
 import "../chunk-TGRGDAF2.js";
 export {
   DEFAULT_LIMITS,
+  EVIDENCE_RANGE_CONTRACT,
   applyLayoutResult,
   applyTransaction,
   canonicalizeContent,

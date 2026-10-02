@@ -1,4 +1,4 @@
-import { g as DiagramDocument, j as Result, i as Diagnostic, n as EntityRef, o as ResolveRendererRegistry } from '../layout-BhvxbOAw.js';
+import { R as ResolveRendererRegistry, g as DiagramDocument, k as Result, j as Diagnostic, o as EntityRef } from '../layout-B9EEWMV7.js';
 import '../theme.js';
 
 interface ExportHtmlOptions {
@@ -14,6 +14,19 @@ interface ExportHtmlOptions {
     title?: string;
     /** Embed the canonical source JSON for round-trip recovery. */
     includeSource?: boolean;
+    /**
+     * Portable metadata policy. `minimal` (default) removes undrawn private
+     * notes, links/evidence and extensions; `all` keeps authored inspector
+     * detail. Independent from `includeSource`, which always embeds the exact
+     * canonical document.
+     */
+    metadata?: 'minimal' | 'all';
+    /**
+     * Trusted per-instance renderer registry. Custom nodes are frozen into
+     * canonical SVG; without a renderer the artifact fails with
+     * `renderer.unsupported` instead of shipping a placeholder.
+     */
+    registry?: ResolveRendererRegistry;
 }
 interface ExportHtmlArtifact {
     html: string;
@@ -24,6 +37,7 @@ interface ExportHtmlArtifact {
         bytes: number;
         canonical: boolean;
         sourceIncluded: boolean;
+        metadata: 'minimal' | 'all';
         verified: false;
         runtimeBytes: number;
         fontBytes: number;
@@ -47,6 +61,8 @@ interface CardSvgOptions {
     query?: CardQueryReceipt;
     theme?: 'light' | 'dark';
     padding?: number;
+    /** Trusted renderers; frozen into the card SVG instead of a placeholder. */
+    registry?: ResolveRendererRegistry;
 }
 interface CardArtifact {
     bytes: Uint8Array;
@@ -113,6 +129,8 @@ interface MotionOptions {
     signal?: AbortSignal;
     /** Reduced motion never records: the static story navigation stays. */
     reducedMotion?: boolean;
+    /** Trusted renderers; without one a custom story fails instead of freezing a placeholder. */
+    renderers?: ResolveRendererRegistry;
 }
 interface MotionArtifact {
     bytes: Uint8Array;

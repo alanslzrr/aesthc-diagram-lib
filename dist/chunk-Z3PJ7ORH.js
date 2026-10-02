@@ -1,14 +1,17 @@
 import {
+  validateDeploymentProfile
+} from "./chunk-5MVOLWEF.js";
+import {
   createCanvasTextMeasurer,
   createEmbeddedFontTextMeasurer,
   estimateTextWidth,
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-3N7YC3GS.js";
+} from "./chunk-FJJDAGJJ.js";
 import {
   serializeDocument
-} from "./chunk-WD7BRA7G.js";
+} from "./chunk-TSYG4LOT.js";
 import {
   canonical,
   edgesOf,
@@ -17,7 +20,7 @@ import {
   nodesOf,
   success,
   validateDocument
-} from "./chunk-6NELNSRC.js";
+} from "./chunk-TN5OC77A.js";
 import {
   escapeXml,
   renderSceneMarkup,
@@ -82,6 +85,25 @@ var notices_default = [
   'Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)\n\nThis Font Software is licensed under the SIL Open Font License, Version 1.1.\nThis license is copied below, and is also available with a FAQ at:\nhttps://openfontlicense.org\n\n\n-----------------------------------------------------------\nSIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\n-----------------------------------------------------------\n\nPREAMBLE\nThe goals of the Open Font License (OFL) are to stimulate worldwide\ndevelopment of collaborative font projects, to support the font creation\nefforts of academic and linguistic communities, and to provide a free and\nopen framework in which fonts may be shared and improved in partnership\nwith others.\n\nThe OFL allows the licensed fonts to be used, studied, modified and\nredistributed freely as long as they are not sold by themselves. The\nfonts, including any derivative works, can be bundled, embedded, \nredistributed and/or sold with any software provided that any reserved\nnames are not used by derivative works. The fonts and derivatives,\nhowever, cannot be released under any other type of license. The\nrequirement for fonts to remain under this license does not apply\nto any document created using the fonts or their derivatives.\n\nDEFINITIONS\n"Font Software" refers to the set of files released by the Copyright\nHolder(s) under this license and clearly marked as such. This may\ninclude source files, build scripts and documentation.\n\n"Reserved Font Name" refers to any names specified as such after the\ncopyright statement(s).\n\n"Original Version" refers to the collection of Font Software components as\ndistributed by the Copyright Holder(s).\n\n"Modified Version" refers to any derivative made by adding to, deleting,\nor substituting -- in part or in whole -- any of the components of the\nOriginal Version, by changing formats or by porting the Font Software to a\nnew environment.\n\n"Author" refers to any designer, engineer, programmer, technical\nwriter or other person who contributed to the Font Software.\n\nPERMISSION & CONDITIONS\nPermission is hereby granted, free of charge, to any person obtaining\na copy of the Font Software, to use, study, copy, merge, embed, modify,\nredistribute, and sell modified and unmodified copies of the Font\nSoftware, subject to the following conditions:\n\n1) Neither the Font Software nor any of its individual components,\nin Original or Modified Versions, may be sold by itself.\n\n2) Original or Modified Versions of the Font Software may be bundled,\nredistributed and/or sold with any software, provided that each copy\ncontains the above copyright notice and this license. These can be\nincluded either as stand-alone text files, human-readable headers or\nin the appropriate machine-readable metadata fields within text or\nbinary files as long as those fields can be easily viewed by the user.\n\n3) No Modified Version of the Font Software may use the Reserved Font\nName(s) unless explicit written permission is granted by the corresponding\nCopyright Holder. This restriction only applies to the primary font name as\npresented to the users.\n\n4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font\nSoftware shall not be used to promote, endorse or advertise any\nModified Version, except to acknowledge the contribution(s) of the\nCopyright Holder(s) and the Author(s) or with their explicit written\npermission.\n\n5) The Font Software, modified or unmodified, in part or in whole,\nmust be distributed entirely under this license, and must not be\ndistributed under any other license. The requirement for fonts to\nremain under this license does not apply to any document created\nusing the Font Software.\n\nTERMINATION\nThis license becomes null and void if any of the above conditions are\nnot met.\n\nDISCLAIMER\nTHE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\nOF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE\nCOPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,\nINCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL\nDAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\nFROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM\nOTHER DEALINGS IN THE FONT SOFTWARE.'
 ];
 
+// src/export/metadata.ts
+function projectDocumentMetadata(document2, policy = "minimal") {
+  const reduced = structuredClone(document2);
+  if (policy === "all") return reduced;
+  const project = (entity) => {
+    const next = { roles: [...entity.roles], tags: [...entity.tags] };
+    if (entity.owner !== void 0) next.owner = entity.owner;
+    if (entity.visibility !== void 0) next.visibility = entity.visibility;
+    if (entity.crossing !== void 0) next.crossing = entity.crossing;
+    return next;
+  };
+  for (const [id, entity] of Object.entries(reduced.metadata.nodes))
+    reduced.metadata.nodes[id] = project(entity);
+  for (const [id, entity] of Object.entries(reduced.metadata.edges))
+    reduced.metadata.edges[id] = project(entity);
+  reduced.extensions = {};
+  return reduced;
+}
+
 // src/export/html.ts
 function base64(bytes) {
   let raw = "";
@@ -94,11 +116,132 @@ function fontCss(fonts) {
 function embedJson(value) {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e");
 }
-function minimalDocument(document2) {
-  const reduced = structuredClone(document2);
-  for (const id of Object.keys(reduced.metadata.nodes)) delete reduced.metadata.nodes[id].notes;
-  delete reduced.metadata.engineeringProfile;
-  return reduced;
+function sha256Base64(input) {
+  const bytes = new TextEncoder().encode(input);
+  const h = [
+    1779033703,
+    3144134277,
+    1013904242,
+    2773480762,
+    1359893119,
+    2600822924,
+    528734635,
+    1541459225
+  ];
+  const k = [
+    1116352408,
+    1899447441,
+    3049323471,
+    3921009573,
+    961987163,
+    1508970993,
+    2453635748,
+    2870763221,
+    3624381080,
+    310598401,
+    607225278,
+    1426881987,
+    1925078388,
+    2162078206,
+    2614888103,
+    3248222580,
+    3835390401,
+    4022224774,
+    264347078,
+    604807628,
+    770255983,
+    1249150122,
+    1555081692,
+    1996064986,
+    2554220882,
+    2821834349,
+    2952996808,
+    3210313671,
+    3336571891,
+    3584528711,
+    113926993,
+    338241895,
+    666307205,
+    773529912,
+    1294757372,
+    1396182291,
+    1695183700,
+    1986661051,
+    2177026350,
+    2456956037,
+    2730485921,
+    2820302411,
+    3259730800,
+    3345764771,
+    3516065817,
+    3600352804,
+    4094571909,
+    275423344,
+    430227734,
+    506948616,
+    659060556,
+    883997877,
+    958139571,
+    1322822218,
+    1537002063,
+    1747873779,
+    1955562222,
+    2024104815,
+    2227730452,
+    2361852424,
+    2428436474,
+    2756734187,
+    3204031479,
+    3329325298
+  ];
+  const rotr = (value, bits2) => value >>> bits2 | value << 32 - bits2;
+  const padded = new Uint8Array(Math.ceil((bytes.length + 9) / 64) * 64);
+  padded.set(bytes);
+  padded[bytes.length] = 128;
+  const view = new DataView(padded.buffer);
+  const bits = bytes.length * 8;
+  view.setUint32(padded.length - 8, Math.floor(bits / 4294967296));
+  view.setUint32(padded.length - 4, bits >>> 0);
+  const w = new Uint32Array(64);
+  for (let offset = 0; offset < padded.length; offset += 64) {
+    for (let index = 0; index < 16; index++) w[index] = view.getUint32(offset + index * 4);
+    for (let index = 16; index < 64; index++) {
+      const s0 = rotr(w[index - 15], 7) ^ rotr(w[index - 15], 18) ^ w[index - 15] >>> 3;
+      const s1 = rotr(w[index - 2], 17) ^ rotr(w[index - 2], 19) ^ w[index - 2] >>> 10;
+      w[index] = w[index - 16] + s0 + w[index - 7] + s1 >>> 0;
+    }
+    let [a, b, c, d, e, f, g, hh] = h;
+    for (let index = 0; index < 64; index++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = e & f ^ ~e & g;
+      const temp1 = hh + S1 + ch + k[index] + w[index] >>> 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = a & b ^ a & c ^ b & c;
+      const temp2 = S0 + maj >>> 0;
+      hh = g;
+      g = f;
+      f = e;
+      e = d + temp1 >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = temp1 + temp2 >>> 0;
+    }
+    h[0] = h[0] + a >>> 0;
+    h[1] = h[1] + b >>> 0;
+    h[2] = h[2] + c >>> 0;
+    h[3] = h[3] + d >>> 0;
+    h[4] = h[4] + e >>> 0;
+    h[5] = h[5] + f >>> 0;
+    h[6] = h[6] + g >>> 0;
+    h[7] = h[7] + hh >>> 0;
+  }
+  const out = new Uint8Array(32);
+  const outView = new DataView(out.buffer);
+  h.forEach((value, index) => outView.setUint32(index * 4, value));
+  let binary = "";
+  for (const byte of out) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 function exportDocumentHtml(input, options) {
   const checked = validateDocument(input);
@@ -108,9 +251,15 @@ function exportDocumentHtml(input, options) {
   const resolved = resolveDocument(document2, {
     quality: "edit",
     requestId: "html",
-    measureText: createCanvasTextMeasurer() ?? estimateTextWidth
+    theme,
+    measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.registry
   });
   if (!resolved.ok) return resolved;
+  const missingRenderer = resolved.diagnostics.find(
+    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty"
+  );
+  if (missingRenderer) return failure(missingRenderer.code);
   const svg = renderSvg(document2, resolved.value, {
     instanceId: "standalone",
     theme,
@@ -138,8 +287,11 @@ function exportDocumentHtml(input, options) {
     ),
     "</ul>"
   ].join("\n");
-  const runtimeDocument = options.includeSource ? document2 : minimalDocument(document2);
+  const metadataPolicy = options.metadata ?? "minimal";
+  const runtimeDocument = metadataPolicy === "all" ? structuredClone(document2) : projectDocumentMetadata(document2, "minimal");
+  runtimeDocument.presentation.theme.mode = theme;
   const sourceSection = options.includeSource ? `<script type="application/json" id="aesthc-source">${canonical(document2).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e")}</script>` : "";
+  const scriptHash = sha256Base64(options.runtime);
   const html = [
     "<!doctype html>",
     `<html lang="${escapeXml(locale)}">`,
@@ -147,7 +299,7 @@ function exportDocumentHtml(input, options) {
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1">',
     '<meta name="color-scheme" content="light dark">',
-    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">`,
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${scriptHash}'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">`,
     `<title>${escapeXml(options.title ?? document2.spec.caption)}</title>`,
     `<!-- ${escapeXml(notices_default.join(" "))} -->`,
     `<style>${fontCss(options.fonts)}${options.css}body{margin:0}main{padding:16px}.aesthc-static svg{display:block;max-width:none;height:auto}#aesthc-standalone{min-height:100vh}</style>`,
@@ -175,6 +327,7 @@ function exportDocumentHtml(input, options) {
       bytes,
       canonical: true,
       sourceIncluded: !!options.includeSource,
+      metadata: metadataPolicy,
       verified: false,
       runtimeBytes: new TextEncoder().encode(options.runtime).byteLength,
       fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength
@@ -211,15 +364,24 @@ function cardSvg(input, options = {}) {
   const resolved = resolveDocument(document2, {
     quality: "edit",
     requestId: "card",
-    measureText: createCanvasTextMeasurer() ?? estimateTextWidth
+    theme,
+    measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.registry
   });
   if (!resolved.ok) return resolved;
+  const missingRenderer = resolved.diagnostics.find(
+    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty"
+  );
+  if (missingRenderer) return failure(missingRenderer.code);
   const layout = resolved.value.layout;
   const padding = options.padding ?? 40;
+  if (!Number.isFinite(padding) || padding < 0 || padding * 2 >= Math.min(CARD_WIDTH, CARD_HEIGHT))
+    return failure("export.options");
   const scale = Math.min(
     (CARD_WIDTH - padding * 2) / layout.width,
     (CARD_HEIGHT - padding * 2) / layout.height
   );
+  if (!Number.isFinite(scale) || scale <= 0) return failure("export.options");
   const tx = (CARD_WIDTH - layout.width * scale) / 2;
   const ty = (CARD_HEIGHT - layout.height * scale) / 2;
   const markup = renderSceneMarkup(document2, resolved.value, {
@@ -320,39 +482,58 @@ async function exportStoryWebm(input, options = {}) {
   const capability = webmCapability();
   if (!capability.supported || !capability.mimeType) return failure("webm.unavailable");
   if (document2.story.length === 0) return failure("webm.empty");
-  const fps = Math.max(1, Math.min(60, Math.round(options.fps ?? 30)));
-  const scale = Math.max(0.25, Math.min(2, options.scale ?? 1));
+  const numeric = (value, fallback) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const fps = Math.max(1, Math.min(60, Math.round(numeric(options.fps, 30))));
+  const scale = Math.max(0.25, Math.min(2, numeric(options.scale, 1)));
   const totalDuration = document2.story.reduce((sum, step) => sum + step.durationMs, 0);
   if (totalDuration <= 0 || totalDuration > 12e4) return failure("limit.story");
   const resolved = resolveDocument(document2, {
     quality: "edit",
     requestId: "motion",
-    skipDiagnostics: true,
-    measureText: createCanvasTextMeasurer() ?? estimateTextWidth
+    theme: document2.presentation.theme.mode,
+    measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.renderers
   });
   if (!resolved.ok) return resolved;
+  const missingRenderer = resolved.diagnostics.find(
+    (diagnostic) => diagnostic.code.startsWith("renderer.")
+  );
+  if (missingRenderer) return failure(missingRenderer.code);
+  const width = Math.max(2, Math.ceil(resolved.value.layout.width * scale));
+  const height = Math.max(2, Math.ceil(resolved.value.layout.height * scale));
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width > 16384 || height > 16384 || width * height > 32e6)
+    return failure("export.pixels");
   const canvas = window.document.createElement("canvas");
-  canvas.width = Math.max(2, Math.ceil(resolved.value.layout.width * scale));
-  canvas.height = Math.max(2, Math.ceil(resolved.value.layout.height * scale));
+  canvas.width = width;
+  canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) return failure("export.context");
-  const stream = canvas.captureStream(fps);
-  const recorder = new MediaRecorder(stream, { mimeType: capability.mimeType });
-  const chunks = [];
-  recorder.ondataavailable = (event) => {
-    if (event.data.size) chunks.push(event.data);
-  };
+  let stream;
+  let recorder;
+  let started = false;
   let aborted = false;
+  let stoppedResolve = null;
+  const recorderStopped = new Promise((resolve) => {
+    stoppedResolve = resolve;
+  });
+  const settleRecorder = () => stoppedResolve?.();
   const onAbort = () => {
     aborted = true;
+    settleRecorder();
   };
   options.signal?.addEventListener("abort", onAbort, { once: true });
-  const recorderStopped = new Promise((resolve) => {
-    recorder.onstop = () => resolve();
-  });
+  const chunks = [];
   let frameCount = 0;
   try {
+    stream = canvas.captureStream(fps);
+    recorder = new MediaRecorder(stream, { mimeType: capability.mimeType });
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) chunks.push(event.data);
+    };
+    recorder.onstop = settleRecorder;
+    recorder.onerror = settleRecorder;
     recorder.start();
+    started = true;
     for (const step of document2.story) {
       if (aborted || options.signal?.aborted) return failure("operation.aborted");
       const view = document2.views.find((candidate) => candidate.id === step.viewId);
@@ -368,8 +549,19 @@ async function exportStoryWebm(input, options = {}) {
       const image = new Image();
       try {
         await new Promise((resolve, reject) => {
-          image.onload = () => resolve();
-          image.onerror = () => reject(Error("export.image"));
+          const abort = () => {
+            image.src = "";
+            reject(Error("operation.aborted"));
+          };
+          options.signal?.addEventListener("abort", abort, { once: true });
+          image.onload = () => {
+            options.signal?.removeEventListener("abort", abort);
+            resolve();
+          };
+          image.onerror = () => {
+            options.signal?.removeEventListener("abort", abort);
+            reject(Error("export.image"));
+          };
           image.src = url;
         });
         const frames = Math.max(1, Math.round(step.durationMs / (1e3 / fps)));
@@ -386,7 +578,8 @@ async function exportStoryWebm(input, options = {}) {
     }
     if (aborted || options.signal?.aborted) return failure("operation.aborted");
     recorder.stop();
-    await recorderStopped;
+    started = false;
+    await Promise.race([recorderStopped, delay(2e3)]);
     if (aborted || options.signal?.aborted) return failure("operation.aborted");
     const blob = new Blob(chunks, { type: capability.mimeType });
     if (!blob.size) return failure("webm.empty");
@@ -413,16 +606,18 @@ async function exportStoryWebm(input, options = {}) {
     );
   } finally {
     options.signal?.removeEventListener("abort", onAbort);
-    if (recorder.state !== "inactive") {
+    if (recorder && recorder.state !== "inactive") {
       try {
         recorder.stop();
       } catch {
       }
     }
-    for (const activeTrack of stream.getTracks()) {
-      if (activeTrack.readyState !== "ended") activeTrack.stop();
-    }
-    await recorderStopped;
+    if (stream)
+      for (const activeTrack of stream.getTracks()) {
+        if (activeTrack.readyState !== "ended") activeTrack.stop();
+      }
+    if (started && recorder && recorder.state !== "inactive")
+      await Promise.race([recorderStopped, delay(2e3)]);
     canvas.width = 0;
     canvas.height = 0;
   }
@@ -457,6 +652,12 @@ async function exportDocument(input, options) {
     return failure("export.source-format");
   if (options.format === "jpeg" && options.background === "transparent")
     return failure("export.alpha");
+  if (options.quality === "publish") {
+    const profile = validateDeploymentProfile(checked.value);
+    if (!profile.ok) return profile;
+    if (profile.value.enabled && profile.value.diagnostics.length)
+      return { ok: false, diagnostics: profile.value.diagnostics };
+  }
   if (options.scope.type === "selection") {
     if (options.format === "json") return failure("export.scope");
     const selected = new Set(
@@ -518,19 +719,19 @@ async function exportDocument(input, options) {
       quality: options.quality,
       requestId: "export",
       signal: options.signal,
+      theme: options.theme,
       measureText: measurer?.measure ?? createCanvasTextMeasurer(),
       renderers: options.renderers
     });
     measurer?.dispose();
     if (!resolved.ok) return resolved;
     diagnostics.push(...resolved.diagnostics);
-    if (options.quality === "publish") {
-      const missingRenderer = diagnostics.find(
-        (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure"
-      );
-      if (missingRenderer) return failure(missingRenderer.code);
-      if (diagnostics.some((d) => d.code.startsWith("quality."))) return failure("export.quality");
-    }
+    const missingRenderer = diagnostics.find(
+      (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure" || d.code === "renderer.empty"
+    );
+    if (missingRenderer) return failure(missingRenderer.code);
+    if (options.quality === "publish" && diagnostics.some((d) => d.code.startsWith("quality.")))
+      return failure("export.quality");
     width = Math.ceil(resolved.value.layout.width * options.scale);
     height = Math.ceil(resolved.value.layout.height * options.scale);
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width > 16384 || height > 16384 || width * height > 32e6)

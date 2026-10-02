@@ -1,21 +1,21 @@
 import {
   createEditorStore
-} from "./chunk-GSAEMTC2.js";
+} from "./chunk-DFEIZ57Q.js";
 import {
   isNodeLocked,
   resolveDocument
-} from "./chunk-3N7YC3GS.js";
+} from "./chunk-FJJDAGJJ.js";
 import {
   createDocument
-} from "./chunk-WD7BRA7G.js";
+} from "./chunk-TSYG4LOT.js";
 import {
   edgesOf,
   failure,
-  issue,
+  freezeData,
   nodesOf,
   success,
   validateDocument
-} from "./chunk-6NELNSRC.js";
+} from "./chunk-TN5OC77A.js";
 
 // src/editor-core/conversion.ts
 function convertToGraph(document, options) {
@@ -374,20 +374,68 @@ function createLayoutProviderRegistry() {
     }
   };
 }
+function raceWithAbort(work, signal) {
+  if (signal.aborted) return Promise.reject(new Error("operation.aborted"));
+  return new Promise((resolve, reject) => {
+    function onAbort() {
+      cleanup();
+      reject(new Error("operation.aborted"));
+    }
+    function cleanup() {
+      signal.removeEventListener("abort", onAbort);
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    work.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        cleanup();
+        reject(error);
+      }
+    );
+  });
+}
+var isProduction = () => typeof process !== "undefined" && process.env?.NODE_ENV === "production";
 async function runRegisteredLayout(document, registry, providerId, options) {
   const provider = registry.get(providerId);
   if (!provider) return failure("provider.unknown");
+  const checked = validateDocument(document);
+  if (!checked.ok) return checked;
+  if (options.signal?.aborted) return failure("operation.aborted");
   const requestId = options.requestId ?? `${providerId}:${document.revision}`;
   const controller = new AbortController();
-  options.signal?.addEventListener("abort", () => controller.abort(), { once: true });
-  let scene;
+  const forwardAbort = () => controller.abort();
+  options.signal?.addEventListener("abort", forwardAbort, { once: true });
   try {
-    scene = await provider.run({
+    if (controller.signal.aborted) return failure("operation.aborted");
+    const snapshot = structuredClone(checked.value);
+    if (!isProduction()) freezeData(snapshot);
+    const scene = await raceWithAbort(
+      provider.run({ document: snapshot, requestId, signal: controller.signal }),
+      controller.signal
+    );
+    if (options.signal?.aborted || controller.signal.aborted) return failure("operation.aborted");
+    const currentRevision = options.latestRevision?.() ?? document.revision;
+    if (currentRevision !== options.expectedRevision)
+      return success({ status: "rejected", document, diagnostics: ["revision.stale"] });
+    if (requestId !== options.latestRequestId())
+      return success({ status: "rejected", document, diagnostics: ["provider.stale"] });
+    const applied = applyLayoutResult(
       document,
-      requestId,
-      signal: controller.signal
-    });
+      { requestId, baseRevision: options.expectedRevision, scene },
+      { expectedRevision: options.expectedRevision }
+    );
+    if (!applied.ok)
+      return success({
+        status: "rejected",
+        document,
+        diagnostics: applied.diagnostics.map((diagnostic) => diagnostic.code)
+      });
+    return success({ status: "applied", document: applied.value, diagnostics: [] });
   } catch (error) {
+    if (controller.signal.aborted) return failure("operation.aborted");
     return success({
       status: "rejected",
       document,
@@ -395,28 +443,13 @@ async function runRegisteredLayout(document, registry, providerId, options) {
         error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : "provider.failed"
       ]
     });
+  } finally {
+    options.signal?.removeEventListener("abort", forwardAbort);
   }
-  if (options.signal?.aborted) return failure("operation.aborted");
-  const currentRevision = options.latestRevision?.() ?? document.revision;
-  if (currentRevision !== options.expectedRevision)
-    return success({ status: "rejected", document, diagnostics: ["revision.stale"] });
-  if (requestId !== options.latestRequestId())
-    return success({ status: "rejected", document, diagnostics: ["provider.stale"] });
-  const applied = applyLayoutResult(
-    document,
-    { requestId, baseRevision: options.expectedRevision, scene },
-    { expectedRevision: options.expectedRevision }
-  );
-  if (!applied.ok)
-    return success({
-      status: "rejected",
-      document,
-      diagnostics: applied.diagnostics.map((diagnostic) => diagnostic.code)
-    });
-  return success({ status: "applied", document: applied.value, diagnostics: [] });
 }
 
 // src/editor-core/evidence.ts
+var EVIDENCE_RANGE_CONTRACT = "evidence.range.v1";
 var commitPattern = /^[0-9a-f]{7,64}$/i;
 function referenceOf(entry) {
   if (!entry || typeof entry !== "object") return failure("evidence.invalid");
@@ -468,24 +501,44 @@ function declaredEvidence(document) {
 async function verifyEvidence(document, verifier) {
   const declared = declaredEvidence(document);
   if (!declared.ok) return declared;
+  const rangeAware = verifier.contract === EVIDENCE_RANGE_CONTRACT;
   const receipts = [];
   for (const entry of declared.value) {
     let status = "unavailable";
+    let scope;
     let detail;
     try {
       const outcome = await verifier.verify({
         repository: entry.repository,
         commit: entry.commit,
         path: entry.path,
+        range: { startLine: entry.startLine, endLine: entry.endLine },
         ...entry.blobSha ? { blobSha: entry.blobSha } : {}
       });
-      status = outcome === "match" ? "verified" : outcome === "mismatch" ? "mismatch" : "unavailable";
-      if (outcome !== "match") detail = `verifier:${outcome}`;
+      if (outcome === "match") {
+        if (rangeAware) {
+          status = "verified";
+          scope = "range";
+        } else {
+          status = "declared";
+          scope = "file";
+          detail = "verifier:file-only";
+        }
+      } else {
+        status = outcome === "mismatch" ? "mismatch" : "unavailable";
+        detail = `verifier:${outcome}`;
+      }
     } catch {
       status = "unavailable";
       detail = "verifier:error";
     }
-    receipts.push({ id: entry.id, status, declared: entry, ...detail ? { detail } : {} });
+    receipts.push({
+      id: entry.id,
+      status,
+      declared: entry,
+      ...scope ? { scope } : {},
+      ...detail ? { detail } : {}
+    });
   }
   return success(receipts);
 }
@@ -493,67 +546,6 @@ function evidenceDiagnostics(document) {
   const declared = declaredEvidence(document);
   if (!declared.ok) return declared;
   return success([]);
-}
-
-// src/editor-core/profiles.ts
-function validateDeploymentProfile(input, options = {}) {
-  const checked = validateDocument(input);
-  if (!checked.ok) return checked;
-  const document = checked.value;
-  const enabled = options.enabled === true;
-  if (!enabled)
-    return success({
-      enabled: false,
-      facts: { nodes: 0, regions: 0, crossRegionEdges: 0 },
-      diagnostics: []
-    });
-  const diagnostics = [];
-  const regions = /* @__PURE__ */ new Set();
-  const regionOf = (nodeId) => {
-    const declared = (document.metadata.nodes[nodeId]?.tags ?? []).filter((tag) => tag.startsWith("region:")).map((tag) => tag.slice("region:".length)).filter(Boolean);
-    for (const region of declared) regions.add(region);
-    return declared;
-  };
-  const nodeIds = nodesOf(document.spec).map((node) => node.id);
-  for (const nodeId of nodeIds) {
-    const metadata = document.metadata.nodes[nodeId];
-    if (!metadata?.owner)
-      diagnostics.push({
-        ...issue("profile.owner-missing"),
-        subject: { kind: "node", id: nodeId }
-      });
-    if (metadata?.visibility === "public")
-      diagnostics.push({
-        ...issue("profile.public-entity"),
-        subject: { kind: "node", id: nodeId }
-      });
-    if (regionOf(nodeId).length > 1)
-      diagnostics.push({
-        ...issue("profile.region-conflict"),
-        subject: { kind: "node", id: nodeId }
-      });
-  }
-  let crossRegionEdges = 0;
-  for (const edge of edgesOf(document.spec)) {
-    const fromRegion = regionOf(edge.from)[0];
-    const toRegion = regionOf(edge.to)[0];
-    if (!fromRegion || !toRegion || fromRegion === toRegion) continue;
-    crossRegionEdges += 1;
-    if (!document.metadata.edges[edge.id]?.crossing)
-      diagnostics.push({
-        ...issue("profile.crossing-missing"),
-        subject: { kind: "edge", id: edge.id }
-      });
-  }
-  return success({
-    enabled: true,
-    facts: {
-      nodes: nodeIds.length,
-      regions: regions.size,
-      crossRegionEdges
-    },
-    diagnostics
-  });
 }
 
 export {
@@ -568,8 +560,8 @@ export {
   renderCustomNode,
   createLayoutProviderRegistry,
   runRegisteredLayout,
+  EVIDENCE_RANGE_CONTRACT,
   declaredEvidence,
   verifyEvidence,
-  evidenceDiagnostics,
-  validateDeploymentProfile
+  evidenceDiagnostics
 };

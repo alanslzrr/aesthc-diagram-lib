@@ -1,8 +1,6 @@
 "use client";
-import {
-  validateDeploymentProfile
-} from "../chunk-HF6PLESJ.js";
-import "../chunk-GSAEMTC2.js";
+import "../chunk-5RTXMMMR.js";
+import "../chunk-DFEIZ57Q.js";
 import {
   compareDocuments,
   findReach,
@@ -10,26 +8,29 @@ import {
   graphSnapshot,
   relationsOf,
   searchNodes
-} from "../chunk-EILTSCOU.js";
+} from "../chunk-YAAL62LR.js";
 import {
   downloadArtifact,
   exportCard,
   exportDocument,
   exportStoryWebm,
   webmCapability
-} from "../chunk-QCCS656M.js";
+} from "../chunk-Z3PJ7ORH.js";
+import {
+  validateDeploymentProfile
+} from "../chunk-5MVOLWEF.js";
 import {
   resolveDocument
-} from "../chunk-3N7YC3GS.js";
+} from "../chunk-FJJDAGJJ.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
-import "../chunk-WD7BRA7G.js";
+import "../chunk-TSYG4LOT.js";
 import "../chunk-BBMS4ALE.js";
 import {
   canonical,
   failure,
   success
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-TN5OC77A.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSvg
@@ -680,12 +681,22 @@ function querySummary(query, graph, t) {
 import { jsx as jsx5, jsxs as jsxs6 } from "react/jsx-runtime";
 var ZOOM_MIN = 0.1;
 var ZOOM_MAX = 4;
-function DiagramViewer({ document: document2, locale = "en", className }) {
+function DiagramViewer({
+  document: document2,
+  locale = "en",
+  className,
+  registry
+}) {
   const t = (en, es) => locale === "es" ? es : en;
   const graph = useMemo3(() => graphSnapshot(document2), [document2]);
   const scene = useMemo3(
-    () => resolveDocument(document2, { quality: "edit", requestId: "viewer", skipDiagnostics: true }),
-    [document2]
+    () => resolveDocument(document2, {
+      quality: "edit",
+      requestId: "viewer",
+      skipDiagnostics: true,
+      renderers: registry
+    }),
+    [document2, registry]
   );
   const [selection, setSelection] = useState3(null);
   const [origin, setOrigin] = useState3(null);
@@ -704,7 +715,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
   const [storyFocus, setStoryFocus] = useState3(
     null
   );
-  const [profileEnabled, setProfileEnabled] = useState3(false);
+  const [profileShown, setProfileShown] = useState3(true);
   const [publishIssue, setPublishIssue] = useState3(null);
   const [recording, setRecording] = useState3(false);
   const [motionIssue, setMotionIssue] = useState3(null);
@@ -777,10 +788,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     }) : "",
     [document2, scene, highlight, lensSet, exclude]
   );
-  const profileReport = useMemo3(
-    () => validateDeploymentProfile(document2, { enabled: profileEnabled }),
-    [document2, profileEnabled]
-  );
+  const profileReport = useMemo3(() => validateDeploymentProfile(document2), [document2]);
   const relationsEnabled = graph.edges.length > 0;
   const summary = querySummary(query, graph, t);
   const edgeIds = queryEdgeIds(query);
@@ -981,7 +989,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
   async function exportPublish() {
     setPublishIssue(null);
     if (!scene.ok) return;
-    const report = validateDeploymentProfile(document2, { enabled: profileEnabled });
+    const report = validateDeploymentProfile(document2);
     if (!report.ok) {
       setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code));
       return;
@@ -1149,12 +1157,12 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                 "input",
                 {
                   type: "checkbox",
-                  checked: profileEnabled,
-                  onChange: (event) => setProfileEnabled(event.target.checked),
-                  "aria-label": t("Deployment profile", "Perfil de despliegue")
+                  checked: profileShown,
+                  onChange: (event) => setProfileShown(event.target.checked),
+                  "aria-label": t("Show deployment profile", "Mostrar perfil de despliegue")
                 }
               ),
-              t("Deployment profile", "Perfil de despliegue")
+              t("Show deployment profile", "Mostrar perfil de despliegue")
             ] }),
             /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => void exportPublish(), children: t("Publish export", "Exportar publicaci\xF3n") })
           ] })
@@ -1453,7 +1461,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
           {
             document: document2,
             entity: selection,
-            profile: profileReport.ok ? profileReport.value : null,
+            profile: profileShown && profileReport.ok ? profileReport.value : null,
             onSelect: setSelection,
             t
           }

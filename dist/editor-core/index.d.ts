@@ -1,6 +1,6 @@
-import { g as DiagramDocument, u as EditorSpec, I as ImportOptions, j as Result, v as Presentation, h as DiagramSpec, w as ImportReceipt, x as Limits, S as StoreOptions, E as EditorStore, y as EditorDiagramType, z as TypeAdapter, A as Rect, C as Size, V as Viewport, G as Point, J as DiagramScene, K as ResolveContext, R as ResolvedScene, n as EntityRef, M as DiagramFragment, O as Transaction, Q as EditorPermissions, U as CommitResult, i as Diagnostic } from '../layout-BhvxbOAw.js';
-export { W as Capability, X as ChangeSet, Y as DiagramGroup, Z as DiagramLink, _ as DocumentMetadata, $ as EditorCommand, a as EditorSnapshot, a0 as EditorTool, a1 as EndpointAnchor, a2 as EntityMetadata, a3 as FocusSet, a4 as GraphDiagramSpec, a5 as GraphEdge, a6 as GraphNode, a7 as GraphPort, a8 as JsonValue, L as Locale, N as NamedView, a9 as NodeInput, aa as NodePlacement, ab as Palette, ac as RelationInput, ad as ReorderCollection, ae as ResolveCustomRenderer, o as ResolveRendererRegistry, af as RoutePlacement, ag as SourceEvidence, t as StoryStep, ah as StructuralEdit } from '../layout-BhvxbOAw.js';
-export { D as DeploymentProfileReport, a as DeploymentRule, v as validateDeploymentProfile } from '../profiles-BU8Kb50T.js';
+import { g as DiagramDocument, u as EditorSpec, I as ImportOptions, k as Result, v as Presentation, i as DiagramSpec, w as ImportReceipt, x as Limits, S as StoreOptions, E as EditorStore, y as EditorDiagramType, z as TypeAdapter, A as Rect, C as Size, V as Viewport, G as Point, J as DiagramScene, K as ResolveContext, h as ResolvedScene, o as EntityRef, M as DiagramFragment, O as Transaction, Q as EditorPermissions, U as CommitResult, j as Diagnostic } from '../layout-B9EEWMV7.js';
+export { W as Capability, X as ChangeSet, Y as DiagramGroup, Z as DiagramLink, _ as DocumentMetadata, $ as EditorCommand, a as EditorSnapshot, a0 as EditorTool, a1 as EndpointAnchor, a2 as EntityMetadata, a3 as FocusSet, a4 as GraphDiagramSpec, a5 as GraphEdge, a6 as GraphNode, a7 as GraphPort, a8 as JsonValue, L as Locale, N as NamedView, a9 as NodeInput, aa as NodePlacement, ab as Palette, ac as RelationInput, ad as ReorderCollection, ae as ResolveCustomRenderer, R as ResolveRendererRegistry, af as RoutePlacement, ag as SourceEvidence, t as StoryStep, ah as StructuralEdit } from '../layout-B9EEWMV7.js';
+export { D as DeploymentProfileReport, a as DeploymentRule, v as validateDeploymentProfile } from '../profiles-CPgNfHct.js';
 import '../theme.js';
 
 declare function defaultPresentation(): Presentation;
@@ -246,6 +246,12 @@ interface RegisteredLayoutOutcome {
  * rejected and locked nodes can never move. Rejections are isolated: the input
  * document is returned untouched (last-good) so the caller can retry with
  * another provider or the same one.
+ *
+ * Hardening: a request aborted before invocation performs zero provider work;
+ * the provider only receives an isolated, development-frozen snapshot of the
+ * validated document; cancellation is forwarded to the provider signal; and
+ * the returned scene is published only after the whole result document
+ * validates. Listeners are detached on every exit path.
  */
 declare function runRegisteredLayout(document: DiagramDocument, registry: LayoutProviderRegistry, providerId: string, options: RegisteredLayoutOptions): Promise<Result<RegisteredLayoutOutcome>>;
 
@@ -259,30 +265,62 @@ interface DeclaredEvidence {
     blobSha?: string;
 }
 type EvidenceStatus = 'declared' | 'verified' | 'mismatch' | 'unavailable';
+/** Granularity actually established by a verifier. `file` is a legacy,
+ * file-identity-only result; `range` covers the declared coordinates. */
+type EvidenceVerificationScope = 'file' | 'range';
 interface EvidenceReceipt {
     id: string;
     status: EvidenceStatus;
     declared: DeclaredEvidence;
+    scope?: EvidenceVerificationScope;
     detail?: string;
 }
-/** Trusted, host-provided verifier. It is the only component allowed to reach
- * the network or the filesystem; the document can never enable it. */
+/**
+ * Range-aware verifier contract marker. A verifier declaring this contract
+ * commits to checking every supplied coordinate (repository, commit, path, the
+ * declared line `range`, and `blobSha` when declared) and to returning
+ * `'match'` only for a complete match. This is the only input shape that can
+ * produce a `verified` receipt.
+ */
+declare const EVIDENCE_RANGE_CONTRACT: "evidence.range.v1";
+interface EvidenceVerifierReference {
+    repository: string;
+    commit: string;
+    path: string;
+    /** Declared source range. Always supplied; a range-aware verifier must
+     * compare it against the resolved file content. */
+    range: {
+        startLine: number;
+        endLine: number;
+    };
+    blobSha?: string;
+}
+/**
+ * Trusted, host-provided verifier. It is the only component allowed to reach
+ * the network or the filesystem; the document can never enable it.
+ *
+ * Legacy verifier migration: verifiers written against the original callback
+ * received `{ repository, commit, path, blobSha? }` and had no way to observe
+ * `startLine`/`endLine`. `verifyEvidence` keeps calling them and still passes
+ * the declared `range`, but any legacy `'match'` is reported truthfully as
+ * `declared` with `scope: 'file'` and detail `verifier:file-only` — never as
+ * `verified`. To become eligible for `verified`, a verifier must validate the
+ * full reference and declare `contract: EVIDENCE_RANGE_CONTRACT`.
+ */
 interface TrustedVerifier {
-    verify(reference: {
-        repository: string;
-        commit: string;
-        path: string;
-        blobSha?: string;
-    }): Promise<'match' | 'mismatch' | 'unavailable'>;
+    contract?: typeof EVIDENCE_RANGE_CONTRACT;
+    verify(reference: EvidenceVerifierReference): Promise<'match' | 'mismatch' | 'unavailable'>;
 }
 /** Declared evidence from a validated document. Every entry starts as
- * `declared`: an imported JSON can never declare itself verified. */
+ * `declared`: an imported JSON can never declare itself verified, and a
+ * receipt object travelling inside a document is not an input here. */
 declare function declaredEvidence(document: DiagramDocument): Result<DeclaredEvidence[]>;
 /** Verifies declared evidence through the trusted verifier. `verified` is
- * granted only on a complete match; a mismatch, an exception or an
- * unavailable verifier never becomes a false positive. */
+ * granted only to a complete match under `EVIDENCE_RANGE_CONTRACT`; a mismatch,
+ * an exception, an unavailable verifier or a legacy file-only match never
+ * becomes a false positive. */
 declare function verifyEvidence(document: DiagramDocument, verifier: TrustedVerifier): Promise<Result<EvidenceReceipt[]>>;
 /** Diagnostics for declared evidence without running a verifier. */
 declare function evidenceDiagnostics(document: DiagramDocument): Result<Diagnostic[]>;
 
-export { CommitResult, type ConversionReceipt, type CustomNodePayload, type CustomNodeRenderer, type CustomRenderContext, DEFAULT_LIMITS, type DeclaredEvidence, Diagnostic, DiagramDocument, DiagramFragment, DiagramScene, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, type EvidenceReceipt, type EvidenceStatus, ImportOptions, ImportReceipt, type LayoutProvider, type LayoutProviderRegistry, type LayoutProviderResult, Limits, type OrthogonalRouteRequest, Point, Presentation, Rect, type RegisteredLayoutOptions, type RegisteredLayoutOutcome, type RegisteredLayoutProvider, type RendererRegistry, ResolveContext, ResolvedScene, Result, type RouteObstacle, type RoutedPath, Size, StoreOptions, Transaction, type TrustedVerifier, TypeAdapter, Viewport, applyLayoutResult, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, createLayoutProvider, createLayoutProviderRegistry, createRendererRegistry, declaredEvidence, defaultPresentation, evidenceDiagnostics, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, renderCustomNode, resolveDocument, routeOrthogonal, runLayoutProvider, runRegisteredLayout, screenToWorld, serializeDocument, validateCustomPayload, validateDocument, validateEditorSpec, verifyEvidence, worldToScreen, zoomAt };
+export { CommitResult, type ConversionReceipt, type CustomNodePayload, type CustomNodeRenderer, type CustomRenderContext, DEFAULT_LIMITS, type DeclaredEvidence, Diagnostic, DiagramDocument, DiagramFragment, DiagramScene, EVIDENCE_RANGE_CONTRACT, EditorDiagramType, EditorPermissions, EditorSpec, EditorStore, EntityRef, type EvidenceReceipt, type EvidenceStatus, type EvidenceVerifierReference, ImportOptions, ImportReceipt, type LayoutProvider, type LayoutProviderRegistry, type LayoutProviderResult, Limits, type OrthogonalRouteRequest, Point, Presentation, Rect, type RegisteredLayoutOptions, type RegisteredLayoutOutcome, type RegisteredLayoutProvider, type RendererRegistry, ResolveContext, ResolvedScene, Result, type RouteObstacle, type RoutedPath, Size, StoreOptions, Transaction, type TrustedVerifier, TypeAdapter, Viewport, applyLayoutResult, applyTransaction, canonicalizeContent, convertToGraph, createDocument, createEditorStore, createFragment, createLayoutProvider, createLayoutProviderRegistry, createRendererRegistry, declaredEvidence, defaultPresentation, evidenceDiagnostics, exportLegacySpec, fitViewport, getAdapter, importDocument, pasteFragment, relayoutScene, renderCustomNode, resolveDocument, routeOrthogonal, runLayoutProvider, runRegisteredLayout, screenToWorld, serializeDocument, validateCustomPayload, validateDocument, validateEditorSpec, verifyEvidence, worldToScreen, zoomAt };

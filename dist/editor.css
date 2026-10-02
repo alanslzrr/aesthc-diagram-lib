@@ -52,8 +52,10 @@
 .adl-editor button[aria-pressed='true'] {
   box-shadow: inset 0 0 0 1px var(--adl-cobalt);
 }
-/* Toolbar: intrinsic-width controls in labelled groups. Wrapping keeps every
- * label whole; nothing shrinks below its text. */
+/* Toolbar: intrinsic-width controls in labelled groups. The toolbar wraps whole
+ * groups, and each group may shrink and wrap its controls too, so a zoomed or
+ * narrow host never widens the page. Buttons keep their intrinsic width and
+ * whole labels; only the group's inline size gives way. */
 .adl-editor-toolbar {
   display: flex;
   align-items: center;
@@ -67,9 +69,11 @@
 .adl-editor-group {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
 }
 .adl-editor-group > button,
 .adl-editor-group > select,
@@ -409,4 +413,79 @@
 .adl-editor-relation span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+/* Commit-time draft feedback stays visually separate from parse diagnostics. */
+.adl-editor-json-commit-alert {
+  color: var(--adl-branch);
+}
+.adl-editor-json-commit-hint {
+  margin: 8px 0 0;
+  color: var(--adl-muted);
+  line-height: 1.5;
+}
+/* Native modal dialog (the repository has no component library): top layer,
+   focus trap and Escape come from the platform; only the surface is themed. */
+.adl-editor-dialog {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--adl-border);
+  border-radius: 8px;
+  background: var(--adl-bg);
+  color: var(--adl-fg);
+  font-family: Geist, system-ui, sans-serif;
+  font-size: 13px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 24px 48px -24px rgb(0 0 0 / 0.4);
+}
+.adl-editor-dialog::backdrop {
+  background: rgb(0 0 0 / 0.32);
+}
+.adl-editor-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 550;
+}
+.adl-editor-dialog .adl-editor-dialog-count {
+  margin: 0 0 12px;
+  color: var(--adl-muted);
+}
+.adl-editor-dialog fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--adl-border);
+  border-radius: 6px;
+}
+.adl-editor-dialog legend {
+  padding: 0 4px;
+  color: var(--adl-muted);
+  font-size: 12px;
+}
+.adl-editor-dialog label {
+  display: block;
+  margin: 0;
+}
+.adl-editor-dialog label.adl-editor-dialog-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adl-editor-dialog select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+.adl-editor-dialog .adl-editor-dialog-consequence {
+  margin: 0;
+  color: var(--adl-branch);
+  line-height: 1.5;
+}
+.adl-editor-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

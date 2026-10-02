@@ -3,14 +3,14 @@ import {
   createDocument,
   importDocument,
   serializeDocument
-} from "../chunk-WD7BRA7G.js";
+} from "../chunk-TSYG4LOT.js";
 import "../chunk-BBMS4ALE.js";
 import {
   canonical,
   failure,
   success,
   validateDocument
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-TN5OC77A.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-TGRGDAF2.js";
 
@@ -36,19 +36,35 @@ async function readBounded(stream, limits, timeoutMs, clock) {
   const chunks = [];
   let size = 0;
   const start = clock();
+  let timer;
+  const timedOut = new Promise((resolve) => {
+    timer = setTimeout(() => resolve("timeout"), Math.max(0, timeoutMs));
+  });
+  const cancel = () => {
+    void reader.cancel().catch(() => {
+    });
+  };
   try {
     while (true) {
       if (clock() - start > timeoutMs) {
-        await reader.cancel().catch(() => {
-        });
+        cancel();
         return failure("share.timeout");
       }
-      const { done, value } = await reader.read();
+      const pending = reader.read().then(
+        (result) => ({ kind: "read", result }),
+        (error) => ({ kind: "error", error })
+      );
+      const raced = await Promise.race([pending, timedOut]);
+      if (raced === "timeout") {
+        cancel();
+        return failure("share.timeout");
+      }
+      if (raced.kind === "error") throw raced.error;
+      const { done, value } = raced.result;
       if (done) break;
       size += value.length;
       if (size > limits.expanded) {
-        await reader.cancel().catch(() => {
-        });
+        cancel();
         return failure("share.expansion");
       }
       chunks.push(value);
@@ -61,11 +77,14 @@ async function readBounded(stream, limits, timeoutMs, clock) {
     }
     return success(bytes);
   } catch {
-    await reader.cancel().catch(() => {
-    });
+    cancel();
     return failure("share.malformed");
   } finally {
-    reader.releaseLock();
+    if (timer !== void 0) clearTimeout(timer);
+    try {
+      reader.releaseLock();
+    } catch {
+    }
   }
 }
 async function encodeShareDocument(input, options = {}) {
@@ -292,7 +311,12 @@ function createLocalStorageAdapter(namespace) {
         for (let index = 0; index < window.localStorage.length; index++) {
           const key = window.localStorage.key(index);
           if (!key || !key.startsWith(prefix)) continue;
-          const storedKey = decodeURIComponent(key.slice(prefix.length));
+          let storedKey;
+          try {
+            storedKey = decodeURIComponent(key.slice(prefix.length));
+          } catch {
+            continue;
+          }
           const result = await read(storedKey);
           if (!result.ok || !result.value) continue;
           entries.push({

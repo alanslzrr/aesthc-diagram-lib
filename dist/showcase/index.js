@@ -4,7 +4,7 @@ import {
 } from "../chunk-LALSN5FV.js";
 import {
   DiagramCanvas
-} from "../chunk-LK6WUBG7.js";
+} from "../chunk-LDT4SVVQ.js";
 import "../chunk-GIHY37DH.js";
 import "../chunk-IDNRW7UP.js";
 import {

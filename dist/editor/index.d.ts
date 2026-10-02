@@ -1,13 +1,15 @@
-import { E as EditorStore, L as Locale, a as EditorSnapshot, S as StoreOptions } from '../layout-BhvxbOAw.js';
+import { E as EditorStore, L as Locale, R as ResolveRendererRegistry, a as EditorSnapshot, S as StoreOptions } from '../layout-B9EEWMV7.js';
 import * as react from 'react';
 import { ReactNode } from 'react';
 import '../theme.js';
 
-declare function EditorRoot({ store, locale, theme, children, }: {
+declare function EditorRoot({ store, locale, theme, registry, children, }: {
     store: EditorStore;
     locale: Locale;
     /** Effective view theme. Omit to follow the document's own presentation. */
     theme?: 'light' | 'dark';
+    /** Trusted per-instance renderer registry. */
+    registry?: ResolveRendererRegistry;
     children: ReactNode;
 }): react.JSX.Element;
 declare function useEditor(): {
@@ -19,6 +21,11 @@ declare function useEditor(): {
      * document theme control because the host owns the effective appearance.
      */
     theme?: "light" | "dark";
+    /**
+     * Trusted, per-instance custom node renderers. Never loaded from document
+     * data; two editors can register the same typeKey differently.
+     */
+    registry?: ResolveRendererRegistry;
 };
 declare function useEditorSnapshot(): EditorSnapshot;
 /** Shallow equality for composite selector slices (selection/document pairs). */

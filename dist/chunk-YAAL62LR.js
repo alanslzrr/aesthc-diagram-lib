@@ -1,11 +1,16 @@
 import {
+  canonical,
+  edgeCollection,
   edgesOf,
   failure,
   freezeData,
+  issue,
+  nodeCollection,
   nodesOf,
+  pointer,
   success,
   validateDocument
-} from "./chunk-6NELNSRC.js";
+} from "./chunk-TN5OC77A.js";
 
 // src/graph/compare.ts
 function diffValues(before, after, prefix) {
@@ -24,12 +29,138 @@ function diffValues(before, after, prefix) {
 function orderOf(ids) {
   return ids.join("\0");
 }
-function reorderOf(collection, beforeIds, afterIds) {
+function reorderSequence(beforeIds, afterIds) {
   const beforeSet = new Set(beforeIds), afterSet = new Set(afterIds);
   const kept = beforeIds.filter((id) => afterSet.has(id));
   const keptAfter = afterIds.filter((id) => beforeSet.has(id));
-  if (kept.length < 2 || orderOf(kept) === orderOf(keptAfter)) return [];
-  return [{ collection, before: kept, after: keptAfter }];
+  if (kept.length < 2 || orderOf(kept) === orderOf(keptAfter)) return null;
+  return { before: kept, after: keptAfter };
+}
+function reorderOf(collection, beforeIds, afterIds) {
+  const order = reorderSequence(beforeIds, afterIds);
+  return order ? [{ collection, ...order }] : [];
+}
+function specScalars(spec) {
+  const scalars = { ...spec };
+  delete scalars[nodeCollection(spec)];
+  delete scalars[edgeCollection(spec)];
+  return scalars;
+}
+function keyedDeltas(beforeItems, afterItems, prefix) {
+  const beforeById = new Map(beforeItems.map((item) => [item.id, item]));
+  const afterById = new Map(afterItems.map((item) => [item.id, item]));
+  const entries = [];
+  for (const id of /* @__PURE__ */ new Set([...beforeById.keys(), ...afterById.keys()])) {
+    const left = beforeById.get(id);
+    const right = afterById.get(id);
+    if (left === void 0) entries.push({ id, status: "added", changes: [] });
+    else if (right === void 0) entries.push({ id, status: "removed", changes: [] });
+    else {
+      const changes = diffValues(left, right, `${prefix}/${pointer(id)}`);
+      if (changes.length) entries.push({ id, status: "modified", changes });
+    }
+  }
+  return entries;
+}
+function metadataDeltas(before, after) {
+  const entries = [];
+  for (const kind of ["node", "edge"]) {
+    const collection = kind === "node" ? "nodes" : "edges";
+    const beforeEntries = before[collection];
+    const afterEntries = after[collection];
+    for (const id of /* @__PURE__ */ new Set([...Object.keys(beforeEntries), ...Object.keys(afterEntries)])) {
+      const left = beforeEntries[id];
+      const right = afterEntries[id];
+      if (left === void 0) entries.push({ kind, id, status: "added", changes: [] });
+      else if (right === void 0) entries.push({ kind, id, status: "removed", changes: [] });
+      else {
+        const changes = diffValues(left, right, `/metadata/${collection}/${pointer(id)}`);
+        if (changes.length) entries.push({ kind, id, status: "modified", changes });
+      }
+    }
+  }
+  return entries;
+}
+function extensionDeltas(before, after) {
+  const namespaces = [.../* @__PURE__ */ new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+  const entries = [];
+  for (const namespace of namespaces) {
+    const left = before[namespace];
+    const right = after[namespace];
+    if (left === void 0)
+      entries.push({
+        namespace,
+        status: "added",
+        semantics: "unknown",
+        changes: [],
+        after: right
+      });
+    else if (right === void 0)
+      entries.push({
+        namespace,
+        status: "removed",
+        semantics: "unknown",
+        changes: [],
+        before: left
+      });
+    else if (canonical(left) !== canonical(right))
+      entries.push({
+        namespace,
+        status: "modified",
+        semantics: "unknown",
+        changes: diffValues(left, right, `/extensions/${pointer(namespace)}`),
+        before: left,
+        after: right
+      });
+  }
+  return { entries, namespaces };
+}
+function documentDelta(before, after) {
+  const fields = [
+    ...diffValues(specScalars(before.spec), specScalars(after.spec), "/spec"),
+    ...diffValues(before.locale, after.locale, "/locale"),
+    ...diffValues(
+      before.metadata.engineeringProfile,
+      after.metadata.engineeringProfile,
+      "/metadata/engineeringProfile"
+    ),
+    ...diffValues(before.metadata.visuals, after.metadata.visuals, "/metadata/visuals")
+  ];
+  const metadata = metadataDeltas(before.metadata, after.metadata);
+  const groups = keyedDeltas(before.scene.groups, after.scene.groups, "/groups");
+  const views = keyedDeltas(before.views, after.views, "/views");
+  const story = keyedDeltas(before.story, after.story, "/story");
+  const reorder = [];
+  for (const [collection, beforeItems, afterItems] of [
+    ["groups", before.scene.groups, after.scene.groups],
+    ["views", before.views, after.views],
+    ["story", before.story, after.story]
+  ]) {
+    const order = reorderSequence(
+      beforeItems.map((item) => item.id),
+      afterItems.map((item) => item.id)
+    );
+    if (order) reorder.push({ collection, ...order });
+  }
+  const { entries: extensions, namespaces } = extensionDeltas(before.extensions, after.extensions);
+  return {
+    fields,
+    metadata,
+    groups,
+    views,
+    story,
+    reorder,
+    extensions,
+    unknownNamespaces: namespaces,
+    counts: {
+      fields: fields.length,
+      metadata: metadata.length,
+      groups: groups.length,
+      views: views.length,
+      story: story.length,
+      extensions: extensions.length
+    }
+  };
 }
 function compareDocuments(beforeInput, afterInput) {
   const beforeChecked = validateDocument(beforeInput);
@@ -37,7 +168,14 @@ function compareDocuments(beforeInput, afterInput) {
   const afterChecked = validateDocument(afterInput);
   if (!afterChecked.ok) return afterChecked;
   const before = beforeChecked.value, after = afterChecked.value;
-  if (before.spec.type !== after.spec.type) return failure("compare.incompatible");
+  if (before.spec.type !== after.spec.type)
+    return {
+      ok: false,
+      diagnostics: [
+        issue("compare.incompatible", "/type"),
+        issue("compare.incompatible-type", "/type")
+      ]
+    };
   const beforeNodes = new Map(nodesOf(before.spec).map((node) => [node.id, node]));
   const afterNodes = new Map(nodesOf(after.spec).map((node) => [node.id, node]));
   const beforeEdges = new Map(edgesOf(before.spec).map((edge) => [edge.id, edge]));
@@ -103,6 +241,7 @@ function compareDocuments(beforeInput, afterInput) {
       edgesOf(after.spec).map((edge) => edge.id)
     )
   ];
+  const document = documentDelta(before, after);
   const counts = {
     added: [...nodes, ...edges].filter((entry) => entry.status === "added").length,
     removed: [...nodes, ...edges].filter((entry) => entry.status === "removed").length,
@@ -110,7 +249,8 @@ function compareDocuments(beforeInput, afterInput) {
     presentationOnly: [...nodes, ...edges].filter(
       (entry) => entry.status === "modified" && entry.semantic.length === 0
     ).length,
-    reorder: reorder.length
+    reorder: reorder.length,
+    document: document.counts.fields + document.counts.metadata + document.counts.groups + document.counts.views + document.counts.story + document.counts.extensions + document.reorder.length
   };
   return success({
     before: { documentId: before.id, revision: before.revision },
@@ -120,6 +260,7 @@ function compareDocuments(beforeInput, afterInput) {
     edges,
     reorder,
     presentation,
+    document,
     counts,
     mergeSafety: false
   });

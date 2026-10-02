@@ -1,5 +1,5 @@
 import * as react from 'react';
-import { D as DiagramLayout, H as Highlight, k as DiagramNodeVisual } from '../layout-BhvxbOAw.js';
+import { D as DiagramLayout, H as Highlight, l as DiagramNodeVisual } from '../layout-B9EEWMV7.js';
 import '../theme.js';
 
 interface DiagramCanvasProps {
@@ -42,8 +42,15 @@ declare function DiagramCanvas({ layout, highlight, activeNodeId, focusedNodeId,
 /** Fit documentation to visible geometry, not unused layout margins.
  * Bezier control points conservatively contain each curve; unsupported path
  * commands retain the complete artboard rather than risking clipped content.
+ *
+ * `margin` is the decorative slack added on every side. The default is shared
+ * with the landing gallery; documentation previews pass a tighter margin so
+ * scaled-down labels stay readable at phone widths without touching layout
+ * constants or the gallery frames.
  */
-declare function previewBounds(layout: DiagramLayout): {
+declare function previewBounds(layout: DiagramLayout, options?: {
+    margin?: number;
+}): {
     x: number;
     y: number;
     width: number;

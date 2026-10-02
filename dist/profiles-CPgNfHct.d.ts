@@ -1,4 +1,4 @@
-import { i as Diagnostic, g as DiagramDocument, j as Result } from './layout-BhvxbOAw.js';
+import { j as Diagnostic, g as DiagramDocument, k as Result } from './layout-B9EEWMV7.js';
 
 type DeploymentRule = 'profile.owner-missing' | 'profile.region-conflict' | 'profile.public-entity' | 'profile.crossing-missing';
 interface DeploymentProfileReport {
@@ -10,9 +10,13 @@ interface DeploymentProfileReport {
     };
     diagnostics: Diagnostic[];
 }
-/** Opt-in, declarative deployment profile. When disabled (the default) no rule
- * is imposed and no infrastructure is inspected; when enabled, failures are
- * reported by exact fact, never discovered from the environment. */
+/**
+ * Opt-in, declarative deployment profile. Activation is authored
+ * (`metadata.engineeringProfile === 'deployment-ownership'`); an explicit
+ * `enabled:true` only opts in for pre-field hosts and can never disable an
+ * authored policy. Rules read declared metadata only and never discover
+ * infrastructure.
+ */
 declare function validateDeploymentProfile(input: DiagramDocument, options?: {
     enabled?: boolean;
 }): Result<DeploymentProfileReport>;

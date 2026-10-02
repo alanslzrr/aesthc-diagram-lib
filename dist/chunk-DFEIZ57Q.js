@@ -3,11 +3,11 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-3N7YC3GS.js";
+} from "./chunk-FJJDAGJJ.js";
 import {
   canonicalizeContent,
   importDocument
-} from "./chunk-WD7BRA7G.js";
+} from "./chunk-TSYG4LOT.js";
 import {
   edgesOf,
   failure,
@@ -23,7 +23,7 @@ import {
   validateDocument,
   validateEditorSpec,
   validateSceneOnly
-} from "./chunk-6NELNSRC.js";
+} from "./chunk-TN5OC77A.js";
 
 // src/editor-core/store.ts
 function validateCommandDeltas(commands, limits) {
@@ -41,6 +41,12 @@ function validateCommandDeltas(commands, limits) {
   };
   for (const command of commands) {
     switch (command.type) {
+      case "nodes.set-lock":
+        if (typeof command.locked !== "boolean")
+          issues.push({ ...issue("data.type", "/scene/nodes/locked") });
+        for (const id of command.ids)
+          if (typeof id !== "string" || !id) issues.push({ ...issue("id.invalid", "/scene/nodes") });
+        break;
       case "nodes.move":
         for (const [id, point] of Object.entries(command.positions))
           finitePoint(point, `/scene/nodes/${pointer(id)}`);
@@ -109,11 +115,6 @@ var SCENE_ONLY = /* @__PURE__ */ new Set([
   "nodes.move",
   "node.resize",
   "nodes.set-lock",
-  "route.set",
-  "group.upsert"
-]);
-var SCENE_STRUCTURE = /* @__PURE__ */ new Set([
-  "scene.set",
   "route.set",
   "group.upsert"
 ]);
@@ -345,15 +346,16 @@ function createEditorStore(options) {
   function candidate(transaction, skipValidation = false) {
     if (disposed) return failure("store.disposed");
     if (!permissions.edit) return failure("permission.edit");
-    if (!skipValidation) {
+    const sceneOnly = isSceneOnly(transaction.commands);
+    const fast = skipValidation && sceneOnly;
+    if (!fast) {
       const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 });
       if (unsafe.length) return { ok: false, diagnostics: unsafe };
     }
     if (!validId(transaction.id)) return failure("id.invalid");
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure("revision.stale");
-    const sceneOnly = isSceneOnly(transaction.commands);
-    if (skipValidation || sceneOnly) {
+    if (fast || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits);
       if (deltaIssues.length) return { ok: false, diagnostics: deltaIssues.slice(0, 100) };
     }
@@ -366,12 +368,7 @@ function createEditorStore(options) {
       if (!result.ok) return result;
       doc = result.value;
     }
-    if (sceneOnly) {
-      if (transaction.commands.some((command) => SCENE_STRUCTURE.has(command.type)))
-        return validateSceneOnly(doc, limits);
-      return validateSceneOnly(doc, limits);
-    }
-    if (skipValidation) return success(doc);
+    if (sceneOnly) return validateSceneOnly(doc, limits);
     return validateDocument(doc, limits);
   }
   function publish(doc, commands) {
@@ -5947,7 +5944,7 @@ function validate13(data, { instancePath = "", parentData, parentDataProperty, r
   return errors === 0;
 }
 var schema77 = { "type": "object", "properties": { "mode": { "type": "string", "enum": ["auto", "manual", "hybrid"] }, "nodes": { "type": "object", "additionalProperties": { "$ref": "#/definitions/NodePlacement" } }, "routes": { "type": "object", "additionalProperties": { "$ref": "#/definitions/RoutePlacement" } }, "groups": { "type": "array", "items": { "$ref": "#/definitions/DiagramGroup" } }, "zOrder": { "type": "array", "items": { "type": "string" } } }, "required": ["mode", "nodes", "routes", "groups", "zOrder"], "additionalProperties": false };
-var schema84 = { "type": "object", "properties": { "id": { "type": "string" }, "label": { "type": "string" }, "kind": { "type": "string", "enum": ["visual", "system", "region", "security-group"] }, "nodeIds": { "type": "array", "items": { "type": "string" } }, "parentGroup": { "type": "string" }, "locked": { "type": "boolean" } }, "required": ["id", "label", "kind", "nodeIds", "locked"], "additionalProperties": false };
+var schema84 = { "type": "object", "properties": { "id": { "type": "string" }, "label": { "type": "string" }, "kind": { "type": "string", "enum": ["visual", "system", "region", "security-group"] }, "nodeIds": { "type": "array", "items": { "type": "string" } }, "parentGroup": { "type": "string" }, "locked": { "type": "boolean" }, "visibility": { "type": "string", "enum": ["public", "private"], "description": "Explicit group visibility. Missing is not implicitly private while the deployment profile is active; security groups must declare `private`." } }, "required": ["id", "label", "kind", "nodeIds", "locked"], "additionalProperties": false };
 function validate65(data, { instancePath = "", parentData, parentDataProperty, rootData = data } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -6632,7 +6629,7 @@ function validate63(data, { instancePath = "", parentData, parentDataProperty, r
               errors++;
             }
             for (const key4 in data11) {
-              if (!(key4 === "id" || key4 === "label" || key4 === "kind" || key4 === "nodeIds" || key4 === "parentGroup" || key4 === "locked")) {
+              if (!(key4 === "id" || key4 === "label" || key4 === "kind" || key4 === "nodeIds" || key4 === "parentGroup" || key4 === "locked" || key4 === "visibility")) {
                 const err27 = { instancePath: instancePath + "/groups/" + i0, schemaPath: "#/definitions/DiagramGroup/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key4 }, message: "must NOT have additional properties" };
                 if (vErrors === null) {
                   vErrors = [err27];
@@ -6732,33 +6729,29 @@ function validate63(data, { instancePath = "", parentData, parentDataProperty, r
                 errors++;
               }
             }
-          } else {
-            const err36 = { instancePath: instancePath + "/groups/" + i0, schemaPath: "#/definitions/DiagramGroup/type", keyword: "type", params: { type: "object" }, message: "must be object" };
-            if (vErrors === null) {
-              vErrors = [err36];
-            } else {
-              vErrors.push(err36);
+            if (data11.visibility !== void 0) {
+              let data19 = data11.visibility;
+              if (typeof data19 !== "string") {
+                const err36 = { instancePath: instancePath + "/groups/" + i0 + "/visibility", schemaPath: "#/definitions/DiagramGroup/properties/visibility/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                if (vErrors === null) {
+                  vErrors = [err36];
+                } else {
+                  vErrors.push(err36);
+                }
+                errors++;
+              }
+              if (!(data19 === "public" || data19 === "private")) {
+                const err37 = { instancePath: instancePath + "/groups/" + i0 + "/visibility", schemaPath: "#/definitions/DiagramGroup/properties/visibility/enum", keyword: "enum", params: { allowedValues: schema84.properties.visibility.enum }, message: "must be equal to one of the allowed values" };
+                if (vErrors === null) {
+                  vErrors = [err37];
+                } else {
+                  vErrors.push(err37);
+                }
+                errors++;
+              }
             }
-            errors++;
-          }
-        }
-      } else {
-        const err37 = { instancePath: instancePath + "/groups", schemaPath: "#/properties/groups/type", keyword: "type", params: { type: "array" }, message: "must be array" };
-        if (vErrors === null) {
-          vErrors = [err37];
-        } else {
-          vErrors.push(err37);
-        }
-        errors++;
-      }
-    }
-    if (data.zOrder !== void 0) {
-      let data19 = data.zOrder;
-      if (Array.isArray(data19)) {
-        const len2 = data19.length;
-        for (let i2 = 0; i2 < len2; i2++) {
-          if (typeof data19[i2] !== "string") {
-            const err38 = { instancePath: instancePath + "/zOrder/" + i2, schemaPath: "#/properties/zOrder/items/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+          } else {
+            const err38 = { instancePath: instancePath + "/groups/" + i0, schemaPath: "#/definitions/DiagramGroup/type", keyword: "type", params: { type: "object" }, message: "must be object" };
             if (vErrors === null) {
               vErrors = [err38];
             } else {
@@ -6768,7 +6761,7 @@ function validate63(data, { instancePath = "", parentData, parentDataProperty, r
           }
         }
       } else {
-        const err39 = { instancePath: instancePath + "/zOrder", schemaPath: "#/properties/zOrder/type", keyword: "type", params: { type: "array" }, message: "must be array" };
+        const err39 = { instancePath: instancePath + "/groups", schemaPath: "#/properties/groups/type", keyword: "type", params: { type: "array" }, message: "must be array" };
         if (vErrors === null) {
           vErrors = [err39];
         } else {
@@ -6777,12 +6770,37 @@ function validate63(data, { instancePath = "", parentData, parentDataProperty, r
         errors++;
       }
     }
+    if (data.zOrder !== void 0) {
+      let data20 = data.zOrder;
+      if (Array.isArray(data20)) {
+        const len2 = data20.length;
+        for (let i2 = 0; i2 < len2; i2++) {
+          if (typeof data20[i2] !== "string") {
+            const err40 = { instancePath: instancePath + "/zOrder/" + i2, schemaPath: "#/properties/zOrder/items/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+            if (vErrors === null) {
+              vErrors = [err40];
+            } else {
+              vErrors.push(err40);
+            }
+            errors++;
+          }
+        }
+      } else {
+        const err41 = { instancePath: instancePath + "/zOrder", schemaPath: "#/properties/zOrder/type", keyword: "type", params: { type: "array" }, message: "must be array" };
+        if (vErrors === null) {
+          vErrors = [err41];
+        } else {
+          vErrors.push(err41);
+        }
+        errors++;
+      }
+    }
   } else {
-    const err40 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
+    const err42 = { instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" };
     if (vErrors === null) {
-      vErrors = [err40];
+      vErrors = [err42];
     } else {
-      vErrors.push(err40);
+      vErrors.push(err42);
     }
     errors++;
   }

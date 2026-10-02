@@ -4,7 +4,7 @@ import {
 } from "./chunk-HIRCZVXI.js";
 import {
   createDocument
-} from "./chunk-WD7BRA7G.js";
+} from "./chunk-TSYG4LOT.js";
 import {
   identifyEdges,
   labelPillWidth,
@@ -24,7 +24,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-6NELNSRC.js";
+} from "./chunk-TN5OC77A.js";
 import {
   escapeXml
 } from "./chunk-S6PSHJSL.js";
@@ -238,11 +238,72 @@ function pruneReferences(doc) {
     (s) => doc.views.some((v) => v.id === s.viewId) && (s.routeEdgeIds ?? []).every((id) => edges.has(id))
   );
 }
+function lockedTransition(baseline, candidate) {
+  const baselineNodes = new Map(nodesOf(baseline.spec).map((node) => [node.id, node]));
+  const candidateNodes = new Map(nodesOf(candidate.spec).map((node) => [node.id, node]));
+  for (const [id, node] of baselineNodes) {
+    const locked = isNodeLocked(baseline, id);
+    const next = candidateNodes.get(id);
+    if (locked) {
+      if (!next) return failure("entity.locked", `/spec/${id}`, "locked node cannot be removed");
+      if (JSON.stringify(node) !== JSON.stringify(next))
+        return failure("entity.locked", `/spec/${id}`, "locked node content cannot change");
+    }
+    const before = baseline.scene.nodes[id];
+    const after = candidate.scene.nodes[id];
+    if (before && after) {
+      if (before.locked === true !== (after.locked === true))
+        return failure(
+          "entity.locked",
+          `/scene/nodes/${id}`,
+          "lock transitions require nodes.set-lock"
+        );
+      if (locked && (before.x !== after.x || before.y !== after.y || before.width !== after.width || before.height !== after.height))
+        return failure("entity.locked", `/scene/nodes/${id}`, "locked node cannot move");
+    } else if (locked && before && !after) {
+      return failure("entity.locked", `/scene/nodes/${id}`, "locked node cannot lose its placement");
+    }
+  }
+  const candidateGroups = new Map(candidate.scene.groups.map((group) => [group.id, group]));
+  for (const group of baseline.scene.groups) {
+    const next = candidateGroups.get(group.id);
+    if (!next) {
+      if (group.locked) return failure("entity.locked", `/scene/groups/${group.id}`);
+      continue;
+    }
+    if (group.locked !== next.locked) return failure("entity.locked", `/scene/groups/${group.id}`);
+    if (group.locked) {
+      const before = [...group.nodeIds].sort();
+      const after = [...next.nodeIds].sort();
+      if (before.length !== after.length || before.some((id, index) => id !== after[index]))
+        return failure(
+          "entity.locked",
+          `/scene/groups/${group.id}`,
+          "locked group keeps its members"
+        );
+    }
+  }
+  return success(void 0);
+}
 function applyCommand(doc, command) {
   switch (command.type) {
     case "document.replace-content": {
       const result = validateDocument(command.document);
-      return result.ok ? success({ ...structuredClone(result.value), id: doc.id, revision: doc.revision }) : result;
+      if (!result.ok) return result;
+      const candidate = result.value;
+      if (candidate.format !== doc.format || candidate.schemaVersion !== doc.schemaVersion)
+        return failure("replacement.schema-mismatch", "/format", "Use import for another schema");
+      if (candidate.spec.type !== doc.spec.type)
+        return failure(
+          "replacement.type-mismatch",
+          "/spec/type",
+          "Use import for another diagram type"
+        );
+      if (candidate.id !== doc.id)
+        return failure("replacement.id-mismatch", "/id", "Use import for another document id");
+      const guarded = lockedTransition(doc, candidate);
+      if (!guarded.ok) return guarded;
+      return success({ ...structuredClone(candidate), id: doc.id, revision: doc.revision });
     }
     case "spec.replace": {
       const result = createDocument(command.spec, { id: doc.id, locale: doc.locale });
@@ -344,9 +405,14 @@ function applyCommand(doc, command) {
       doc.views = structuredClone(command.views);
       doc.story = structuredClone(command.story);
       break;
-    case "scene.set":
-      doc.scene = structuredClone(command.scene);
+    case "scene.set": {
+      const next = structuredClone(command.scene);
+      const baseline = { ...doc, scene: next };
+      const guarded = lockedTransition(doc, baseline);
+      if (!guarded.ok) return guarded;
+      doc.scene = next;
       break;
+    }
   }
   return success(doc);
 }
@@ -498,7 +564,7 @@ function createPreviewResolver() {
   let previous;
   return (document2, context) => {
     const immutable = Object.isFrozen(document2) && Object.isFrozen(document2.scene);
-    const reusable = immutable && previous && context.skipDiagnostics && previous.context.skipDiagnostics && document2.spec === previous.document.spec && document2.presentation === previous.document.presentation && document2.metadata === previous.document.metadata && context.measureText === previous.context.measureText && context.quality === previous.context.quality ? previous : void 0;
+    const reusable = immutable && previous && context.skipDiagnostics && previous.context.skipDiagnostics && document2.spec === previous.document.spec && document2.presentation === previous.document.presentation && document2.metadata === previous.document.metadata && context.measureText === previous.context.measureText && context.quality === previous.context.quality && context.theme === previous.context.theme && context.renderers === previous.context.renderers ? previous : void 0;
     const extents = reusable?.extents ?? /* @__PURE__ */ new WeakMap();
     const result = resolveScene(document2, context, reusable, extents);
     previous = immutable && result.ok ? { document: document2, context, scene: result.value, extents } : void 0;
@@ -553,7 +619,8 @@ function resolveScene(document2, context, previous, extents) {
   layout.nodes.sort((a, b) => (zOrder.get(a.id) ?? -1) - (zOrder.get(b.id) ?? -1));
   layout.nodeById = Object.fromEntries(layout.nodes.map((n) => [n.id, n]));
   if (document2.spec.type === "graph") {
-    const palette = document2.presentation.theme[document2.presentation.theme.mode];
+    const mode = context.theme ?? document2.presentation.theme.mode;
+    const palette = document2.presentation.theme[mode];
     for (const specNode of document2.spec.nodes) {
       if (!specNode.renderer) continue;
       const placed = layout.nodeById[specNode.id];
@@ -591,7 +658,7 @@ function resolveScene(document2, context, previous, extents) {
       placed.cx = placed.x + placed.w / 2;
       placed.cy = placed.y + placed.h / 2;
       placed.customSvg = renderer.renderSvg(validated.value, {
-        theme: document2.presentation.theme.mode,
+        theme: mode,
         palette: {
           background: palette.background,
           foreground: palette.foreground,
