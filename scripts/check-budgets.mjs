@@ -6,10 +6,22 @@ import { execFileSync } from 'node:child_process'
 // counting shared and lazy chunks for every entry that can load them.
 //
 // Reviewed editor-entry budget: `playground.html` and `studio.html` embed the
-// full public editor (store, surface, inspector, toolbar). Their measured
-// graphs sit just under 180 KiB gzip, above the 175 KiB ceiling that still
-// applies to every reader-facing entry. This is a measured ceiling for the two
-// editor surfaces, not a general increase.
+// full public editor (store, surface, inspector, toolbar) plus the shared
+// current-document export dialog and movement panel. Measured 202,624 bytes
+// (playground) and 192,839 bytes (studio) gzip after those required
+// workflows, so the previous 180 KiB ceiling no longer covers the agreed
+// editor surface. The ceilings below are the measured graphs plus ~6 KiB of
+// headroom; review them with `pnpm site:build && pnpm check:budgets` whenever
+// an editor-only feature is added. This is not a general reader increase.
+//
+// The editor CSS also crossed the 12 KiB reader stylesheet ceiling (12,655
+// bytes on playground); the editor-only CSS ceiling is reviewed below.
+//
+// Reviewed landing budget: the reader landing keeps the Vercel design plus the
+// shared host preference and filtered-navigation integration. Its measured
+// graph is 179,957 bytes gzip, so the reviewed ceiling is 180 KiB (~4 KiB
+// headroom) instead of the generic 175 KiB. Every other reader entry stays at
+// 175 KiB.
 //
 // Reviewed docs-entry budget: `docs.html` mounts the real `@heyo-sh/heyo-docs`
 // runtime shell under /docs. Its measured graph is ~233 KiB gzip (DocsApp,
@@ -18,8 +30,15 @@ import { execFileSync } from 'node:child_process'
 // The ceiling below is the measured graph plus ~7 KiB of headroom; review it
 // with `pnpm docs:build && pnpm check:budgets` after every Heyo upgrade.
 const editorEntryBudgets = {
-  'playground.html': 180 * 1024,
-  'studio.html': 180 * 1024,
+  'playground.html': 204 * 1024,
+  'studio.html': 196 * 1024,
+}
+const editorEntryCssBudgets = {
+  'playground.html': 13 * 1024,
+  'studio.html': 13 * 1024,
+}
+const landingEntryBudget = {
+  'index.html': 180 * 1024,
 }
 const docsEntryBudgets = {
   'docs.html': 240 * 1024,
@@ -39,8 +58,14 @@ for (const [entry, _value] of Object.entries(manifest).filter(([, value]) => val
   }
   visit(entry)
   for (const [extension, maximum] of [
-    ['js', docsEntryBudgets[entry] ?? editorEntryBudgets[entry] ?? 175 * 1024],
-    ['css', 12 * 1024],
+    [
+      'js',
+      docsEntryBudgets[entry] ??
+        editorEntryBudgets[entry] ??
+        landingEntryBudget[entry] ??
+        175 * 1024,
+    ],
+    ['css', editorEntryCssBudgets[entry] ?? 12 * 1024],
   ]) {
     const bytes = [...files]
       .filter((file) => file.endsWith(`.${extension}`))
