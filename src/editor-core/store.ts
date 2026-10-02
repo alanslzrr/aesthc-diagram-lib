@@ -365,6 +365,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     nonSceneDirty = false,
     disposed = false
   let gesture: { transaction: Omit<Transaction, 'commands'>; commands: EditorCommand[] } | undefined
+  let gestureValidated = false
   let snapshot: EditorSnapshot = freezeData({
     document: structuredClone(checked.value),
     selection: [],
@@ -407,7 +408,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       } else break
     }
   }
-  function candidate(transaction: Transaction, skipValidation = false) {
+  function candidate(transaction: Transaction, skipValidation = false, trustedScene = false) {
     if (disposed) return failure<DiagramDocument>('store.disposed')
     if (!permissions.edit) return failure<DiagramDocument>('permission.edit')
     const sceneOnly = isSceneOnly(transaction.commands)
@@ -439,7 +440,9 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (!result.ok) return result
       doc = result.value
     }
-    if (sceneOnly) return validateSceneOnly(doc, limits)
+    // A gesture commit reuses the validation the identical preview already
+    // performed; any other scene write still validates the resulting scene.
+    if (sceneOnly) return trustedScene ? success(doc) : validateSceneOnly(doc, limits)
     return validateDocument(doc, limits)
   }
   function publish(doc: DiagramDocument, commands: EditorCommand[]): CommitResult {
@@ -462,6 +465,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     }
     if (!sceneOnly) nonSceneDirty = canonicalizeContent({ ...doc, scene: savedScene }) !== saved
     gesture = undefined
+    gestureValidated = false
     trim()
     notify({
       document: doc,
@@ -483,6 +487,31 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     for (const listener of [...commits]) listener(result)
     return result
   }
+  /**
+   * Shared commit path. `trustedScene` is only set by `commitGesture` after a
+   * successful preview of the identical scene batch, so the scene validation
+   * already ran for this exact result.
+   */
+  function commitTransaction(transaction: Transaction, trustedScene = false): CommitResult {
+    const result = candidate(transaction, false, trustedScene)
+    if (!result.ok)
+      return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
+    const sceneOnly = isSceneOnly(transaction.commands)
+    const unchanged = sceneOnly
+      ? commandsMatchScene(snapshot.document.scene, transaction.commands)
+      : contentOf(result.value) === contentOf(snapshot.document)
+    if (unchanged) return noop()
+    if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected('revision.overflow')
+    const entryBytes = sceneOnly
+      ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene)
+      : bytesOf(snapshot.document) + bytesOf(result.value)
+    if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
+    pastSizes.push(currentBytes)
+    past.push(snapshot.document)
+    future = []
+    futureSizes = []
+    return publish(result.value, transaction.commands)
+  }
   const store: EditorStore = {
     getSnapshot: () => snapshot,
     subscribe(listener) {
@@ -498,31 +527,14 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       }
     },
     dispatch(transaction) {
-      const result = candidate(transaction)
-      if (!result.ok)
-        return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
-      const sceneOnly = isSceneOnly(transaction.commands)
-      const unchanged = sceneOnly
-        ? commandsMatchScene(snapshot.document.scene, transaction.commands)
-        : contentOf(result.value) === contentOf(snapshot.document)
-      if (unchanged) return noop()
-      if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
-        return rejected('revision.overflow')
-      const entryBytes = sceneOnly
-        ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene)
-        : bytesOf(snapshot.document) + bytesOf(result.value)
-      if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
-      pastSizes.push(currentBytes)
-      past.push(snapshot.document)
-      future = []
-      futureSizes = []
-      return publish(result.value, transaction.commands)
+      return commitTransaction(transaction)
     },
     beginGesture(transaction) {
       if (snapshot.draft.kind !== 'none') return failure('draft.active')
       const result = candidate({ ...transaction, commands: [] })
       if (!result.ok) return result
       gesture = { transaction: structuredClone(transaction), commands: [] }
+      gestureValidated = false
       notify({
         draft: { kind: 'gesture', preview: snapshot.document, transactionId: transaction.id },
       })
@@ -531,8 +543,12 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     previewGesture(commands, options) {
       if (!gesture) return failure('gesture.missing')
       const result = candidate({ ...gesture.transaction, commands }, options?.skipValidation)
-      if (!result.ok) return result
+      if (!result.ok) {
+        gestureValidated = false
+        return result
+      }
       gesture.commands = structuredClone(commands)
+      gestureValidated = true
       notify({
         draft: { kind: 'gesture', preview: result.value, transactionId: gesture.transaction.id },
       })
@@ -541,12 +557,15 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     commitGesture() {
       if (!gesture) return rejected('gesture.missing')
       const transaction = { ...gesture.transaction, commands: gesture.commands }
+      const trusted = gestureValidated
       gesture = undefined
+      gestureValidated = false
       notify({ draft: { kind: 'none' } })
-      return store.dispatch(transaction)
+      return commitTransaction(transaction, trusted)
     },
     cancelGesture() {
       gesture = undefined
+      gestureValidated = false
       if (snapshot.draft.kind === 'gesture') notify({ draft: { kind: 'none' } })
     },
     setTextDraft(text) {
@@ -666,6 +685,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       pastSizes = []
       futureSizes = []
       gesture = undefined
+      gestureValidated = false
       saved = canonicalizeContent(result.value)
       savedScene = structuredClone(result.value.scene)
       notify({ draft: { kind: 'none' }, selection: [] })
@@ -690,6 +710,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       pastSizes = []
       futureSizes = []
       gesture = undefined
+      gestureValidated = false
     },
   }
   return store
