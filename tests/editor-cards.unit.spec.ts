@@ -90,3 +90,15 @@ describe('E17 context cards', () => {
     expect(query.value.svg).toContain('Route Alpha → Beta')
   })
 })
+
+it('rejects invalid card padding before rendering an invalid transform', () => {
+  const doc = document()
+  for (const padding of [Number.NaN, Number.POSITIVE_INFINITY, -1, CARD_HEIGHT / 2, 400]) {
+    const result = cardSvg(doc, { padding })
+    expect(result.ok, `padding ${String(padding)}`).toBe(false)
+    if (!result.ok)
+      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain('export.options')
+  }
+  const edge = cardSvg(doc, { padding: 0 })
+  expect(edge.ok).toBe(true)
+})
