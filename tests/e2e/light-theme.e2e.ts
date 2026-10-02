@@ -33,8 +33,8 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
   await expect.poll(detail).toEqual(light)
 
   const pending = page.waitForEvent('download')
-  await panel.locator('summary.export-trigger').click()
-  await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+  await panel.locator('.export-trigger').click()
+  await panel.getByRole('menuitem', { name: 'Download SVG', exact: true }).click()
   const download = await pending
   const markup = await readFile((await download.path())!, 'utf8')
   expect(markup).toMatch(/stop-opacity="0?\.62"/)

@@ -247,11 +247,8 @@
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
-.export-trigger::-webkit-details-marker {
-  display: none;
-}
 .export-trigger:hover,
-.export-menu[open] .export-trigger {
+.export-trigger[aria-expanded='true'] {
   background: var(--muted);
   color: var(--foreground);
 }

@@ -66,9 +66,9 @@ test('panel exports JSON, SVG and PNG', async ({ page }) => {
   await page.goto('/?only=example-flowchart')
   const panel = page.locator('[data-diagram-panel]')
   for (const name of ['Download JSON', 'Download SVG', 'Download PNG']) {
-    await panel.locator('summary.export-trigger').click()
+    await panel.locator('.export-trigger').click()
     const download = page.waitForEvent('download')
-    await panel.getByRole('button', { name, exact: true }).click()
+    await panel.getByRole('menuitem', { name, exact: true }).click()
     const file = await download
     expect(await file.failure()).toBeNull()
     expect(await file.path()).toBeTruthy()
@@ -111,20 +111,20 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     expect((await button.innerText()).trim()).toBe('')
     await expect(button.locator('svg')).toBeVisible()
   }
-  const trigger = panel.locator('summary.export-trigger')
+  const trigger = panel.locator('.export-trigger')
   await expect(trigger).toHaveCount(1)
-  await expect(panel.getByRole('button', { name: 'Download SVG', exact: true })).not.toBeVisible()
+  await expect(panel.getByRole('menuitem', { name: 'Download SVG', exact: true })).not.toBeVisible()
   await trigger.focus()
   await trigger.press('ArrowDown')
-  await expect(panel.getByRole('button', { name: 'Copy JSON', exact: true })).toBeFocused()
+  await expect(panel.getByRole('menuitem', { name: 'Copy JSON', exact: true })).toBeFocused()
   await page.keyboard.press('End')
-  await expect(panel.getByRole('button', { name: 'Download PNG', exact: true })).toBeFocused()
+  await expect(panel.getByRole('menuitem', { name: 'Download PNG', exact: true })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(trigger).toBeFocused()
-  await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   await trigger.click()
   await page.getByRole('heading', { level: 1 }).click()
-  await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   if (browserName === 'chromium') {
     await panel.getByRole('button', { name: 'Copy prompt', exact: true }).click()
     await expect
@@ -137,8 +137,8 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     expect(json.type).toBe('band')
     for (const name of ['Copy JSON', 'Copy SVG']) {
       await trigger.click()
-      await panel.getByRole('button', { name, exact: true }).click()
-      await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+      await panel.getByRole('menuitem', { name, exact: true }).click()
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect
         .poll(() => page.evaluate(() => navigator.clipboard.readText()))
         .toContain(name === 'Copy JSON' ? '"type": "band"' : '<svg')
@@ -146,7 +146,7 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     // Output remains available from the live draft while editing code.
     await panel.getByRole('button', { name: 'Code', exact: true }).click()
     await trigger.click()
-    await panel.getByRole('button', { name: 'Copy SVG', exact: true }).click()
+    await panel.getByRole('menuitem', { name: 'Copy SVG', exact: true }).click()
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('<svg')
   }
 })

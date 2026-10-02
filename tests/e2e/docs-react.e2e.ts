@@ -128,11 +128,11 @@ test('Geist reading rhythm excludes diagrams and fonts survive standalone export
   ).toBe('14.5px')
   await page.goto('/?only=example-band')
   await page.evaluate(() => document.fonts.ready)
-  await page.locator('[data-diagram-panel] summary.export-trigger').click()
+  await page.locator('[data-diagram-panel] .export-trigger').click()
   const download = page.waitForEvent('download')
   await page
     .locator('[data-diagram-panel]')
-    .getByRole('button', { name: 'Download SVG', exact: true })
+    .getByRole('menuitem', { name: 'Download SVG', exact: true })
     .click()
   const markup = await readFile((await (await download).path())!, 'utf8')
   expect(markup).toContain('font/woff2;base64')
@@ -360,8 +360,8 @@ test('installation uses colored brand tabs, an underline, icon-only copy and a s
   if (browserName === 'chromium') {
     await page.goto('/?only=example-sequence')
     const sequence = page.locator('[data-diagram-panel="example-sequence"]')
-    await sequence.locator('summary.export-trigger').click()
-    await sequence.getByRole('button', { name: 'Copy SVG', exact: true }).click()
+    await sequence.locator('.export-trigger').click()
+    await sequence.getByRole('menuitem', { name: 'Copy SVG', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toContain('rgb(51, 103, 145)')

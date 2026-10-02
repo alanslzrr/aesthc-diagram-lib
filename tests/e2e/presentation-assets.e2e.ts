@@ -22,9 +22,9 @@ test('regenerate presentation assets from the public playground', async ({ page 
     })
     await page.evaluate(() => document.fonts.ready)
     const panel = page.locator(`[data-diagram-panel="example-${type}"]`)
-    await panel.locator('summary.export-trigger').click()
+    await panel.locator('.export-trigger').click()
     const downloading = page.waitForEvent('download')
-    await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+    await panel.getByRole('menuitem', { name: 'Download SVG', exact: true }).click()
     const download = await downloading
     await download.saveAs(`docs/diagrams/${type}.svg`)
     const svg = readFileSync(`docs/diagrams/${type}.svg`, 'utf8')

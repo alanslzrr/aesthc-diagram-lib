@@ -111,9 +111,9 @@ test('the exported SVG centers labels and keeps them inside the pill', async ({
   await page.goto('/?only=example-sequence')
   const panel = page.locator('[data-diagram-panel="example-sequence"]')
   await expect(panel.locator('svg[role="group"]')).toBeVisible()
-  await panel.locator('summary.export-trigger').click()
+  await panel.locator('.export-trigger').click()
   const pending = page.waitForEvent('download')
-  await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+  await panel.getByRole('menuitem', { name: 'Download SVG', exact: true }).click()
   const download = await pending
   const markup = await readFile((await download.path())!, 'utf8')
 
