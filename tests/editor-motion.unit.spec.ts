@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StoryPlayback, createMotionOwnerGuard } from '../src/viewer/motion'
+import { exportStoryWebm } from '../src/export'
+import { createDocument } from '../src/editor-core'
 import type { StoryStep } from '../src/editor-core/types'
 
 function fakeTimers() {
@@ -128,5 +130,160 @@ describe('E24 finite trace playback', () => {
     timers.advance(100)
     expect(ended).toEqual([true])
     expect(player.state()).toBe('ended')
+  })
+})
+
+describe('WebM recorder lifecycle', () => {
+  const behavior = {
+    constructorThrows: false,
+    startThrows: false,
+    imageNeverLoads: false,
+    captureCalls: 0,
+  }
+  const makeTrack = () => ({
+    readyState: 'live',
+    stopped: false,
+    stop() {
+      this.stopped = true
+      this.readyState = 'ended'
+    },
+  })
+  let track: ReturnType<typeof makeTrack>
+  const stream = { getTracks: () => [track] }
+  class FakeRecorder {
+    static isTypeSupported = () => true
+    state = 'inactive'
+    ondataavailable: ((event: { data: Blob }) => void) | null = null
+    onstop: (() => void) | null = null
+    onerror: (() => void) | null = null
+    constructor() {
+      if (behavior.constructorThrows) throw Error('codec failed')
+    }
+    start() {
+      if (behavior.startThrows) throw Error('start failed')
+      this.state = 'recording'
+    }
+    stop() {
+      this.state = 'inactive'
+      this.onstop?.()
+    }
+  }
+  class FakeImage {
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    set src(_value: string) {
+      if (!behavior.imageNeverLoads) queueMicrotask(() => this.onload?.())
+    }
+  }
+  let canvas: {
+    width: number
+    height: number
+    getContext: () => { drawImage: () => void }
+    captureStream: () => typeof stream
+  }
+  function motionDocument() {
+    const made = createDocument(
+      {
+        type: 'graph',
+        caption: 'Motion',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'A', description: '' }],
+        edges: [],
+      },
+      { id: 'motion', locale: 'en' },
+    )
+    if (!made.ok) throw Error('document')
+    made.value.views = [{ id: 'v1', label: 'View', focus: { nodeIds: ['a'], edgeIds: [] } }]
+    made.value.story = [{ id: 's1', viewId: 'v1', durationMs: 1000 }]
+    return made.value
+  }
+  beforeAll(() => {
+    track = makeTrack()
+    canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({ drawImage: () => {} }),
+      captureStream: () => {
+        behavior.captureCalls += 1
+        return stream
+      },
+    }
+    vi.stubGlobal('window', { document: { createElement: () => canvas } })
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal('HTMLCanvasElement', { prototype: { captureStream: () => stream } })
+    vi.stubGlobal('Image', FakeImage)
+    vi.stubGlobal('URL', {
+      createObjectURL: () => 'blob:motion',
+      revokeObjectURL: () => {},
+    })
+  })
+  afterAll(() => {
+    vi.unstubAllGlobals()
+  })
+  beforeEach(() => {
+    behavior.constructorThrows = false
+    behavior.startThrows = false
+    behavior.imageNeverLoads = false
+    behavior.captureCalls = 0
+    track = makeTrack()
+  })
+  it('stops acquired tracks when the recorder constructor throws', async () => {
+    behavior.constructorThrows = true
+    const result = await exportStoryWebm(motionDocument())
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.diagnostics.map((d) => d.code)).toContain('webm.recorder')
+    expect(track.stopped).toBe(true)
+    expect(canvas.width).toBe(0)
+  })
+  it('settles when start throws while the recorder stays inactive', async () => {
+    behavior.startThrows = true
+    const outcome = await Promise.race([
+      exportStoryWebm(motionDocument()).then((result) => result.ok),
+      new Promise((resolve) => setTimeout(() => resolve('timeout'), 500)),
+    ])
+    expect(outcome).toBe(false)
+    expect(track.stopped).toBe(true)
+  })
+  it('interrupts a pending image load on abort instead of hanging', async () => {
+    behavior.imageNeverLoads = true
+    const controller = new AbortController()
+    const pending = exportStoryWebm(motionDocument(), { signal: controller.signal })
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    controller.abort()
+    const result = (await Promise.race([
+      pending,
+      new Promise((resolve) => setTimeout(() => resolve('timeout'), 1000)),
+    ])) as Awaited<ReturnType<typeof exportStoryWebm>> | 'timeout'
+    expect(result).not.toBe('timeout')
+    if (result !== 'timeout') {
+      expect(result.ok).toBe(false)
+      if (!result.ok)
+        expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+          'operation.aborted',
+        )
+    }
+    expect(track.stopped).toBe(true)
+  })
+  it('rejects oversized output before allocating the stream', async () => {
+    const made = createDocument(
+      {
+        type: 'timeline',
+        caption: 'Long',
+        legend: { main: 'Main', branch: 'Branch' },
+        events: Array.from({ length: 120 }, (_, index) => ({
+          id: `e${index}`,
+          label: `Event ${index}`,
+          description: '',
+        })),
+      },
+      { id: 'long-timeline', locale: 'en' },
+    )
+    if (!made.ok) throw Error('timeline')
+    made.value.views = [{ id: 'v1', label: 'View', focus: { nodeIds: ['e0'], edgeIds: [] } }]
+    made.value.story = [{ id: 's1', viewId: 'v1', durationMs: 1000 }]
+    const result = await exportStoryWebm(made.value)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.diagnostics.map((d) => d.code)).toContain('export.pixels')
+    expect(behavior.captureCalls).toBe(0)
   })
 })

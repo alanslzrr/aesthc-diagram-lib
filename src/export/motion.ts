@@ -64,8 +64,10 @@ export async function exportStoryWebm(
   const capability = webmCapability()
   if (!capability.supported || !capability.mimeType) return failure('webm.unavailable')
   if (document.story.length === 0) return failure('webm.empty')
-  const fps = Math.max(1, Math.min(60, Math.round(options.fps ?? 30)))
-  const scale = Math.max(0.25, Math.min(2, options.scale ?? 1))
+  const numeric = (value: unknown, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  const fps = Math.max(1, Math.min(60, Math.round(numeric(options.fps, 30))))
+  const scale = Math.max(0.25, Math.min(2, numeric(options.scale, 1)))
   const totalDuration = document.story.reduce((sum, step) => sum + step.durationMs, 0)
   if (totalDuration <= 0 || totalDuration > 120000) return failure('limit.story')
   const resolved = resolveDocument(document, {
@@ -75,30 +77,50 @@ export async function exportStoryWebm(
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
   })
   if (!resolved.ok) return resolved
+  const width = Math.max(2, Math.ceil(resolved.value.layout.width * scale))
+  const height = Math.max(2, Math.ceil(resolved.value.layout.height * scale))
+  if (
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    width > 16384 ||
+    height > 16384 ||
+    width * height > 32_000_000
+  )
+    return failure('export.pixels')
   const canvas = window.document.createElement('canvas')
-  canvas.width = Math.max(2, Math.ceil(resolved.value.layout.width * scale))
-  canvas.height = Math.max(2, Math.ceil(resolved.value.layout.height * scale))
+  canvas.width = width
+  canvas.height = height
   const context = canvas.getContext('2d')
   if (!context) return failure('export.context')
-  // Automatic capture at the target rate: manual requestFrame streams stay
-  // empty in some Chromium builds.
-  const stream = canvas.captureStream(fps)
-  const recorder = new MediaRecorder(stream, { mimeType: capability.mimeType })
-  const chunks: Blob[] = []
-  recorder.ondataavailable = (event) => {
-    if (event.data.size) chunks.push(event.data)
-  }
+  let stream: MediaStream | undefined
+  let recorder: MediaRecorder | undefined
+  let started = false
   let aborted = false
+  let stoppedResolve: (() => void) | null = null
+  const recorderStopped = new Promise<void>((resolve) => {
+    stoppedResolve = resolve
+  })
+  const settleRecorder = () => stoppedResolve?.()
   const onAbort = () => {
     aborted = true
+    settleRecorder()
   }
   options.signal?.addEventListener('abort', onAbort, { once: true })
-  const recorderStopped = new Promise<void>((resolve) => {
-    recorder.onstop = () => resolve()
-  })
+  const chunks: Blob[] = []
   let frameCount = 0
   try {
+    // Automatic capture at the target rate: manual requestFrame streams stay
+    // empty in some Chromium builds. Allocation and initialization share one
+    // guarded lifecycle so a throwing constructor never leaks the tracks.
+    stream = canvas.captureStream(fps)
+    recorder = new MediaRecorder(stream, { mimeType: capability.mimeType })
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) chunks.push(event.data)
+    }
+    recorder.onstop = settleRecorder
+    recorder.onerror = settleRecorder
     recorder.start()
+    started = true
     for (const step of document.story) {
       if (aborted || options.signal?.aborted) return failure('operation.aborted')
       const view = document.views.find((candidate) => candidate.id === step.viewId)
@@ -116,8 +138,19 @@ export async function exportStoryWebm(
       const image = new Image()
       try {
         await new Promise<void>((resolve, reject) => {
-          image.onload = () => resolve()
-          image.onerror = () => reject(Error('export.image'))
+          const abort = () => {
+            image.src = ''
+            reject(Error('operation.aborted'))
+          }
+          options.signal?.addEventListener('abort', abort, { once: true })
+          image.onload = () => {
+            options.signal?.removeEventListener('abort', abort)
+            resolve()
+          }
+          image.onerror = () => {
+            options.signal?.removeEventListener('abort', abort)
+            reject(Error('export.image'))
+          }
           image.src = url
         })
         const frames = Math.max(1, Math.round(step.durationMs / (1000 / fps)))
@@ -134,7 +167,8 @@ export async function exportStoryWebm(
     }
     if (aborted || options.signal?.aborted) return failure('operation.aborted')
     recorder.stop()
-    await recorderStopped
+    started = false
+    await Promise.race([recorderStopped, delay(2000)])
     if (aborted || options.signal?.aborted) return failure('operation.aborted')
     const blob = new Blob(chunks, { type: capability.mimeType })
     if (!blob.size) return failure('webm.empty')
@@ -165,17 +199,20 @@ export async function exportStoryWebm(
     )
   } finally {
     options.signal?.removeEventListener('abort', onAbort)
-    if (recorder.state !== 'inactive') {
+    if (recorder && recorder.state !== 'inactive') {
       try {
         recorder.stop()
       } catch {
         /* already stopped */
       }
     }
-    for (const activeTrack of stream.getTracks()) {
+    if (stream) for (const activeTrack of stream.getTracks()) {
       if (activeTrack.readyState !== 'ended') activeTrack.stop()
     }
-    await recorderStopped
+    // Only an active, successfully started recorder can emit `stop`; never
+    // wait for an event an inactive recorder cannot produce.
+    if (started && recorder && recorder.state !== 'inactive')
+      await Promise.race([recorderStopped, delay(2000)])
     canvas.width = 0
     canvas.height = 0
   }
