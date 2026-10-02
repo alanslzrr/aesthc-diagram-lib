@@ -1,5 +1,3 @@
-import { ScrollArea } from './primitives/ScrollArea'
-import { Disclosure, DisclosureTrigger, DisclosureContent } from './primitives/Disclosure'
 import { ExportMenu } from './ExportMenu'
 import { PreviewIcon, CodeIcon, ShareIcon, TerminalIcon } from './primitives/icons'
 import { MESSAGES } from '../lib/messages'
@@ -100,6 +98,18 @@ export function DiagramPanel({
 
   const svgHostRef = useRef<HTMLDivElement>(null)
   const findSvg = () => svgHostRef.current?.querySelector('svg') ?? null
+  const [hostWidth, setHostWidth] = useState<number | null>(null)
+  useEffect(() => {
+    const host = svgHostRef.current
+    if (!host) return
+    const measure = () => setHostWidth(host.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [tab])
+  const naturalWidth = layoutResult.layout?.width ?? 0
+  const cropped = hostWidth !== null && naturalWidth > hostWidth + 1
 
   const caption = 'caption' in draft ? draft.caption : ''
   const legend = 'legend' in draft ? draft.legend : { main: '', branch: '' }
@@ -108,7 +118,7 @@ export function DiagramPanel({
   return (
     <div
       data-diagram-panel={entry.key}
-      className="relative mt-6 border border-border bg-background transition-colors duration-200"
+      className="relative mt-6 overflow-hidden rounded-lg border border-border bg-background"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           setTooltipNode(null)
@@ -117,11 +127,11 @@ export function DiagramPanel({
       }}
     >
       {/* Geist header bar: identity left, playground controls right. */}
-      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
-        <span className="inline-flex shrink-0 items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
+      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-b border-border-subtle px-4 py-3 sm:px-5">
+        <span className="inline-flex shrink-0 items-center gap-3 font-sans text-xs font-medium text-muted-foreground">
           {entry.type} / {entry.key}
           {edited ? (
-            <span className="border border-branch/50 px-1.5 py-0.5 font-sans text-[10px] font-medium normal-case tracking-normal text-[var(--branch-ink)]">
+            <span className="rounded-sm border border-branch/40 px-1.5 py-0.5 font-sans text-[10px] font-medium text-[var(--branch-ink)]">
               {STRINGS.edited[locale]}
             </span>
           ) : null}
@@ -143,7 +153,7 @@ export function DiagramPanel({
           >
             <CodeIcon />
           </ControlButton>
-          <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
+          <span aria-hidden="true" className="mx-1 h-4 w-px bg-border-subtle" />
           {direction ? (
             <ControlButton
               onClick={() => {
@@ -245,23 +255,21 @@ export function DiagramPanel({
             ]}
           />
         </span>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,var(--border)_10%,var(--border)_90%,transparent)] opacity-70"
-        />
       </div>
 
       <div hidden={tab !== 'preview'}>
-        <ScrollArea
-          orientation="horizontal"
-          label={
-            locale === 'es'
-              ? 'Canvas del diagrama; desplázate horizontalmente para explorar'
-              : 'Diagram canvas; scroll horizontally to explore'
-          }
+        <div
+          className="diagram-showcase-clip px-4 py-6 sm:px-6 sm:py-8"
+          data-diagram-scroll
+          data-cropped={cropped ? '' : undefined}
+          ref={svgHostRef}
         >
-          <div className="px-5 py-10 sm:px-7" data-diagram-scroll ref={svgHostRef}>
-            {layoutResult.layout ? (
+          {layoutResult.layout ? (
+            <div
+              className="diagram-showcase"
+              style={{ width: layoutResult.layout.width }}
+              inert={cropped ? true : undefined}
+            >
               <DiagramCanvas
                 layout={layoutResult.layout}
                 highlight={highlight}
@@ -284,37 +292,38 @@ export function DiagramPanel({
                 ariaLabel={`${entry.type}: ${caption}`}
                 nodeVisuals={getDiagramVisuals(entry.key)}
               />
-            ) : (
-              <p className="py-16 text-center font-sans text-xs text-[var(--branch-ink)]">
-                {layoutResult.error}
-              </p>
-            )}
-          </div>
-        </ScrollArea>
+            </div>
+          ) : (
+            <p className="py-16 text-center font-sans text-xs text-[var(--branch-ink)]">
+              {layoutResult.error}
+            </p>
+          )}
+        </div>
       </div>
-      <Disclosure className="px-5 pb-4 text-sm">
-        <DisclosureTrigger>
+      <section
+        className="border-b border-border-subtle px-4 py-5 text-sm sm:px-5"
+        aria-label={locale === 'es' ? 'Descripción textual' : 'Text description'}
+      >
+        <h3 className="text-xs font-medium text-muted-foreground">
           {locale === 'es' ? 'Descripción textual' : 'Text description'}
-        </DisclosureTrigger>
-        <DisclosureContent>
-          <p>{caption}</p>
-          <ul>
-            {layoutResult.layout?.nodes.map((node) => (
-              <li key={node.id}>
-                {node.label}: {node.description}
-              </li>
-            ))}
-          </ul>
-          <ul>
-            {layoutResult.layout?.edges.map((edge) => (
-              <li key={edge.id}>
-                {edge.from} → {edge.to}
-                {edge.label ? `: ${edge.label}` : ''}
-              </li>
-            ))}
-          </ul>
-        </DisclosureContent>
-      </Disclosure>
+        </h3>
+        <p className="mt-3 text-foreground/85">{caption}</p>
+        <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+          {layoutResult.layout?.nodes.map((node) => (
+            <li key={node.id}>
+              {node.label}: {node.description}
+            </li>
+          ))}
+        </ul>
+        <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+          {layoutResult.layout?.edges.map((edge) => (
+            <li key={edge.id}>
+              {edge.from} → {edge.to}
+              {edge.label ? `: ${edge.label}` : ''}
+            </li>
+          ))}
+        </ul>
+      </section>
       <div hidden={tab !== 'code'}>
         {tab === 'code' ? (
           <CodeView
@@ -340,14 +349,10 @@ export function DiagramPanel({
         ) : null}
       </div>
 
-      <div className="relative flex flex-wrap items-center justify-between gap-4 px-5 py-4 font-sans text-xs text-foreground/75">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 border-t border-border-subtle px-4 py-3.5 font-sans text-xs text-muted-foreground sm:px-5">
         <span className="max-w-[68ch] leading-relaxed">
-          {'// '}
           {caption}
-          <span className="mt-1 block text-[9.5px] text-foreground/75">
-            {'// '}
-            {STRINGS.hoverHint[locale]}
-          </span>
+          <span className="mt-1 block text-muted-foreground">{STRINGS.hoverHint[locale]}</span>
         </span>
         <span className="inline-flex items-center gap-5">
           <span className="inline-flex items-center gap-2">
@@ -359,6 +364,12 @@ export function DiagramPanel({
             {legend.branch}
           </span>
         </span>
+        <a
+          className="inline-flex items-center gap-1 text-xs font-medium text-[var(--cobalt-ink)] transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:underline"
+          href={`${import.meta.env.BASE_URL}playground.html?only=${entry.key}`}
+        >
+          {locale === 'es' ? 'Abrir en el playground' : 'Open in playground'} ↗
+        </a>
       </div>
     </div>
   )
@@ -629,8 +640,8 @@ function CodeView({
             aria-describedby={`${entry.key}-${locale}-editor-error`}
             aria-label={`${entry.key} — ${STRINGS.spec[locale]}`}
             className={[
-              'block h-[430px] w-full resize-y border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85 outline-none transition-colors',
-              error ? 'border-branch/60' : 'border-border focus:border-foreground/35',
+              'block h-[430px] w-full resize-y rounded-lg border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85 outline-none transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+              error ? 'border-branch/60' : 'border-border-subtle focus:border-ring',
             ].join(' ')}
           />
           <p
@@ -649,7 +660,7 @@ function CodeView({
           tabIndex={0}
           role="region"
           aria-label={MESSAGES.integration[locale]}
-          className="max-h-[460px] overflow-auto border border-border bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85"
+          className="max-h-[460px] overflow-auto rounded-lg border border-border-subtle bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))] p-4 font-mono text-[13px] leading-[1.7] text-foreground/85"
         >
           {usage}
         </pre>

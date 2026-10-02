@@ -22,13 +22,13 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
       }
     })
   const light = await detail()
-  expect(light.background).toBe('#e9eef4')
-  expect(light.fill).toBe('rgb(249, 251, 253)')
+  expect(light.background).toBe('#fff')
+  expect(light.fill).toBe('rgb(250, 250, 250)')
   expect(light.grid).toBe('0.18')
   expect(light.tail).toBe('0.62')
 
   await page.getByRole('radio', { name: 'Dark', exact: true }).click()
-  await expect.poll(detail).toMatchObject({ background: '#070707', grid: '0.12', tail: '0.24' })
+  await expect.poll(detail).toMatchObject({ background: '#000', grid: '0.12', tail: '0.24' })
   await page.getByRole('radio', { name: 'Light', exact: true }).click()
   await expect.poll(detail).toEqual(light)
 
@@ -39,7 +39,7 @@ test('light surfaces and diagram detail survive theme switches and SVG export', 
   const markup = await readFile((await download.path())!, 'utf8')
   expect(markup).toMatch(/stop-opacity="0?\.62"/)
   expect(markup).not.toContain('var(--diagram-')
-  expect(markup).toContain('rgb(249, 251, 253)')
+  expect(markup).toContain('rgb(250, 250, 250)')
 })
 
 for (const theme of ['light', 'dark']) {

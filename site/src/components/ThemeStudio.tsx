@@ -76,9 +76,9 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
   }
 
   return (
-    <div className="relative mt-6 overflow-hidden rounded-lg border border-border bg-background">
-      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-5 py-3.5">
-        <span className="inline-flex items-center gap-3 font-sans text-xs tracking-normal text-foreground/75">
+    <div className="relative mt-6 overflow-hidden rounded-lg border border-border-subtle bg-card">
+      <div className="relative flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-b border-border-subtle px-4 py-3 sm:px-5">
+        <span className="inline-flex items-center gap-3 font-sans text-xs font-medium text-muted-foreground">
           {STRINGS.themeMode[locale]} /{' '}
           {locale === 'es' ? (theme === 'dark' ? 'oscuro' : 'claro') : theme}
         </span>
@@ -101,10 +101,6 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
             getText={() => css}
           />
         </span>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,var(--border)_10%,var(--border)_90%,transparent)] opacity-70"
-        />
       </div>
 
       <style>{previewCss}</style>
@@ -180,7 +176,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
                     : undefined
                 }
                 aria-label={`${field.cssVar} — ${STRINGS.hexAria[locale]}`}
-                className="w-[86px] border border-border bg-transparent px-2 py-1 font-sans text-xs text-foreground/80 outline-none focus:border-foreground/35"
+                className="w-[86px] rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground outline-none transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] focus:border-ring focus:ring-1 focus:ring-ring/40"
               />
               <input
                 type="color"
@@ -189,7 +185,7 @@ export function ThemeStudio({ locale, theme }: { locale: Locale; theme: 'light' 
                   edit(field.token, event.target.value)
                 }}
                 aria-label={`${field.cssVar} — ${STRINGS.pickerAria[locale]}`}
-                className="h-7 w-9 cursor-pointer border border-border bg-transparent p-0.5"
+                className="h-7 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
               />
             </span>
             {!isHexColor(activeText[field.token]) ? (

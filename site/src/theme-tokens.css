@@ -1,0 +1,54 @@
+/* Host theme contract shared by the landing, playground, docs and embeds.
+ * Palette values come from site/src/lib/palette.ts; structure tokens derive
+ * from them so every surface keeps the same blue tonality. */
+:root {
+  color-scheme: light;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --muted: #f2f2f2;
+  --muted-foreground: var(--palette-muted-foreground);
+  --border: var(--palette-border);
+  --border-subtle: color-mix(in srgb, var(--border) 42%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 88%, var(--foreground) 8%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  --diagram-node-fill: var(--card);
+  --diagram-secondary-fill: color-mix(in srgb, var(--card) 55%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  --diagram-grid-opacity: 0.18;
+  --diagram-main-tail-opacity: 0.62;
+  --diagram-branch-tail-opacity: 0.48;
+  --diagram-font-display: 'Geist', system-ui, sans-serif;
+  --cobalt: var(--palette-cobalt);
+  --cobalt-ink: #0060df;
+  --branch: var(--palette-branch);
+  --branch-ink: #8a6425;
+  --ring: #0070f3;
+  --code: #dde5ee;
+}
+[data-theme='dark'] {
+  color-scheme: dark;
+  --background: var(--palette-background);
+  --foreground: var(--palette-foreground);
+  --card: var(--palette-card);
+  --muted: #141414;
+  --muted-foreground: var(--palette-muted-foreground);
+  --border: var(--palette-border);
+  --border-subtle: color-mix(in srgb, var(--border) 62%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 80%, var(--foreground) 10%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 34%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 34%, var(--border));
+  --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --diagram-secondary-fill: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --diagram-grid-opacity: 0.12;
+  --diagram-main-tail-opacity: 0.24;
+  --diagram-branch-tail-opacity: 0.12;
+  --cobalt: var(--palette-cobalt);
+  --cobalt-ink: #3291ff;
+  --branch: var(--palette-branch);
+  --branch-ink: var(--branch);
+  --ring: #3291ff;
+  --code: #121212;
+}

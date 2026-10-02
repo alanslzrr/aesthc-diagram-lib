@@ -16,18 +16,14 @@ test('landing links reach adoption tools and editors mount only on demand', asyn
   await expect(page.locator('#example-band')).toBeInViewport()
 })
 
-test('native disclosure handles rapid toggle and Escape', async ({ page }) => {
+test('capabilities are a static section with no disclosure pattern', async ({ page }) => {
   await page.goto('/')
-  const trigger = page.getByText(/Capabilities · v/)
-  await trigger.click()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await trigger.press('Escape')
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-  await trigger.click()
-  await trigger.click()
-  await trigger.click()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await expect(trigger.locator('..')).toHaveAttribute('open', '')
+  const section = page.locator('#capabilities')
+  await expect(section).toBeVisible()
+  await expect(section).toContainText('Capabilities · v')
+  await expect(section.locator('summary')).toHaveCount(0)
+  await expect(section.locator('[aria-expanded]')).toHaveCount(0)
+  await expect(section.locator('dt')).toHaveCount(6)
 })
 
 test('landing presentation preserves both locales and themes at narrow and desktop widths', async ({

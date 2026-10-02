@@ -1,24 +1,31 @@
-/* Web UI tokens. Diagram geometry and package typography remain independent. */
+/* Web UI tokens. Diagram geometry and package typography remain independent.
+ * The scale stays deliberately small: Geist, hairline structure, 4/6/8 radii
+ * and named motion curves instead of ad-hoc values. */
 :root {
   --font-geist: Geist, system-ui, sans-serif;
   --font-geist-mono: 'Geist Mono', ui-monospace, monospace;
   --ui-text-caption: 12px;
   --ui-text-control: 13px;
   --ui-text-body: 15px;
+  --ui-text-lede: 17px;
   --ui-text-code: 13px;
   --ui-text-section: 24px;
   --ui-text-title: 32px;
   --ui-text-hero: clamp(32px, 3.2vw, 40px);
   --ui-leading-body: 1.65;
+  --ui-leading-lede: 1.6;
   --ui-leading-heading: 1.15;
-  --ui-weight-heading: 550;
-  --ui-tracking-heading: -0.025em;
+  --ui-weight-heading: 600;
+  --ui-tracking-heading: -0.02em;
   --ui-icon: 16px;
   --ui-icon-brand: 18px;
   --ui-control: 36px;
+  --ui-control-compact: 32px;
   --ui-target-touch: 44px;
+  --ui-radius-small: 4px;
   --ui-radius-control: 6px;
   --ui-radius-panel: 8px;
+  --ui-radius-large: 12px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -29,16 +36,107 @@
   --space-12: 48px;
   --space-16: 64px;
   --layout-site: 1180px;
-  --layout-docs: 1280px;
+  --layout-docs: 1440px;
+  --layout-sidebar: 264px;
+  --layout-toc: 208px;
   --layout-article: 704px;
   --layout-hero: 640px;
   --layout-install: 560px;
+
+  /* Named motion. Interactive states stay interruptible with transitions. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --duration-slow: 220ms;
 }
 .site-hero {
   width: 100%;
-  max-width: var(--layout-hero);
+  max-width: none;
   margin-inline: auto;
   padding: 104px var(--space-4) 0;
+}
+.hero-copy {
+  max-width: var(--layout-hero);
+  margin-inline: auto;
+}
+.hero-grid {
+  display: grid;
+  gap: var(--space-12);
+  align-items: center;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+.hero-grid .hero-copy {
+  max-width: none;
+  margin-inline: 0;
+}
+@media (min-width: 960px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--space-16);
+  }
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+}
+.hero-cta,
+.hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--ui-radius-control);
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+.hero-cta {
+  background: var(--foreground);
+  color: var(--background);
+}
+.hero-cta:hover {
+  opacity: 0.85;
+}
+.hero-cta-secondary {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.hero-cta-secondary:hover {
+  border-color: var(--border-strong);
+}
+.hero-cta:active,
+.hero-cta-secondary:active {
+  transform: scale(0.98);
+}
+.hero-meta {
+  max-width: 1180px;
+  margin-inline: auto;
+  margin-block-start: var(--space-12);
+}
+.hero-media {
+  display: block;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius-panel);
+  background: var(--card);
+}
+
+.stage-wide {
+  width: min(1200px, calc(100vw - 32px));
+  margin-inline: calc(50% - min(1200px, calc(100vw - 32px)) / 2);
 }
 .hero-heading {
   max-width: 560px;
@@ -94,6 +192,17 @@
   width: var(--ui-icon-brand);
   height: var(--ui-icon-brand);
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 @media (min-width: 640px) {
   .site-hero {
     padding-inline: var(--space-8);
@@ -134,6 +243,9 @@
   cursor: pointer;
   color: var(--muted-foreground);
   list-style: none;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .export-trigger::-webkit-details-marker {
   display: none;
@@ -153,29 +265,50 @@
   inset-inline-end: 0;
   top: calc(100% + 4px);
   z-index: 20;
-  min-width: 176px;
+  min-width: 184px;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: var(--ui-radius-panel);
   background: var(--card);
-  box-shadow: 0 6px 20px #0002;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 8px 24px -12px rgb(0 0 0 / 0.24);
   display: flex;
   flex-direction: column;
+  transform-origin: top right;
+  animation: menu-enter var(--duration-base) var(--ease-out);
+}
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .export-options {
+    animation: none;
+  }
 }
 .export-options button {
   min-height: var(--ui-control);
-  padding: 8px 12px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-small);
   text-align: start;
   font: 400 var(--ui-text-control) var(--font-geist);
   color: var(--foreground);
   background: transparent;
   cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .export-options button:hover,
 .export-options button:focus-visible {
   background: var(--muted);
+}
+.export-options button:active {
+  transform: scale(0.98);
 }
 .export-options button:disabled {
   opacity: 0.4;
@@ -212,11 +345,17 @@
   padding: 8px 12px;
   font: 500 var(--ui-text-control) var(--font-geist);
   cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .architecture-tabs button[data-state='on'],
 .architecture-tabs button:hover {
   background: var(--muted);
   color: var(--foreground);
+}
+.architecture-tabs button:active {
+  transform: scale(0.98);
 }
 .architecture-tabs button:focus-visible {
   outline: 1px solid var(--ring);

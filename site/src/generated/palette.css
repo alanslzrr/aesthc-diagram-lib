@@ -1,19 +1,19 @@
 /* Generated from site/src/lib/palette.ts by pnpm docs:generate. */
 :root {
-  --palette-background: #e9eef4;
-  --palette-foreground: #202b38;
-  --palette-card: #f9fbfd;
-  --palette-border: #aebdcd;
-  --palette-muted-foreground: #536273;
-  --palette-cobalt: #087cbd;
+  --palette-background: #ffffff;
+  --palette-foreground: #0a0a0a;
+  --palette-card: #fafafa;
+  --palette-border: #eaeaea;
+  --palette-muted-foreground: #666666;
+  --palette-cobalt: #0070f3;
   --palette-branch: #a66b21;
 }
 [data-theme='dark'] {
-  --palette-background: #070707;
-  --palette-foreground: #f2f2ee;
-  --palette-card: #101010;
-  --palette-border: #242424;
-  --palette-muted-foreground: #a8a8a1;
-  --palette-cobalt: #14a8ff;
+  --palette-background: #000000;
+  --palette-foreground: #ededed;
+  --palette-card: #0a0a0a;
+  --palette-border: #1f1f1f;
+  --palette-muted-foreground: #a1a1a1;
+  --palette-cobalt: #3291ff;
   --palette-branch: #d6a55e;
 }
