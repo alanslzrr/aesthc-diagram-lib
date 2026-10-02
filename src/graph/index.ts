@@ -213,4 +213,12 @@ export function relationsOf(graph: GraphSnapshot, nodeId: string): Result<NodeRe
   return success({ incoming, outgoing })
 }
 export { compareDocuments } from './compare'
-export type { Comparison, EntityDelta, FieldChange } from './compare'
+export type {
+  Comparison,
+  DocumentDelta,
+  EntityDelta,
+  ExtensionDelta,
+  FieldChange,
+  KeyedDelta,
+  MetadataDelta,
+} from './compare'
