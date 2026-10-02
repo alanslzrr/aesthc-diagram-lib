@@ -208,3 +208,47 @@ test('keyboard selects a node in the editor and Escape clears it', async ({ page
   await page.keyboard.press('Escape')
   await expect(hit).toHaveAttribute('aria-pressed', 'false')
 })
+
+test('panel tabs normalize across example types and navigate by keyboard', async ({ page }) => {
+  await page.goto('/playground.html?only=example-band')
+  await expect(page.locator('.adl-editor-surface [data-hit-node]').first()).toBeVisible()
+  const connections = page.getByRole('tab', { name: /^Connections/ })
+  const panel = page.getByRole('tabpanel')
+  await connections.click()
+  await expect(connections).toHaveAttribute('aria-selected', 'true')
+  await expect(panel.getByText('Existing connections', { exact: false })).toBeVisible()
+  // Ids are instance-scoped, never the static shared `adl-editor-tab-*` shape.
+  const tabIds = await page
+    .locator('[id^="adl-editor-tab"]')
+    .evaluateAll((elements) => elements.map((element) => element.id))
+  expect(new Set(tabIds).size).toBe(tabIds.length)
+  expect(tabIds.some((id) => /^adl-editor-tab-[a-zA-Z0-9_-]+-outline$/.test(id))).toBe(true)
+  // Roving focus stays inside this editor's tablist.
+  await connections.focus()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByRole('tab', { name: 'JSON', exact: true })).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await expect(connections).toBeFocused()
+  await expect(connections).toHaveAttribute('aria-selected', 'true')
+  // Switching to a timeline removes the panel; the active tab must normalize
+  // instead of leaving an empty tabpanel behind.
+  const menu = page.locator('.playground-menu-trigger')
+  if (await menu.isVisible()) await menu.click()
+  await page.locator('.playground-sidebar a[href="?only=example-timeline"]').click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Timeline' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /^Connections/ })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Outline', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(panel.getByRole('heading', { name: 'Diagram outline' })).toBeVisible()
+  // Coming back restores Connections without reviving the stale selection.
+  if (await menu.isVisible()) await menu.click()
+  await page.locator('.playground-sidebar a[href="?only=example-band"]').click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Band' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Outline', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('tab', { name: /^Connections/ })).toHaveCount(1)
+})

@@ -58,6 +58,14 @@ import { pinchViewport } from '../geometry/pinch'
 import { nodeGeometry } from '../geometry/node'
 import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
 import { createCanvasTextMeasurer } from '../geometry/text'
+import {
+  coercePanelTab,
+  panelTabId,
+  panelTabPanelId,
+  panelTabScope,
+  panelTabsFor,
+  type EditorPanelTab,
+} from './panel-tabs'
 import type { ResolveRendererRegistry, StoreOptions } from '../editor-core/types'
 
 const Context = createContext<{
@@ -775,7 +783,15 @@ export function EditorSurface({
             theme: effectiveTheme,
             renderers: registry,
           }),
-    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview, effectiveTheme, registry],
+    [
+      activeDoc,
+      snapshot.document,
+      committedResolved,
+      instanceId,
+      resolvePreview,
+      effectiveTheme,
+      registry,
+    ],
   )
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]
@@ -2385,31 +2401,67 @@ export function EditorJsonPanel() {
   const { store } = useEditor(),
     snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual),
     t = useLabels()
+  // Commit-time failures are their own state: a valid buffer can still be
+  // refused (stale revision, permissions, history), and that must never be
+  // confused with a live parse diagnostic or discarded on the user's behalf.
+  const [commitDiagnostics, setCommitDiagnostics] = useState<readonly string[]>([])
   const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document])
   const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
+  const draftKind = snapshot.draft.kind
+  useEffect(() => {
+    if (draftKind !== 'text') setCommitDiagnostics([])
+  }, [draftKind])
+  const applyDraft = () => {
+    const result = store.commitTextDraft()
+    setCommitDiagnostics(result.status === 'rejected' ? result.diagnostics.map((d) => d.code) : [])
+  }
+  const parseDiagnostics = snapshot.draft.kind === 'text' ? snapshot.draft.diagnostics : []
+  const parseCodes = parseDiagnostics.map((d) => d.code)
+  // A failed apply that repeats a parse diagnostic adds no information; the
+  // commit alert is reserved for failures the live draft does not explain.
+  const commitCodes = commitDiagnostics.filter((code) => !parseCodes.includes(code))
+  const stale = commitCodes.includes('revision.stale')
   return (
     <section className="adl-editor-json" aria-label={t('Document JSON', 'JSON del documento')}>
       <h2 className="adl-editor-panel-title">{t('Document JSON', 'JSON del documento')}</h2>
       <textarea
         aria-label={t('Document JSON', 'JSON del documento')}
         value={text}
-        onChange={(event) => store.setTextDraft(event.target.value)}
+        onChange={(event) => {
+          setCommitDiagnostics([])
+          store.setTextDraft(event.target.value)
+        }}
         spellCheck={false}
       />
       <div className="adl-editor-json-actions">
-        <button
-          type="button"
-          disabled={snapshot.draft.kind !== 'text'}
-          onClick={() => store.commitTextDraft()}
-        >
+        <button type="button" disabled={snapshot.draft.kind !== 'text'} onClick={applyDraft}>
           {t('Apply JSON', 'Aplicar JSON')}
         </button>
-        <button type="button" onClick={() => store.cancelTextDraft()}>
+        <button
+          type="button"
+          onClick={() => {
+            setCommitDiagnostics([])
+            store.cancelTextDraft()
+          }}
+        >
           {t('Discard draft', 'Descartar borrador')}
         </button>
       </div>
-      {snapshot.draft.kind === 'text' && snapshot.draft.diagnostics.length > 0 && (
-        <p role="alert">{snapshot.draft.diagnostics.map((d) => d.code).join(', ')}</p>
+      {parseDiagnostics.length > 0 && (
+        <p role="alert">{parseDiagnostics.map((d) => d.code).join(', ')}</p>
+      )}
+      {commitCodes.length > 0 && (
+        <p role="alert" className="adl-editor-json-commit-alert">
+          {t('Draft not applied', 'Borrador no aplicado')}: {commitCodes.join(', ')}
+        </p>
+      )}
+      {stale && (
+        <p className="adl-editor-json-commit-hint">
+          {t(
+            'The document changed while this draft was open. Your text is preserved; discard the draft to start again from the current revision.',
+            'El documento cambió mientras este borrador estaba abierto. Tu texto se conserva; descarta el borrador para empezar de nuevo desde la revisión actual.',
+          )}
+        </p>
       )}
     </section>
   )
@@ -2419,26 +2471,37 @@ export function EditorJsonPanel() {
 export function EditorPanelTabs({ className }: { className?: string }) {
   const snapshot = useEditorSelector((s) => ({ document: s.document }), shallowEqual),
     t = useLabels()
-  const [tab, setTab] = useState<'outline' | 'json' | 'connections'>('outline')
+  const scope = panelTabScope(useId())
+  const [tab, setTab] = useState<EditorPanelTab>('outline')
+  const tabRefs = useRef<Partial<Record<EditorPanelTab, HTMLButtonElement | null>>>({})
   const connections = edgesOf(snapshot.document.spec).length
+  const supported = panelTabsFor(snapshot.document.spec.type)
+  // The store can be swapped for a different diagram type while this component
+  // stays mounted (one session per example). The authored tab may stop being
+  // supported, so render from the coerced tab and normalize local state.
+  const activeTab = coercePanelTab(tab, supported)
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab)
+  }, [activeTab, tab])
   const tabs = [
-    { id: 'outline' as const, label: t('Outline', 'Estructura') },
-    { id: 'json' as const, label: t('JSON', 'JSON') },
-    ...(snapshot.document.spec.type === 'timeline'
-      ? []
-      : [
+    { id: 'outline' as EditorPanelTab, label: t('Outline', 'Estructura') },
+    { id: 'json' as EditorPanelTab, label: t('JSON', 'JSON') },
+    ...(supported.includes('connections')
+      ? [
           {
-            id: 'connections' as const,
+            id: 'connections' as EditorPanelTab,
             label: `${t('Connections', 'Conexiones')} (${connections})`,
           },
-        ]),
+        ]
+      : []),
   ]
   const move = (direction: 1 | -1) => {
-    const index = tabs.findIndex((entry) => entry.id === tab)
-    const next = tabs[(index + direction + tabs.length) % tabs.length]
-    setTab(next.id)
-    const button = document.getElementById(`adl-editor-tab-${next.id}`)
-    if (button) (button as HTMLElement).focus()
+    const index = supported.indexOf(activeTab)
+    const next = supported[(index + direction + supported.length) % supported.length]
+    setTab(next)
+    // Component-local refs: never resolve a tab through the document, which
+    // would steal focus from another mounted editor.
+    tabRefs.current[next]?.focus()
   }
   return (
     <section
@@ -2462,12 +2525,15 @@ export function EditorPanelTabs({ className }: { className?: string }) {
         {tabs.map((entry) => (
           <button
             key={entry.id}
+            ref={(element) => {
+              tabRefs.current[entry.id] = element
+            }}
             type="button"
             role="tab"
-            id={`adl-editor-tab-${entry.id}`}
-            aria-selected={tab === entry.id}
-            aria-controls={`adl-editor-tabpanel-${entry.id}`}
-            tabIndex={tab === entry.id ? 0 : -1}
+            id={panelTabId(scope, entry.id)}
+            aria-selected={activeTab === entry.id}
+            aria-controls={panelTabPanelId(scope, entry.id)}
+            tabIndex={activeTab === entry.id ? 0 : -1}
             onClick={() => setTab(entry.id)}
           >
             {entry.label}
@@ -2477,17 +2543,17 @@ export function EditorPanelTabs({ className }: { className?: string }) {
       <div
         className="adl-editor-tabpanel"
         role="tabpanel"
-        id={`adl-editor-tabpanel-${tab}`}
-        aria-labelledby={`adl-editor-tab-${tab}`}
+        id={panelTabPanelId(scope, activeTab)}
+        aria-labelledby={panelTabId(scope, activeTab)}
       >
-        <div hidden={tab !== 'outline'}>
+        <div hidden={activeTab !== 'outline'}>
           <EditorOutline />
         </div>
-        <div hidden={tab !== 'json'}>
+        <div hidden={activeTab !== 'json'}>
           <EditorJsonPanel />
         </div>
-        {snapshot.document.spec.type !== 'timeline' && (
-          <div hidden={tab !== 'connections'}>
+        {supported.includes('connections') && (
+          <div hidden={activeTab !== 'connections'}>
             <EditorRelations />
           </div>
         )}
@@ -2793,6 +2859,67 @@ export function EditorSelectionTools() {
     </>
   )
 }
+/**
+ * Small modal abstraction over the native `<dialog>`: `showModal` traps focus,
+ * Escape is routed through `onClose` so React state stays in sync, and focus
+ * is explicitly returned to the opener once the dialog closes. It stays
+ * mounted while closed so native focus restoration always has a target.
+ */
+function EditorDialog({
+  open,
+  titleId,
+  onClose,
+  children,
+}: {
+  open: boolean
+  titleId: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (open && !dialog.open) {
+      openerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
+      dialog.showModal()
+      dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus()
+    } else if (!open && dialog.open) {
+      dialog.close()
+    }
+  }, [open])
+  useEffect(
+    () => () => {
+      const dialog = dialogRef.current
+      if (dialog?.open) dialog.close()
+    },
+    [],
+  )
+  return (
+    <dialog
+      ref={dialogRef}
+      className="adl-editor-dialog"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      onClose={() => {
+        const opener = openerRef.current
+        openerRef.current = null
+        if (opener?.isConnected) opener.focus()
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      {children}
+    </dialog>
+  )
+}
+
 export function EditorStructuredInspector() {
   const { store } = useEditor(),
     snapshot = useEditorSelector(
@@ -2804,6 +2931,10 @@ export function EditorStructuredInspector() {
     ref = snapshot.selection.find((r) => r.kind === 'node'),
     node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : undefined
   const [error, setError] = useState('')
+  const [pendingLaneId, setPendingLaneId] = useState<string | null>(null)
+  const [laneAction, setLaneAction] = useState<'move' | 'delete' | null>(null)
+  const [laneDestination, setLaneDestination] = useState('')
+  const laneDialogTitleId = useId()
   if (!node) return null
   const commitNode = (next: NodeInput['node'], label: string) => {
     const result = getAdapter(type).replaceNode(snapshot.document.spec, {
@@ -2962,6 +3093,7 @@ export function EditorStructuredInspector() {
     const swimNode = node as DiagramNode & { lane: string }
     const laneId = swimNode.lane
     const lanes = spec.lanes
+    const laneNodes = nodesOf(spec) as Array<DiagramNode & { lane: string }>
     const replaceLanes = (
       nextLanes: SwimlaneLane[],
       assignment: (
@@ -2970,19 +3102,73 @@ export function EditorStructuredInspector() {
         swimNode: DiagramNode & { lane: string },
       ) => string,
       label: string,
+      removeNodeIds: string[] = [],
     ) => {
-      const nodes = nodesOf(spec) as Array<DiagramNode & { lane: string }>
+      const removed = new Set(removeNodeIds)
       const assignments: Record<string, string> = {}
-      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n)
+      for (const n of laneNodes)
+        if (!removed.has(n.id)) assignments[n.id] = assignment(n.lane, n.id, n)
       const result = getAdapter('swimlane').editStructure(spec, {
         type: 'lanes.replace',
         lanes: nextLanes,
         assignments,
-        removeNodeIds: [],
+        removeNodeIds,
       })
-      if (result.ok)
-        dispatch(store, [{ type: 'spec.replace', spec: result.value, references: 'reject' }], label)
-      else setError(result.diagnostics.map((d) => d.code).join(', '))
+      if (!result.ok) {
+        setError(result.diagnostics.map((d) => d.code).join(', '))
+        return
+      }
+      const commit = dispatch(
+        store,
+        [
+          {
+            type: 'spec.replace',
+            spec: result.value,
+            references: removeNodeIds.length ? 'prune-references' : 'reject',
+          },
+        ],
+        label,
+      )
+      if (commit.status === 'rejected') setError(commit.diagnostics.map((d) => d.code).join(', '))
+    }
+    const laneMembers = (id: string) => laneNodes.filter((candidate) => candidate.lane === id)
+    const pendingLane = pendingLaneId
+      ? lanes.find((candidate) => candidate.id === pendingLaneId)
+      : undefined
+    const pendingMembers = pendingLane ? laneMembers(pendingLane.id) : []
+    const pendingMemberIds = new Set(pendingMembers.map((member) => member.id))
+    const pendingConnections = edgesOf(spec).filter(
+      (edge) => pendingMemberIds.has(edge.from) || pendingMemberIds.has(edge.to),
+    )
+    const destinationLanes = pendingLane
+      ? lanes.filter((candidate) => candidate.id !== pendingLane.id)
+      : []
+    const closeLaneDialog = () => {
+      setPendingLaneId(null)
+      setLaneAction(null)
+      setLaneDestination('')
+    }
+    const openLaneDialog = (id: string) => {
+      setPendingLaneId(id)
+      setLaneAction(null)
+      setLaneDestination(lanes.find((candidate) => candidate.id !== id)?.id ?? '')
+    }
+    const confirmLaneRemoval = () => {
+      if (!pendingLane || !laneAction) return
+      const nextLanes = lanes.filter((candidate) => candidate.id !== pendingLane.id)
+      if (laneAction === 'move') {
+        if (!destinationLanes.some((candidate) => candidate.id === laneDestination)) return
+        replaceLanes(
+          nextLanes,
+          (source) => (source === pendingLane.id ? laneDestination : source),
+          'Move lane members',
+        )
+      } else {
+        replaceLanes(nextLanes, (source) => source, 'Delete lane and members', [
+          ...pendingMemberIds,
+        ])
+      }
+      closeLaneDialog()
     }
     return (
       <section aria-label={t('Swimlane lanes', 'Carriles')}>
@@ -3004,26 +3190,32 @@ export function EditorStructuredInspector() {
           </select>
         </label>
         <ol>
-          {lanes.map((lane) => (
-            <li key={lane.id}>
-              <span className="adl-editor-mono">{lane.label}</span>
-              <button
-                type="button"
-                disabled={lanes.length <= 1}
-                aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
-                onClick={() => {
-                  const first = lanes.find((candidate) => candidate.id !== lane.id)!
-                  replaceLanes(
-                    lanes.filter((candidate) => candidate.id !== lane.id),
-                    (source) => (source === lane.id ? first.id : source),
-                    'Remove lane',
-                  )
-                }}
-              >
-                ×
-              </button>
-            </li>
-          ))}
+          {lanes.map((lane) => {
+            const members = laneMembers(lane.id)
+            return (
+              <li key={lane.id}>
+                <span className="adl-editor-mono">{lane.label}</span>
+                <button
+                  type="button"
+                  disabled={lanes.length <= 1}
+                  aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
+                  onClick={() => {
+                    // An empty lane is a pure structural edit. An occupied lane
+                    // must never silently reassign or drop its members.
+                    if (members.length === 0)
+                      replaceLanes(
+                        lanes.filter((candidate) => candidate.id !== lane.id),
+                        (source) => source,
+                        'Remove lane',
+                      )
+                    else openLaneDialog(lane.id)
+                  }}
+                >
+                  ×
+                </button>
+              </li>
+            )
+          })}
         </ol>
         <button
           type="button"
@@ -3041,6 +3233,93 @@ export function EditorStructuredInspector() {
           {t('Add lane', 'Añadir carril')}
         </button>
         {error && <p role="alert">{error}</p>}
+        <EditorDialog
+          open={pendingLane !== undefined}
+          titleId={laneDialogTitleId}
+          onClose={closeLaneDialog}
+        >
+          {pendingLane && (
+            <>
+              <h2 id={laneDialogTitleId}>
+                {t('Remove lane', 'Quitar carril')}: {pendingLane.label}
+              </h2>
+              <p className="adl-editor-dialog-count">
+                {t('Members affected', 'Miembros afectados')}: {pendingMembers.length}
+              </p>
+              <fieldset>
+                <legend>
+                  {t('What happens to the members?', '¿Qué ocurre con los miembros?')}
+                </legend>
+                <label className="adl-editor-dialog-choice">
+                  <input
+                    type="radio"
+                    name={`${laneDialogTitleId}-action`}
+                    value="move"
+                    checked={laneAction === 'move'}
+                    onChange={() => setLaneAction('move')}
+                  />
+                  {t('Move them to another lane', 'Moverlos a otro carril')}
+                </label>
+                {laneAction === 'move' && (
+                  <label>
+                    {t('Destination lane', 'Carril de destino')}
+                    <select
+                      aria-label={t('Destination lane', 'Carril de destino')}
+                      value={laneDestination}
+                      onChange={(event) => setLaneDestination(event.target.value)}
+                    >
+                      {destinationLanes.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="adl-editor-dialog-choice">
+                  <input
+                    type="radio"
+                    name={`${laneDialogTitleId}-action`}
+                    value="delete"
+                    checked={laneAction === 'delete'}
+                    onChange={() => setLaneAction('delete')}
+                  />
+                  {t('Delete the members with the lane', 'Eliminar los miembros con el carril')}
+                </label>
+                {laneAction === 'delete' && (
+                  <p className="adl-editor-dialog-consequence">
+                    {pendingConnections.length
+                      ? t(
+                          `Deleting the members also removes ${pendingConnections.length} connection${
+                            pendingConnections.length === 1 ? '' : 's'
+                          } that reference them.`,
+                          `Eliminar los miembros también quita ${
+                            pendingConnections.length
+                          } conexión${
+                            pendingConnections.length === 1 ? '' : 'es'
+                          } que los referencia${pendingConnections.length === 1 ? '' : 'n'}.`,
+                        )
+                      : t('The members have no connections.', 'Los miembros no tienen conexiones.')}
+                  </p>
+                )}
+              </fieldset>
+              <div className="adl-editor-dialog-actions">
+                <button type="button" data-dialog-initial-focus onClick={closeLaneDialog}>
+                  {t('Cancel', 'Cancelar')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!laneAction || (laneAction === 'move' && !laneDestination)}
+                  onClick={confirmLaneRemoval}
+                >
+                  {laneAction === 'delete'
+                    ? t('Delete lane and members', 'Eliminar carril y miembros')
+                    : t('Move members and remove lane', 'Mover miembros y quitar carril')}
+                </button>
+              </div>
+            </>
+          )}
+        </EditorDialog>
       </section>
     )
   }

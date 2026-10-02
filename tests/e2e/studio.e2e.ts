@@ -51,6 +51,96 @@ test('Studio edits, undoes, validates drafts and restores a saved document', asy
   await page.getByRole('button', { name: 'Load saved' }).click()
   await expect(page.getByRole('button', { name: 'Orders service', exact: true })).toBeVisible()
 })
+test('Studio reports a rejected JSON draft without overwriting the buffer', async ({ page }) => {
+  await page.goto('/studio.html')
+  const json = page.getByRole('textbox', { name: 'Document JSON', exact: true })
+  const buffered = JSON.parse(await json.inputValue())
+  buffered.spec.caption = 'Buffered caption'
+  const bufferedText = JSON.stringify(buffered)
+  await json.fill(bufferedText)
+  // An independent edit advances the revision while the draft stays buffered.
+  await page.getByRole('button', { name: 'Order API', exact: true }).click()
+  await page.getByLabel('Label', { exact: true }).fill('Newer revision')
+  await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Newer revision', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Apply JSON', exact: true }).click()
+  // Commit failures are shown as their own alert and never as parse noise.
+  const commitAlert = page.locator('.adl-editor-json-commit-alert')
+  await expect(commitAlert).toContainText('revision.stale')
+  await expect(page.locator('.adl-editor-json [role="alert"]')).toHaveCount(1)
+  // The valid-but-stale buffer and the independent edit are both preserved.
+  expect(await json.inputValue()).toBe(bufferedText)
+  await expect(page.getByRole('button', { name: 'Newer revision', exact: true })).toBeVisible()
+  // Editing clears the commit diagnostic; retrying surfaces the same failure.
+  await json.fill(`${bufferedText} `)
+  await expect(commitAlert).toHaveCount(0)
+  await page.getByRole('button', { name: 'Apply JSON', exact: true }).click()
+  await expect(commitAlert).toContainText('revision.stale')
+  await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
+  await expect(commitAlert).toHaveCount(0)
+  expect(await json.inputValue()).toContain('Newer revision')
+})
+
+test('Studio removes swimlanes without silently reassigning or dropping members', async ({
+  page,
+}) => {
+  const fixtures = JSON.parse(await readFile('tests/fixtures/editor/legacy-specs.json', 'utf8'))
+  await page.goto('/studio.html')
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'swimlane.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(fixtures.swimlane)),
+  })
+  await page.locator('[data-hit-node="a"]').click()
+  const lanes = page.getByRole('region', { name: 'Swimlane lanes', exact: true })
+  const removeSupport = lanes.getByRole('button', { name: 'Remove lane: Support' })
+  // Cancel and Escape leave the document untouched and restore focus.
+  await removeSupport.click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText('Remove lane: Support')
+  await expect(dialog).toContainText('Members affected: 1')
+  const confirm = dialog.getByRole('button', { name: 'Move members and remove lane' })
+  await expect(confirm).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(removeSupport).toBeFocused()
+  await expect(lanes.getByRole('button', { name: 'Remove lane: Support' })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  // Moving members is an explicit, single undoable edit.
+  await removeSupport.click()
+  await dialog.getByRole('radio', { name: 'Move them to another lane' }).check()
+  await expect(dialog.getByLabel('Destination lane')).toHaveValue('engineering')
+  await dialog.getByRole('button', { name: 'Move members and remove lane' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('[data-hit-node="a"]')).toHaveCount(1)
+  await expect(lanes.getByRole('button', { name: 'Remove lane: Support' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(lanes.getByRole('button', { name: 'Remove lane: Support' })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  // Deleting members explains the dependent connections and undoes once.
+  await removeSupport.click()
+  await dialog.getByRole('radio', { name: 'Delete the members with the lane' }).check()
+  await expect(dialog).toContainText('also removes 1 connection')
+  await dialog.getByRole('button', { name: 'Delete lane and members' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('[data-hit-node="a"]')).toHaveCount(0)
+  await expect(page.locator('[data-hit-edge]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.locator('[data-hit-node="a"]')).toHaveCount(1)
+  await expect(page.locator('[data-hit-edge]')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  // An empty lane is removed directly (no dialog) and stays undoable.
+  await page.locator('[data-hit-node="a"]').click()
+  await lanes.getByRole('button', { name: 'Add lane', exact: true }).click()
+  await lanes.getByRole('button', { name: 'Remove lane: New lane' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(lanes.getByRole('button', { name: 'Remove lane: New lane' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(lanes.getByRole('button', { name: 'Remove lane: New lane' })).toHaveCount(1)
+})
+
 test('Studio pointer drag is one transaction and keyboard movement is undoable', async ({
   page,
   isMobile,
@@ -396,6 +486,56 @@ test('Studio exports local semantic and brand icons as self-contained SVG and ra
       ).toBe(true)
     } else expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
   }
+})
+
+/** Replaces the file input payload with a File-like whose read rejects or defers. */
+async function dispatchStudioRead(page: Page, mode: 'reject' | 'deferred') {
+  await page.evaluate((mode) => {
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['{}'], 'fixture.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', {
+      configurable: true,
+      value: () =>
+        mode === 'reject'
+          ? Promise.reject(new Error('read failed'))
+          : new Promise<string>((resolve) => {
+              ;(window as unknown as { __finishRead: (value: string) => void }).__finishRead =
+                resolve
+            }),
+    })
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    input.files = transfer.files
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  }, mode)
+}
+
+test('Studio reports a failed file read and preserves the last valid document', async ({
+  page,
+}) => {
+  await page.goto('/studio.html')
+  await dispatchStudioRead(page, 'reject')
+  await expect(page.locator('.studio-message')).toContainText('could not be read')
+  await expect(page.getByRole('button', { name: 'Order API', exact: true })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Save locally', exact: true })).toBeEnabled()
+})
+
+test('Studio discards an import that resolves after the document changed', async ({ page }) => {
+  await page.goto('/studio.html')
+  await page.getByText('Document JSON', { exact: true }).click()
+  const before = await page.getByRole('textbox', { name: 'Document JSON' }).inputValue()
+  await dispatchStudioRead(page, 'deferred')
+  await page.getByRole('button', { name: 'Order API', exact: true }).click()
+  await page.getByLabel('Label', { exact: true }).fill('Newer revision')
+  await page.getByRole('button', { name: 'Apply label' }).click()
+  await expect(page.getByRole('button', { name: 'Newer revision', exact: true })).toHaveCount(1)
+  await page.evaluate(
+    (text) => (window as unknown as { __finishRead: (value: string) => void }).__finishRead(text),
+    before,
+  )
+  await expect(page.locator('.studio-message')).toContainText('Canceled')
+  await expect(page.getByRole('button', { name: 'Newer revision', exact: true })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Order API', exact: true })).toHaveCount(0)
 })
 
 test('Studio aligns a selection in one undoable transaction', async ({ page }) => {
@@ -753,7 +893,11 @@ test('Studio recovers drafts, quarantines corrupt copies and supports save-as', 
   await expect(page.getByRole('button', { name: 'Order API v2', exact: true })).toHaveCount(1)
   await page.getByText('Saved copies', { exact: true }).click()
   await page.evaluate(() => {
-    localStorage.setItem('adl-document-v1:studio:studio-document', '{corrupt json')
+    // Storage listing order is implementation-defined; corrupt every saved
+    // copy in this namespace so whichever copy is active is quarantined.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('adl-document-v1:studio:')) localStorage.setItem(key, '{corrupt json')
+    }
   })
   await page.getByRole('button', { name: 'Load saved', exact: true }).click()
   await expect(
