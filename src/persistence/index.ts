@@ -186,7 +186,14 @@ export function createLocalStorageAdapter(namespace: string): StorageAdapter {
         for (let index = 0; index < window.localStorage.length; index++) {
           const key = window.localStorage.key(index)
           if (!key || !key.startsWith(prefix)) continue
-          const storedKey = decodeURIComponent(key.slice(prefix.length))
+          let storedKey: string
+          try {
+            storedKey = decodeURIComponent(key.slice(prefix.length))
+          } catch {
+            // A malformed encoded key is an unreadable entry, not a denied
+            // storage: skip it and keep listing the healthy documents.
+            continue
+          }
           const result = await read(storedKey)
           if (!result.ok || !result.value) continue
           entries.push({
