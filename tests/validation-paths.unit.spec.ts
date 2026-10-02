@@ -40,8 +40,16 @@ describe('authored semantic issue paths', () => {
     it(`keeps original explicit ID indices and reference collection for ${type}`, () => {
       const data = structuredClone(base) as unknown as Record<
         string,
-        Array<{ id?: string; from: string; to: string }>
+        Array<{ id?: string; from: string; to: string; lane?: string; fields?: unknown[] }>
       >
+      // Compact examples may ship without relations; the validator contract
+      // under test needs at least one valid reference pair.
+      if (!data[edgeField].length) {
+        const source = data[nodeField][0]
+        const sourceId = source.id ?? 'source'
+        data[nodeField].push({ ...source, id: `${sourceId}-2` })
+        data[edgeField] = [{ from: sourceId, to: `${sourceId}-2` }]
+      }
       const first = data[edgeField][0]
       const anonymous = { ...first }
       if (type === 'sequence') anonymous.id = 'first'
