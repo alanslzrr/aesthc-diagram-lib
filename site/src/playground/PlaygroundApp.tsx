@@ -373,7 +373,15 @@ function PlaygroundSurface({
               if (upload) void importFile(upload)
             }}
           />
-          <button type="button" onClick={() => setExportOpen(true)}>
+          <button
+            type="button"
+            onClick={(event) => {
+              // Safari does not focus buttons on click; capture the opener so
+              // the dialog can restore focus on close.
+              event.currentTarget.focus()
+              setExportOpen(true)
+            }}
+          >
             {locale === 'es' ? 'Exportar' : 'Export'}
           </button>
           <button type="button" onClick={resetExample}>
