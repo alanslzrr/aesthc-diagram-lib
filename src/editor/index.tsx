@@ -3199,9 +3199,10 @@ export function EditorStructuredInspector() {
                   type="button"
                   disabled={lanes.length <= 1}
                   aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
-                  onClick={() => {
+                  onClick={(event) => {
                     // An empty lane is a pure structural edit. An occupied lane
                     // must never silently reassign or drop its members.
+                    event.currentTarget.focus()
                     if (members.length === 0)
                       replaceLanes(
                         lanes.filter((candidate) => candidate.id !== lane.id),
