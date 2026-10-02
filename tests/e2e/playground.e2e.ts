@@ -9,13 +9,50 @@ test('sidebar preserves native modified-click navigation and switches only plain
 }) => {
   await page.addInitScript(() => {
     const original = Event.prototype.preventDefault
-    const state = window as unknown as { __prevented: string[] }
+    const state = window as unknown as {
+      __prevented: string[]
+      __activations: Array<{
+        href: string
+        button: number
+        metaKey: boolean
+        ctrlKey: boolean
+        shiftKey: boolean
+        prevented: boolean
+      }>
+    }
     state.__prevented = []
+    state.__activations = []
+    if (location.protocol.startsWith('http')) {
+      const loads = Number(sessionStorage.getItem('__nativeLoads') ?? '0') + 1
+      sessionStorage.setItem('__nativeLoads', String(loads))
+    }
     Event.prototype.preventDefault = function (this: Event) {
       const target = this.target as Element | null
       state.__prevented.push(target?.getAttribute?.('href') ?? '')
       return original.call(this)
     }
+    for (const name of ['click', 'auxclick'])
+      document.addEventListener(
+        name,
+        (event) => {
+          const activation = event as MouseEvent
+          const anchor = (activation.target as Element | null)?.closest?.('a[href]')
+          if (!anchor) return
+          const record = {
+            href: anchor.getAttribute('href') ?? '',
+            button: activation.button,
+            metaKey: activation.metaKey,
+            ctrlKey: activation.ctrlKey,
+            shiftKey: activation.shiftKey,
+            prevented: activation.defaultPrevented,
+          }
+          state.__activations.push(record)
+          setTimeout(() => {
+            record.prevented = activation.defaultPrevented
+          }, 0)
+        },
+        true,
+      )
   })
   await page.goto('/playground.html?only=example-band')
   const sidebar = page.locator('.playground-sidebar')
@@ -26,6 +63,33 @@ test('sidebar preserves native modified-click navigation and switches only plain
     if (!(await link.isVisible())) await menu.click()
     await expect(link).toBeVisible()
   }
+  const preventedBand = () =>
+    page.evaluate(() =>
+      (window as unknown as { __prevented: string[] }).__prevented.includes('?only=example-band'),
+    )
+  const nativeLoads = () =>
+    page.evaluate(() => Number(sessionStorage.getItem('__nativeLoads') ?? '0'))
+  const clearActivations = () =>
+    page.evaluate(() => {
+      ;(window as unknown as { __activations: unknown[] }).__activations = []
+    })
+  const readActivation = () =>
+    page.evaluate(
+      (href) =>
+        (
+          window as unknown as {
+            __activations: Array<{
+              href: string
+              button: number
+              metaKey: boolean
+              ctrlKey: boolean
+              shiftKey: boolean
+              prevented: boolean
+            }>
+          }
+        ).__activations.find((candidate) => candidate.href === href),
+      '?only=example-band',
+    )
   const flow = sidebar.getByRole('link', { name: 'Flowchart', exact: true })
   await showSidebar(flow)
   await flow.click()
@@ -41,25 +105,70 @@ test('sidebar preserves native modified-click navigation and switches only plain
 
   const band = sidebar.getByRole('link', { name: 'Band', exact: true })
   const modifier: 'Control' | 'Meta' = process.platform === 'darwin' ? 'Meta' : 'Control'
-  for (const options of [
-    { button: 'middle' as const },
-    { modifiers: [modifier] },
-    { modifiers: ['Shift' as const] },
+  for (const gesture of [
+    {
+      options: { modifiers: [modifier] },
+      metaKey: modifier === 'Meta',
+      ctrlKey: modifier === 'Control',
+      shiftKey: false,
+    },
+    {
+      options: { modifiers: ['Shift' as const] },
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: true,
+    },
   ]) {
     await showSidebar(band)
-    const [opened] = await Promise.all([context.waitForEvent('page'), band.click(options)])
-    await opened.waitForLoadState('domcontentloaded')
-    expect(opened.url()).toContain('only=example-band')
-    expect(
-      await page.evaluate(() =>
-        (window as unknown as { __prevented: string[] }).__prevented.includes('?only=example-band'),
-      ),
-    ).toBe(false)
-    await opened.close()
+    await clearActivations()
+    const popupPromise = context.waitForEvent('page', { timeout: 5000 }).catch(() => null)
+    await band.click(gesture.options)
+    const popup = await popupPromise
+    const activation = await readActivation()
+    expect(popup).not.toBeNull()
+    await popup!.waitForLoadState('domcontentloaded')
+    expect(popup!.url()).toContain('only=example-band')
+    await popup!.close()
+    expect(activation).toBeTruthy()
+    expect(activation!.prevented).toBe(false)
+    expect(activation!.button).toBe(0)
+    expect(activation!.metaKey).toBe(gesture.metaKey)
+    expect(activation!.ctrlKey).toBe(gesture.ctrlKey)
+    expect(activation!.shiftKey).toBe(gesture.shiftKey)
+    expect(await preventedBand()).toBe(false)
+    // A popup leaves the opener session untouched.
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    await expect(page.getByRole('heading', { name: 'Flowchart', exact: true })).toBeVisible()
   }
-  // The modified clicks never ran the in-page session switch.
-  await expect(page).toHaveURL(/\?only=example-flowchart/)
-  await expect(page.getByRole('heading', { name: 'Flowchart', exact: true })).toBeVisible()
+
+  // WebKit never delivers middle-button events: it performs the native
+  // same-tab navigation instead, so that URL change must be a fresh document,
+  // never the in-page session switch. Chromium-family engines open the linked
+  // session in a popup and leave the opener on the flowchart.
+  await showSidebar(band)
+  await clearActivations()
+  const loadsBefore = await nativeLoads()
+  const middlePopupPromise = context.waitForEvent('page', { timeout: 5000 }).catch(() => null)
+  await band.click({ button: 'middle' })
+  const middlePopup = await middlePopupPromise
+  const middleActivation = await readActivation()
+  expect(await preventedBand()).toBe(false)
+  if (middlePopup) {
+    await middlePopup.waitForLoadState('domcontentloaded')
+    expect(middlePopup.url()).toContain('only=example-band')
+    await middlePopup.close()
+    expect(middleActivation).toBeTruthy()
+    expect(middleActivation!.prevented).toBe(false)
+    expect(middleActivation!.button).toBe(1)
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    expect(await nativeLoads()).toBe(loadsBefore)
+  } else if (page.url().includes('only=example-band')) {
+    expect(await nativeLoads()).toBeGreaterThan(loadsBefore)
+    await expect(page.getByRole('heading', { name: 'Band', exact: true })).toBeVisible()
+  } else {
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    expect(await nativeLoads()).toBe(loadsBefore)
+  }
 })
 
 test('seven types render with unique SVG IDs in both themes', async ({ page }) => {
