@@ -43,17 +43,38 @@ async function readBounded(
   const chunks: Uint8Array[] = []
   let size = 0
   const start = clock()
+  // A real deadline, not just a pre-read clock check: a stalled read is raced
+  // against this timer so a pending source can never hang the caller.
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => resolve('timeout'), Math.max(0, timeoutMs))
+  })
+  // Cancellation is best-effort: never await unbounded cleanup, but never leave
+  // an unhandled rejection either.
+  const cancel = () => {
+    void reader.cancel().catch(() => {})
+  }
   try {
     while (true) {
       if (clock() - start > timeoutMs) {
-        await reader.cancel().catch(() => {})
+        cancel()
         return failure('share.timeout')
       }
-      const { done, value } = await reader.read()
+      const pending = reader.read().then(
+        (result) => ({ kind: 'read' as const, result }),
+        (error) => ({ kind: 'error' as const, error }),
+      )
+      const raced = await Promise.race([pending, timedOut])
+      if (raced === 'timeout') {
+        cancel()
+        return failure('share.timeout')
+      }
+      if (raced.kind === 'error') throw raced.error
+      const { done, value } = raced.result
       if (done) break
       size += value.length
       if (size > limits.expanded) {
-        await reader.cancel().catch(() => {})
+        cancel()
         return failure('share.expansion')
       }
       chunks.push(value)
@@ -66,10 +87,15 @@ async function readBounded(
     }
     return success(bytes)
   } catch {
-    await reader.cancel().catch(() => {})
+    cancel()
     return failure('share.malformed')
   } finally {
-    reader.releaseLock()
+    if (timer !== undefined) clearTimeout(timer)
+    try {
+      reader.releaseLock()
+    } catch {
+      /* Cleanup must not replace the bounded result. */
+    }
   }
 }
 /** Encodes the canonical document. Returns `share.too-large`/`share.too-long`
