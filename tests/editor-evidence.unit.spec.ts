@@ -7,6 +7,7 @@ import {
 } from '../src/editor-core'
 import type { DiagramDocument, TrustedVerifier } from '../src/editor-core'
 import { validateDocument } from '../src/editor-core'
+import { EVIDENCE_RANGE_CONTRACT } from '../src/editor-core/evidence'
 import { exportDocument } from '../src/export'
 
 function evidenceDocument(evidence: Record<string, unknown>): DiagramDocument {
@@ -146,10 +147,14 @@ describe('E23 declared evidence versus verification', () => {
     expect(http.diagnostics.some((d) => d.code === 'url.scheme')).toBe(true)
     // The module itself never fetches; only the injected verifier may.
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    const verifier: TrustedVerifier = { verify: async () => 'match' }
+    const verifier: TrustedVerifier = {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => 'match',
+    }
     const receipts = await verifyEvidence(evidenceDocument(validEvidence), verifier)
     if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
     expect(receipts.value[0].status).toBe('verified')
+    expect(receipts.value[0].scope).toBe('range')
     expect(fetchSpy).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
   })
@@ -157,17 +162,30 @@ describe('E23 declared evidence versus verification', () => {
   it('T50.2 verification requires a complete match: mismatch, errors and unavailable never verify', async () => {
     const document = evidenceDocument(validEvidence)
     const cases: Array<[TrustedVerifier, string]> = [
-      [{ verify: async () => 'match' }, 'verified'],
-      [{ verify: async () => 'mismatch' }, 'mismatch'],
-      [{ verify: async () => 'unavailable' }, 'unavailable'],
+      [
+        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'match' },
+        'verified',
+      ],
+      [
+        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'mismatch' },
+        'mismatch',
+      ],
+      [
+        { contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'unavailable' },
+        'unavailable',
+      ],
       [
         {
+          contract: EVIDENCE_RANGE_CONTRACT,
           verify: async () => {
             throw new Error('boom')
           },
         },
         'unavailable',
       ],
+      // A legacy verifier that never observed the declared range can only
+      // establish file identity: it is truthfully reported as declared.
+      [{ verify: async () => 'match' }, 'declared'],
     ]
     for (const [verifier, expected] of cases) {
       const receipts = await verifyEvidence(document, verifier)
@@ -180,6 +198,107 @@ describe('E23 declared evidence versus verification', () => {
     if (!declaredOnly.ok) throw Error('declared')
     // Never verified from the document itself.
     expect(declaredOnly.value.some((receipt) => receipt.status === 'verified')).toBe(false)
+  })
+})
+
+describe('F26 range-aware evidence verification contract', () => {
+  it('a legacy verifier receives the range but a file-only match is never verified', async () => {
+    const seen: Array<{
+      repository: string
+      commit: string
+      path: string
+      range: { startLine: number; endLine: number }
+      blobSha?: string
+    }> = []
+    const receipts = await verifyEvidence(evidenceDocument(validEvidence), {
+      verify: async (reference) => {
+        seen.push(reference)
+        return 'match'
+      },
+    })
+    if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({
+      repository: validEvidence.repository,
+      commit: validEvidence.commit,
+      path: validEvidence.path,
+      range: { startLine: 10, endLine: 20 },
+    })
+    expect(receipts.value[0]).toMatchObject({
+      status: 'declared',
+      scope: 'file',
+      detail: 'verifier:file-only',
+    })
+    expect(receipts.value[0].status).not.toBe('verified')
+  })
+
+  it('different requested ranges reach the verifier and out-of-file ranges stay non-verified', async () => {
+    const seen: Array<{ startLine: number; endLine: number }> = []
+    const document = evidenceDocument(validEvidence)
+    document.metadata.nodes.a.evidence = [
+      validEvidence,
+      { ...validEvidence, id: 'ev-2', startLine: 999999, endLine: 1000000 },
+    ] as never
+    const receipts = await verifyEvidence(document, {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async (reference) => {
+        seen.push({ startLine: reference.range.startLine, endLine: reference.range.endLine })
+        // The verifier owns the file: lines 10-20 exist, 999999+ do not.
+        return reference.range.startLine === 10 ? 'match' : 'mismatch'
+      },
+    })
+    if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
+    expect(seen).toEqual([
+      { startLine: 10, endLine: 20 },
+      { startLine: 999999, endLine: 1000000 },
+    ])
+    expect(receipts.value.map((receipt) => [receipt.id, receipt.status])).toEqual([
+      ['ev-1', 'verified'],
+      ['ev-2', 'mismatch'],
+    ])
+    expect(receipts.value.every((receipt) => receipt.status === 'verified')).toBe(false)
+  })
+
+  it('passes the declared blob SHA and never verifies a mismatching or failing verifier', async () => {
+    const declared = { ...validEvidence, blobSha: 'a'.repeat(40) }
+    const seen: Array<string | undefined> = []
+    const matched = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async (reference) => {
+        seen.push(reference.blobSha)
+        return reference.blobSha === declared.blobSha ? 'match' : 'mismatch'
+      },
+    })
+    if (!matched.ok) throw Error(JSON.stringify(matched.diagnostics))
+    expect(seen).toEqual([declared.blobSha])
+    expect(matched.value[0]).toMatchObject({ status: 'verified', scope: 'range' })
+    const mismatched = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => 'mismatch',
+    })
+    if (!mismatched.ok) throw Error(JSON.stringify(mismatched.diagnostics))
+    expect(mismatched.value[0].status).toBe('mismatch')
+    const failed = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => {
+        throw new Error('boom')
+      },
+    })
+    if (!failed.ok) throw Error(JSON.stringify(failed.diagnostics))
+    expect(failed.value[0]).toMatchObject({ status: 'unavailable', detail: 'verifier:error' })
+  })
+
+  it('keeps rejecting short commits before any verifier runs', async () => {
+    let calls = 0
+    const result = await verifyEvidence(evidenceDocument({ ...validEvidence, commit: '0123456' }), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => {
+        calls += 1
+        return 'match'
+      },
+    })
+    expect(result.ok).toBe(false)
+    expect(calls).toBe(0)
   })
 })
 
