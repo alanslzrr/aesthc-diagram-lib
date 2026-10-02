@@ -5,10 +5,10 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-AVTVKBIV.js";
+} from "./chunk-3N7YC3GS.js";
 import {
   serializeDocument
-} from "./chunk-3MHLUDWC.js";
+} from "./chunk-WD7BRA7G.js";
 import {
   canonical,
   edgesOf,
@@ -22,7 +22,7 @@ import {
   escapeXml,
   renderSceneMarkup,
   renderSvg
-} from "./chunk-3I2A4V6U.js";
+} from "./chunk-S6PSHJSL.js";
 
 // src/export/raster.ts
 async function rasterizeSvg(svg, mime, width, height, signal) {

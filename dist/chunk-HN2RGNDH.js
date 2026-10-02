@@ -6,7 +6,7 @@ import {
   labelPillWidth,
   nodeHeight,
   roundedPolyline
-} from "./chunk-QVERY2JP.js";
+} from "./chunk-BBMS4ALE.js";
 import {
   BAND_PITCH,
   BAND_X0,
@@ -22,7 +22,7 @@ import {
   LANE_R,
   SIDE_LANE_GAP,
   SLOT_PITCH
-} from "./chunk-TVEV5XLW.js";
+} from "./chunk-TGRGDAF2.js";
 
 // src/layouts/band.ts
 function canvasMetrics(diagram) {

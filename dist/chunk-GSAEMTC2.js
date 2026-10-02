@@ -3,11 +3,11 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-AVTVKBIV.js";
+} from "./chunk-3N7YC3GS.js";
 import {
   canonicalizeContent,
   importDocument
-} from "./chunk-3MHLUDWC.js";
+} from "./chunk-WD7BRA7G.js";
 import {
   edgesOf,
   failure,

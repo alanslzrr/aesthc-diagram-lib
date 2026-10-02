@@ -3,8 +3,8 @@ import {
   createDocument,
   importDocument,
   serializeDocument
-} from "../chunk-3MHLUDWC.js";
-import "../chunk-QVERY2JP.js";
+} from "../chunk-WD7BRA7G.js";
+import "../chunk-BBMS4ALE.js";
 import {
   canonical,
   failure,
@@ -12,7 +12,7 @@ import {
   validateDocument
 } from "../chunk-6NELNSRC.js";
 import "../chunk-UHROM3FO.js";
-import "../chunk-TVEV5XLW.js";
+import "../chunk-TGRGDAF2.js";
 
 // src/persistence/share.ts
 var SHARE_LIMITS = {

@@ -1,7 +1,7 @@
 import {
   nodeGeometry,
   tableFieldGeometry
-} from "./chunk-YKPE23VO.js";
+} from "./chunk-KKMUFXA6.js";
 import {
   brandIcons,
   scopeIconMarkup
@@ -16,7 +16,7 @@ import {
   NODE_ICON_SIZE,
   PILL_H,
   PILL_R
-} from "./chunk-TVEV5XLW.js";
+} from "./chunk-TGRGDAF2.js";
 
 // src/brand-icons/semantic-data.ts
 var semanticIcons = {
@@ -110,17 +110,18 @@ function renderSceneMarkup(document, scene, options) {
   const marked = (active) => active ? ' data-query-highlight="true"' : "";
   const dimmed = (nodeId) => options.dim?.has(nodeId) ? ' data-lens-dim="true"' : "";
   const color = (variant) => variant === "branch" ? p.branch : p.cobalt;
+  const structure = (opacity) => `stroke="${p.mutedForeground}" stroke-opacity="${opacity}"`;
   const text = (x, y, value, size = 13, fill = p.foreground, anchor = "start", family = "Geist") => `<text x="${x}" y="${y}" font-family="${family}, sans-serif" font-size="${size * document.presentation.textScale}" fill="${fill}" text-anchor="${anchor}">${escapeXml(value)}</text>`;
-  const monoLabel = (x, y, value, size, fill, spacing = 0) => `<text x="${x}" y="${y}"${spacing ? ` letter-spacing="${spacing}"` : ""} font-family="Geist Mono, monospace" font-size="${size * document.presentation.textScale}" fill="${fill}">${escapeXml(value)}</text>`;
+  const monoLabel = (x, y, value, size, fill, spacing = 0, anchor = "start") => `<text x="${x}" y="${y}"${spacing ? ` letter-spacing="${spacing}"` : ""}${anchor === "middle" ? ' text-anchor="middle"' : ""} font-family="Geist Mono, monospace" font-size="${size * document.presentation.textScale}" fill="${fill}">${escapeXml(value)}</text>`;
   let out = delta ? "" : `<defs><marker id="arrow-${id}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="context-stroke" stroke-linecap="round" stroke-linejoin="round"/></marker><pattern id="grid-${id}" width="${document.presentation.grid.size}" height="${document.presentation.grid.size}" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="${p.foreground}" fill-opacity="0.12"/></pattern></defs>`;
-  if (!delta && document.presentation.grid.visible)
+  if (!delta && options.grid !== "none" && document.presentation.grid.visible)
     out += `<rect x="${scene.worldBounds.x}" y="${scene.worldBounds.y}" width="${scene.worldBounds.width}" height="${scene.worldBounds.height}" fill="url(#grid-${id})"/>`;
   if (!delta)
     for (const c of l.containers ?? [])
-      out += `<g><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="${LANE_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(c.x + 18, c.y + 26, (c.label ?? "").toUpperCase(), 11.25, p.mutedForeground, 1.6)}${c.kind ? monoLabel(c.x + 18, c.y + 44, c.kind, 10, p.mutedForeground) : ""}</g>`;
+      out += `<g data-container-id="${escapeXml(c.id)}"><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="${LANE_R}" fill="${p.background}" ${structure(0.75)}/>${monoLabel(c.x + 18, c.y + 26, (c.label ?? "").toUpperCase(), 11.25, p.mutedForeground, 1.6)}${c.kind ? monoLabel(c.x + 18, c.y + 44, c.kind, 10, p.mutedForeground) : ""}</g>`;
   if (!delta)
     for (const line of l.lifelines ?? [])
-      out += `<path d="M${line.x} ${line.y0}V${line.y1}" fill="none" stroke="${p.border}" stroke-dasharray="2 6"/>`;
+      out += `<g data-lifeline-id="${escapeXml(line.id)}"><path d="M${line.x} ${line.y0}V${line.y1}" fill="none" ${structure(0.75)} stroke-width="1.2" stroke-dasharray="3 5"/></g>`;
   for (const e of l.edges)
     if (includeEdge(e.id))
       out += `<g data-edge-id="${escapeXml(e.id)}"${marked(highlightEdge(e.id))}><path d="${escapeXml(e.d)}" fill="none" stroke="${color(e.variant)}" stroke-width="${e.strokeWidth ?? EDGE_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${e.dashed ? ' stroke-dasharray="2 7"' : ""}${e.arrowEnd ? ` marker-end="url(#arrow-${id})"` : ""}/></g>`;
@@ -138,7 +139,7 @@ function renderSceneMarkup(document, scene, options) {
       continue;
     }
     if (n.shape === "bar") {
-      out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === "primary" ? "main" : "branch")}" fill-opacity=".22" stroke="${p.border}"/></g>`;
+      out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="2" fill="${color(n.weight === "primary" ? "main" : "branch")}" fill-opacity=".22" ${structure(0.75)}/></g>`;
       continue;
     }
     if (n.shape === "event") {
@@ -151,9 +152,9 @@ function renderSceneMarkup(document, scene, options) {
       continue;
     }
     if (n.weight === "muted" && n.shape !== "table")
-      out += `<line x1="${n.x}" y1="${n.y + n.h}" x2="${n.x + n.w}" y2="${n.y + n.h}" stroke="${p.border}" stroke-width="1"/>`;
+      out += `<line x1="${n.x}" y1="${n.y + n.h}" x2="${n.x + n.w}" y2="${n.y + n.h}" ${structure(0.75)} stroke-width="1"/>`;
     else
-      out += `<rect data-node-surface="true" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${g.radius}" fill="${p.card}" stroke="${p.border}"/>`;
+      out += `<rect data-node-surface="true" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${g.radius}" fill="${p.card}" ${structure(0.75)}/>`;
     if (visual) {
       const nodeId = Array.from(n.id, (c) => c.codePointAt(0).toString(16)).join("-");
       out += renderNodeIcon(
@@ -171,7 +172,7 @@ function renderSceneMarkup(document, scene, options) {
       out += `<path d="M ${n.x} ${n.y + 26} L ${n.x} ${n.y + CARD_R} Q ${n.x} ${n.y} ${n.x + CARD_R} ${n.y} L ${n.x + n.w - CARD_R} ${n.y} Q ${n.x + n.w} ${n.y} ${n.x + n.w} ${n.y + CARD_R} L ${n.x + n.w} ${n.y + 26} Z" fill="${p.foreground}" fill-opacity="0.06"/>`;
       for (const [index, field] of (n.fields ?? []).entries()) {
         const f = tableFieldGeometry(n, index, field.key);
-        out += `<line x1="${n.x}" y1="${f.lineY}" x2="${n.x + n.w}" y2="${f.lineY}" stroke="${p.border}" stroke-width=".75"/>`;
+        out += `<line data-structure="er-separator" x1="${n.x}" y1="${f.lineY}" x2="${n.x + n.w}" y2="${f.lineY}" ${structure(1)} stroke-width=".75"/>`;
         if (field.key === "pk" || field.key === "fk")
           out += text(
             n.x + 14,
@@ -191,7 +192,7 @@ function renderSceneMarkup(document, scene, options) {
       continue;
     }
     if (n.shape === "state" && n.initial)
-      out += `<rect x="${n.x + 4}" y="${n.y + 4}" width="${n.w - 8}" height="${n.h - 8}" rx="${g.radius - 4}" fill="none" stroke="${p.border}"/>`;
+      out += `<rect data-structure="state-outline" x="${n.x + 4}" y="${n.y + 4}" width="${n.w - 8}" height="${n.h - 8}" rx="${g.radius - 4}" fill="none" ${structure(1)}/>`;
     if (n.shape === "state" && n.final)
       out += `<circle cx="${g.final.x}" cy="${g.final.y}" r="6.5" fill="none" stroke="${p.foreground}" stroke-opacity="0.55"/><circle cx="${g.final.x}" cy="${g.final.y}" r="2.6" fill="${p.foreground}" fill-opacity="0.7"/>`;
     if (n.kind)
@@ -202,13 +203,13 @@ function renderSceneMarkup(document, scene, options) {
   }
   if (!delta)
     for (const d of l.decisions)
-      out += `<g><rect x="${d.x - d.width / 2}" y="${d.y - DECISION_PILL_H / 2}" width="${d.width}" height="${DECISION_PILL_H}" rx="${DECISION_PILL_R}" fill="${p.background}" stroke="${p.border}"/>${text(d.x, d.y + 4.5, d.label, 12.25, p.foreground, "middle")}</g>`;
+      out += `<g data-decision-id="${escapeXml(d.id)}"><rect x="${d.x - d.width / 2}" y="${d.y - DECISION_PILL_H / 2}" width="${d.width}" height="${DECISION_PILL_H}" rx="${DECISION_PILL_R}" fill="${p.background}" ${structure(0.75)}/>${text(d.x, d.y + 4.5, d.label, 12.25, p.foreground, "middle")}</g>`;
   for (const e of l.edges)
     if (e.label && includeEdge(e.id))
-      out += `<g data-edge-label="${escapeXml(e.id)}"><rect x="${e.labelX - e.labelWidth / 2}" y="${e.labelY - PILL_H / 2}" width="${e.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(e.labelX, e.labelY + 4, e.label, 11.25, p.foreground)}</g>`;
+      out += `<g data-edge-label="${escapeXml(e.id)}"><rect x="${e.labelX - e.labelWidth / 2}" y="${e.labelY - PILL_H / 2}" width="${e.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" ${structure(0.65)}/>${monoLabel(e.labelX, e.labelY + 4, e.label, 11.25, p.foreground, 0, "middle")}</g>`;
   if (!delta)
     for (const c of l.continuations)
-      out += `<g data-continuation-label="${escapeXml(c.id)}"><rect x="${c.labelX - c.labelWidth / 2}" y="${c.labelY - PILL_H / 2}" width="${c.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" stroke="${p.border}"/>${monoLabel(c.labelX, c.labelY + 4, c.displayLabel, 11.25, p.foreground)}</g>`;
+      out += `<g data-continuation-label="${escapeXml(c.id)}"><rect x="${c.labelX - c.labelWidth / 2}" y="${c.labelY - PILL_H / 2}" width="${c.labelWidth}" height="${PILL_H}" rx="${PILL_R}" fill="${p.background}" ${structure(0.65)}/>${monoLabel(c.labelX, c.labelY + 4, c.displayLabel, 11.25, p.foreground, 0, "middle")}</g>`;
   if (!delta) {
     if (Object.values(document.metadata.visuals).some((v) => v.source === "phosphor"))
       out += `<metadata>${escapeXml(semanticIconLicense)}</metadata>`;

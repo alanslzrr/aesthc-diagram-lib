@@ -1,8 +1,8 @@
 "use client";
 import {
   validateDeploymentProfile
-} from "../chunk-5Q3CWSGC.js";
-import "../chunk-3T2LMA7P.js";
+} from "../chunk-HF6PLESJ.js";
+import "../chunk-GSAEMTC2.js";
 import {
   compareDocuments,
   findReach,
@@ -17,14 +17,14 @@ import {
   exportDocument,
   exportStoryWebm,
   webmCapability
-} from "../chunk-H7DLTDYO.js";
+} from "../chunk-QCCS656M.js";
 import {
   resolveDocument
-} from "../chunk-AVTVKBIV.js";
-import "../chunk-VUW7SRON.js";
-import "../chunk-P7FW66WE.js";
-import "../chunk-3MHLUDWC.js";
-import "../chunk-QVERY2JP.js";
+} from "../chunk-3N7YC3GS.js";
+import "../chunk-HIRCZVXI.js";
+import "../chunk-HN2RGNDH.js";
+import "../chunk-WD7BRA7G.js";
+import "../chunk-BBMS4ALE.js";
 import {
   canonical,
   failure,
@@ -33,13 +33,13 @@ import {
 import "../chunk-UHROM3FO.js";
 import {
   renderSvg
-} from "../chunk-3I2A4V6U.js";
-import "../chunk-YKPE23VO.js";
+} from "../chunk-S6PSHJSL.js";
+import "../chunk-KKMUFXA6.js";
 import "../chunk-KDAWQGDC.js";
-import "../chunk-TVEV5XLW.js";
+import "../chunk-TGRGDAF2.js";
 
 // src/viewer/DiagramViewer.tsx
-import { useEffect as useEffect2, useMemo as useMemo3, useRef as useRef4, useState as useState3 } from "react";
+import { useEffect as useEffect2, useId as useId2, useMemo as useMemo3, useRef as useRef4, useState as useState3 } from "react";
 
 // src/viewer/Evidence.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
@@ -252,10 +252,10 @@ function Minimap({
     return layoutWidth > 0 ? width / layoutWidth : 1;
   }, [layoutWidth]);
   const viewport = {
-    left: (camera.x - viewWorldSize.width / 2 / camera.zoom) * scale,
-    top: (camera.y - viewWorldSize.height / 2 / camera.zoom) * scale,
-    width: viewWorldSize.width / camera.zoom * scale,
-    height: viewWorldSize.height / camera.zoom * scale
+    left: (camera.x - viewWorldSize.width / 2) * scale,
+    top: (camera.y - viewWorldSize.height / 2) * scale,
+    width: viewWorldSize.width * scale,
+    height: viewWorldSize.height * scale
   };
   function moveTo(event) {
     const bounds = frame.current?.getBoundingClientRect();
@@ -769,7 +769,11 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
       theme: document2.presentation.theme.mode,
       highlight,
       dim: lensSet,
-      exclude
+      exclude,
+      // The interactive surface owns a viewport-wide backdrop below the
+      // stage; the exported artifact keeps the document's own policy.
+      background: "transparent",
+      grid: "none"
     }) : "",
     [document2, scene, highlight, lensSet, exclude]
   );
@@ -1027,6 +1031,31 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     width: viewSize.width / camera.zoom,
     height: viewSize.height / camera.zoom
   };
+  const stageTransform = `translate(${viewSize.width / 2 - camera.x * camera.zoom}px, ${viewSize.height / 2 - camera.y * camera.zoom}px) scale(${camera.zoom})`;
+  const gridLayerId = useId2().replaceAll(":", "");
+  const STAGE_OFFSET = 16;
+  const viewportGrid = useMemo3(() => {
+    const grid = document2.presentation.grid;
+    if (!grid.visible || !scene.ok) return null;
+    const palette = document2.presentation.theme[document2.presentation.theme.mode];
+    const base = Number.isFinite(grid.size) && grid.size > 0 ? grid.size : 16;
+    let step = base;
+    let spacing = step * camera.zoom;
+    while (spacing < 10 && step < base * 16) {
+      step *= 2;
+      spacing = step * camera.zoom;
+    }
+    const originX = STAGE_OFFSET + viewSize.width / 2 - camera.x * camera.zoom;
+    const originY = STAGE_OFFSET + viewSize.height / 2 - camera.y * camera.zoom;
+    const phaseX = (originX % spacing + spacing) % spacing;
+    const phaseY = (originY % spacing + spacing) % spacing;
+    return {
+      palette: palette.foreground,
+      spacing,
+      phaseX,
+      phaseY
+    };
+  }, [camera, document2.presentation.grid, document2.presentation.theme, scene.ok, viewSize]);
   const proxyMarkup = useMemo3(() => {
     if (!collapse || !scene.ok) return "";
     const theme = document2.presentation.theme[document2.presentation.theme.mode];
@@ -1222,6 +1251,64 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                     panTo(event);
                   },
                   children: [
+                    viewportGrid && /* @__PURE__ */ jsxs6(
+                      "svg",
+                      {
+                        className: "adl-viewer-backdrop",
+                        "aria-hidden": "true",
+                        width: "100%",
+                        height: "100%",
+                        viewBox: `0 0 ${viewSize.width} ${viewSize.height}`,
+                        children: [
+                          /* @__PURE__ */ jsxs6("defs", { children: [
+                            /* @__PURE__ */ jsx5(
+                              "pattern",
+                              {
+                                id: `adl-viewer-grid-${gridLayerId}`,
+                                width: viewportGrid.spacing,
+                                height: viewportGrid.spacing,
+                                patternUnits: "userSpaceOnUse",
+                                patternTransform: `translate(${viewportGrid.phaseX} ${viewportGrid.phaseY})`,
+                                children: /* @__PURE__ */ jsx5("circle", { cx: "1", cy: "1", r: "1", fill: viewportGrid.palette, fillOpacity: "0.12" })
+                              }
+                            ),
+                            /* @__PURE__ */ jsxs6(
+                              "radialGradient",
+                              {
+                                id: `adl-viewer-fade-${gridLayerId}`,
+                                gradientUnits: "userSpaceOnUse",
+                                cx: viewSize.width / 2,
+                                cy: viewSize.height / 2,
+                                r: Math.max(viewSize.width, viewSize.height) * 0.72,
+                                children: [
+                                  /* @__PURE__ */ jsx5("stop", { offset: "0%", stopColor: "#ffffff" }),
+                                  /* @__PURE__ */ jsx5("stop", { offset: "65%", stopColor: "#ffffff" }),
+                                  /* @__PURE__ */ jsx5("stop", { offset: "100%", stopColor: "#ffffff", stopOpacity: "0" })
+                                ]
+                              }
+                            ),
+                            /* @__PURE__ */ jsx5("mask", { id: `adl-viewer-mask-${gridLayerId}`, children: /* @__PURE__ */ jsx5(
+                              "rect",
+                              {
+                                width: viewSize.width,
+                                height: viewSize.height,
+                                fill: `url(#adl-viewer-fade-${gridLayerId})`
+                              }
+                            ) })
+                          ] }),
+                          /* @__PURE__ */ jsx5(
+                            "rect",
+                            {
+                              "data-viewer-grid": "true",
+                              width: viewSize.width,
+                              height: viewSize.height,
+                              fill: `url(#adl-viewer-grid-${gridLayerId})`,
+                              mask: `url(#adl-viewer-mask-${gridLayerId})`
+                            }
+                          )
+                        ]
+                      }
+                    ),
                     scene.ok ? /* @__PURE__ */ jsx5(
                       "div",
                       {
@@ -1229,7 +1316,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                         style: {
                           width: scene.value.layout.width,
                           height: scene.value.layout.height,
-                          transform: `translate(${camera.x - viewWorldSize.width / 2}px, ${camera.y - viewWorldSize.height / 2}px) scale(${camera.zoom})`,
+                          transform: stageTransform,
                           transformOrigin: "0 0"
                         },
                         dangerouslySetInnerHTML: { __html: svg }
@@ -1239,6 +1326,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                       "div",
                       {
                         className: "adl-viewer-overlay",
+                        style: { transform: stageTransform, transformOrigin: "0 0" },
                         dangerouslySetInnerHTML: { __html: overlayMarkup }
                       }
                     )

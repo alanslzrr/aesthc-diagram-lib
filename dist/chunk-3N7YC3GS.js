@@ -1,15 +1,15 @@
 import {
   layoutByType,
   layoutFlowchart
-} from "./chunk-VUW7SRON.js";
+} from "./chunk-HIRCZVXI.js";
 import {
   createDocument
-} from "./chunk-3MHLUDWC.js";
+} from "./chunk-WD7BRA7G.js";
 import {
   identifyEdges,
   labelPillWidth,
   roundedPolyline
-} from "./chunk-QVERY2JP.js";
+} from "./chunk-BBMS4ALE.js";
 import {
   DEFAULT_LIMITS,
   edgeCollection,
@@ -27,10 +27,10 @@ import {
 } from "./chunk-6NELNSRC.js";
 import {
   escapeXml
-} from "./chunk-3I2A4V6U.js";
+} from "./chunk-S6PSHJSL.js";
 import {
   nodeGeometry
-} from "./chunk-YKPE23VO.js";
+} from "./chunk-KKMUFXA6.js";
 
 // src/editor-core/adapters.ts
 var capabilities = {

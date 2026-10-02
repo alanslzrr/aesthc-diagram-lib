@@ -1,6 +1,6 @@
 import {
   identifyEdges
-} from "./chunk-QVERY2JP.js";
+} from "./chunk-BBMS4ALE.js";
 import {
   canonical,
   edgeCollection,
@@ -23,21 +23,21 @@ function defaultPresentation() {
     theme: {
       mode: "light",
       light: {
-        background: "#e9eef4",
-        foreground: "#202b38",
-        card: "#f9fbfd",
-        border: "#aebdcd",
-        mutedForeground: "#536273",
-        cobalt: "#087cbd",
+        background: "#ffffff",
+        foreground: "#0a0a0a",
+        card: "#fafafa",
+        border: "#eaeaea",
+        mutedForeground: "#666666",
+        cobalt: "#0070f3",
         branch: "#a66b21"
       },
       dark: {
-        background: "#070707",
-        foreground: "#f2f2ee",
-        card: "#101010",
-        border: "#242424",
-        mutedForeground: "#a8a8a1",
-        cobalt: "#14a8ff",
+        background: "#000000",
+        foreground: "#ededed",
+        card: "#0a0a0a",
+        border: "#1f1f1f",
+        mutedForeground: "#a1a1a1",
+        cobalt: "#3291ff",
         branch: "#d6a55e"
       }
     },

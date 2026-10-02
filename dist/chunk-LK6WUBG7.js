@@ -3,7 +3,7 @@ import {
 } from "./chunk-GIHY37DH.js";
 import {
   nodeGeometry
-} from "./chunk-YKPE23VO.js";
+} from "./chunk-KKMUFXA6.js";
 import {
   CANVAS_MIN_WIDTH,
   CARD_R,
@@ -15,7 +15,7 @@ import {
   NODE_ICON_SIZE,
   PILL_H,
   PILL_R
-} from "./chunk-TVEV5XLW.js";
+} from "./chunk-TGRGDAF2.js";
 
 // src/canvas/DiagramCanvas.tsx
 import { useState } from "react";
@@ -161,7 +161,8 @@ function TooltipContent({
 // src/canvas/DiagramCanvas.tsx
 import { Fragment, jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
 var strokeForVariant = (variant) => variant === "branch" ? "var(--color-branch)" : "var(--color-cobalt)";
-var NODE_BORDER = "var(--diagram-node-border, var(--border))";
+var NODE_BORDER = "var(--diagram-node-border, var(--diagram-structure, var(--border)))";
+var STRUCTURE = "var(--diagram-structure, var(--border))";
 var nodeOpacity = (node, highlight) => !highlight || highlight.nodes.has(node.id) ? 1 : DIMMED_OPACITY;
 var edgeOpacity = (edge, highlight) => !highlight || highlight.edges.has(edge.id) ? 1 : DIMMED_OPACITY;
 var continuationOpacity = (continuation, highlight) => !highlight || highlight.nodes.has(continuation.from) ? 1 : DIMMED_OPACITY;
@@ -177,7 +178,10 @@ function DiagramCanvas({
   onDismissNode,
   instanceId,
   ariaLabel,
-  nodeVisuals
+  nodeVisuals,
+  showGrid = true,
+  fit = "natural",
+  view
 }) {
   const [dismissedNodeId, setDismissedNodeId] = useState(null);
   const dismissNode = (id) => {
@@ -193,16 +197,17 @@ function DiagramCanvas({
   return /* @__PURE__ */ jsxs2(
     "svg",
     {
-      viewBox: `0 0 ${layout.width} ${layout.height}`,
+      viewBox: view ? `${view.x} ${view.y} ${view.width} ${view.height}` : `0 0 ${layout.width} ${layout.height}`,
       preserveAspectRatio: "xMidYMid meet",
       role: "group",
       "aria-label": ariaLabel,
       className: "diagram-canvas mx-auto block h-auto w-full",
       style: {
         // Never upscale past 1 unit = 1px (typography stays true to the band
-        // reference), and keep the legibility floor for wide artboards.
-        minWidth: Math.min(CANVAS_MIN_WIDTH, layout.width),
-        maxWidth: layout.width
+        // reference); `natural` keeps the legibility floor for wide artboards,
+        // `contain` drops it so the host fits the preview proportionally.
+        minWidth: fit === "contain" ? 0 : Math.min(CANVAS_MIN_WIDTH, view?.width ?? layout.width),
+        maxWidth: view?.width ?? layout.width
       },
       children: [
         /* @__PURE__ */ jsxs2("defs", { children: [
@@ -266,16 +271,17 @@ function DiagramCanvas({
             );
           })
         ] }),
-        /* @__PURE__ */ jsx3(
+        showGrid ? /* @__PURE__ */ jsx3(
           "rect",
           {
+            "data-diagram-grid": "true",
             width: layout.width,
             height: layout.height,
             fill: `url(#${dotsId})`,
             mask: `url(#${maskId})`,
             className: "opacity-[var(--diagram-grid-opacity,0.075)] dark:opacity-[var(--diagram-grid-opacity,0.12)]"
           }
-        ),
+        ) : null,
         layout.containers?.map((container) => /* @__PURE__ */ jsxs2("g", { "data-container-id": container.id, children: [
           /* @__PURE__ */ jsx3(
             "rect",
@@ -285,8 +291,8 @@ function DiagramCanvas({
               width: container.w,
               height: container.h,
               rx: 6,
-              fill: "color-mix(in srgb, var(--foreground) 2%, transparent)",
-              stroke: "var(--border)",
+              fill: "var(--diagram-container-fill, color-mix(in srgb, var(--foreground) 2%, transparent))",
+              stroke: STRUCTURE,
               strokeWidth: 1
             }
           ),
@@ -309,9 +315,9 @@ function DiagramCanvas({
             y1: lifeline.y0,
             x2: lifeline.x,
             y2: lifeline.y1,
-            stroke: "var(--border)",
-            strokeWidth: 1,
-            strokeDasharray: "2 6"
+            stroke: STRUCTURE,
+            strokeWidth: 1.2,
+            strokeDasharray: "3 5"
           }
         ) }, lifeline.id)),
         /* @__PURE__ */ jsx3("g", { "data-layer": "edges", fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: layout.edges.map((edge) => /* @__PURE__ */ jsx3(
@@ -465,6 +471,7 @@ function DiagramCanvas({
                           /* @__PURE__ */ jsx3(
                             "text",
                             {
+                              "data-node-label": "true",
                               x: node.cx,
                               y: node.y,
                               textAnchor: "middle",
@@ -504,8 +511,8 @@ function DiagramCanvas({
                             width: node.w,
                             height: node.h,
                             rx: CARD_R,
-                            fill: node.weight === "primary" ? "var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))" : "var(--diagram-secondary-fill, transparent)",
-                            stroke: node.weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : NODE_BORDER,
+                            fill: node.weight === "primary" ? "var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))" : "var(--diagram-secondary-fill, var(--diagram-node-fill, var(--card)))",
+                            stroke: NODE_BORDER,
                             strokeWidth: 1
                           }
                         ),
@@ -519,6 +526,7 @@ function DiagramCanvas({
                         /* @__PURE__ */ jsx3(
                           "text",
                           {
+                            "data-node-label": "true",
                             x: node.x + 14,
                             y: node.y + 17.5,
                             className: node.weight === "primary" ? "fill-foreground text-[13px]" : "fill-foreground/82 text-[13px]",
@@ -529,11 +537,12 @@ function DiagramCanvas({
                           /* @__PURE__ */ jsx3(
                             "line",
                             {
+                              "data-structure": "er-separator",
                               x1: node.x,
                               y1: node.y + 26 + fieldIndex * 22,
                               x2: node.x + node.w,
                               y2: node.y + 26 + fieldIndex * 22,
-                              stroke: NODE_BORDER,
+                              stroke: STRUCTURE,
                               strokeWidth: 0.75
                             }
                           ),
@@ -576,7 +585,7 @@ function DiagramCanvas({
                           y1: node.y + node.h,
                           x2: node.x + node.w,
                           y2: node.y + node.h,
-                          stroke: NODE_BORDER,
+                          stroke: STRUCTURE,
                           strokeWidth: 1
                         }
                       ) : /* @__PURE__ */ jsx3(
@@ -588,10 +597,9 @@ function DiagramCanvas({
                           width: node.w,
                           height: node.h,
                           rx: radius,
-                          fill: weight === "primary" ? "var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))" : "var(--diagram-secondary-fill, transparent)",
-                          stroke: weight === "primary" ? "color-mix(in srgb, var(--foreground) 28%, var(--border))" : NODE_BORDER,
-                          strokeWidth: 1,
-                          className: weight === "primary" ? "opacity-100" : "opacity-[0.84] dark:opacity-70"
+                          fill: weight === "primary" ? "var(--diagram-node-fill, color-mix(in srgb, var(--foreground) 4%, var(--background)))" : "var(--diagram-secondary-fill, var(--diagram-node-fill, var(--card)))",
+                          stroke: NODE_BORDER,
+                          strokeWidth: 1
                         }
                       ),
                       !isEvent ? /* @__PURE__ */ jsx3(
@@ -626,13 +634,14 @@ function DiagramCanvas({
                         node.initial ? /* @__PURE__ */ jsx3(
                           "rect",
                           {
+                            "data-structure": "state-outline",
                             x: node.x + 4,
                             y: node.y + 4,
                             width: node.w - 8,
                             height: node.h - 8,
                             rx: radius - 4,
                             fill: "none",
-                            stroke: NODE_BORDER,
+                            stroke: STRUCTURE,
                             strokeWidth: 1,
                             className: "pointer-events-none"
                           }
@@ -755,7 +764,7 @@ function DiagramCanvas({
                   height: DECISION_PILL_H,
                   rx: DECISION_PILL_R,
                   fill: "var(--background)",
-                  stroke: "color-mix(in srgb, var(--foreground) 24%, var(--border))",
+                  stroke: STRUCTURE,
                   strokeWidth: 1
                 }
               ),
@@ -791,7 +800,7 @@ function DiagramCanvas({
                     height: PILL_H,
                     rx: PILL_R,
                     fill: "var(--background)",
-                    stroke: "var(--border)",
+                    stroke: STRUCTURE,
                     strokeWidth: 1
                   }
                 ),
@@ -850,8 +859,59 @@ function DiagramCanvas({
 }
 var DiagramCanvas_default = DiagramCanvas;
 
+// src/canvas/bounds.ts
+function previewBounds(layout) {
+  const points = [];
+  const add = (x2, y2) => points.push([x2, y2]);
+  const number = /-?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi;
+  const paths = [...layout.edges, ...layout.continuations];
+  if (paths.some(({ d }) => /[^MLCQZ\s,]/.test(d.replace(number, ""))))
+    return { x: 0, y: 0, width: layout.width, height: layout.height };
+  for (const node of layout.nodes) {
+    add(node.x, node.y - (node.shape === "event" ? 36 : 0));
+    add(node.x + node.w, node.y + node.h);
+    add(node.cx, node.cy);
+  }
+  for (const container of layout.containers ?? []) {
+    add(container.x, container.y);
+    add(container.x + container.w, container.y + container.h);
+  }
+  for (const line of layout.lifelines ?? []) {
+    add(line.x, line.y0);
+    add(line.x, line.y1);
+  }
+  for (const path of paths) {
+    const values = Array.from(path.d.matchAll(number), ([value]) => Number(value));
+    if (values.length % 2) return { x: 0, y: 0, width: layout.width, height: layout.height };
+    for (let i = 0; i < values.length; i += 2) add(values[i], values[i + 1]);
+    if (path.labelWidth) {
+      add(path.labelX - path.labelWidth / 2 - 8, path.labelY - 16);
+      add(path.labelX + path.labelWidth / 2 + 8, path.labelY + 16);
+    }
+  }
+  for (const decision of layout.decisions) {
+    add(decision.x, decision.y);
+    add(decision.x + decision.width, decision.y + 24);
+  }
+  const events = layout.nodes.filter((node) => node.shape === "event");
+  if (events.length) {
+    add(Math.min(...events.map((node) => node.cx)) - 48, events[0].cy);
+    add(Math.max(...events.map((node) => node.cx)) + 48, events[0].cy);
+  }
+  if (!points.length) return { x: 0, y: 0, width: layout.width, height: layout.height };
+  const x = Math.floor(Math.min(...points.map(([x2]) => x2)) - 32);
+  const y = Math.floor(Math.min(...points.map(([, y2]) => y2)) - 32);
+  return {
+    x,
+    y,
+    width: Math.ceil(Math.max(...points.map(([x2]) => x2)) + 32) - x,
+    height: Math.ceil(Math.max(...points.map(([, y2]) => y2)) + 32) - y
+  };
+}
+
 export {
   ArchitectureNodeIcon,
   DiagramCanvas,
-  DiagramCanvas_default
+  DiagramCanvas_default,
+  previewBounds
 };

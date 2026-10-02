@@ -1,6 +1,6 @@
 import {
   layoutBand
-} from "./chunk-P7FW66WE.js";
+} from "./chunk-HN2RGNDH.js";
 import {
   connectY,
   edgeId,
@@ -9,7 +9,7 @@ import {
   nodeHeight,
   roundedPolyline,
   splitBackEdges
-} from "./chunk-QVERY2JP.js";
+} from "./chunk-BBMS4ALE.js";
 import {
   CARD_H_SLIM,
   CARD_W,
@@ -23,7 +23,7 @@ import {
   SWIMLANE_ROW_PAD,
   TIMELINE_ALT_OFFSET,
   TIMELINE_EVENT_GAP
-} from "./chunk-TVEV5XLW.js";
+} from "./chunk-TGRGDAF2.js";
 
 // src/layouts/flowchart.ts
 var MARGIN_X = 72;
@@ -832,7 +832,7 @@ function layoutEr(spec) {
 }
 
 // src/layouts/timeline.ts
-var MARGIN_X5 = 96;
+var MARGIN_X5 = 64;
 var TOP_PAD = 56;
 var BOTTOM_PAD4 = 64;
 var EVENT_W = 240;

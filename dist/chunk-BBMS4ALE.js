@@ -4,7 +4,7 @@ import {
   LABEL_CHAR_WIDTH,
   LABEL_HORIZONTAL_PADDING,
   LANE_R
-} from "./chunk-TVEV5XLW.js";
+} from "./chunk-TGRGDAF2.js";
 
 // src/layout.ts
 var edgeId = (edge) => edge.id ?? `${encodeURIComponent(edge.from)}::${encodeURIComponent(edge.to)}`;
