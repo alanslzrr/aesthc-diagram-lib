@@ -248,6 +248,10 @@ summary {
   border-color: var(--docs-border-strong);
   color: var(--docs-fg);
 }
+/* The glyph is the phone affordance; wider headers keep the word. */
+.search-trigger > svg {
+  display: none;
+}
 kbd {
   font-family: Geist, sans-serif;
   font-size: 11px;
@@ -1036,6 +1040,20 @@ html[data-enhanced] .js-only {
   .header-inner {
     flex-wrap: wrap;
     row-gap: 4px;
+  }
+  /* Touch-sized theme options widen the actions; an icon-only search keeps the
+   * header inside one row instead of wrapping into a second band. */
+  .search-trigger {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .search-trigger > svg {
+    display: block;
+  }
+  .search-trigger-label {
+    display: none;
   }
   .preview-canvas {
     padding-inline: 4px;

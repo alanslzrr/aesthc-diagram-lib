@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { CodeBlock, CopyCode, DocLink, Tokens } from './Markdown'
 import type { DocPage } from './model'
 import { ScrollArea } from '../components/primitives/ScrollArea'
-import { CodeIcon, PreviewIcon } from '../components/primitives/icons'
+import { CodeIcon, PreviewIcon, SearchIcon } from '../components/primitives/icons'
 import { useDocsRuntime } from './context'
 
 function Preview({ page }: { page: DocPage }) {
@@ -169,7 +169,8 @@ export function DocsSearch() {
         data-search-index={`${page.contentBase ?? page.base}docs-assets/search.json`}
         onClick={open}
       >
-        <span>Search</span>
+        <SearchIcon />
+        <span className="search-trigger-label">Search</span>
         <kbd>⌘ K</kbd>
       </button>
       <dialog ref={dialog} className="search-dialog" aria-label="Search documentation">
