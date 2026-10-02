@@ -3,8 +3,14 @@ import type { DiagramLayout } from '../layout'
 /** Fit documentation to visible geometry, not unused layout margins.
  * Bezier control points conservatively contain each curve; unsupported path
  * commands retain the complete artboard rather than risking clipped content.
+ *
+ * `margin` is the decorative slack added on every side. The default is shared
+ * with the landing gallery; documentation previews pass a tighter margin so
+ * scaled-down labels stay readable at phone widths without touching layout
+ * constants or the gallery frames.
  */
-export function previewBounds(layout: DiagramLayout) {
+export function previewBounds(layout: DiagramLayout, options: { margin?: number } = {}) {
+  const margin = Math.max(0, options.margin ?? 32)
   const points: Array<[number, number]> = []
   const add = (x: number, y: number) => points.push([x, y])
   const number = /-?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi
@@ -44,12 +50,12 @@ export function previewBounds(layout: DiagramLayout) {
     add(Math.max(...events.map((node) => node.cx)) + 48, events[0].cy)
   }
   if (!points.length) return { x: 0, y: 0, width: layout.width, height: layout.height }
-  const x = Math.floor(Math.min(...points.map(([x]) => x)) - 32)
-  const y = Math.floor(Math.min(...points.map(([, y]) => y)) - 32)
+  const x = Math.floor(Math.min(...points.map(([x]) => x)) - margin)
+  const y = Math.floor(Math.min(...points.map(([, y]) => y)) - margin)
   return {
     x,
     y,
-    width: Math.ceil(Math.max(...points.map(([x]) => x)) + 32) - x,
-    height: Math.ceil(Math.max(...points.map(([, y]) => y)) + 32) - y,
+    width: Math.ceil(Math.max(...points.map(([x]) => x)) + margin) - x,
+    height: Math.ceil(Math.max(...points.map(([, y]) => y)) + margin) - y,
   }
 }

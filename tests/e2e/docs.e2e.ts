@@ -226,6 +226,10 @@ test('mobile navigation is a static section with no disclosure and works without
   await context.close()
 })
 
+// The audited phone widths sit below the Pixel 7 project viewport (412px), so
+// the matrix is explicit and runs on every engine instead of trusting devices.
+const PREVIEW_WIDTHS = [360, 390, 412] as const
+
 for (const theme of ['light', 'dark']) {
   test(`${theme} layout previews preserve geometry, center plain labels and mask the grid under nodes`, async ({
     page,
@@ -233,66 +237,107 @@ for (const theme of ['light', 'dark']) {
     browserName,
   }) => {
     await page.addInitScript((theme) => localStorage.setItem('adl-theme', theme), theme)
+    const nativeWidth = page.viewportSize()?.width ?? 1280
+    const widths = isMobile ? PREVIEW_WIDTHS : [nativeWidth]
     for (const type of layouts) {
       await page.goto(`/docs/diagrams/${type}/`)
       await page.evaluate(() => document.fonts.ready)
       const pane = page.locator('[data-preview-panel="canvas"]')
       const svg = pane.locator('svg')
-      const geometry = await svg.evaluate((svg) => {
-        const box = svg.getBoundingClientRect()
-        const view = (svg as SVGSVGElement).viewBox.baseVal
-        return {
-          ratio: box.width / box.height,
-          expected: view.width / view.height,
-          labelFont: Array.from(svg.querySelectorAll('[data-node-label]')).map(
-            (label) => (parseFloat(getComputedStyle(label).fontSize) * box.width) / view.width,
-          ),
-          innerGrid: svg.querySelector('rect[mask]') === null,
-          surfaces: Array.from(svg.querySelectorAll('[data-node-surface]')).map((surface) => ({
-            fill: getComputedStyle(surface).fill,
-            opacity: getComputedStyle(surface).opacity,
-          })),
-          labels: Array.from(svg.querySelectorAll('[data-node-label]'))
-            .filter((label) => label.getAttribute('text-anchor') === 'middle')
-            .map((label) => {
-              const surface = label.parentElement!.querySelector('[data-node-surface]')
-              if (!surface) return null
-              return {
-                x: Number(label.getAttribute('x')),
-                cx: Number(surface.getAttribute('x')) + Number(surface.getAttribute('width')) / 2,
-                y: Number(label.getAttribute('y')),
-                cy: Number(surface.getAttribute('y')) + Number(surface.getAttribute('height')) / 2,
-                baseline: label.getAttribute('dominant-baseline'),
-              }
-            })
-            .filter((label): label is NonNullable<typeof label> => label !== null),
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: isMobile ? 844 : 720 })
+        const geometry = await svg.evaluate((svg) => {
+          const box = svg.getBoundingClientRect()
+          const view = (svg as SVGSVGElement).viewBox.baseVal
+          // The rendered font size comes from the real CTM, not a box-ratio
+          // proxy, so non-meet letterboxing or CSS transforms cannot hide a
+          // sub-11px primary label.
+          const scaleOf = (element: Element) => {
+            const ctm = (element as SVGGraphicsElement).getScreenCTM()
+            if (!ctm) return 0
+            return Math.max(Math.hypot(ctm.a, ctm.b), Math.hypot(ctm.c, ctm.d))
+          }
+          const contained = (element: Element) => {
+            const rect = element.getBoundingClientRect()
+            return (
+              rect.left >= box.left - 1 &&
+              rect.right <= box.right + 1 &&
+              rect.top >= box.top - 1 &&
+              rect.bottom <= box.bottom + 1
+            )
+          }
+          return {
+            ratio: box.width / box.height,
+            expected: view.width / view.height,
+            paneWidth: svg.parentElement!.clientWidth,
+            svgWidth: box.width,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+            labelFont: Array.from(svg.querySelectorAll('[data-node-label]')).map(
+              (label) => parseFloat(getComputedStyle(label).fontSize) * scaleOf(label),
+            ),
+            cropped: [
+              ...svg.querySelectorAll(
+                '[data-node-label], [data-node-surface], [data-container-id] > rect, [data-layer] path',
+              ),
+            ].filter((element) => !contained(element)).length,
+            innerGrid: svg.querySelector('rect[mask]') === null,
+            surfaces: Array.from(svg.querySelectorAll('[data-node-surface]')).map((surface) => ({
+              fill: getComputedStyle(surface).fill,
+              opacity: getComputedStyle(surface).opacity,
+            })),
+            labels: Array.from(svg.querySelectorAll('[data-node-label]'))
+              .filter((label) => label.getAttribute('text-anchor') === 'middle')
+              .map((label) => {
+                const surface = label.parentElement!.querySelector('[data-node-surface]')
+                if (!surface) return null
+                return {
+                  x: Number(label.getAttribute('x')),
+                  cx: Number(surface.getAttribute('x')) + Number(surface.getAttribute('width')) / 2,
+                  y: Number(label.getAttribute('y')),
+                  cy:
+                    Number(surface.getAttribute('y')) + Number(surface.getAttribute('height')) / 2,
+                  baseline: label.getAttribute('dominant-baseline'),
+                }
+              })
+              .filter((label): label is NonNullable<typeof label> => label !== null),
+          }
+        })
+        const context = `${type} at ${width}px`
+        expect(geometry.ratio, context).toBeCloseTo(geometry.expected, 2)
+        for (const size of geometry.labelFont)
+          expect(size, `${context} primary label size`).toBeGreaterThanOrEqual(11)
+        expect(geometry.cropped, `${context} crops semantic geometry`).toBe(0)
+        expect(geometry.svgWidth, `${context} svg wider than pane`).toBeLessThanOrEqual(
+          geometry.paneWidth + 1,
+        )
+        expect(geometry.scrollWidth, `${context} horizontal scroll`).toBeLessThanOrEqual(
+          geometry.innerWidth + 1,
+        )
+        expect(geometry.innerGrid, context).toBe(true)
+        const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+          const before = getComputedStyle(element, '::before')
+          return {
+            background: before.backgroundImage,
+            mask: before.maskImage || before.webkitMaskImage,
+          }
+        })
+        expect(backdrop.background).toContain('radial-gradient')
+        expect(backdrop.mask).not.toBe('none')
+        for (const surface of geometry.surfaces) {
+          expect(surface.opacity).toBe('1')
+          expect(surface.fill).not.toBe('none')
+          expect(surface.fill).not.toBe('transparent')
+          const alpha = surface.fill.startsWith('rgba(')
+            ? Number(surface.fill.split(',').at(-1)!.replace(')', ''))
+            : Number(/\/\s*([\d.]+)/.exec(surface.fill)?.[1] ?? 1)
+          expect(alpha).toBe(1)
         }
-      })
-      expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
-      for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
-      expect(geometry.innerGrid).toBe(true)
-      const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
-        const before = getComputedStyle(element, '::before')
-        return {
-          background: before.backgroundImage,
-          mask: before.maskImage || before.webkitMaskImage,
+        for (const label of geometry.labels) {
+          expect(label.x).toBe(label.cx)
+          expect(label.y).toBe(label.cy)
+          expect(label.baseline).toBe('central')
         }
-      })
-      expect(backdrop.background).toContain('radial-gradient')
-      expect(backdrop.mask).not.toBe('none')
-      for (const surface of geometry.surfaces) {
-        expect(surface.opacity).toBe('1')
-        expect(surface.fill).not.toBe('none')
-        expect(surface.fill).not.toBe('transparent')
-        const alpha = surface.fill.startsWith('rgba(')
-          ? Number(surface.fill.split(',').at(-1)!.replace(')', ''))
-          : Number(/\/\s*([\d.]+)/.exec(surface.fill)?.[1] ?? 1)
-        expect(alpha).toBe(1)
-      }
-      for (const label of geometry.labels) {
-        expect(label.x).toBe(label.cx)
-        expect(label.y).toBe(label.cy)
-        expect(label.baseline).toBe('central')
       }
       await pane.screenshot({ path: `/tmp/aesthc-preview-${type}-${theme}.png` })
       if (process.env.VISUAL_REGRESSION && !isMobile && browserName === 'chromium')

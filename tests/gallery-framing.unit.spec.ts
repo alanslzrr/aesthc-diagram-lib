@@ -12,6 +12,21 @@ describe('gallery framing', () => {
     })
   }
 
+  it('frames documentation previews tighter without leaving the gallery frame', () => {
+    // Docs pass { margin: 8 }; the default stays 32 so GALLERY_VIEWS above and
+    // every gallery consumer keep their current frames.
+    for (const [key, byLocale] of Object.entries(GALLERY_FIXTURES)) {
+      const layout = layoutDiagram(byLocale.en)
+      const gallery = previewBounds(layout)
+      const docs = previewBounds(layout, { margin: 8 })
+      expect(docs.x, key).toBeGreaterThanOrEqual(gallery.x)
+      expect(docs.y, key).toBeGreaterThanOrEqual(gallery.y)
+      expect(docs.x + docs.width, key).toBeLessThanOrEqual(gallery.x + gallery.width)
+      expect(docs.y + docs.height, key).toBeLessThanOrEqual(gallery.y + gallery.height)
+      expect(gallery.width - docs.width, key).toBeGreaterThanOrEqual(40)
+    }
+  })
+
   it('keeps the width-only label budget above 10px at phone width', () => {
     // 316px is the measured stage content width at a 390px viewport. This is a
     // width-only proxy: it ignores the stage height, the real `meet` scale and

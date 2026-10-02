@@ -13,7 +13,10 @@ mkdirSync('site/dist/docs-assets/previews', { recursive: true })
 function writePreview(key, spec, visuals, ariaLabel) {
   assertDiagramSpec(spec)
   const layout = layoutDiagram(spec)
-  const bounds = previewBounds(layout)
+  // Documentation pages frame previews with their own border and padding, so
+  // the shared 32px gallery slack only shrinks readable label sizes at phone
+  // widths. Keep a small safety margin for strokes and arrowheads instead.
+  const bounds = previewBounds(layout, { margin: 8 })
   const markup = renderToStaticMarkup(
     createElement(DiagramCanvas, {
       layout,

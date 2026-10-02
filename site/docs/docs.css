@@ -1029,6 +1029,18 @@ html[data-enhanced] .js-only {
     padding: 22px 12px;
   }
 }
+/* Phone framing: the preview pane border and the page gutter already provide
+ * decoration, so the inline 12px would only shrink rendered label size. The
+ * header is allowed to wrap its actions instead of widening the page. */
+@media (max-width: 480px) {
+  .header-inner {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .preview-canvas {
+    padding-inline: 4px;
+  }
+}
 @media (max-width: 640px) {
   .header-inner {
     padding: 8px 14px;
