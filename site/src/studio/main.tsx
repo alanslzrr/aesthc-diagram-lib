@@ -20,24 +20,17 @@ import {
   shallowEqual,
 } from '@aesthc/diagram-lib/editor'
 import {
-  downloadArtifact,
-  exportDocument,
-  probeExportCapabilities,
-} from '@aesthc/diagram-lib/export'
-import type { ExportFormat, ProbedExportCapabilities } from '@aesthc/diagram-lib/export'
-import {
   createLocalStorageAdapter,
   createAutosave,
   decodeShareDocument,
   encodeShareDocument,
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
+import { ExportDialog } from '../components/ExportDialog'
 import { clearHandoff, readHandoff } from '../lib/handoff'
 import { MESSAGES } from '../lib/messages'
 import { savedLocale, saveLocale } from '../lib/locale'
 import { useThemePreference } from '../lib/theme'
-import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
-import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 import '@aesthc/diagram-lib/editor.css'
 import '../design-system.css'
 import './studio.css'
@@ -103,10 +96,6 @@ function Workbench() {
     [message, setMessage] = useState(''),
     [saving, setSaving] = useState<AutosaveState>({ status: 'idle' }),
     [autosave, setAutosave] = useState(false)
-  const [format, setFormat] = useState<ExportFormat>('svg'),
-    [quality, setQuality] = useState<'edit' | 'publish'>('edit'),
-    [capabilities, setCapabilities] = useState<ProbedExportCapabilities | null>(null),
-    [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
   const [copies, setCopies] = useState<StoredEntry[]>([])
@@ -176,9 +165,6 @@ function Workbench() {
     },
     [],
   )
-  useEffect(() => {
-    setCapabilities(probeExportCapabilities())
-  }, [])
   useEffect(() => {
     // A shared link is read once on mount, validated before replacing the
     // document, and never overwrites a saved copy.
@@ -341,48 +327,6 @@ function Workbench() {
           'El portapapeles fue denegado. Descarga JSON en su lugar.',
         ),
       )
-    }
-  }
-  async function exportFile() {
-    setBusy(true)
-    setMessage('')
-    try {
-      const fonts =
-        format === 'json'
-          ? undefined
-          : {
-              sans: new Uint8Array(await (await fetch(sansUrl)).arrayBuffer()),
-              mono: new Uint8Array(await (await fetch(monoUrl)).arrayBuffer()),
-            }
-      const result = await exportDocument(snapshot.document, {
-        format,
-        scope: { type: 'document' },
-        theme: snapshot.document.presentation.theme.mode,
-        quality,
-        background: 'theme',
-        scale: 2,
-        includeSource: false,
-        metadata: 'minimal',
-        fonts,
-      })
-      if (!result.ok) {
-        setMessage(result.diagnostics.map((d) => d.code).join(', '))
-        return
-      }
-      const warnings = result.diagnostics.filter((d) => d.severity === 'warning')
-      const download = downloadArtifact(result.value, `diagram.${format}`)
-      setMessage(
-        download.ok
-          ? t(
-              `Exported revision ${result.value.receipt.revision}${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
-              `Revisión ${result.value.receipt.revision} exportada${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
-            )
-          : download.diagnostics.map((d) => d.code).join(', '),
-      )
-    } catch {
-      setMessage(t('Export failed. Please retry.', 'La exportación falló. Vuelve a intentarlo.'))
-    } finally {
-      setBusy(false)
     }
   }
   function requestConversion() {
@@ -616,6 +560,11 @@ function Workbench() {
           <div>
             <a href="./">aesthc / diagram-lib</a>
             <h1>{MESSAGES.diagramStudio[locale]}</h1>
+            <p className="studio-role">
+              {t('Advanced tooling for the ', 'Herramienta avanzada para el ')}
+              <a href="playground.html">{t('Playground document', 'documento del playground')}</a>
+              {t('; the semantic viewer is read-only.', '; el visor semántico es de solo lectura.')}
+            </p>
           </div>
           <label>
             {MESSAGES.language[locale]}
@@ -704,49 +653,8 @@ function Workbench() {
             />
             {t('Autosave', 'Autoguardado')}
           </label>
-          <label>
-            {t('Format', 'Formato')}{' '}
-            <select
-              aria-label={t('Export format', 'Formato de exportación')}
-              value={format}
-              onChange={(e) => setFormat(e.target.value as ExportFormat)}
-            >
-              {['json', 'svg', 'png', 'jpeg', 'webp'].map((f) => (
-                <option
-                  key={f}
-                  value={f}
-                  disabled={
-                    capabilities !== null &&
-                    (f === 'webp'
-                      ? !capabilities.webp
-                      : f === 'png'
-                        ? !capabilities.png
-                        : f === 'jpeg'
-                          ? !capabilities.jpeg
-                          : false)
-                  }
-                >
-                  {f.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('Quality', 'Calidad')}{' '}
-            <select
-              aria-label={t('Export quality', 'Calidad de exportación')}
-              value={quality}
-              onChange={(e) => setQuality(e.target.value as 'edit' | 'publish')}
-            >
-              <option value="edit">{t('Edit', 'Edición')}</option>
-              <option value="publish">{t('Publish', 'Publicación')}</option>
-            </select>
-          </label>
           <button type="button" onClick={() => void share()}>
             {t('Share link', 'Enlace para compartir')}
-          </button>
-          <button type="button" disabled={busy} onClick={() => void exportFile()}>
-            {busy ? t('Exporting…', 'Exportando…') : t('Download', 'Descargar')}
           </button>
           <button
             type="button"
@@ -756,6 +664,7 @@ function Workbench() {
             {t('Convert to graph', 'Convertir a graph')}
           </button>
         </div>
+        <ExportDialog variant="inline" locale={locale} filenameBase="diagram" />
         {conversion && (
           <div className="studio-notice" role="alert">
             <strong>
