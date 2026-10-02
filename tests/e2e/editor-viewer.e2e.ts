@@ -177,6 +177,53 @@ test('camera fit centers the diagram and the minimap scales inside its frame', a
   expect(mapSvg!.height).toBeGreaterThan(0)
 })
 
+/** Replaces the primary file input payload with a read that rejects or defers. */
+async function dispatchViewerRead(
+  page: import('@playwright/test').Page,
+  mode: 'reject' | 'deferred',
+) {
+  await page.evaluate((mode) => {
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['{}'], 'fixture.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', {
+      configurable: true,
+      value: () =>
+        mode === 'reject'
+          ? Promise.reject(new Error('read failed'))
+          : new Promise<string>((resolve) => {
+              ;(window as unknown as { __finishRead: (value: string) => void }).__finishRead =
+                resolve
+            }),
+    })
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    input.files = transfer.files
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  }, mode)
+}
+
+test('viewer reports a failed file read and keeps the last valid document', async ({ page }) => {
+  await page.goto('/viewer.html')
+  await dispatchViewerRead(page, 'reject')
+  await expect(page.locator('.viewer-message')).toContainText('could not be read')
+  await expect(page.getByRole('heading', { name: 'Order platform', exact: true })).toBeVisible()
+})
+
+test('viewer discards a pending import when the document is reset while reading', async ({
+  page,
+}) => {
+  await page.goto('/viewer.html')
+  await dispatchViewerRead(page, 'deferred')
+  await page.getByRole('button', { name: 'Reset', exact: true }).click()
+  await page.evaluate(
+    (text) => (window as unknown as { __finishRead: (value: string) => void }).__finishRead(text),
+    viewerDocument(9),
+  )
+  await expect(page.locator('.viewer-message')).toContainText('Canceled')
+  await expect(page.getByRole('heading', { name: 'Semantic fixture', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Order platform', exact: true })).toBeVisible()
+})
+
 test('viewer entry loads Geist and the shared host tokens over a viewport backdrop', async ({
   page,
 }) => {
@@ -230,8 +277,9 @@ test('viewer entry loads Geist and the shared host tokens over a viewport backdr
     controlBorder: 'rgb(234, 234, 234)',
     shellBackground: 'rgb(255, 255, 255)',
   })
-  // Dark document mode flips the same tokens; the attribute is the component's
-  // own theme switch, so this is a CSS contract check, restored afterwards.
+  // Dark document mode flips the component tokens while the host shell keeps
+  // its own preference: document/export appearance is separate from the host
+  // chrome (the host preference test covers a dark host independently).
   await page.evaluate(() => {
     document.querySelector('.adl-viewer')!.setAttribute('data-theme', 'dark')
   })
@@ -240,7 +288,7 @@ test('viewer entry loads Geist and the shared host tokens over a viewport backdr
     viewerColor: 'rgb(237, 237, 237)',
     controlBackground: 'rgb(10, 10, 10)',
     controlBorder: 'rgb(31, 31, 31)',
-    shellBackground: 'rgb(0, 0, 0)',
+    shellBackground: 'rgb(255, 255, 255)',
   })
   await page.evaluate(() => {
     document.querySelector('.adl-viewer')!.setAttribute('data-theme', 'light')

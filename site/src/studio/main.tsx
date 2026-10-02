@@ -33,6 +33,9 @@ import {
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
 import { clearHandoff, readHandoff } from '../lib/handoff'
+import { MESSAGES } from '../lib/messages'
+import { savedLocale, saveLocale } from '../lib/locale'
+import { useThemePreference } from '../lib/theme'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 import '@aesthc/diagram-lib/editor.css'
@@ -91,11 +94,12 @@ const store = createEditorStore({
 })
 const storage = createLocalStorageAdapter('studio')
 function Workbench() {
+  const { theme: hostTheme, choose: chooseHostTheme } = useThemePreference()
   const snapshot = useEditorSelector(
       (state) => ({ document: state.document, dirty: state.dirty }),
       shallowEqual,
     ),
-    [locale, setLocale] = useState<Locale>('en'),
+    [locale, setLocale] = useState<Locale>(savedLocale),
     [message, setMessage] = useState(''),
     [saving, setSaving] = useState<AutosaveState>({ status: 'idle' }),
     [autosave, setAutosave] = useState(false)
@@ -119,6 +123,12 @@ function Workbench() {
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
+  // Every import read owns a sequence number and is bound to the document
+  // identity/revision it started from. Committing any other document change
+  // (edit, load, open copy, share, handoff, conversion) bumps the sequence so
+  // the late result is discarded instead of overwriting the newer document.
+  const readSequence = useRef(0)
+  const mounted = useRef(true)
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   async function refreshCopies() {
     const result = await storage.list()
@@ -153,7 +163,19 @@ function Workbench() {
   }
   useEffect(() => {
     document.documentElement.lang = locale
+    saveLocale(locale)
   }, [locale])
+  useEffect(() => {
+    // A pending file read is only valid for the exact document it started
+    // from; any committed edit or replacement invalidates it.
+    readSequence.current += 1
+  }, [snapshot.document])
+  useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
   useEffect(() => {
     setCapabilities(probeExportCapabilities())
   }, [])
@@ -554,26 +576,67 @@ function Workbench() {
       history: 'reset',
     })
   }
+  async function importFile(upload: File) {
+    // Capture the destination before the asynchronous read. The import may
+    // only land on the identity/revision that authorized it; any later edit
+    // or replacement cancels the pending result and keeps the live document.
+    const request = ++readSequence.current
+    const base = store.getSnapshot().document
+    const baseId = base.id
+    const baseRevision = base.revision
+    if (upload.size > 1048576) {
+      setMessage(MESSAGES.importTooLarge[locale])
+      return
+    }
+    let text: string
+    try {
+      text = await upload.text()
+    } catch {
+      if (request === readSequence.current && mounted.current)
+        setMessage(MESSAGES.readFailed[locale])
+      return
+    }
+    if (request !== readSequence.current || !mounted.current) {
+      if (mounted.current) setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const current = store.getSnapshot().document
+    if (current.id !== baseId || current.revision !== baseRevision) {
+      setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const result = importDocument(text, { id: crypto.randomUUID(), locale })
+    if (result.ok) imported(result.value.document)
+    else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+  }
   return (
-    <EditorRoot store={store} locale={locale}>
-      <main
-        className="adl-editor studio-shell"
-        data-theme={snapshot.document.presentation.theme.mode}
-      >
+    <EditorRoot store={store} locale={locale} theme={hostTheme}>
+      <main className="adl-editor studio-shell" data-theme={hostTheme}>
         <header className="studio-header">
           <div>
             <a href="./">aesthc / diagram-lib</a>
-            <h1>Diagram Studio</h1>
+            <h1>{MESSAGES.diagramStudio[locale]}</h1>
           </div>
           <label>
-            {t('Language', 'Idioma')}
+            {MESSAGES.language[locale]}
             <select
-              aria-label={t('Language', 'Idioma')}
+              aria-label={MESSAGES.language[locale]}
               value={locale}
               onChange={(e) => setLocale(e.target.value as Locale)}
             >
               <option value="en">English</option>
               <option value="es">Español</option>
+            </select>
+          </label>
+          <label title={MESSAGES.hostAppearanceNote[locale]}>
+            {MESSAGES.theme[locale]}
+            <select
+              aria-label={MESSAGES.theme[locale]}
+              value={hostTheme}
+              onChange={(e) => chooseHostTheme(e.target.value as 'light' | 'dark')}
+            >
+              <option value="light">{MESSAGES.light[locale]}</option>
+              <option value="dark">{MESSAGES.dark[locale]}</option>
             </select>
           </label>
         </header>
@@ -586,20 +649,10 @@ function Workbench() {
             hidden
             type="file"
             accept=".json,application/json"
-            onChange={async (e) => {
-              const upload = e.target.files?.[0]
-              e.target.value = ''
-              if (!upload) return
-              if (upload.size > 1048576) {
-                setMessage('limit.bytes')
-                return
-              }
-              const result = importDocument(await upload.text(), {
-                id: crypto.randomUUID(),
-                locale,
-              })
-              if (result.ok) imported(result.value.document)
-              else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+            onChange={(event) => {
+              const upload = event.target.files?.[0]
+              event.target.value = ''
+              if (upload) void importFile(upload)
             }}
           />
           <button type="button" onClick={() => void save()}>
