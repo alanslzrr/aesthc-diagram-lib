@@ -801,3 +801,89 @@ describe('replacement identity and type', () => {
   })
 })
 
+describe('preview validation allowlist', () => {
+  function previewing() {
+    const store = makeStore()
+    expect(store.beginGesture({ id: 'allowlist', label: 'Preview', expectedRevision: 0 }).ok).toBe(
+      true,
+    )
+    const valid = structuredClone(store.getSnapshot().document.scene)
+    valid.nodes.a.x = 25
+    expect(store.previewGesture([{ type: 'scene.set', scene: valid }], { skipValidation: true }).ok).toBe(
+      true,
+    )
+    return store
+  }
+  it('fully validates presentation previews instead of trusting the skip flag', () => {
+    const store = previewing()
+    const presentation = structuredClone(store.getSnapshot().document.presentation)
+    presentation.textScale = Number.NaN
+    const rejected = store.previewGesture(
+      [{ type: 'presentation.set', presentation }],
+      { skipValidation: true },
+    )
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('data.finite')
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(Number.isFinite(draft.preview.presentation.textScale)).toBe(true)
+    expect(draft.preview.scene.nodes.a.x).toBe(25)
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('rejects unsafe metadata links in previews', () => {
+    const store = previewing()
+    const metadata = structuredClone(store.getSnapshot().document.metadata)
+    metadata.nodes.a = {
+      ...(metadata.nodes.a ?? { roles: [], tags: [] }),
+      links: [{ label: 'bad', href: 'javascript:1' }],
+    }
+    const rejected = store.previewGesture([{ type: 'metadata.set', metadata }], {
+      skipValidation: true,
+    })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('url.scheme')
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('does not let a mixed batch smuggle an invalid presentation through the scene path', () => {
+    const store = previewing()
+    const presentation = structuredClone(store.getSnapshot().document.presentation)
+    presentation.textScale = Number.POSITIVE_INFINITY
+    const rejected = store.previewGesture(
+      [
+        { type: 'nodes.move', positions: { b: { x: 10, y: 10 } } },
+        { type: 'presentation.set', presentation },
+      ],
+      { skipValidation: true },
+    )
+    expect(rejected.ok).toBe(false)
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(draft.preview.scene.nodes.b.x).not.toBe(10)
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('fully validates replacement previews and keeps the last valid draft', () => {
+    const store = previewing()
+    const candidate = structuredClone(store.getSnapshot().document)
+    candidate.metadata.nodes.ghost = { roles: [], tags: [] }
+    const rejected = store.previewGesture(
+      [{ type: 'document.replace-content', document: candidate }],
+      { skipValidation: true },
+    )
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        'reference.missing',
+      )
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(draft.preview.metadata.nodes.ghost).toBeUndefined()
+    expect(draft.preview.scene.nodes.a.x).toBe(25)
+    store.cancelGesture()
+    store.dispose()
+  })
+})

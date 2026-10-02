@@ -43,6 +43,12 @@ function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagn
   }
   for (const command of commands) {
     switch (command.type) {
+      case 'nodes.set-lock':
+        if (typeof command.locked !== 'boolean')
+          issues.push({ ...issue('data.type', '/scene/nodes/locked') })
+        for (const id of command.ids)
+          if (typeof id !== 'string' || !id) issues.push({ ...issue('id.invalid', '/scene/nodes') })
+        break
       case 'nodes.move':
         for (const [id, point] of Object.entries(command.positions))
           finitePoint(point, `/scene/nodes/${pointer(id)}`)
@@ -124,11 +130,6 @@ const SCENE_ONLY: ReadonlySet<EditorCommand['type']> = new Set([
   'group.upsert',
 ])
 /** Commands that can change the scene's structure; moves/resizes only touch values. */
-const SCENE_STRUCTURE: ReadonlySet<EditorCommand['type']> = new Set([
-  'scene.set',
-  'route.set',
-  'group.upsert',
-])
 const isSceneOnly = (commands: EditorCommand[]) =>
   commands.length > 0 && commands.every((command) => SCENE_ONLY.has(command.type))
 /** Copy only mutable placement records; unchanged branches remain frozen and shared. */
@@ -409,15 +410,21 @@ export function createEditorStore(options: StoreOptions): EditorStore {
   function candidate(transaction: Transaction, skipValidation = false) {
     if (disposed) return failure<DiagramDocument>('store.disposed')
     if (!permissions.edit) return failure<DiagramDocument>('permission.edit')
-    if (!skipValidation) {
+    const sceneOnly = isSceneOnly(transaction.commands)
+    // The optimized preview path is only trusted for complete scene batches
+    // whose deltas are fully validated and whose resulting scene still passes
+    // `validateSceneOnly`. Presentation, metadata, views, replacement and
+    // mixed batches always take full document validation, so a host cannot
+    // publish an invalid document through `skipValidation`.
+    const fast = skipValidation && sceneOnly
+    if (!fast) {
       const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 })
       if (unsafe.length) return { ok: false as const, diagnostics: unsafe }
     }
     if (!validId(transaction.id)) return failure<DiagramDocument>('id.invalid')
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure<DiagramDocument>('revision.stale')
-    const sceneOnly = isSceneOnly(transaction.commands)
-    if (skipValidation || sceneOnly) {
+    if (fast || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits)
       if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
     }
@@ -432,12 +439,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (!result.ok) return result
       doc = result.value
     }
-    if (sceneOnly) {
-      if (transaction.commands.some((command) => SCENE_STRUCTURE.has(command.type)))
-        return validateSceneOnly(doc, limits)
-      return validateSceneOnly(doc, limits)
-    }
-    if (skipValidation) return success(doc)
+    if (sceneOnly) return validateSceneOnly(doc, limits)
     return validateDocument(doc, limits)
   }
   function publish(doc: DiagramDocument, commands: EditorCommand[]): CommitResult {
