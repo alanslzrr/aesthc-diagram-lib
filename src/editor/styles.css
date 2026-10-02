@@ -52,8 +52,10 @@
 .adl-editor button[aria-pressed='true'] {
   box-shadow: inset 0 0 0 1px var(--adl-cobalt);
 }
-/* Toolbar: intrinsic-width controls in labelled groups. Wrapping keeps every
- * label whole; nothing shrinks below its text. */
+/* Toolbar: intrinsic-width controls in labelled groups. The toolbar wraps whole
+ * groups, and each group may shrink and wrap its controls too, so a zoomed or
+ * narrow host never widens the page. Buttons keep their intrinsic width and
+ * whole labels; only the group's inline size gives way. */
 .adl-editor-toolbar {
   display: flex;
   align-items: center;
@@ -67,9 +69,11 @@
 .adl-editor-group {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
 }
 .adl-editor-group > button,
 .adl-editor-group > select,

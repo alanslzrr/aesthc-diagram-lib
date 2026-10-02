@@ -114,6 +114,9 @@ test('T44.2 editor shortcuts do not hijack keys while focus is outside the canva
 
 test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({ page }) => {
   await page.goto('/studio.html')
+  // The audit's failure was measured at 390px; project profiles vary (Pixel 7
+  // is 412px), so pin the width instead of trusting the device.
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.evaluate(() => {
     ;(document.body.style as unknown as Record<string, string>).zoom = '200%'
   })
@@ -139,6 +142,25 @@ test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2))
     .toBe(true)
+  // The page must not be unclipped by hiding the overflow: groups have to sit
+  // inside the toolbar box and the toolbar itself must not scroll sideways.
+  const toolbar = page.locator('.adl-editor-toolbar')
+  const toolbarBounds = await toolbar.evaluate((element) => {
+    const bounds = element.getBoundingClientRect()
+    return {
+      right: bounds.right,
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      groups: [...element.querySelectorAll('.adl-editor-group')].map((group) =>
+        group.getBoundingClientRect(),
+      ),
+    }
+  })
+  for (const group of toolbarBounds.groups) {
+    expect(group.right).toBeLessThanOrEqual(toolbarBounds.right + 1)
+    expect(group.left).toBeGreaterThanOrEqual(-1)
+  }
+  expect(toolbarBounds.scrollWidth).toBeLessThanOrEqual(toolbarBounds.clientWidth + 1)
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const box = await node.boundingBox()
   expect(box).toBeTruthy()
