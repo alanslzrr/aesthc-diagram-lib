@@ -305,6 +305,7 @@ function createEditorStore(options) {
   let past = [], future = [], pastSizes = [], futureSizes = [];
   let saved = canonicalizeContent(checked.value), savedScene = structuredClone(checked.value.scene), currentBytes = new TextEncoder().encode(canonicalizeContent(checked.value)).length, nonSceneDirty = false, disposed = false;
   let gesture;
+  let gestureValidated = false;
   let snapshot = freezeData({
     document: structuredClone(checked.value),
     selection: [],
@@ -343,7 +344,7 @@ function createEditorStore(options) {
       } else break;
     }
   }
-  function candidate(transaction, skipValidation = false) {
+  function candidate(transaction, skipValidation = false, trustedScene = false) {
     if (disposed) return failure("store.disposed");
     if (!permissions.edit) return failure("permission.edit");
     const sceneOnly = isSceneOnly(transaction.commands);
@@ -368,7 +369,7 @@ function createEditorStore(options) {
       if (!result.ok) return result;
       doc = result.value;
     }
-    if (sceneOnly) return validateSceneOnly(doc, limits);
+    if (sceneOnly) return trustedScene ? success(doc) : validateSceneOnly(doc, limits);
     return validateDocument(doc, limits);
   }
   function publish(doc, commands) {
@@ -387,6 +388,7 @@ function createEditorStore(options) {
     };
     if (!sceneOnly) nonSceneDirty = canonicalizeContent({ ...doc, scene: savedScene }) !== saved;
     gesture = void 0;
+    gestureValidated = false;
     trim();
     notify({
       document: doc,
@@ -406,6 +408,22 @@ function createEditorStore(options) {
     for (const listener of [...commits]) listener(result);
     return result;
   }
+  function commitTransaction(transaction, trustedScene = false) {
+    const result = candidate(transaction, false, trustedScene);
+    if (!result.ok)
+      return { status: "rejected", document: snapshot.document, diagnostics: result.diagnostics };
+    const sceneOnly = isSceneOnly(transaction.commands);
+    const unchanged = sceneOnly ? commandsMatchScene(snapshot.document.scene, transaction.commands) : contentOf(result.value) === contentOf(snapshot.document);
+    if (unchanged) return noop();
+    if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected("revision.overflow");
+    const entryBytes = sceneOnly ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene) : bytesOf(snapshot.document) + bytesOf(result.value);
+    if (entryBytes > historyLimits.maxBytes) return rejected("history.capacity");
+    pastSizes.push(currentBytes);
+    past.push(snapshot.document);
+    future = [];
+    futureSizes = [];
+    return publish(result.value, transaction.commands);
+  }
   const store = {
     getSnapshot: () => snapshot,
     subscribe(listener) {
@@ -421,27 +439,14 @@ function createEditorStore(options) {
       };
     },
     dispatch(transaction) {
-      const result = candidate(transaction);
-      if (!result.ok)
-        return { status: "rejected", document: snapshot.document, diagnostics: result.diagnostics };
-      const sceneOnly = isSceneOnly(transaction.commands);
-      const unchanged = sceneOnly ? commandsMatchScene(snapshot.document.scene, transaction.commands) : contentOf(result.value) === contentOf(snapshot.document);
-      if (unchanged) return noop();
-      if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
-        return rejected("revision.overflow");
-      const entryBytes = sceneOnly ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene) : bytesOf(snapshot.document) + bytesOf(result.value);
-      if (entryBytes > historyLimits.maxBytes) return rejected("history.capacity");
-      pastSizes.push(currentBytes);
-      past.push(snapshot.document);
-      future = [];
-      futureSizes = [];
-      return publish(result.value, transaction.commands);
+      return commitTransaction(transaction);
     },
     beginGesture(transaction) {
       if (snapshot.draft.kind !== "none") return failure("draft.active");
       const result = candidate({ ...transaction, commands: [] });
       if (!result.ok) return result;
       gesture = { transaction: structuredClone(transaction), commands: [] };
+      gestureValidated = false;
       notify({
         draft: { kind: "gesture", preview: snapshot.document, transactionId: transaction.id }
       });
@@ -450,8 +455,12 @@ function createEditorStore(options) {
     previewGesture(commands, options2) {
       if (!gesture) return failure("gesture.missing");
       const result = candidate({ ...gesture.transaction, commands }, options2?.skipValidation);
-      if (!result.ok) return result;
+      if (!result.ok) {
+        gestureValidated = false;
+        return result;
+      }
       gesture.commands = structuredClone(commands);
+      gestureValidated = true;
       notify({
         draft: { kind: "gesture", preview: result.value, transactionId: gesture.transaction.id }
       });
@@ -460,12 +469,15 @@ function createEditorStore(options) {
     commitGesture() {
       if (!gesture) return rejected("gesture.missing");
       const transaction = { ...gesture.transaction, commands: gesture.commands };
+      const trusted = gestureValidated;
       gesture = void 0;
+      gestureValidated = false;
       notify({ draft: { kind: "none" } });
-      return store.dispatch(transaction);
+      return commitTransaction(transaction, trusted);
     },
     cancelGesture() {
       gesture = void 0;
+      gestureValidated = false;
       if (snapshot.draft.kind === "gesture") notify({ draft: { kind: "none" } });
     },
     setTextDraft(text) {
@@ -571,6 +583,7 @@ function createEditorStore(options) {
       pastSizes = [];
       futureSizes = [];
       gesture = void 0;
+      gestureValidated = false;
       saved = canonicalizeContent(result.value);
       savedScene = structuredClone(result.value.scene);
       notify({ draft: { kind: "none" }, selection: [] });
@@ -595,6 +608,7 @@ function createEditorStore(options) {
       pastSizes = [];
       futureSizes = [];
       gesture = void 0;
+      gestureValidated = false;
     }
   };
   return store;

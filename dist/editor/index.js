@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-DFEIZ57Q.js";
+} from "../chunk-SSCP2WA7.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -727,8 +727,14 @@ function EditorSurface({
     [effectiveTheme, registry]
   );
   const resolvePreview = useMemo(() => createPreviewResolver(), [store]);
-  const committedResolved = useMemo(
-    () => resolveDocument(snapshot.document, {
+  const gestureResolved = useRef(null);
+  const committedResolved = useMemo(() => {
+    const cached = gestureResolved.current;
+    if (cached && cached.revision === snapshot.document.revision) {
+      gestureResolved.current = null;
+      return cached.value;
+    }
+    return resolveDocument(snapshot.document, {
       quality: "edit",
       requestId: instanceId,
       measureText,
@@ -736,9 +742,8 @@ function EditorSurface({
       skipDiagnostics: true,
       theme: effectiveTheme,
       renderers: registry
-    }),
-    [snapshot.document, instanceId, effectiveTheme, registry]
-  );
+    });
+  }, [snapshot.document, instanceId, effectiveTheme, registry]);
   const resolved = useMemo(
     () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {
       quality: "edit",
@@ -759,6 +764,14 @@ function EditorSurface({
       registry
     ]
   );
+  const commitWithResolved = () => {
+    if (resolved.ok)
+      gestureResolved.current = {
+        revision: store.getSnapshot().document.revision + 1,
+        value: resolved
+      };
+    return store.commitGesture();
+  };
   const [gestureEntities, setGestureEntities] = useState(null);
   const baseline = useMemo(
     () => committedResolved.ok ? renderSceneMarkup(snapshot.document, committedResolved.value, {
@@ -1183,7 +1196,7 @@ function EditorSurface({
               { type: "spec.replace", spec: inserted.value, references: "reject" }
             ]);
         }
-        store.commitGesture();
+        commitWithResolved();
       }
       setConnectLine(null);
       gesture.current = null;
@@ -1196,7 +1209,7 @@ function EditorSurface({
       if (cancel) store.cancelGesture();
       else {
         flushMove();
-        store.commitGesture();
+        commitWithResolved();
       }
     }
     gesture.current = null;

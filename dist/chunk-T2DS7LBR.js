@@ -1,6 +1,6 @@
 import {
   createEditorStore
-} from "./chunk-DFEIZ57Q.js";
+} from "./chunk-SSCP2WA7.js";
 import {
   isNodeLocked,
   resolveDocument
