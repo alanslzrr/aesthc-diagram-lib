@@ -32,6 +32,7 @@ import {
   encodeShareDocument,
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
+import { clearHandoff, readHandoff } from '../lib/handoff'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 import '@aesthc/diagram-lib/editor.css'
@@ -113,6 +114,7 @@ function Workbench() {
     documentId: string
     baseRevision: number
   } | null>(null)
+  const [pendingHandoff, setPendingHandoff] = useState<DiagramDocument | null>(null)
   const [activeKey, setActiveKey] = useState(initialDocument.id)
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
@@ -188,6 +190,49 @@ function Workbench() {
       cancelled = true
     }
     // Only the initial link matters; later edits do not re-read the hash.
+  }, [])
+  function applyHandoff(document: DiagramDocument) {
+    setAutosave(false)
+    token.current = null
+    setActiveKey(document.id)
+    store.cancelTextDraft()
+    store.replaceDocument(document, {
+      expectedRevision: store.getSnapshot().document.revision,
+      history: 'reset',
+    })
+    setDraft(null)
+    setPendingHandoff(null)
+    setMessage(
+      t('Opened the current Playground document.', 'Se abrió el documento actual del playground.'),
+    )
+  }
+  useEffect(() => {
+    // Consume the bounded, same-origin transfer once on mount. The document
+    // keeps its own identity; the handoff record only says where it came from.
+    const record = readHandoff()
+    if (!record) return
+    clearHandoff()
+    const current = store.getSnapshot()
+    if (current.draft.kind === 'text') {
+      // Never drop an unapplied JSON buffer silently: Apply, Discard or Cancel.
+      setPendingHandoff(record.document)
+      return
+    }
+    if (
+      current.dirty &&
+      !window.confirm(
+        t(
+          'Replace unsaved Studio changes with the current Playground document?',
+          '¿Sustituir los cambios sin guardar de Studio por el documento actual del playground?',
+        ),
+      )
+    ) {
+      setMessage(
+        t('The Playground document was not opened.', 'No se abrió el documento del playground.'),
+      )
+      return
+    }
+    applyHandoff(record.document)
   }, [])
   useEffect(() => {
     let cancelled = false
@@ -683,6 +728,39 @@ function Workbench() {
               {t('Confirm conversion', 'Confirmar conversión')}
             </button>
             <button type="button" onClick={() => setConversion(null)}>
+              {t('Cancel', 'Cancelar')}
+            </button>
+          </div>
+        )}
+        {pendingHandoff && (
+          <div className="studio-notice" role="alert">
+            {t(
+              'The Playground document is waiting, but the JSON panel has an unapplied draft.',
+              'El documento del playground está esperando, pero el panel JSON tiene un borrador sin aplicar.',
+            )}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                const result = store.commitTextDraft()
+                if (result.status === 'rejected') {
+                  setMessage(result.diagnostics.map((d) => d.code).join(', '))
+                  return
+                }
+                applyHandoff(pendingHandoff)
+              }}
+            >
+              {t('Apply draft', 'Aplicar borrador')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                store.cancelTextDraft()
+                applyHandoff(pendingHandoff)
+              }}
+            >
+              {t('Discard draft', 'Descartar borrador')}
+            </button>
+            <button type="button" onClick={() => setPendingHandoff(null)}>
               {t('Cancel', 'Cancelar')}
             </button>
           </div>

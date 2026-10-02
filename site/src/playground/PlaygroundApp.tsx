@@ -24,6 +24,8 @@ import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'
 
 import { GITHUB_URL, STRINGS, SECTIONS, type Locale, type SectionEntry } from '../content'
 import { saveLocale, savedLocale } from '../lib/locale'
+import { writeHandoff } from '../lib/handoff'
+import { clearSessionDraft, readSessionDraft, writeSessionDraft } from '../lib/session-draft'
 import { useThemePreference } from '../lib/theme'
 
 const DEFAULT_ENTRY = SECTIONS[0]
@@ -59,6 +61,28 @@ const COPY = {
   },
   themeLight: { en: 'Light', es: 'Claro' },
   themeDark: { en: 'Dark', es: 'Oscuro' },
+  recovered: {
+    en: 'Recovered unsaved work from this device.',
+    es: 'Se recuperó trabajo sin guardar de este dispositivo.',
+  },
+  recoveryUnavailable: {
+    en: 'Local recovery is unavailable; this session stays in memory.',
+    es: 'La recuperación local no está disponible; esta sesión permanece en memoria.',
+  },
+  leaveConfirm: {
+    en: 'Leave with unsaved changes?',
+    es: '¿Salir con cambios sin guardar?',
+  },
+  draftPending: {
+    en: 'The JSON panel has an unapplied draft.',
+    es: 'El panel JSON tiene un borrador sin aplicar.',
+  },
+  draftApply: { en: 'Apply draft', es: 'Aplicar borrador' },
+  draftDiscard: { en: 'Discard draft', es: 'Descartar borrador' },
+  handoffTooLarge: {
+    en: 'The document is too large to hand off automatically. Download JSON instead.',
+    es: 'El documento es demasiado grande para transferirlo automáticamente. Descargá el JSON.',
+  },
 } satisfies Record<string, Record<Locale, string>>
 
 /** `?only=example-band`, `?type=band` or `#example-band`. */
@@ -74,6 +98,12 @@ export interface PlaygroundSurfaceProps {
   entry: SectionEntry
   locale: Locale
   hostTheme: 'light' | 'dark'
+  /** Registers the current-document Studio handoff with the shell. */
+  registerStudio?: (request: () => void) => void
+  /** Registers the leave guard so internal links warn before dropping work. */
+  registerGuard?: (guard: (action: () => void) => void) => void
+  /** Reports whether any session has unsaved work, for `beforeunload`. */
+  onGuardChange?: (guarded: boolean) => void
 }
 
 function documentFor(entry: SectionEntry, locale: Locale, hostTheme: 'light' | 'dark') {
@@ -121,11 +151,21 @@ function EditorWorkspace({
   )
 }
 
-function PlaygroundSurface({ entry, locale, hostTheme }: PlaygroundSurfaceProps) {
+function PlaygroundSurface({
+  entry,
+  locale,
+  hostTheme,
+  registerStudio,
+  registerGuard,
+  onGuardChange,
+}: PlaygroundSurfaceProps) {
   const sessions = useRef(new Map<string, ReturnType<typeof createEditorStore>>())
   const opened = useRef(new Set<string>())
+  const recovered = useRef(new Set<string>())
+  const recoveryWarned = useRef(false)
   const file = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
+  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null)
   const sessionKey = `${entry.key}:${locale}`
   const currentSession = useRef(sessionKey)
   currentSession.current = sessionKey
@@ -136,11 +176,33 @@ function PlaygroundSurface({ entry, locale, hostTheme }: PlaygroundSurfaceProps)
     if (!store) {
       const [keyName, keyLocale] = key.split(':') as [string, Locale]
       const source = SECTIONS.find((candidate) => candidate.key === keyName) ?? DEFAULT_ENTRY
+      const draft = readSessionDraft(key, keyLocale)
       store = createEditorStore({
-        document: documentFor(source, keyLocale, hostTheme),
+        document: draft?.document ?? documentFor(source, keyLocale, hostTheme),
         permissions: { edit: true, save: false, export: true },
       })
+      if (draft) recovered.current.add(key)
+      if (draft?.text) store.setTextDraft(draft.text)
       sessions.current.set(key, store)
+      // Persist the validated document and any unapplied buffer per session so
+      // returning to the playground does not lose work. Guards remain primary.
+      const session = store
+      let timer: ReturnType<typeof setTimeout> | undefined
+      session.subscribe(() => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => {
+          const snapshot = session.getSnapshot()
+          const outcome = writeSessionDraft(
+            key,
+            snapshot.document,
+            snapshot.draft.kind === 'text' ? snapshot.draft.text : undefined,
+          )
+          if (outcome === 'unavailable' && !recoveryWarned.current) {
+            recoveryWarned.current = true
+            setMessage(COPY.recoveryUnavailable[locale])
+          }
+        }, 300)
+      })
     }
     return store
   }
@@ -149,11 +211,78 @@ function PlaygroundSurface({ entry, locale, hostTheme }: PlaygroundSurfaceProps)
 
   useEffect(() => {
     opened.current.add(sessionKey)
-    setMessage('')
+    setMessage(recovered.current.has(sessionKey) ? COPY.recovered[locale] : '')
   }, [sessionKey])
+
+  const anyGuarded = () =>
+    [...sessions.current.values()].some((session) => {
+      const snapshot = session.getSnapshot()
+      return snapshot.dirty || snapshot.draft.kind === 'text'
+    })
+
+  const guardRef = useRef<(action: () => void) => void>(() => {})
+  guardRef.current = (action) => {
+    if (!anyGuarded()) {
+      action()
+      return
+    }
+    // An unapplied JSON buffer always offers an explicit decision instead of
+    // being discarded by a generic confirmation.
+    if (store.getSnapshot().draft.kind === 'text') {
+      setPendingLeave(() => action)
+      return
+    }
+    if (!window.confirm(COPY.leaveConfirm[locale])) return
+    action()
+  }
+  useEffect(() => {
+    registerGuard?.(guardRef.current)
+  }, [registerGuard])
+  useEffect(() => {
+    const report = () => onGuardChange?.(anyGuarded())
+    report()
+    const unsubscribers = [...sessions.current.values()].map((session) => session.subscribe(report))
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe())
+    // Sessions are created lazily per entry and locale switch.
+  }, [sessionKey, onGuardChange])
+
+  const performHandoff = () => {
+    const written = writeHandoff(store.getSnapshot().document, {
+      locale,
+      hostTheme,
+      sessionKey,
+      entryKey: entry.key,
+    })
+    if (!written) {
+      setMessage(COPY.handoffTooLarge[locale])
+      return
+    }
+    window.location.assign(STUDIO_URL)
+  }
+  const studioRequest = useRef<() => void>(() => {})
+  studioRequest.current = () => {
+    // A text buffer is not part of the handoff; decide explicitly first.
+    if (store.getSnapshot().draft.kind === 'text') {
+      setPendingLeave(() => performHandoff)
+      return
+    }
+    // Other sessions stay behind, so their unsaved work still needs consent.
+    const others = [...sessions.current.values()].some((session) => {
+      if (session === store) return false
+      const snapshot = session.getSnapshot()
+      return snapshot.dirty || snapshot.draft.kind === 'text'
+    })
+    if (others && !window.confirm(COPY.leaveConfirm[locale])) return
+    performHandoff()
+  }
+  useEffect(() => {
+    registerStudio?.(() => studioRequest.current())
+  }, [registerStudio])
 
   function resetExample() {
     if (store.getSnapshot().dirty && !window.confirm(COPY.resetConfirm[locale])) return
+    clearSessionDraft(sessionKey)
+    recovered.current.delete(sessionKey)
     const current = store.getSnapshot()
     const original = documentFor(entry, locale, hostTheme)
     const result = store.replaceDocument(original, {
@@ -246,7 +375,14 @@ function PlaygroundSurface({ entry, locale, hostTheme }: PlaygroundSurfaceProps)
           <button type="button" onClick={resetExample}>
             {locale === 'es' ? 'Restaurar ejemplo' : 'Reset example'}
           </button>
-          <a className="playground-studio-link" href={STUDIO_URL}>
+          <a
+            className="playground-studio-link"
+            href={STUDIO_URL}
+            onClick={(event) => {
+              event.preventDefault()
+              studioRequest.current()
+            }}
+          >
             {locale === 'es' ? 'Studio completo' : 'Full studio'} ↗
           </a>
         </div>
@@ -255,6 +391,40 @@ function PlaygroundSurface({ entry, locale, hostTheme }: PlaygroundSurfaceProps)
         <p className="playground-message" role="status">
           {message}
         </p>
+      ) : null}
+      {pendingLeave ? (
+        <div className="playground-message" role="alert">
+          {COPY.draftPending[locale]}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              const result = store.commitTextDraft()
+              if (result.status !== 'rejected') {
+                const action = pendingLeave
+                setPendingLeave(null)
+                action()
+              } else {
+                setMessage(result.diagnostics.map((d) => d.code).join(', '))
+              }
+            }}
+          >
+            {COPY.draftApply[locale]}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              store.cancelTextDraft()
+              const action = pendingLeave
+              setPendingLeave(null)
+              action()
+            }}
+          >
+            {COPY.draftDiscard[locale]}
+          </button>
+          <button type="button" onClick={() => setPendingLeave(null)}>
+            {locale === 'es' ? 'Cancelar' : 'Cancel'}
+          </button>
+        </div>
       ) : null}
       <EditorRoot store={store} locale={locale} theme={hostTheme}>
         <EditorWorkspace
@@ -274,11 +444,36 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
     const [locale, setLocale] = useState<Locale>(savedLocale)
     const [entry, setEntry] = useState<SectionEntry>(entryFromLocation)
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [guarded, setGuarded] = useState(false)
+    const guardRef = useRef<((action: () => void) => void) | null>(null)
+    const studioRef = useRef<(() => void) | null>(null)
 
     useEffect(() => {
       document.documentElement.lang = locale
       saveLocale(locale)
     }, [locale])
+
+    useEffect(() => {
+      // Secondary protection only; the internal guard decides first.
+      if (!guarded) return
+      const handler = (event: BeforeUnloadEvent) => {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+      window.addEventListener('beforeunload', handler)
+      return () => window.removeEventListener('beforeunload', handler)
+    }, [guarded])
+
+    const leave = (action: () => void) => {
+      if (guardRef.current) guardRef.current(action)
+      else action()
+    }
+    const leaveTo = (href: string) => () => leave(() => window.location.assign(href))
+    const openStudio = () => {
+      // The playground surface owns the draft decision and the handoff itself.
+      if (studioRef.current) studioRef.current()
+      else leave(() => window.location.assign(STUDIO_URL))
+    }
 
     useEffect(() => {
       document.title = `${entry.title[locale]} editor · @aesthc/diagram-lib`
@@ -310,13 +505,33 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
               className="brand"
               href={import.meta.env.BASE_URL}
               title={locale === 'es' ? 'Volver al inicio' : 'Back to the landing page'}
+              onClick={(event) => {
+                event.preventDefault()
+                leaveTo(import.meta.env.BASE_URL)()
+              }}
             >
               <span className="brand-short">aesthc</span>
               <span className="brand-full">aesthc / playground</span>
             </a>
             <nav className="header-nav" aria-label={locale === 'es' ? 'Principal' : 'Main'}>
-              <a href={`${import.meta.env.BASE_URL}docs/`}>Docs</a>
-              <a href={STUDIO_URL}>Studio</a>
+              <a
+                href={`${import.meta.env.BASE_URL}docs/`}
+                onClick={(event) => {
+                  event.preventDefault()
+                  leaveTo(`${import.meta.env.BASE_URL}docs/`)()
+                }}
+              >
+                Docs
+              </a>
+              <a
+                href={STUDIO_URL}
+                onClick={(event) => {
+                  event.preventDefault()
+                  openStudio()
+                }}
+              >
+                Studio
+              </a>
             </nav>
             <div className="header-actions">
               <a className="header-nav-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
@@ -394,7 +609,18 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
             </p>
           </aside>
           <main id="main" tabIndex={-1} className="playground-main">
-            <Surface entry={entry} locale={locale} hostTheme={theme} />
+            <Surface
+              entry={entry}
+              locale={locale}
+              hostTheme={theme}
+              registerStudio={(request) => {
+                studioRef.current = request
+              }}
+              registerGuard={(guard) => {
+                guardRef.current = guard
+              }}
+              onGuardChange={setGuarded}
+            />
             <footer className="playground-footer">
               <span>© 2026 Alan Salazar · {STRINGS.footerNote[locale]}</span>
               <span className="inline-flex flex-wrap items-center gap-5 font-medium">
