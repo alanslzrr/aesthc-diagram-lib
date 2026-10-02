@@ -1,0 +1,78 @@
+[WebServer] (node:60916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:60917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:60924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes (3.7s)
+(node:60941) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes (3.2s)
+
+
+  1) [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 11
+    Received:    10.533632286995516
+
+      270 |       })
+      271 |       expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
+    > 272 |       for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
+          |                                                           ^
+      273 |       expect(geometry.innerGrid).toBe(true)
+      274 |       const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+      275 |         const before = getComputedStyle(element, '::before')
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs.e2e.ts:272:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 11
+    Received:    10.533632286995516
+
+      270 |       })
+      271 |       expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
+    > 272 |       for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
+          |                                                           ^
+      273 |       expect(geometry.innerGrid).toBe(true)
+      274 |       const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+      275 |         const before = getComputedStyle(element, '::before')
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs.e2e.ts:272:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/mobile-docs-recheck/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes 
+    [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes 

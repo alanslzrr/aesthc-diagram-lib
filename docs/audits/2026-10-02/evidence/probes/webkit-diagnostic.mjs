@@ -1,0 +1,15 @@
+import {webkit,devices} from '/Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/node_modules/@playwright/test/index.mjs';
+import fs from 'node:fs/promises';
+const browser=await webkit.launch();
+const out={};
+for(const device of ['Desktop Safari','iPhone 13']) {
+ const context=await browser.newContext({...devices[device],reducedMotion:'reduce'});
+ const page=await context.newPage(); await page.goto('http://127.0.0.1:43944/studio.html'); await page.getByRole('button',{name:'Order API',exact:true}).click();await page.getByLabel('Language').focus();
+ out[device]={keys:[]};
+ for(const key of ['Delete','Backspace','ControlOrMeta+c','ControlOrMeta+s']) {await page.keyboard.press(key);await page.waitForTimeout(150);out[device].keys.push({key,url:page.url(),state:await page.evaluate(()=>({focused:document.activeElement?.outerHTML.slice(0,140),lang:document.documentElement.lang,nodes:[...document.querySelectorAll('[data-hit-node]')].map(e=>e.getAttribute('data-hit-node')),json:document.querySelector('textarea[aria-label="Document JSON"]')?.value}))});}
+ await context.close();
+}
+const context=await browser.newContext({...devices['iPhone 13'],reducedMotion:'reduce'});const page=await context.newPage();await page.goto('http://127.0.0.1:43944/studio.html');await page.getByRole('button',{name:'Order API',exact:true}).waitFor();
+const inspect=()=>page.evaluate(()=>({innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyZoom:getComputedStyle(document.body).zoom,visualViewport:{width:visualViewport.width,scale:visualViewport.scale},overflow:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:e.className,role:e.getAttribute('role'),label:e.getAttribute('aria-label'),text:e.textContent?.slice(0,65),x:e.getBoundingClientRect().x,right:e.getBoundingClientRect().right,width:e.getBoundingClientRect().width,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,display:getComputedStyle(e).display,flexWrap:getComputedStyle(e).flexWrap,flex:getComputedStyle(e).flex,overflow:getComputedStyle(e).overflow})).filter(e=>e.right>innerWidth+2&&e.tag!=='path'&&e.tag!=='g'&&e.tag!=='rect'&&e.tag!=='text'&&e.tag!=='svg').slice(0,45)}));
+out.zoom={before:await inspect()};await page.evaluate(()=>document.body.style.zoom='200%');await page.waitForTimeout(150);out.zoom.after=await inspect();await page.screenshot({path:'/tmp/aesthc-audit-20261002/mobile200-overflow.png'});await page.addStyleTag({content:'.adl-editor-group{flex-wrap:wrap;flex-shrink:1;max-width:100%}'});out.zoom.diagnosticWrappingOnly=await inspect();await page.screenshot({path:'/tmp/aesthc-audit-20261002/mobile200-wrap-diagnostic.png'});
+await browser.close();await fs.writeFile('/tmp/aesthc-audit-20261002/webkit-diagnostic.json',JSON.stringify(out,null,2));console.log(JSON.stringify({keys:Object.fromEntries(Object.entries(out).filter(([k])=>k!=='zoom').map(([k,v])=>[k,v.keys.map(e=>({key:e.key,url:e.url,nodes:e.state.nodes,lang:e.state.lang}))])),zoom:{before:out.zoom.before.scrollWidth,after:out.zoom.after.scrollWidth,wrapped:out.zoom.diagnosticWrappingOnly.scrollWidth,overflow:out.zoom.after.overflow}},null,2));

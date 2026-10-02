@@ -1,0 +1,156 @@
+[
+  {
+    "h1": "Documentation",
+    "mainChars": 4509,
+    "overflow": false,
+    "path": "/docs/",
+    "title": "Documentation · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Getting started",
+    "mainChars": 5272,
+    "overflow": false,
+    "path": "/docs/getting-started/",
+    "title": "Getting started · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Band diagrams",
+    "mainChars": 7734,
+    "overflow": false,
+    "path": "/docs/diagrams/band/",
+    "title": "Band diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Flowchart diagrams",
+    "mainChars": 6351,
+    "overflow": false,
+    "path": "/docs/diagrams/flowchart/",
+    "title": "Flowchart diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Sequence diagrams",
+    "mainChars": 4886,
+    "overflow": false,
+    "path": "/docs/diagrams/sequence/",
+    "title": "Sequence diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "State machine diagrams",
+    "mainChars": 5289,
+    "overflow": false,
+    "path": "/docs/diagrams/state-machine/",
+    "title": "State machine diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Entity relationship diagrams",
+    "mainChars": 5516,
+    "overflow": false,
+    "path": "/docs/diagrams/er/",
+    "title": "Entity relationship diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Timeline diagrams",
+    "mainChars": 4382,
+    "overflow": false,
+    "path": "/docs/diagrams/timeline/",
+    "title": "Timeline diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Swimlane diagrams",
+    "mainChars": 6638,
+    "overflow": false,
+    "path": "/docs/diagrams/swimlane/",
+    "title": "Swimlane diagrams · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Editable documents and Studio",
+    "mainChars": 11483,
+    "overflow": false,
+    "path": "/docs/guides/editor/",
+    "title": "Editable documents and Studio · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "React, Vite and Next.js",
+    "mainChars": 2651,
+    "overflow": false,
+    "path": "/docs/guides/react/",
+    "title": "React, Vite and Next.js · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Styles and theming",
+    "mainChars": 6379,
+    "overflow": false,
+    "path": "/docs/guides/theming/",
+    "title": "Styles and theming · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Semantic viewer",
+    "mainChars": 4763,
+    "overflow": false,
+    "path": "/docs/guides/viewer/",
+    "title": "Semantic viewer · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Sharing and exporting",
+    "mainChars": 2675,
+    "overflow": false,
+    "path": "/docs/guides/share-export/",
+    "title": "Sharing and exporting · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Migrating to 0.3.0",
+    "mainChars": 5960,
+    "overflow": false,
+    "path": "/docs/guides/migration/",
+    "title": "Migrating to 0.3.0 · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Extending the editor",
+    "mainChars": 3749,
+    "overflow": false,
+    "path": "/docs/guides/extending/",
+    "title": "Extending the editor · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Integrate with your coding agent",
+    "mainChars": 3586,
+    "overflow": false,
+    "path": "/agents/",
+    "title": "Integrate with your coding agent · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Public API",
+    "mainChars": 14609,
+    "overflow": false,
+    "path": "/docs/api/",
+    "title": "Public API · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Support and verification",
+    "mainChars": 2553,
+    "overflow": false,
+    "path": "/docs/guides/support/",
+    "title": "Support and verification · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Troubleshooting",
+    "mainChars": 2180,
+    "overflow": false,
+    "path": "/docs/guides/troubleshooting/",
+    "title": "Troubleshooting · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Release runbook",
+    "mainChars": 9741,
+    "overflow": false,
+    "path": "/docs/maintainers/releasing/",
+    "title": "Release runbook · @aesthc/diagram-lib"
+  },
+  {
+    "h1": "Heyo Docs integration map",
+    "mainChars": 6518,
+    "overflow": false,
+    "path": "/docs/maintainers/heyo-integration/",
+    "title": "Heyo Docs integration map · @aesthc/diagram-lib"
+  }
+]

@@ -1,0 +1,223 @@
+{
+  "Desktop Safari": {
+    "keys": [
+      {
+        "key": "Delete",
+        "url": "http://127.0.0.1:43944/studio.html",
+        "state": {
+          "focused": "<select aria-label=\"Language\"><option value=\"en\">English</option><option value=\"es\">Español</option></select>",
+          "lang": "en",
+          "nodes": [
+            "client",
+            "api",
+            "database",
+            "worker"
+          ],
+          "json": "{\"extensions\":{},\"format\":\"aesthc-diagram\",\"id\":\"studio-document\",\"locale\":\"en\",\"metadata\":{\"edges\":{},\"nodes\":{},\"visuals\":{}},\"presentation\":{\"edgeStyle\":\"orthogonal\",\"grid\":{\"size\":16,\"snap\":true,\"visible\":true},\"legend\":\"visible\",\"padding\":32,\"textScale\":1,\"theme\":{\"dark\":{\"background\":\"#000000\",\"border\":\"#1f1f1f\",\"branch\":\"#d6a55e\",\"card\":\"#0a0a0a\",\"cobalt\":\"#3291ff\",\"foreground\":\"#ededed\",\"mutedForeground\":\"#a1a1a1\"},\"light\":{\"background\":\"#ffffff\",\"border\":\"#eaeaea\",\"branch\":\"#a66b21\",\"card\":\"#fafafa\",\"cobalt\":\"#0070f3\",\"foreground\":\"#0a0a0a\",\"mutedForeground\":\"#666666\"},\"mode\":\"light\"}},\"revision\":0,\"scene\":{\"groups\":[],\"mode\":\"auto\",\"nodes\":{},\"routes\":{},\"zOrder\":[\"client\",\"api\",\"database\",\"worker\"]},\"schemaVersion\":1,\"spec\":{\"caption\":\"Order platform\",\"edges\":[{\"from\":\"client\",\"id\":\"request\",\"label\":\"HTTPS\",\"to\":\"api\"},{\"from\":\"api\",\"id\":\"persist\",\"label\":\"Write\",\"to\":\"database\"},{\"from\":\"api\",\"id\":\"notify\",\"label\":\"Queue\",\"to\":\"worker\",\"variant\":\"branch\"}],\"legend\":{\"branch\":\"Async\",\"main\":\"Request\"},\"nodes\":[{\"description\":\"Places orders and displays their status.\",\"id\":\"client\",\"kind\":\"Application\",\"label\":\"Web client\"},{\"description\":\"Validates and records orders.\",\"id\":\"api\",\"kind\":\"Service\",\"label\":\"Order API\",\"ports\":[{\"direction\":\"in\",\"id\":\"inbound\",\"offset\":0.5,\"side\":\"left\"},{\"direction\":\"out\",\"id\":\"outbound\",\"offset\":0.5,\"side\":\"right\"}]},{\"description\":\"Stores the order lifecycle.\",\"id\":\"database\",\"kind\":\"Database\",\"label\":\"Orders\"},{\"description\":\"Sends order confirmations.\",\"id\":\"worker\",\"kind\":\"Service\",\"label\":\"Email worker\"}],\"profile\":\"architecture\",\"type\":\"graph\"},\"story\":[],\"views\":[]}"
+        }
+      },
+      {
+        "key": "Backspace",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      },
+      {
+        "key": "ControlOrMeta+c",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      },
+      {
+        "key": "ControlOrMeta+s",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      }
+    ]
+  },
+  "iPhone 13": {
+    "keys": [
+      {
+        "key": "Delete",
+        "url": "http://127.0.0.1:43944/studio.html",
+        "state": {
+          "focused": "<select aria-label=\"Language\"><option value=\"en\">English</option><option value=\"es\">Español</option></select>",
+          "lang": "en",
+          "nodes": [
+            "client",
+            "api",
+            "database",
+            "worker"
+          ],
+          "json": "{\"extensions\":{},\"format\":\"aesthc-diagram\",\"id\":\"studio-document\",\"locale\":\"en\",\"metadata\":{\"edges\":{},\"nodes\":{},\"visuals\":{}},\"presentation\":{\"edgeStyle\":\"orthogonal\",\"grid\":{\"size\":16,\"snap\":true,\"visible\":true},\"legend\":\"visible\",\"padding\":32,\"textScale\":1,\"theme\":{\"dark\":{\"background\":\"#000000\",\"border\":\"#1f1f1f\",\"branch\":\"#d6a55e\",\"card\":\"#0a0a0a\",\"cobalt\":\"#3291ff\",\"foreground\":\"#ededed\",\"mutedForeground\":\"#a1a1a1\"},\"light\":{\"background\":\"#ffffff\",\"border\":\"#eaeaea\",\"branch\":\"#a66b21\",\"card\":\"#fafafa\",\"cobalt\":\"#0070f3\",\"foreground\":\"#0a0a0a\",\"mutedForeground\":\"#666666\"},\"mode\":\"light\"}},\"revision\":0,\"scene\":{\"groups\":[],\"mode\":\"auto\",\"nodes\":{},\"routes\":{},\"zOrder\":[\"client\",\"api\",\"database\",\"worker\"]},\"schemaVersion\":1,\"spec\":{\"caption\":\"Order platform\",\"edges\":[{\"from\":\"client\",\"id\":\"request\",\"label\":\"HTTPS\",\"to\":\"api\"},{\"from\":\"api\",\"id\":\"persist\",\"label\":\"Write\",\"to\":\"database\"},{\"from\":\"api\",\"id\":\"notify\",\"label\":\"Queue\",\"to\":\"worker\",\"variant\":\"branch\"}],\"legend\":{\"branch\":\"Async\",\"main\":\"Request\"},\"nodes\":[{\"description\":\"Places orders and displays their status.\",\"id\":\"client\",\"kind\":\"Application\",\"label\":\"Web client\"},{\"description\":\"Validates and records orders.\",\"id\":\"api\",\"kind\":\"Service\",\"label\":\"Order API\",\"ports\":[{\"direction\":\"in\",\"id\":\"inbound\",\"offset\":0.5,\"side\":\"left\"},{\"direction\":\"out\",\"id\":\"outbound\",\"offset\":0.5,\"side\":\"right\"}]},{\"description\":\"Stores the order lifecycle.\",\"id\":\"database\",\"kind\":\"Database\",\"label\":\"Orders\"},{\"description\":\"Sends order confirmations.\",\"id\":\"worker\",\"kind\":\"Service\",\"label\":\"Email worker\"}],\"profile\":\"architecture\",\"type\":\"graph\"},\"story\":[],\"views\":[]}"
+        }
+      },
+      {
+        "key": "Backspace",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      },
+      {
+        "key": "ControlOrMeta+c",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      },
+      {
+        "key": "ControlOrMeta+s",
+        "url": "about:blank",
+        "state": {
+          "focused": "<body></body>",
+          "lang": "",
+          "nodes": []
+        }
+      }
+    ]
+  },
+  "zoom": {
+    "before": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyZoom": "1",
+      "visualViewport": {
+        "width": 390,
+        "scale": 1
+      },
+      "overflow": []
+    },
+    "after": {
+      "innerWidth": 390,
+      "scrollWidth": 671,
+      "bodyZoom": "2",
+      "visualViewport": {
+        "width": 390,
+        "scale": 1
+      },
+      "overflow": [
+        {
+          "tag": "DIV",
+          "cls": "adl-editor-group",
+          "role": "group",
+          "label": "Camera",
+          "text": "−22%+Fit diagram",
+          "x": 32,
+          "right": 489.359375,
+          "width": 457.359375,
+          "scrollWidth": 229,
+          "clientWidth": 229,
+          "display": "flex",
+          "flexWrap": "nowrap",
+          "flex": "0 0 auto",
+          "overflow": "visible"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "role": null,
+          "label": null,
+          "text": "Fit diagram",
+          "x": 304.046875,
+          "right": 489.359375,
+          "width": 185.3125,
+          "scrollWidth": 91,
+          "clientWidth": 91,
+          "display": "block",
+          "flexWrap": "nowrap",
+          "flex": "0 0 auto",
+          "overflow": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "adl-editor-group",
+          "role": "group",
+          "label": "Selection actions",
+          "text": "CopyPasteDuplicateMore actions",
+          "x": 32,
+          "right": 671.4375,
+          "width": 639.4375,
+          "scrollWidth": 320,
+          "clientWidth": 320,
+          "display": "flex",
+          "flexWrap": "nowrap",
+          "flex": "0 0 auto",
+          "overflow": "visible"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "role": null,
+          "label": null,
+          "text": "Duplicate",
+          "x": 289.109375,
+          "right": 453.953125,
+          "width": 164.84375,
+          "scrollWidth": 81,
+          "clientWidth": 81,
+          "display": "block",
+          "flexWrap": "nowrap",
+          "flex": "0 0 auto",
+          "overflow": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "adl-editor-menu",
+          "role": null,
+          "label": null,
+          "text": "More actions",
+          "x": 465.953125,
+          "right": 671.4375,
+          "width": 205.484375,
+          "scrollWidth": 103,
+          "clientWidth": 103,
+          "display": "block",
+          "flexWrap": "nowrap",
+          "flex": "0 0 auto",
+          "overflow": "visible"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "role": null,
+          "label": null,
+          "text": "More actions",
+          "x": 465.953125,
+          "right": 671.4375,
+          "width": 205.484375,
+          "scrollWidth": 101,
+          "clientWidth": 101,
+          "display": "inline-block",
+          "flexWrap": "nowrap",
+          "flex": "0 1 auto",
+          "overflow": "visible"
+        }
+      ]
+    },
+    "diagnosticWrappingOnly": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyZoom": "2",
+      "visualViewport": {
+        "width": 390,
+        "scale": 1
+      },
+      "overflow": []
+    }
+  }
+}

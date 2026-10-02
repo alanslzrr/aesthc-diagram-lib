@@ -1,0 +1,82 @@
+
+added 68 packages in 13s
+vite v7.3.6 building client environment for production...
+transforming...
+Diagram.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+Diagram.tsx (1:0): Module level directives cause errors when bundled, "use client" in "Diagram.tsx" was ignored.
+EditorExample.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+EditorExample.tsx (1:0): Module level directives cause errors when bundled, "use client" in "EditorExample.tsx" was ignored.
+node_modules/@aesthc/diagram-lib/dist/canvas/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@aesthc/diagram-lib/dist/canvas/index.js" was ignored.
+node_modules/@aesthc/diagram-lib/dist/editor/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@aesthc/diagram-lib/dist/editor/index.js" was ignored.
+node_modules/@radix-ui/react-tooltip/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-tooltip/dist/index.mjs" was ignored.
+node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs" was ignored.
+node_modules/@radix-ui/react-portal/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-portal/dist/index.mjs" was ignored.
+node_modules/@radix-ui/react-presence/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-presence/dist/index.mjs" was ignored.
+node_modules/@radix-ui/react-popper/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-popper/dist/index.mjs" was ignored.
+✓ 4623 modules transformed.
+rendering chunks...
+computing gzip size...
+vite-dist/index.html                            0.27 kB │ gzip:   0.21 kB
+vite-dist/assets/geist-sans-Bj2R_7yk.woff2     69.65 kB
+vite-dist/assets/geist-mono-Dispecij.woff2     71.37 kB
+vite-dist/assets/index-EV4XJbeQ.css            22.92 kB │ gzip:   5.15 kB
+vite-dist/assets/index-ATuNAtLO.js          1,056.56 kB │ gzip: 212.70 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.67s
+   ▲ Next.js 15.5.25
+   - Experiments (use with caution):
+     · cpus: 2
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 16.5s
+   Linting and checking validity of types ...
+
+   We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+   The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+   	- lib was set to dom,dom.iterable,esnext
+   	- allowJs was set to true
+   	- incremental was set to true
+   	- include was updated to add '.next/types/**/*.ts'
+   	- plugins was updated to add { name: 'next' }
+   	- exclude was set to ['node_modules']
+
+   The following mandatory changes were made to your tsconfig.json:
+
+   	- resolveJsonModule was set to true (to match webpack resolution)
+   	- isolatedModules was set to true (requirement for SWC / Babel)
+   	- jsx was set to preserve (next.js implements its own optimized jsx transform)
+
+   Collecting page data ...
+   Generating static pages (0/4) ...
+   Generating static pages (1/4) 
+   Generating static pages (2/4) 
+   Generating static pages (3/4) 
+ ✓ Generating static pages (4/4)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                     150 kB         252 kB
+└ ○ /_not-found                            994 B         104 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-37e0f0325134c4d7.js       46.4 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)          1.94 kB
+
+
+○  (Static)  prerendered as static content
+
+  ➜  Local:   http://127.0.0.1:4175/
+vite: build, hydration, styles, keyboard selection and editor commit/undo passed
+   ▲ Next.js 15.5.25
+   - Local:        http://127.0.0.1:4176
+   - Network:      http://127.0.0.1:4176
+
+ ✓ Starting...
+ ✓ Ready in 372ms
+next: build, hydration, styles, keyboard selection and editor commit/undo passed

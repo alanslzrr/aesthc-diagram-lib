@@ -1,0 +1,12 @@
+desktop Download JSON download example-flowchart.json failure null
+desktop status Completed: Download JSON
+desktop Download SVG download example-flowchart.svg failure null
+desktop status Completed: Download SVG
+desktop Download PNG download example-flowchart.png failure null
+desktop status 
+mobile Download JSON download example-flowchart.json failure null
+mobile status Completed: Download JSON
+mobile Download SVG download example-flowchart.svg failure null
+mobile status Completed: Download SVG
+mobile Download PNG download example-flowchart.png failure null
+mobile status 

@@ -1,0 +1,80 @@
+[
+  {
+    "browser": "webkit",
+    "viewport": 360,
+    "svgWidth": 294,
+    "svgHeight": 126.5625,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.6591928251121076,
+    "actualScale": 0.6591796875,
+    "effectiveFont": 9.55810546875
+  },
+  {
+    "browser": "webkit",
+    "viewport": 390,
+    "svgWidth": 324,
+    "svgHeight": 139.46875,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.726457399103139,
+    "actualScale": 0.7263997395833334,
+    "effectiveFont": 10.532796223958334
+  },
+  {
+    "browser": "webkit",
+    "viewport": 412,
+    "svgWidth": 346,
+    "svgHeight": 148.9375,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.7757847533632287,
+    "actualScale": 0.7757161458333334,
+    "effectiveFont": 11.247884114583334
+  },
+  {
+    "browser": "chromium",
+    "viewport": 376,
+    "svgWidth": 294,
+    "svgHeight": 126.5625,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.6591928251121076,
+    "actualScale": 0.6591796875,
+    "effectiveFont": 9.55810546875
+  },
+  {
+    "browser": "chromium",
+    "viewport": 390,
+    "svgWidth": 324,
+    "svgHeight": 139.46875,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.726457399103139,
+    "actualScale": 0.7263997395833334,
+    "effectiveFont": 10.532796223958334
+  },
+  {
+    "browser": "chromium",
+    "viewport": 412,
+    "svgWidth": 346,
+    "svgHeight": 148.9375,
+    "viewWidth": 446,
+    "viewHeight": 192,
+    "label": "Request",
+    "font": "14.5px",
+    "widthScale": 0.7757847533632287,
+    "actualScale": 0.7757161458333334,
+    "effectiveFont": 11.247884114583334
+  }
+]

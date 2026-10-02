@@ -1,0 +1,25 @@
+
+added 51 packages in 6s
+vite v7.3.6 building client environment for production...
+transforming...
+node_modules/@aesthc/diagram-lib/dist/editor/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@aesthc/diagram-lib/dist/editor/index.js" was ignored.
+✓ 45 modules transformed.
+rendering chunks...
+computing gzip size...
+memory-dist/index.html                   0.26 kB │ gzip:   0.20 kB
+memory-dist/assets/index-DgKY2ez2.css    6.86 kB │ gzip:   1.90 kB
+memory-dist/assets/index-Dp4B9NwI.js   682.70 kB │ gzip: 143.08 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.15s
+  ➜  Local:   http://127.0.0.1:4177/
+harness environment {"platform":"MacIntel","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","hardwareConcurrency":14,"deviceMemory":16,"memoryApi":true,"reactVersion":"19.2.8","reactCreateElement":"function"}
+raster 2048x2048 p95 322.3ms (reference ≤3000; 12 samples)
+memory 50 cycles: growth -4.5 MiB (reference ≤10 MiB); blob resources 0 -> 0
+environment {"platform":"MacIntel","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","hardwareConcurrency":14,"deviceMemory":16,"memoryApi":true,"reactVersion":"19.2.8","reactCreateElement":"function"}
+E19 memory and raster gates: PASS (reference runner)
+
+AUDIT_MEMORY_EXIT=0
