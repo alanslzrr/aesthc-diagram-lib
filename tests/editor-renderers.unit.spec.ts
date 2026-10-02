@@ -188,3 +188,104 @@ describe('E18 audit regression: renderers integrated into the document pipeline'
     )
   })
 })
+
+describe('E18 audit regression: one effective theme and portable delivery', () => {
+  const themeProbe: CustomNodeRenderer<{ label: string }> = {
+    typeKey: 'theme-probe',
+    validate(data) {
+      const candidate = data as { label?: unknown }
+      return typeof candidate?.label === 'string'
+        ? { ok: true, diagnostics: [], value: { label: candidate.label } }
+        : renderer.validate(data)
+    },
+    measure() {
+      return { width: 100, height: 40 }
+    },
+    renderSvg(data, context) {
+      return `<g data-theme-probe="${context.theme}" data-card="${context.palette.card}">${data.label}</g>`
+    },
+  }
+  function probeDocument() {
+    const made = createDocument(
+      {
+        type: 'graph',
+        caption: 'Theme probe',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [
+          { id: 'plain', label: 'Plain', description: '' },
+          {
+            id: 'custom',
+            label: 'Custom',
+            description: '',
+            renderer: { typeKey: 'theme-probe', data: { label: 'Ready' } },
+          },
+        ],
+        edges: [],
+      },
+      { id: 'theme-probe-document', locale: 'en' },
+    )
+    if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+    return made.value
+  }
+  it('renders custom nodes with the effective theme override, not the document mode', async () => {
+    const { resolveDocument } = await import('../src/editor-core')
+    const registry = createRendererRegistry()
+    expect(registry.register(themeProbe).ok).toBe(true)
+    const document = probeDocument()
+    expect(document.presentation.theme.mode).toBe('light')
+    const resolved = resolveDocument(document, {
+      quality: 'edit',
+      requestId: 'theme',
+      theme: 'dark',
+      renderers: registry,
+    })
+    if (!resolved.ok) throw Error(JSON.stringify(resolved.diagnostics))
+    const custom = resolved.value.layout.nodeById.custom
+    expect(custom.customSvg).toContain('data-theme-probe="dark"')
+    expect(custom.customSvg).toContain(document.presentation.theme.dark.card)
+    expect(document.presentation.theme.mode).toBe('light')
+  })
+  it('freezes custom SVG in portable artifacts and rejects them without a registry', async () => {
+    const { exportDocumentHtml, cardSvg, exportDocument } = await import('../src/export')
+    const registry = createRendererRegistry()
+    expect(registry.register(themeProbe).ok).toBe(true)
+    const document = probeDocument()
+    for (const result of [
+      cardSvg(document),
+      exportDocumentHtml(document, {
+        runtime: 'void 0',
+        css: '',
+        fonts: { sans: new Uint8Array(), mono: new Uint8Array() },
+      }),
+    ]) {
+      expect(result.ok).toBe(false)
+      if (!result.ok)
+        expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+          'renderer.unsupported',
+        )
+    }
+    const svg = await exportDocument(document, {
+      format: 'svg',
+      scope: { type: 'document' },
+      theme: 'light',
+      quality: 'edit',
+      background: 'theme',
+      scale: 1,
+      includeSource: false,
+      metadata: 'minimal',
+      fontPolicy: 'fallback',
+    })
+    expect(svg.ok).toBe(false)
+    const card = cardSvg(document, { registry })
+    if (!card.ok) throw Error(JSON.stringify(card.diagnostics))
+    expect(card.value.svg).toContain('data-theme-probe="light"')
+    const html = exportDocumentHtml(document, {
+      runtime: 'void 0',
+      css: '',
+      fonts: { sans: new Uint8Array(), mono: new Uint8Array() },
+      registry,
+    })
+    if (!html.ok) throw Error(JSON.stringify(html.diagnostics))
+    expect(html.value.html).toContain('data-theme-probe="light"')
+  })
+})

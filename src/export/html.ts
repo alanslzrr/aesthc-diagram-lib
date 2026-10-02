@@ -1,4 +1,4 @@
-import type { DiagramDocument, Result } from '../editor-core/types'
+import type { DiagramDocument, ResolveRendererRegistry, Result } from '../editor-core/types'
 import { canonical, failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
 import { resolveDocument } from '../editor-core/scene'
@@ -25,6 +25,12 @@ export interface ExportHtmlOptions {
    * canonical document.
    */
   metadata?: 'minimal' | 'all'
+  /**
+   * Trusted per-instance renderer registry. Custom nodes are frozen into
+   * canonical SVG; without a renderer the artifact fails with
+   * `renderer.unsupported` instead of shipping a placeholder.
+   */
+  registry?: ResolveRendererRegistry
 }
 export interface ExportHtmlArtifact {
   html: string
@@ -133,9 +139,19 @@ export function exportDocumentHtml(
   const resolved = resolveDocument(document, {
     quality: 'edit',
     requestId: 'html',
+    theme,
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.registry,
   })
   if (!resolved.ok) return resolved
+  const missingRenderer = resolved.diagnostics.find(
+    (diagnostic) =>
+      diagnostic.code === 'renderer.unsupported' ||
+      diagnostic.code === 'renderer.invalid' ||
+      diagnostic.code === 'renderer.measure' ||
+      diagnostic.code === 'renderer.empty',
+  )
+  if (missingRenderer) return failure(missingRenderer.code)
   const svg = renderSvg(document, resolved.value, {
     instanceId: 'standalone',
     theme,

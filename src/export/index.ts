@@ -153,22 +153,25 @@ export async function exportDocument(
       quality: options.quality,
       requestId: 'export',
       signal: options.signal,
+      theme: options.theme,
       measureText: measurer?.measure ?? createCanvasTextMeasurer(),
       renderers: options.renderers,
     })
     measurer?.dispose()
     if (!resolved.ok) return resolved
     diagnostics.push(...resolved.diagnostics)
-    if (options.quality === 'publish') {
-      const missingRenderer = diagnostics.find(
-        (d) =>
-          d.code === 'renderer.unsupported' ||
-          d.code === 'renderer.invalid' ||
-          d.code === 'renderer.measure',
-      )
-      if (missingRenderer) return failure(missingRenderer.code)
-      if (diagnostics.some((d) => d.code.startsWith('quality.'))) return failure('export.quality')
-    }
+    // A portable artifact never falls back to a placeholder for a custom
+    // node: without a renderer the specific export fails with a diagnostic.
+    const missingRenderer = diagnostics.find(
+      (d) =>
+        d.code === 'renderer.unsupported' ||
+        d.code === 'renderer.invalid' ||
+        d.code === 'renderer.measure' ||
+        d.code === 'renderer.empty',
+    )
+    if (missingRenderer) return failure(missingRenderer.code)
+    if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))
+      return failure('export.quality')
     width = Math.ceil(resolved.value.layout.width * options.scale)
     height = Math.ceil(resolved.value.layout.height * options.scale)
     if (

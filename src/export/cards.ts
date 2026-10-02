@@ -1,4 +1,4 @@
-import type { DiagramDocument, Result } from '../editor-core/types'
+import type { DiagramDocument, ResolveRendererRegistry, Result } from '../editor-core/types'
 import { failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
 import { resolveDocument } from '../editor-core/scene'
@@ -23,6 +23,8 @@ export interface CardSvgOptions {
   query?: CardQueryReceipt
   theme?: 'light' | 'dark'
   padding?: number
+  /** Trusted renderers; frozen into the card SVG instead of a placeholder. */
+  registry?: ResolveRendererRegistry
 }
 export interface CardArtifact {
   bytes: Uint8Array
@@ -80,9 +82,19 @@ export function cardSvg(
   const resolved = resolveDocument(document, {
     quality: 'edit',
     requestId: 'card',
+    theme,
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.registry,
   })
   if (!resolved.ok) return resolved
+  const missingRenderer = resolved.diagnostics.find(
+    (diagnostic) =>
+      diagnostic.code === 'renderer.unsupported' ||
+      diagnostic.code === 'renderer.invalid' ||
+      diagnostic.code === 'renderer.measure' ||
+      diagnostic.code === 'renderer.empty',
+  )
+  if (missingRenderer) return failure(missingRenderer.code)
   const layout = resolved.value.layout
   const padding = options.padding ?? 40
   // Reject nonfinite, negative or consuming padding before rendering: a

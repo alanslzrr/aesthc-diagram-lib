@@ -58,7 +58,7 @@ import { pinchViewport } from '../geometry/pinch'
 import { nodeGeometry } from '../geometry/node'
 import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
 import { createCanvasTextMeasurer } from '../geometry/text'
-import type { StoreOptions } from '../editor-core/types'
+import type { ResolveRendererRegistry, StoreOptions } from '../editor-core/types'
 
 const Context = createContext<{
   store: EditorStore
@@ -69,6 +69,11 @@ const Context = createContext<{
    * document theme control because the host owns the effective appearance.
    */
   theme?: 'light' | 'dark'
+  /**
+   * Trusted, per-instance custom node renderers. Never loaded from document
+   * data; two editors can register the same typeKey differently.
+   */
+  registry?: ResolveRendererRegistry
 } | null>(null)
 /** Real font widths once Geist is loaded; conservative estimate otherwise. */
 const measureText = createCanvasTextMeasurer()
@@ -76,15 +81,21 @@ export function EditorRoot({
   store,
   locale,
   theme,
+  registry,
   children,
 }: {
   store: EditorStore
   locale: Locale
   /** Effective view theme. Omit to follow the document's own presentation. */
   theme?: 'light' | 'dark'
+  /** Trusted per-instance renderer registry. */
+  registry?: ResolveRendererRegistry
   children: ReactNode
 }) {
-  const value = useMemo(() => ({ store, locale, theme }), [store, locale, theme])
+  const value = useMemo(
+    () => ({ store, locale, theme, registry }),
+    [store, locale, theme, registry],
+  )
   return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export function useEditor() {
@@ -95,6 +106,11 @@ export function useEditor() {
 export function useEditorSnapshot() {
   const { store } = useEditor()
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+}
+/** Theme and renderer context for scene resolution outside EditorSurface. */
+function useEditorResolveContext() {
+  const { theme, registry } = useEditor()
+  return useMemo(() => ({ theme, renderers: registry }), [theme, registry])
 }
 /** Shallow equality for composite selector slices (selection/document pairs). */
 export const shallowEqual = <T,>(a: T, b: T): boolean => {
@@ -263,13 +279,18 @@ function dispatch(store: EditorStore, commands: EditorCommand[], label: string) 
     commands,
   })
 }
-function materialize(document: DiagramDocument) {
+function materialize(
+  document: DiagramDocument,
+  resolve?: { theme?: 'light' | 'dark'; renderers?: ResolveRendererRegistry },
+) {
   const result = resolveDocument(document, {
     quality: 'edit',
     requestId: 'gesture',
     measureText,
     skipValidation: true,
     skipDiagnostics: true,
+    theme: resolve?.theme,
+    renderers: resolve?.renderers,
   })
   if (!result.ok) return document.scene
   return {
@@ -307,7 +328,7 @@ export function EditorStatus() {
   )
 }
 export function EditorToolbar() {
-  const { store } = useEditor(),
+  const { store, registry } = useEditor(),
     snapshot = useEditorSelector(
       (s) => ({
         tool: s.tool,
@@ -327,6 +348,7 @@ export function EditorToolbar() {
       measureText,
       skipValidation: true,
       skipDiagnostics: true,
+      renderers: registry,
     })
     if (result.ok) {
       const svg = document.querySelector<SVGSVGElement>('.adl-editor-surface > svg[role="group"]')
@@ -718,10 +740,14 @@ export function EditorSurface({
     instanceId = useId()
   const svgRef = useRef<SVGSVGElement>(null),
     [size, setSize] = useState({ width: 800, height: 600 })
-  const { theme: viewTheme } = useEditor()
+  const { theme: viewTheme, registry } = useEditor()
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
   const effectiveTheme = viewTheme ?? activeDoc.presentation.theme.mode
   const palette = activeDoc.presentation.theme[effectiveTheme]
+  const resolveContext = useMemo(
+    () => ({ theme: effectiveTheme, renderers: registry }),
+    [effectiveTheme, registry],
+  )
   const resolvePreview = useMemo(() => createPreviewResolver(), [store])
   const committedResolved = useMemo(
     () =>
@@ -731,8 +757,10 @@ export function EditorSurface({
         measureText,
         skipValidation: true,
         skipDiagnostics: true,
+        theme: effectiveTheme,
+        renderers: registry,
       }),
-    [snapshot.document, instanceId],
+    [snapshot.document, instanceId, effectiveTheme, registry],
   )
   const resolved = useMemo(
     () =>
@@ -744,8 +772,10 @@ export function EditorSurface({
             measureText,
             skipValidation: true,
             skipDiagnostics: true,
+            theme: effectiveTheme,
+            renderers: registry,
           }),
-    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview],
+    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview, effectiveTheme, registry],
   )
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]
@@ -1140,6 +1170,8 @@ export function EditorSurface({
           requestId: 'initial-fit',
           measureText,
           skipValidation: true,
+          theme: effectiveTheme,
+          renderers: registry,
         })
         if (!current.ok) return
         const next = fitViewport(current.value.worldBounds, measured, 24)
@@ -1412,7 +1444,7 @@ export function EditorSurface({
             getAdapter(snapshot.document.spec.type).capabilities.includes('move-free')
           ) {
             event.preventDefault()
-            const scene = materialize(snapshot.document),
+            const scene = materialize(snapshot.document, resolveContext),
               positions: Record<string, Point> = {}
             for (const ref of snapshot.selection)
               if (
@@ -1529,7 +1561,7 @@ export function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
@@ -1558,7 +1590,7 @@ export function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               port: {
                 nodeId: portNodeId,
@@ -1580,7 +1612,7 @@ export function EditorSurface({
             )
               return
             const startPoint = local(event)
-            const scene = materialize(snapshot.document),
+            const scene = materialize(snapshot.document, resolveContext),
               source = scene.nodes[connectSourceId]
             const anchor = source
               ? anchorPoint(source, { side: 'right', offset: 0.5 })
@@ -1673,7 +1705,7 @@ export function EditorSurface({
                 start: local(event),
                 viewport: { ...snapshot.viewport },
                 positions: {},
-                scene: materialize(snapshot.document),
+                scene: materialize(snapshot.document, resolveContext),
                 pan: false,
                 structured: {
                   kind,
@@ -1690,7 +1722,7 @@ export function EditorSurface({
             }
             if (resizeId) resizeIds = [id]
           }
-          const scene = materialize(snapshot.document),
+          const scene = materialize(snapshot.document, resolveContext),
             positions: Record<string, Point> = {}
           for (const ref of store.getSnapshot().selection)
             if (ref.kind === 'node' && scene.nodes[ref.id])
@@ -1808,7 +1840,7 @@ export function EditorSurface({
                   ? `${t('Resize', 'Redimensionar')} ${selected[0].label}`
                   : t('Resize selection', 'Redimensionar selección')
               const apply = (direction: ResizeDirection, delta: Point, step: number) => {
-                const scene = materialize(store.getSnapshot().document)
+                const scene = materialize(store.getSnapshot().document, resolveContext)
                 const ids: string[] = resizeTarget
                   ? [resizeTarget]
                   : snapshot.selection.filter((r) => r.kind === 'node').map((r) => r.id)
@@ -2192,6 +2224,7 @@ export function EditorInspector() {
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const id = snapshot.selection.find((r) => r.kind === 'node')?.id,
     node = nodesOf(snapshot.document.spec).find((n) => n.id === id)
   const [label, setLabel] = useState(''),
@@ -2276,7 +2309,7 @@ export function EditorInspector() {
             <button
               type="button"
               onClick={() => {
-                const scene = materialize(snapshot.document)
+                const scene = materialize(snapshot.document, resolveContext)
                 dispatch(
                   store,
                   [
@@ -2470,6 +2503,7 @@ export function EditorSelectionTools() {
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const fragment = useRef<DiagramFragment | null>(null),
     [hasCopy, setHasCopy] = useState(false),
     [clipboardBusy, setClipboardBusy] = useState(false),
@@ -2573,7 +2607,7 @@ export function EditorSelectionTools() {
   }, [menuOpen])
   const arrange = () => {
     const current = store.getSnapshot().document
-    const scene = materialize(current)
+    const scene = materialize(current, resolveContext)
     const positions = arrangeRects(
       nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
       arrangement,
@@ -3098,7 +3132,11 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
       shallowEqual,
     ),
     t = useLabels()
-  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document])
+  const resolveContext = useEditorResolveContext()
+  const scene = useMemo(
+    () => materialize(snapshot.document, resolveContext),
+    [snapshot.document, resolveContext],
+  )
   const placement = scene.nodes[nodeId]
   const [values, setValues] = useState({ x: '0', y: '0', width: '240', height: '64' }),
     [error, setError] = useState('')
@@ -3116,7 +3154,7 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        const scene = materialize(snapshot.document),
+        const scene = materialize(snapshot.document, resolveContext),
           result = dispatch(
             store,
             [
@@ -3292,6 +3330,7 @@ export function EditorRoute() {
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const ref = snapshot.selection.find((r) => r.kind === 'edge'),
     edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : undefined
   const [error, setError] = useState('')
@@ -3301,7 +3340,7 @@ export function EditorRoute() {
   const manual: Extract<RoutePlacement, { mode: 'manual' }> | undefined =
     route?.mode === 'manual' ? route : undefined
   const setRoute = (next: RoutePlacement, label: string) => {
-    const scene = materialize(snapshot.document)
+    const scene = materialize(snapshot.document, resolveContext)
     const commit = dispatch(
       store,
       [
@@ -3317,6 +3356,8 @@ export function EditorRoute() {
       quality: 'edit',
       requestId: 'route-manual',
       skipValidation: true,
+      theme: resolveContext.theme,
+      renderers: resolveContext.renderers,
     })
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(', '))

@@ -1,6 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { DiagramDocument, EntityRef, Locale, Viewport } from '../editor-core/types'
+import type {
+  DiagramDocument,
+  EntityRef,
+  Locale,
+  ResolveRendererRegistry,
+  Viewport,
+} from '../editor-core/types'
 import { resolveDocument } from '../editor-core/scene'
 import { findReach, findRoute, graphSnapshot } from '../graph'
 import { renderSvg } from '../render'
@@ -34,6 +40,8 @@ export interface DiagramViewerProps {
   document: DiagramDocument
   locale?: Locale
   className?: string
+  /** Trusted per-instance custom node renderers; never loaded from the document. */
+  registry?: ResolveRendererRegistry
 }
 const ZOOM_MIN = 0.1
 const ZOOM_MAX = 4
@@ -41,13 +49,18 @@ const ZOOM_MAX = 4
 /** Read-only semantic viewer: finder, inspector, exact route/reach highlight,
  * receipt-bound export, lenses, minimap, finite story and presentation.
  * Never mutates the document or the store. */
-export function DiagramViewer({ document, locale = 'en', className }: DiagramViewerProps) {
+export function DiagramViewer({ document, locale = 'en', className, registry }: DiagramViewerProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   const graph = useMemo(() => graphSnapshot(document), [document])
   const scene = useMemo(
     () =>
-      resolveDocument(document, { quality: 'edit', requestId: 'viewer', skipDiagnostics: true }),
-    [document],
+      resolveDocument(document, {
+        quality: 'edit',
+        requestId: 'viewer',
+        skipDiagnostics: true,
+        renderers: registry,
+      }),
+    [document, registry],
   )
   const [selection, setSelection] = useState<EntityRef | null>(null)
   const [origin, setOrigin] = useState<string | null>(null)

@@ -1,4 +1,4 @@
-import type { DiagramDocument, Result } from '../editor-core/types'
+import type { DiagramDocument, ResolveRendererRegistry, Result } from '../editor-core/types'
 import { failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
 import { resolveDocument } from '../editor-core/scene'
@@ -29,6 +29,8 @@ export interface MotionOptions {
   signal?: AbortSignal
   /** Reduced motion never records: the static story navigation stays. */
   reducedMotion?: boolean
+  /** Trusted renderers; without one a custom story fails instead of freezing a placeholder. */
+  renderers?: ResolveRendererRegistry
 }
 export interface MotionArtifact {
   bytes: Uint8Array
@@ -73,10 +75,15 @@ export async function exportStoryWebm(
   const resolved = resolveDocument(document, {
     quality: 'edit',
     requestId: 'motion',
-    skipDiagnostics: true,
+    theme: document.presentation.theme.mode,
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    renderers: options.renderers,
   })
   if (!resolved.ok) return resolved
+  const missingRenderer = resolved.diagnostics.find((diagnostic) =>
+    diagnostic.code.startsWith('renderer.'),
+  )
+  if (missingRenderer) return failure(missingRenderer.code)
   const width = Math.max(2, Math.ceil(resolved.value.layout.width * scale))
   const height = Math.max(2, Math.ceil(resolved.value.layout.height * scale))
   if (

@@ -170,7 +170,9 @@ export function createPreviewResolver() {
       document.presentation === previous.document.presentation &&
       document.metadata === previous.document.metadata &&
       context.measureText === previous.context.measureText &&
-      context.quality === previous.context.quality
+      context.quality === previous.context.quality &&
+      context.theme === previous.context.theme &&
+      context.renderers === previous.context.renderers
         ? previous
         : undefined
     const extents =
@@ -245,7 +247,10 @@ function resolveScene(
   // registry. Without a renderer they are reported and shown as a placeholder;
   // the standard node card is never drawn in their place.
   if (document.spec.type === 'graph') {
-    const palette = document.presentation.theme[document.presentation.theme.mode]
+    // One effective theme for standard and custom geometry: the export or
+    // editor override must never leave custom nodes in the document mode.
+    const mode = context.theme ?? document.presentation.theme.mode
+    const palette = document.presentation.theme[mode]
     for (const specNode of document.spec.nodes) {
       if (!specNode.renderer) continue
       const placed = layout.nodeById[specNode.id]
@@ -288,7 +293,7 @@ function resolveScene(
       placed.cx = placed.x + placed.w / 2
       placed.cy = placed.y + placed.h / 2
       placed.customSvg = renderer.renderSvg(validated.value, {
-        theme: document.presentation.theme.mode,
+        theme: mode,
         palette: {
           background: palette.background,
           foreground: palette.foreground,
