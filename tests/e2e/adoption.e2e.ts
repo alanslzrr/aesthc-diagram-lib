@@ -16,6 +16,61 @@ test('landing links reach adoption tools and editors mount only on demand', asyn
   await expect(page.locator('#example-band')).toBeInViewport()
 })
 
+test('full and filtered landing keep every visible internal anchor resolvable in both locales', async ({
+  page,
+}) => {
+  const visibleHrefs = (page: import('@playwright/test').Page, selector: string) =>
+    page.evaluate(
+      (selector) => [
+        ...new Set(
+          [...document.querySelectorAll<HTMLAnchorElement>(selector)]
+            .filter((anchor) => anchor.offsetParent !== null)
+            .map((anchor) => anchor.getAttribute('href') as string),
+        ),
+      ],
+      selector,
+    )
+  for (const locale of ['en', 'es']) {
+    for (const route of ['/', '/?only=example-band', '/?only=example-flowchart']) {
+      await page.goto(route)
+      await page.evaluate((locale) => localStorage.setItem('adl-locale', locale), locale)
+      await page.reload()
+      for (const href of await visibleHrefs(page, 'a[href^="#"]')) {
+        const id = decodeURIComponent(href.slice(1))
+        expect(
+          await page.evaluate((id) => document.getElementById(id) !== null, id),
+          `${route} (${locale}) ${href} has no target`,
+        ).toBe(true)
+      }
+      const switches = await visibleHrefs(page, 'a[href^="?only="]')
+      if (!route.includes('only=')) {
+        // Full mode renders every layout, so each route switch names a card.
+        for (const href of switches) {
+          const target = new URL(href, page.url()).searchParams.get('only') as string
+          await expect(
+            page.locator(`[data-diagram-panel="${target}"]`),
+            `${route} (${locale}) ${href} has no card`,
+          ).toBeVisible()
+        }
+        continue
+      }
+      for (const href of switches) {
+        const target = new URL(href, page.url()).searchParams.get('only') as string
+        await page.locator(`a[href="${href}"]`).first().click()
+        await expect(page).toHaveURL(new RegExp(`only=${target}`))
+        await expect(page.locator(`#${target}`)).toBeVisible()
+        await page.goto(route)
+        await page.evaluate((locale) => localStorage.setItem('adl-locale', locale), locale)
+        await page.reload()
+      }
+      await page
+        .getByRole('link', { name: /Back to all diagrams|Volver a todos los diagramas/ })
+        .click()
+      await expect(page.locator('.layout-gallery')).toBeVisible()
+    }
+  }
+})
+
 test('capabilities are a static section with no disclosure pattern', async ({ page }) => {
   await page.goto('/')
   const section = page.locator('#capabilities')

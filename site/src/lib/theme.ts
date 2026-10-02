@@ -13,6 +13,12 @@ function suppressThemeTransitions() {
   requestAnimationFrame(() => style.remove())
 }
 
+/**
+ * Shared host preference for the landing, docs, playground, studio and viewer
+ * chrome. Persisted under `adl-theme` and mirrored on <html data-theme>.
+ * Document/export appearance is intentionally separate: exports follow the
+ * document's own `presentation.theme.mode`, never this host preference.
+ */
 export function useThemePreference() {
   // Stable SSR markup; preference synchronizes only after hydration.
   const [preference, setPreference] = useState<ThemePreference>('system')

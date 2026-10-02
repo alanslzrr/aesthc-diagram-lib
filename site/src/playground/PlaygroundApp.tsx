@@ -3,7 +3,13 @@
 // editable session per example so history, dirty state and drafts survive
 // switching.
 
-import { useEffect, useRef, useState, type ComponentType } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 
 import {
   createDocument,
@@ -84,6 +90,15 @@ const COPY = {
     es: 'El documento es demasiado grande para transferirlo automáticamente. Descargá el JSON.',
   },
 } satisfies Record<string, Record<Locale, string>>
+
+/**
+ * Internal links intercept only unmodified primary activations. Modified and
+ * non-primary clicks keep the browser's native link behavior (new tab/window)
+ * and never run the in-page session switch or leave guard.
+ */
+function isPlainPrimaryClick(event: ReactMouseEvent<HTMLAnchorElement>): boolean {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+}
 
 /** `?only=example-band`, `?type=band` or `#example-band`. */
 export function entryFromLocation(): SectionEntry {
@@ -379,6 +394,7 @@ function PlaygroundSurface({
             className="playground-studio-link"
             href={STUDIO_URL}
             onClick={(event) => {
+              if (!isPlainPrimaryClick(event)) return
               event.preventDefault()
               studioRequest.current()
             }}
@@ -506,6 +522,7 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
               href={import.meta.env.BASE_URL}
               title={locale === 'es' ? 'Volver al inicio' : 'Back to the landing page'}
               onClick={(event) => {
+                if (!isPlainPrimaryClick(event)) return
                 event.preventDefault()
                 leaveTo(import.meta.env.BASE_URL)()
               }}
@@ -517,6 +534,7 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
               <a
                 href={`${import.meta.env.BASE_URL}docs/`}
                 onClick={(event) => {
+                  if (!isPlainPrimaryClick(event)) return
                   event.preventDefault()
                   leaveTo(`${import.meta.env.BASE_URL}docs/`)()
                 }}
@@ -526,6 +544,7 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
               <a
                 href={STUDIO_URL}
                 onClick={(event) => {
+                  if (!isPlainPrimaryClick(event)) return
                   event.preventDefault()
                   openStudio()
                 }}
@@ -594,6 +613,7 @@ export function withPlaygroundShell(Surface: ComponentType<PlaygroundSurfaceProp
                   href={`?only=${candidate.key}`}
                   aria-current={candidate.key === entry.key ? 'page' : undefined}
                   onClick={(event) => {
+                    if (!isPlainPrimaryClick(event)) return
                     event.preventDefault()
                     select(candidate)
                   }}

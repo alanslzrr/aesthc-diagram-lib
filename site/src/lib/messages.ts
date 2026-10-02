@@ -54,4 +54,26 @@ export const MESSAGES = {
     en: 'Document imported. Undo is available.',
     es: 'Documento importado. Podés deshacer.',
   },
+  readFailed: {
+    en: 'The file could not be read. The current document is unchanged.',
+    es: 'No se pudo leer el archivo. El documento actual no cambió.',
+  },
+  importStale: {
+    en: 'Canceled: the document changed before the import finished.',
+    es: 'Cancelado: el documento cambió antes de que terminara la importación.',
+  },
+  language: { en: 'Language', es: 'Idioma' },
+  theme: { en: 'Theme', es: 'Tema' },
+  light: { en: 'Light', es: 'Claro' },
+  dark: { en: 'Dark', es: 'Oscuro' },
+  diagramStudio: { en: 'Diagram Studio', es: 'Estudio de diagramas' },
+  semanticViewer: { en: 'Semantic viewer', es: 'Visor semántico' },
+  importJson: { en: 'Import JSON', es: 'Importar JSON' },
+  compareWith: { en: 'Compare with…', es: 'Comparar con…' },
+  reset: { en: 'Reset', es: 'Restaurar' },
+  backToGallery: { en: 'Back to all diagrams', es: 'Volver a todos los diagramas' },
+  hostAppearanceNote: {
+    en: 'Host theme is separate from the document appearance used in exports.',
+    es: 'El tema del host es independiente de la apariencia del documento usada al exportar.',
+  },
 } satisfies Record<string, Record<Locale, string>>

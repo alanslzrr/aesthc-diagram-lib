@@ -75,7 +75,7 @@ export default function App() {
         onLocale={() => setLocale((current) => (current === 'en' ? 'es' : 'en'))}
       />
 
-      <Hero locale={locale} theme={theme} />
+      <Hero locale={locale} theme={theme} only={only} />
 
       {shareError ? (
         <p role="alert" className="mx-auto max-w-4xl p-4">
@@ -85,6 +85,12 @@ export default function App() {
       <main id="main" tabIndex={-1} className="mx-auto mt-12 w-full max-w-[1180px] px-4 sm:px-8">
         {only ? (
           <article id={only.key} className="border-t-0 py-2 first:pt-0">
+            <a
+              href={import.meta.env.BASE_URL}
+              className="mb-3 inline-block text-xs font-medium text-muted-foreground transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:text-foreground"
+            >
+              ← {MESSAGES.backToGallery[locale]}
+            </a>
             <SectionHeader title={only.title[locale]} meta={only.key} />
             <h2 className="section-title text-foreground">{only.title[locale]}</h2>
             <p className="section-copy mt-3 max-w-[64ch] text-muted-foreground">

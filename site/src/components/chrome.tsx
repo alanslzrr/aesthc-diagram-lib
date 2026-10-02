@@ -7,7 +7,7 @@ import { InstallCommand } from './InstallCommand'
 
 import { MESSAGES } from '../lib/messages'
 import { PACKAGE_VERSION } from '../generated/quick-start'
-import type { Locale } from '../content'
+import type { Locale, SectionEntry } from '../content'
 import { FEATURES, GITHUB_URL, QUICK_START, SECTIONS, STRINGS } from '../content'
 import { CopyButton, ControlButton, SectionHeader } from './ui'
 
@@ -58,7 +58,21 @@ export function TopBar({ locale, onLocale }: { locale: Locale; onLocale: () => v
   )
 }
 
-export function Hero({ locale, theme }: { locale: Locale; theme: 'light' | 'dark' }) {
+/** In filtered mode only `only.key` renders, so cross-layout links must route. */
+function exampleHref(key: string, only: SectionEntry | null): string {
+  if (!only) return `#${key}`
+  return only.key === key ? `#${key}` : `?only=${key}#main`
+}
+
+export function Hero({
+  locale,
+  theme,
+  only,
+}: {
+  locale: Locale
+  theme: 'light' | 'dark'
+  only: SectionEntry | null
+}) {
   return (
     <div className="site-hero" id="top">
       <div className="hero-grid">
@@ -83,7 +97,7 @@ export function Hero({ locale, theme }: { locale: Locale; theme: 'light' | 'dark
         </div>
 
         <a
-          href="#example-band"
+          href={exampleHref('example-band', only)}
           className="hero-media group"
           aria-label={
             locale === 'es'
@@ -134,7 +148,7 @@ export function Hero({ locale, theme }: { locale: Locale; theme: 'light' | 'dark
           {SECTIONS.map((entry) => (
             <a
               key={entry.key}
-              href={`#${entry.key}`}
+              href={exampleHref(entry.key, only)}
               className="rounded-md border border-border-subtle px-2.5 py-1 text-xs font-medium text-foreground/80 transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-border hover:bg-muted hover:text-foreground"
             >
               {entry.title[locale]}
