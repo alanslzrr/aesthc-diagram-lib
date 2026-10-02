@@ -1,5 +1,5 @@
 import { compareVisual } from './helpers/visual'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 const types = ['band', 'flowchart', 'sequence', 'state-machine', 'er', 'timeline', 'swimlane']
 
@@ -19,7 +19,15 @@ test('sidebar preserves native modified-click navigation and switches only plain
   })
   await page.goto('/playground.html?only=example-band')
   const sidebar = page.locator('.playground-sidebar')
+  const menu = page.getByRole('button', { name: 'Diagrams', exact: true })
+  // Phones keep the sidebar behind the disclosure; open it before touching a
+  // link so the native-click assertions stay about the anchor, not visibility.
+  const showSidebar = async (link: Locator) => {
+    if (!(await link.isVisible())) await menu.click()
+    await expect(link).toBeVisible()
+  }
   const flow = sidebar.getByRole('link', { name: 'Flowchart', exact: true })
+  await showSidebar(flow)
   await flow.click()
   await expect(page).toHaveURL(/\?only=example-flowchart/)
   await expect(page.getByRole('heading', { name: 'Flowchart', exact: true })).toBeVisible()
@@ -31,15 +39,16 @@ test('sidebar preserves native modified-click navigation and switches only plain
     ),
   ).toBe(true)
 
-  const band = page.locator('.playground-sidebar').getByRole('link', { name: 'Band', exact: true })
+  const band = sidebar.getByRole('link', { name: 'Band', exact: true })
   const modifier: 'Control' | 'Meta' = process.platform === 'darwin' ? 'Meta' : 'Control'
   for (const options of [
     { button: 'middle' as const },
     { modifiers: [modifier] },
     { modifiers: ['Shift' as const] },
   ]) {
+    await showSidebar(band)
     const [opened] = await Promise.all([context.waitForEvent('page'), band.click(options)])
-    await opened.waitForLoadState()
+    await opened.waitForLoadState('domcontentloaded')
     expect(opened.url()).toContain('only=example-band')
     expect(
       await page.evaluate(() =>

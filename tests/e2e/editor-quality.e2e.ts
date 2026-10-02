@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+/** Apply a fixture through the JSON panel without changing document identity. */
+async function applyFixture(page: Page, json: string) {
+  await page.getByText('Document JSON', { exact: true }).click()
+  const editor = page.getByRole('textbox', { name: 'Document JSON' })
+  const current = JSON.parse(await editor.inputValue()) as { id: string }
+  const fixture = JSON.parse(json)
+  fixture.id = current.id
+  await editor.fill(JSON.stringify(fixture))
+  await page.getByRole('button', { name: 'Apply JSON' }).click()
+}
 
 function longLabelDocument(labels: string[]) {
   return JSON.stringify({
@@ -74,9 +85,8 @@ test('T36.2 publish export measures long labels with embedded fonts without clip
   page,
 }) => {
   await page.goto('/studio.html')
-  await page.getByText('Document JSON', { exact: true }).click()
-  const json = page.getByRole('textbox', { name: 'Document JSON' })
-  await json.fill(
+  await applyFixture(
+    page,
     longLabelDocument([
       'Kafka event gateway consumption pipeline',
       'Mensaje de confirmación de pedido en cola',
@@ -85,21 +95,22 @@ test('T36.2 publish export measures long labels with embedded fonts without clip
       'API gateway authentication middleware',
     ]),
   )
-  await page.getByRole('button', { name: 'Apply JSON' }).click()
   await expect(
     page
       .locator('.adl-editor-surface')
       .getByRole('button', { name: 'Kafka event gateway consumption pipeline', exact: true }),
   ).toBeVisible()
+  await page.getByText('More export options', { exact: true }).click()
   await page.getByLabel('Export quality').selectOption('publish')
+  await page.getByLabel('Font handling').selectOption('required')
   await page.getByLabel('Export format').selectOption('svg')
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download', exact: true }).click()
   await downloadPromise
-  await expect(
-    page.getByText('Exported revision', { exact: false }).filter({ hasNotText: 'quality.' }),
-  ).toBeVisible()
-  await expect(page.getByText(/quality\./)).toHaveCount(0)
+  const receipt = page.locator('[data-export-receipt]')
+  await expect(receipt).toContainText('Exported revision')
+  await expect(receipt).not.toContainText('quality.')
+  await expect(page.locator('[data-export-error]')).toHaveCount(0)
 })
 
 test('T36.2 missing font metrics surface an actionable error and never a false success', async ({
@@ -111,13 +122,18 @@ test('T36.2 missing font metrics surface an actionable error and never a false s
   await page.route('**/*.woff2', (route) =>
     route.fulfill({ status: 200, contentType: 'font/woff2', body: 'not-a-font' }),
   )
-  await page.getByText('Document JSON', { exact: true }).click()
-  const json = page.getByRole('textbox', { name: 'Document JSON' })
-  await json.fill(longLabelDocument(['A', 'B']))
-  await page.getByRole('button', { name: 'Apply JSON' }).click()
+  await page.goto('/studio.html')
+  await applyFixture(page, longLabelDocument(['A', 'B']))
   await expect(page.getByRole('button', { name: 'A', exact: true })).toBeVisible()
+  await page.getByText('More export options', { exact: true }).click()
   await page.getByLabel('Export quality').selectOption('publish')
+  let downloaded = false
+  page.once('download', () => {
+    downloaded = true
+  })
   await page.getByRole('button', { name: 'Download', exact: true }).click()
-  await expect(page.getByText('export.font-invalid', { exact: true })).toBeVisible()
-  await expect(page.getByText('Exported revision', { exact: false })).toHaveCount(0)
+  await expect(page.locator('[data-export-error]')).toContainText('export.font-invalid')
+  await expect(page.locator('[data-export-receipt]')).toHaveCount(0)
+  await page.waitForTimeout(300)
+  expect(downloaded).toBe(false)
 })
