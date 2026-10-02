@@ -60,10 +60,14 @@ function documentJson(descriptions: string[]) {
   })
 }
 
+// Identity-changing payloads use the explicit import path; Apply JSON only
+// edits the current document.
 async function importDocument(page: import('@playwright/test').Page, json: string) {
-  await page.getByText('Document JSON', { exact: true }).click()
-  await page.getByRole('textbox', { name: 'Document JSON' }).fill(json)
-  await page.getByRole('button', { name: 'Apply JSON' }).click()
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'document.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(json),
+  })
 }
 
 test('T40.2 an oversized share link offers a local JSON download and never announces success', async ({

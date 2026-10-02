@@ -109,6 +109,9 @@ function Workbench() {
   const [conversion, setConversion] = useState<{
     document: DiagramDocument
     losses: ConversionReceipt['losses']
+    /** Identity and revision the snapshot was generated from. */
+    documentId: string
+    baseRevision: number
   } | null>(null)
   const [activeKey, setActiveKey] = useState(initialDocument.id)
   const token = useRef<string | null>(null),
@@ -226,6 +229,20 @@ function Workbench() {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [snapshot.dirty])
+  useEffect(() => {
+    // A pending conversion belongs to the revision it rendered. Editing,
+    // importing or undoing invalidates it instead of confirming stale content.
+    if (!conversion) return
+    const current = store.getSnapshot().document
+    if (current.id === conversion.documentId && current.revision === conversion.baseRevision) return
+    setConversion(null)
+    setMessage(
+      t(
+        'The document changed after this conversion was prepared. Request a new conversion to review the current content.',
+        'El documento cambió después de preparar esta conversión. Solicita una conversión nueva para revisar el contenido actual.',
+      ),
+    )
+  }, [conversion, snapshot.document.id, snapshot.document.revision])
   async function share() {
     setMessage('')
     const encoded = await encodeShareDocument(snapshot.document)
@@ -309,15 +326,34 @@ function Workbench() {
       setMessage(converted.diagnostics.map((d) => d.code).join(', '))
       return
     }
-    setConversion({ document: converted.value.document, losses: converted.value.losses })
+    setConversion({
+      document: converted.value.document,
+      losses: converted.value.losses,
+      documentId: current.id,
+      baseRevision: current.revision,
+    })
   }
   function confirmConversion() {
     if (!conversion) return
+    const current = store.getSnapshot().document
+    // The snapshot is only valid for the exact document revision it was
+    // generated from. A fresh read must never authorize stale content.
+    if (current.id !== conversion.documentId || current.revision !== conversion.baseRevision) {
+      setConversion(null)
+      setMessage(
+        t(
+          'The document changed after this conversion was prepared. Request a new conversion to review the current content.',
+          'El documento cambió después de preparar esta conversión. Solicita una conversión nueva para revisar el contenido actual.',
+        ),
+      )
+      return
+    }
     const commit = store.replaceDocument(conversion.document, {
-      expectedRevision: store.getSnapshot().document.revision,
+      expectedRevision: conversion.baseRevision,
       history: 'reset',
     })
     if (commit.status === 'rejected') {
+      setConversion(null)
       setMessage(commit.diagnostics.map((d) => d.code).join(', '))
       return
     }
