@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { DiagramDocument, EntityRef, Locale, Viewport } from '../editor-core/types'
 import { resolveDocument } from '../editor-core/scene'
@@ -147,6 +147,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
             highlight,
             dim: lensSet,
             exclude,
+            // The interactive surface owns a viewport-wide backdrop below the
+            // stage; the exported artifact keeps the document's own policy.
+            background: 'transparent',
+            grid: 'none',
           })
         : '',
     [document, scene, highlight, lensSet, exclude],
@@ -414,6 +418,34 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     width: viewSize.width / camera.zoom,
     height: viewSize.height / camera.zoom,
   }
+  // Center the camera in the viewport: screen = origin + (world - camera) * zoom.
+  const stageTransform = `translate(${viewSize.width / 2 - camera.x * camera.zoom}px, ${viewSize.height / 2 - camera.y * camera.zoom}px) scale(${camera.zoom})`
+  const gridLayerId = useId().replaceAll(':', '')
+  const STAGE_OFFSET = 16
+  const viewportGrid = useMemo(() => {
+    const grid = document.presentation.grid
+    if (!grid.visible || !scene.ok) return null
+    const palette = document.presentation.theme[document.presentation.theme.mode]
+    const base = Number.isFinite(grid.size) && grid.size > 0 ? grid.size : 16
+    let step = base
+    let spacing = step * camera.zoom
+    while (spacing < 10 && step < base * 16) {
+      step *= 2
+      spacing = step * camera.zoom
+    }
+    // Match the stage's own offset from the host border box (see
+    // .adl-viewer-stage top/left) so dots keep world phase with the nodes.
+    const originX = STAGE_OFFSET + viewSize.width / 2 - camera.x * camera.zoom
+    const originY = STAGE_OFFSET + viewSize.height / 2 - camera.y * camera.zoom
+    const phaseX = ((originX % spacing) + spacing) % spacing
+    const phaseY = ((originY % spacing) + spacing) % spacing
+    return {
+      palette: palette.foreground,
+      spacing,
+      phaseX,
+      phaseY,
+    }
+  }, [camera, document.presentation.grid, document.presentation.theme, scene.ok, viewSize])
   const proxyMarkup = useMemo(() => {
     if (!collapse || !scene.ok) return ''
     const theme = document.presentation.theme[document.presentation.theme.mode]
@@ -624,13 +656,59 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
             panTo(event)
           }}
         >
+          {viewportGrid && (
+            <svg
+              className="adl-viewer-backdrop"
+              aria-hidden="true"
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${viewSize.width} ${viewSize.height}`}
+            >
+              <defs>
+                <pattern
+                  id={`adl-viewer-grid-${gridLayerId}`}
+                  width={viewportGrid.spacing}
+                  height={viewportGrid.spacing}
+                  patternUnits="userSpaceOnUse"
+                  patternTransform={`translate(${viewportGrid.phaseX} ${viewportGrid.phaseY})`}
+                >
+                  <circle cx="1" cy="1" r="1" fill={viewportGrid.palette} fillOpacity="0.12" />
+                </pattern>
+                <radialGradient
+                  id={`adl-viewer-fade-${gridLayerId}`}
+                  gradientUnits="userSpaceOnUse"
+                  cx={viewSize.width / 2}
+                  cy={viewSize.height / 2}
+                  r={Math.max(viewSize.width, viewSize.height) * 0.72}
+                >
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="65%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                </radialGradient>
+                <mask id={`adl-viewer-mask-${gridLayerId}`}>
+                  <rect
+                    width={viewSize.width}
+                    height={viewSize.height}
+                    fill={`url(#adl-viewer-fade-${gridLayerId})`}
+                  />
+                </mask>
+              </defs>
+              <rect
+                data-viewer-grid="true"
+                width={viewSize.width}
+                height={viewSize.height}
+                fill={`url(#adl-viewer-grid-${gridLayerId})`}
+                mask={`url(#adl-viewer-mask-${gridLayerId})`}
+              />
+            </svg>
+          )}
           {scene.ok ? (
             <div
               className="adl-viewer-stage"
               style={{
                 width: scene.value.layout.width,
                 height: scene.value.layout.height,
-                transform: `translate(${camera.x - viewWorldSize.width / 2}px, ${camera.y - viewWorldSize.height / 2}px) scale(${camera.zoom})`,
+                transform: stageTransform,
                 transformOrigin: '0 0',
               }}
               dangerouslySetInnerHTML={{ __html: svg }}
@@ -643,6 +721,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           {scene.ok && collapse && (
             <div
               className="adl-viewer-overlay"
+              style={{ transform: stageTransform, transformOrigin: '0 0' }}
               dangerouslySetInnerHTML={{ __html: overlayMarkup }}
             />
           )}

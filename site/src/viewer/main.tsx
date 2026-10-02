@@ -4,7 +4,10 @@ import { createDocument, importDocument } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
 import { Comparison, DiagramViewer } from '@aesthc/diagram-lib/viewer'
 import '@aesthc/diagram-lib/viewer.css'
+import '../fonts.css'
 import '../design-system.css'
+import '../generated/palette.css'
+import '../theme-tokens.css'
 import './viewer.css'
 
 const initial = createDocument(

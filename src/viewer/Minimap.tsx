@@ -29,10 +29,10 @@ export function Minimap({
     return layoutWidth > 0 ? width / layoutWidth : 1
   }, [layoutWidth])
   const viewport = {
-    left: (camera.x - viewWorldSize.width / 2 / camera.zoom) * scale,
-    top: (camera.y - viewWorldSize.height / 2 / camera.zoom) * scale,
-    width: (viewWorldSize.width / camera.zoom) * scale,
-    height: (viewWorldSize.height / camera.zoom) * scale,
+    left: (camera.x - viewWorldSize.width / 2) * scale,
+    top: (camera.y - viewWorldSize.height / 2) * scale,
+    width: viewWorldSize.width * scale,
+    height: viewWorldSize.height * scale,
   }
   function moveTo(event: ReactPointerEvent<HTMLDivElement>) {
     const bounds = frame.current?.getBoundingClientRect()

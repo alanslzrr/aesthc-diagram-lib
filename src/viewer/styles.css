@@ -169,6 +169,13 @@
   overflow: hidden;
   padding: 16px;
 }
+/* Viewport-wide decorative grid: below the stage, camera-synced, never a mask
+ * over the diagram. Exports keep the document's own background and grid. */
+.adl-viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .adl-viewer-stage {
   position: absolute;
   top: 16px;
@@ -201,6 +208,8 @@
 }
 .adl-viewer-minimap {
   position: relative;
+  width: fit-content;
+  max-width: calc(100% - 32px);
   margin: 0 16px 16px;
   padding: 6px;
   background: var(--adl-card);
@@ -211,6 +220,9 @@
 }
 .adl-viewer-minimap-svg svg {
   display: block;
+  width: 100%;
+  height: auto;
+  min-width: 0 !important;
   max-width: none;
 }
 .adl-viewer-minimap-viewport {
