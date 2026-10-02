@@ -11,6 +11,8 @@ import * as registry from '@aesthc/diagram-lib/registry'
 import { EXAMPLE_DIAGRAMS, registerExampleDiagrams } from '@aesthc/diagram-lib/examples'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
 import { DiagramCanvas, previewBounds } from '@aesthc/diagram-lib/canvas'
+import './docs-examples.test.mjs'
+import './theme-contract.test.mjs'
 
 const packageRoot = fileURLToPath(new URL('./node_modules/@aesthc/diagram-lib/', import.meta.url))
 const manifest = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'))

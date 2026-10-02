@@ -13,7 +13,8 @@ and the same considered visual language from the first node to the last connecti
 - **Explore relationships** read-only: search, routes, reachability, lenses and
   stories live in the [viewer guide](guides/viewer.md).
 - **Export and share** JSON, SVG, PNG, JPEG, WebP, offline HTML and bounded
-  links in [sharing & exports](guides/share-export.md).
+  links through the public `export` and `persistence` entrypoints, or through
+  the Playground and Studio controls, in [sharing & exports](guides/share-export.md).
 - **Extend it** with per-instance node renderers and layout providers in
   [extending](guides/extending.md).
 
