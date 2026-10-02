@@ -104,6 +104,7 @@ function Workbench() {
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
   const [copies, setCopies] = useState<StoredEntry[]>([])
+  const [copiesOpen, setCopiesOpen] = useState(false)
   const [conversion, setConversion] = useState<{
     document: DiagramDocument
     losses: ConversionReceipt['losses']
@@ -499,28 +500,38 @@ function Workbench() {
           <button type="button" onClick={() => void load()}>
             {t('Load saved', 'Cargar guardado')}
           </button>
-          <details
-            className="studio-copies"
-            onToggle={(event) => {
-              if ((event.target as HTMLDetailsElement).open) void refreshCopies()
-            }}
-          >
-            <summary>{t('Saved copies', 'Copias guardadas')}</summary>
-            {copies.length ? (
-              <ul>
-                {copies.map((copy) => (
-                  <li key={copy.key}>
-                    <span className="adl-editor-mono">{copy.label}</span>
-                    <button type="button" onClick={() => void openCopy(copy.key)}>
-                      {t('Open', 'Abrir')}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>{t('No saved copies.', 'No hay copias guardadas.')}</p>
+          <div className="studio-copies">
+            <button
+              type="button"
+              aria-expanded={copiesOpen}
+              aria-controls="studio-copies-list"
+              onClick={() => {
+                const next = !copiesOpen
+                setCopiesOpen(next)
+                if (next) void refreshCopies()
+              }}
+            >
+              {t('Saved copies', 'Copias guardadas')}
+            </button>
+            {copiesOpen && (
+              <div id="studio-copies-list">
+                {copies.length ? (
+                  <ul>
+                    {copies.map((copy) => (
+                      <li key={copy.key}>
+                        <span className="adl-editor-mono">{copy.label}</span>
+                        <button type="button" onClick={() => void openCopy(copy.key)}>
+                          {t('Open', 'Abrir')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{t('No saved copies.', 'No hay copias guardadas.')}</p>
+                )}
+              </div>
             )}
-          </details>
+          </div>
           <label>
             <input
               type="checkbox"

@@ -1,4 +1,5 @@
 import type { Locale } from '../content'
+export { savedLocale, saveLocale } from './locale'
 export const MESSAGES = {
   copied: { en: 'Copied', es: 'Copiado' },
   copyFailed: {
@@ -35,19 +36,22 @@ export const MESSAGES = {
   manager: { en: 'Package manager', es: 'Gestor de paquetes' },
   installation: { en: 'Installation command', es: 'Comando de instalación' },
   integration: { en: 'Integration code', es: 'Código de integración' },
+  zoom: { en: 'Canvas zoom', es: 'Zoom del canvas' },
+  zoomIn: { en: 'Zoom in', es: 'Acercar' },
+  zoomOut: { en: 'Zoom out', es: 'Alejar' },
+  fit: { en: 'Fit diagram to the panel', es: 'Ajustar el diagrama al panel' },
+  fitShort: { en: 'Fit', es: 'Ajustar' },
+  actualSize: { en: 'Actual size', es: 'Tamaño real' },
+  importTooLarge: {
+    en: 'The JSON file exceeds 1 MiB. Nothing was imported.',
+    es: 'El archivo JSON supera 1 MiB. No se importó nada.',
+  },
+  importInvalid: {
+    en: 'The JSON is invalid or exceeds the document limits.',
+    es: 'El JSON no es válido o supera los límites del documento.',
+  },
+  importDone: {
+    en: 'Document imported. Undo is available.',
+    es: 'Documento importado. Podés deshacer.',
+  },
 } satisfies Record<string, Record<Locale, string>>
-
-export function savedLocale(): Locale {
-  try {
-    return localStorage.getItem('adl-locale') === 'es' ? 'es' : 'en'
-  } catch {
-    return 'en'
-  }
-}
-export function saveLocale(locale: Locale) {
-  try {
-    localStorage.setItem('adl-locale', locale)
-  } catch {
-    /* Preference is optional. */
-  }
-}

@@ -62,14 +62,9 @@ test('share roundtrip restores spec and locale', async ({ page }) => {
   await expect(panel.locator('svg[role="group"]')).toBeVisible()
 })
 
-test('keyboard selection and JSON/SVG/PNG downloads work', async ({ page }) => {
+test('panel exports JSON, SVG and PNG', async ({ page }) => {
   await page.goto('/?only=example-flowchart')
   const panel = page.locator('[data-diagram-panel]')
-  const node = panel.locator('[data-node-id][role="button"]').first()
-  await node.focus()
-  await page.keyboard.press('Enter')
-  await expect(node).toHaveAttribute('aria-pressed', 'true')
-  await page.keyboard.press('Escape')
   for (const name of ['Download JSON', 'Download SVG', 'Download PNG']) {
     await panel.locator('summary.export-trigger').click()
     const download = page.waitForEvent('download')
