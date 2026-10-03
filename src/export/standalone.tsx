@@ -98,7 +98,10 @@ function frozenRegistry(index: FrozenIndex): ResolveRendererRegistry | undefined
   }
 }
 
-class ViewerBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
+class ViewerBoundary extends Component<
+  { onError: () => void; children: ReactNode },
+  { failed: boolean }
+> {
   state = { failed: false }
   static getDerivedStateFromError() {
     return { failed: true }

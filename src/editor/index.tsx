@@ -207,7 +207,8 @@ const NodeHitRect = memo(function NodeHitRect({
       width={width}
       height={height}
       rx={4}
-      fill="transparent" pointerEvents="all"
+      fill="transparent"
+      pointerEvents="all"
       stroke={selected ? stroke : 'none'}
       strokeWidth={2 / zoom}
       tabIndex={0}
@@ -262,7 +263,8 @@ const EdgeHitRect = memo(function EdgeHitRect({
       width={width}
       height={height}
       rx={6}
-      fill="transparent" pointerEvents="all"
+      fill="transparent"
+      pointerEvents="all"
       stroke={selected ? stroke : 'transparent'}
       style={{ cursor: 'pointer' }}
       tabIndex={0}
@@ -1964,7 +1966,8 @@ export function EditorSurface({
                     y={group.y + group.height * handle.y - handleHalf}
                     width={handleHalf * 2}
                     height={handleHalf * 2}
-                    fill="transparent" pointerEvents="all"
+                    fill="transparent"
+                    pointerEvents="all"
                     style={{ cursor: handle.cursor }}
                     tabIndex={0}
                     role="button"
@@ -2025,7 +2028,8 @@ export function EditorSurface({
                         cx={p.x}
                         cy={p.y}
                         r={Math.max(16, 22 / snapshot.viewport.zoom)}
-                        fill="transparent" pointerEvents="all"
+                        fill="transparent"
+                        pointerEvents="all"
                         style={{ cursor: 'move' }}
                         tabIndex={0}
                         role="button"
@@ -2055,7 +2059,8 @@ export function EditorSurface({
                         cx={position.x}
                         cy={position.y}
                         r={Math.max(16, 22 / snapshot.viewport.zoom)}
-                        fill="transparent" pointerEvents="all"
+                        fill="transparent"
+                        pointerEvents="all"
                         style={{ cursor: 'crosshair' }}
                         tabIndex={0}
                         role="button"
@@ -2121,7 +2126,8 @@ export function EditorSurface({
                           cx={position.x}
                           cy={position.y}
                           r={portTarget}
-                          fill="transparent" pointerEvents="all"
+                          fill="transparent"
+                          pointerEvents="all"
                           style={{ cursor: 'crosshair' }}
                           tabIndex={0}
                           role="button"
@@ -2180,7 +2186,8 @@ export function EditorSurface({
                     cx={anchor.x}
                     cy={anchor.y}
                     r={connectTarget}
-                    fill="transparent" pointerEvents="all"
+                    fill="transparent"
+                    pointerEvents="all"
                     style={{ cursor: 'crosshair' }}
                     tabIndex={0}
                     role="button"
