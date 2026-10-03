@@ -1,0 +1,37 @@
+[WebServer] (node:25642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:25643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 23 tests using 1 worker
+
+(node:25663) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~50%
+[2/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~100%
+[3/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~200%
+[4/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~50%
+[5/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~100%
+[6/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~200%
+[7/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~50%
+[8/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~100%
+[9/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~200%
+[10/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~50%
+[11/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~100%
+[12/23] [chromium] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~200%
+[13/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-flowchart and persists with one undo entry
+[14/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-er and persists with one undo entry
+[15/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-state-machine and persists with one undo entry
+[16/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-band and persists with one undo entry
+[17/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-swimlane and persists with one undo entry
+[18/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-sequence and persists with one undo entry
+[19/23] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-timeline and persists with one undo entry
+[20/23] [chromium] › tests/e2e/editor-drag.e2e.ts:70:1 › dragging an imported graph node persists its scene position
+[21/23] [chromium] › tests/e2e/editor-drag.e2e.ts:125:1 › a canceled drag rolls back with no history entry
+[22/23] [chromium] › tests/e2e/studio.e2e.ts:558:1 › Studio exposes eight resize directions with anchored keyboard edits
+[23/23] [chromium] › tests/e2e/studio.e2e.ts:620:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit
+  23 passed (11.0s)

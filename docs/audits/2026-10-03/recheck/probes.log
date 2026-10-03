@@ -1,0 +1,51 @@
+nested document valid true
+nested security group {"ok":true,"value":{"enabled":true,"facts":{"nodes":1,"regions":1,"crossRegionEdges":0},"diagnostics":[]},"diagnostics":[]}
+custom HTML true {
+  documentId: 'audit',
+  revision: 0,
+  mimeType: 'text/html',
+  bytes: 887603,
+  canonical: true,
+  sourceIncluded: false,
+  metadata: 'minimal',
+  frozenCustomNodes: 1,
+  verified: false,
+  runtimeBytes: 678250,
+  fontBytes: 141020
+}
+renderer throw validate {
+  ok: false,
+  diagnostics: [
+    {
+      code: 'renderer.failed',
+      path: '/',
+      message: 'renderer.failed',
+      severity: 'error',
+      supportedFixes: []
+    }
+  ]
+}
+renderer throw measure {
+  ok: false,
+  diagnostics: [
+    {
+      code: 'renderer.failed',
+      path: '/',
+      message: 'renderer.failed',
+      severity: 'error',
+      supportedFixes: []
+    }
+  ]
+}
+renderer throw renderSvg {
+  ok: false,
+  diagnostics: [
+    {
+      code: 'renderer.failed',
+      path: '/',
+      message: 'renderer.failed',
+      severity: 'error',
+      supportedFixes: []
+    }
+  ]
+}
