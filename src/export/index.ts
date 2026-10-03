@@ -1,3 +1,4 @@
+import { waitForExport } from './wait'
 import type { Diagnostic, DiagramDocument, EntityRef, Result } from '../editor-core/types'
 import { canonical, failure, issue, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
@@ -138,7 +139,17 @@ export async function exportDocument(
       fonts = result.value
       measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono)
       if (measurer) {
-        const embeddedReady = await measurer.ready()
+        let embeddedReady: boolean
+        try {
+          embeddedReady = await waitForExport(measurer.ready(), options.signal)
+        } catch (error) {
+          measurer.dispose()
+          return failure(
+            error instanceof Error && error.message === 'operation.aborted'
+              ? 'operation.aborted'
+              : 'export.timeout',
+          )
+        }
         if (!embeddedReady) {
           measurer.dispose()
           measurer = undefined

@@ -1,5 +1,6 @@
 import type { Result } from '../editor-core/types'
 import { failure, success } from '../editor-core/data'
+import { waitForExport } from './wait'
 
 /** Rasterizes an SVG string through a data-free canvas. Browser only; the
  * object URL and canvas are always released, aborts included. */
@@ -20,44 +21,37 @@ export async function rasterizeSvg(
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })),
     image = new Image()
   try {
-    await new Promise<void>((resolve, reject) => {
-      const abort = () => {
-        cleanup()
-        reject(Error('operation.aborted'))
-      }
-      const cleanup = () => {
-        image.onload = null
-        image.onerror = null
-        signal?.removeEventListener('abort', abort)
-      }
-      image.onload = () => {
-        cleanup()
-        resolve()
-      }
-      image.onerror = () => {
-        cleanup()
-        reject(Error('export.image'))
-      }
-      signal?.addEventListener('abort', abort, { once: true })
-      if (signal?.aborted) abort()
-      else image.src = url
-    })
+    await waitForExport(
+      new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve()
+        image.onerror = () => reject(Error('export.image'))
+        if (!signal?.aborted) image.src = url
+      }),
+      signal,
+    )
     if (signal?.aborted) return failure('operation.aborted')
     context.drawImage(image, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.92))
+    const blob = await waitForExport(
+      new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.92)),
+      signal,
+    )
     if (signal?.aborted) return failure('operation.aborted')
     if (!blob) return failure('export.encode')
     if (blob.type !== mime) return failure('export.mime')
-    return success(new Uint8Array(await blob.arrayBuffer()))
+    return success(new Uint8Array(await waitForExport(blob.arrayBuffer(), signal)))
   } catch (error) {
     return failure(
       error instanceof Error && error.message === 'operation.aborted'
         ? 'operation.aborted'
-        : error instanceof Error && error.message === 'export.image'
-          ? 'export.image'
-          : 'export.raster',
+        : error instanceof Error && error.message === 'export.timeout'
+          ? 'export.timeout'
+          : error instanceof Error && error.message === 'export.image'
+            ? 'export.image'
+            : 'export.raster',
     )
   } finally {
+    image.onload = null
+    image.onerror = null
     image.src = ''
     URL.revokeObjectURL(url)
     canvas.width = 0
