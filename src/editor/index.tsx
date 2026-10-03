@@ -49,6 +49,7 @@ import {
 import { fitViewport, zoomAt, screenToWorld } from '../editor-core/viewport'
 import { serializeDocument } from '../editor-core/document'
 import { renderSceneMarkup } from '../render'
+import { baselineUpdate, patchBaseline, type BaselineFrame } from './baseline'
 import { createFragment, pasteFragment } from '../editor-core/clipboard'
 import type { DiagramFragment, RelationInput } from '../editor-core/types'
 import { createEditorStore } from '../editor-core/store'
@@ -642,7 +643,7 @@ const SceneHits = memo(function SceneHits({
 })
 
 const BaselineLayer = memo(function BaselineLayer({
-  markup,
+  frame,
   hidden,
   width,
   height,
@@ -653,7 +654,7 @@ const BaselineLayer = memo(function BaselineLayer({
   gridCell,
   gridColor,
 }: {
-  markup: string
+  frame: BaselineFrame | null
   hidden: { nodes: string[]; edges: string[] } | null
   width: number
   height: number
@@ -666,6 +667,20 @@ const BaselineLayer = memo(function BaselineLayer({
   gridColor: string
 }) {
   const root = useRef<SVGSVGElement>(null)
+  const content = useRef<SVGGElement>(null)
+  const previous = useRef<BaselineFrame | null>(null)
+  useLayoutEffect(() => {
+    if (!content.current) return
+    if (!frame) {
+      content.current.replaceChildren()
+      previous.current = null
+      return
+    }
+    const update = baselineUpdate(previous.current, frame)
+    if (update.full || !patchBaseline(content.current, update.markup))
+      content.current.innerHTML = update.full ? update.markup : baselineUpdate(null, frame).markup
+    previous.current = frame
+  }, [frame])
   useLayoutEffect(() => {
     if (!hidden || !root.current) return
     const nodeIds = new Set(hidden.nodes),
@@ -685,7 +700,7 @@ const BaselineLayer = memo(function BaselineLayer({
     return () => {
       for (const element of elements) element.style.removeProperty('visibility')
     }
-  }, [hidden, markup])
+  }, [hidden, frame])
   return (
     <svg
       ref={root}
@@ -705,7 +720,7 @@ const BaselineLayer = memo(function BaselineLayer({
             color={gridColor}
           />
         )}
-        <SceneMarkup markup={markup} />
+        <g ref={content} />
       </g>
     </svg>
   )
@@ -825,16 +840,18 @@ export function EditorSurface({
     nodes: string[]
     edges: string[]
   } | null>(null)
-  const baseline = useMemo(
+  const baselineFrame = useMemo<BaselineFrame | null>(
     () =>
       committedResolved.ok
-        ? renderSceneMarkup(snapshot.document, committedResolved.value, {
+        ? {
+            document: snapshot.document,
+            scene: committedResolved.value,
             instanceId,
             theme: effectiveTheme,
-            grid: 'none',
-          })
-        : '',
-    [snapshot.document, committedResolved, instanceId, effectiveTheme],
+            fontGeneration,
+          }
+        : null,
+    [snapshot.document, committedResolved, instanceId, effectiveTheme, fontGeneration],
   )
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null
@@ -1416,7 +1433,7 @@ export function EditorSurface({
   return (
     <div className={`adl-editor-surface ${className ?? ''}`}>
       <BaselineLayer
-        markup={baseline}
+        frame={baselineFrame}
         hidden={gestureEntities}
         width={size.width}
         height={size.height}
