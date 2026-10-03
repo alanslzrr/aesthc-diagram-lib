@@ -1,3 +1,4 @@
+import { DocumentConfiguration } from '../components/DocumentConfiguration'
 // Dedicated playground: an editable workspace backed by the public editor
 // store. The shell is a higher-order component; the wrapped surface owns one
 // editable session per example so history, dirty state and drafts survive
@@ -163,6 +164,7 @@ function EditorWorkspace({
         />
         <EditorInspector />
       </div>
+      <DocumentConfiguration />
       <EditorPanelTabs />
     </div>
   )

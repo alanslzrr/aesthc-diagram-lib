@@ -1,3 +1,4 @@
+import { DocumentConfiguration } from '../components/DocumentConfiguration'
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -782,6 +783,7 @@ function Workbench() {
           <EditorSurface />
           <EditorInspector />
         </div>
+        <DocumentConfiguration />
         <EditorOutline />
         <EditorJsonPanel />
         <footer className="studio-footer">
