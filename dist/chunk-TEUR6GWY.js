@@ -1,6 +1,6 @@
 import {
   validateDeploymentProfile
-} from "./chunk-D5YCKARS.js";
+} from "./chunk-NWFAZXNB.js";
 import {
   createCanvasTextMeasurer,
   createEmbeddedFontTextMeasurer,
@@ -8,10 +8,10 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-LYWSIJPC.js";
+} from "./chunk-TFKE7HJ5.js";
 import {
   serializeDocument
-} from "./chunk-TSYG4LOT.js";
+} from "./chunk-UKKTZNGD.js";
 import {
   canonical,
   edgesOf,
@@ -20,7 +20,7 @@ import {
   nodesOf,
   success,
   validateDocument
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 import {
   escapeXml,
   renderSceneMarkup,

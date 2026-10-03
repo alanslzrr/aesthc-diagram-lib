@@ -12,7 +12,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 import {
   validateLocalizedDiagram
 } from "./chunk-UHROM3FO.js";

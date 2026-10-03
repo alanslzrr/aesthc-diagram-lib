@@ -14,7 +14,7 @@ import {
   runRegisteredLayout,
   validateCustomPayload,
   verifyEvidence
-} from "../chunk-VU2PYVDV.js";
+} from "../chunk-3WSHOIWW.js";
 import {
   createEditorStore,
   createFragment,
@@ -23,15 +23,15 @@ import {
   screenToWorld,
   worldToScreen,
   zoomAt
-} from "../chunk-XVDCABNJ.js";
+} from "../chunk-55ICDXSN.js";
 import {
   validateDeploymentProfile
-} from "../chunk-D5YCKARS.js";
+} from "../chunk-NWFAZXNB.js";
 import {
   getAdapter,
   relayoutScene,
   resolveDocument
-} from "../chunk-LYWSIJPC.js";
+} from "../chunk-TFKE7HJ5.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import {
@@ -41,13 +41,13 @@ import {
   exportLegacySpec,
   importDocument,
   serializeDocument
-} from "../chunk-TSYG4LOT.js";
+} from "../chunk-UKKTZNGD.js";
 import "../chunk-BBMS4ALE.js";
 import {
   DEFAULT_LIMITS,
   validateDocument,
   validateEditorSpec
-} from "../chunk-TN5OC77A.js";
+} from "../chunk-QWYSRMUP.js";
 import "../chunk-UHROM3FO.js";
 import "../chunk-S6PSHJSL.js";
 import "../chunk-KKMUFXA6.js";

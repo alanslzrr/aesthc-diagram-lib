@@ -4,7 +4,7 @@ import {
   nodesOf,
   success,
   validateDocument
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 
 // src/editor-core/profiles.ts
 function validateDeploymentProfile(input, options = {}) {

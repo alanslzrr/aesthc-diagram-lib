@@ -1,13 +1,13 @@
 import {
   createEditorStore
-} from "./chunk-XVDCABNJ.js";
+} from "./chunk-55ICDXSN.js";
 import {
   isNodeLocked,
   resolveDocument
-} from "./chunk-LYWSIJPC.js";
+} from "./chunk-TFKE7HJ5.js";
 import {
   createDocument
-} from "./chunk-TSYG4LOT.js";
+} from "./chunk-UKKTZNGD.js";
 import {
   edgesOf,
   failure,
@@ -15,7 +15,7 @@ import {
   nodesOf,
   success,
   validateDocument
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 
 // src/editor-core/conversion.ts
 function convertToGraph(document, options) {

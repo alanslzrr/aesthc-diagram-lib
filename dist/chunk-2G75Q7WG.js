@@ -10,7 +10,7 @@ import {
   pointer,
   success,
   validateDocument
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 
 // src/graph/compare.ts
 function diffValues(before, after, prefix) {

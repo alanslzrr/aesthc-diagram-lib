@@ -4,7 +4,7 @@ import {
 } from "./chunk-HIRCZVXI.js";
 import {
   createDocument
-} from "./chunk-TSYG4LOT.js";
+} from "./chunk-UKKTZNGD.js";
 import {
   identifyEdges,
   labelPillWidth,
@@ -24,7 +24,7 @@ import {
   success,
   validateDocument,
   validateEditorSpec
-} from "./chunk-TN5OC77A.js";
+} from "./chunk-QWYSRMUP.js";
 import {
   escapeXml
 } from "./chunk-S6PSHJSL.js";

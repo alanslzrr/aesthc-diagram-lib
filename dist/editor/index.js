@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-XVDCABNJ.js";
+} from "../chunk-55ICDXSN.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,18 +16,17 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-LYWSIJPC.js";
+} from "../chunk-TFKE7HJ5.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
-import {
-  serializeDocument
-} from "../chunk-TSYG4LOT.js";
+import "../chunk-UKKTZNGD.js";
 import "../chunk-BBMS4ALE.js";
 import {
+  canonical,
   edgesOf,
   freeTypes,
   nodesOf
-} from "../chunk-TN5OC77A.js";
+} from "../chunk-QWYSRMUP.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
@@ -2177,7 +2176,7 @@ function EditorInspector() {
     ] }),
     node && free && /* @__PURE__ */ jsx(EditorNodeGeometry, { nodeId: node.id }),
     /* @__PURE__ */ jsx(EditorStructuredInspector, {}),
-    /* @__PURE__ */ jsx(EditorRelations, {}),
+    /* @__PURE__ */ jsx(MemoEditorRelations, {}),
     /* @__PURE__ */ jsx(EditorRoute, {}),
     /* @__PURE__ */ jsx("h3", { children: t("Appearance", "Apariencia") }),
     !viewTheme && /* @__PURE__ */ jsxs("label", { children: [
@@ -2237,12 +2236,12 @@ function EditorJsonPanel() {
   const [commitDiagnostics, setCommitDiagnostics] = useState([]);
   const [serialized, setSerialized] = useState(() => ({
     document: snapshot.document,
-    text: serializeDocument(snapshot.document)
+    text: canonical(snapshot.document)
   }));
   useEffect(() => {
     if (serialized.document === snapshot.document) return;
     const timer = setTimeout(() => {
-      setSerialized({ document: snapshot.document, text: serializeDocument(snapshot.document) });
+      setSerialized({ document: snapshot.document, text: canonical(snapshot.document) });
     }, 0);
     return () => clearTimeout(timer);
   }, [snapshot.document, serialized.document]);
@@ -2378,7 +2377,7 @@ function EditorPanelTabs({ className }) {
             children: [
               /* @__PURE__ */ jsx("div", { hidden: activeTab !== "outline", children: /* @__PURE__ */ jsx(EditorOutline, {}) }),
               /* @__PURE__ */ jsx("div", { hidden: activeTab !== "json", children: /* @__PURE__ */ jsx(EditorJsonPanel, {}) }),
-              supported.includes("connections") && /* @__PURE__ */ jsx("div", { hidden: activeTab !== "connections", children: /* @__PURE__ */ jsx(EditorRelations, {}) })
+              supported.includes("connections") && /* @__PURE__ */ jsx("div", { hidden: activeTab !== "connections", children: /* @__PURE__ */ jsx(MemoEditorRelations, {}) })
             ]
           }
         )
@@ -3511,6 +3510,7 @@ function EditorOutline({ className }) {
     }
   );
 }
+var MemoEditorRelations = memo(EditorRelations);
 export {
   EditorInspector,
   EditorJsonPanel,
