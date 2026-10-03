@@ -4,7 +4,6 @@ import {
   memo,
   useCallback,
   useContext,
-  useDeferredValue,
   useEffect,
   useId,
   useLayoutEffect,
@@ -2463,9 +2462,21 @@ export function EditorJsonPanel() {
   // refused (stale revision, permissions, history), and that must never be
   // confused with a live parse diagnostic or discarded on the user's behalf.
   const [commitDiagnostics, setCommitDiagnostics] = useState<readonly string[]>([])
-  const readableDocument = useDeferredValue(snapshot.document)
-  const serialized = useMemo(() => serializeDocument(readableDocument), [readableDocument])
-  const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
+  const [serialized, setSerialized] = useState(() => ({
+    document: snapshot.document,
+    text: serializeDocument(snapshot.document),
+  }))
+  useEffect(() => {
+    if (serialized.document === snapshot.document) return
+    // Serialization is synchronous work, not interruptible React rendering.
+    // A deferred render can restart this validation for every pointer preview.
+    // Run once per committed document in its own task instead.
+    const timer = setTimeout(() => {
+      setSerialized({ document: snapshot.document, text: serializeDocument(snapshot.document) })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [snapshot.document, serialized.document])
+  const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized.text
   const draftKind = snapshot.draft.kind
   useEffect(() => {
     if (draftKind !== 'text') setCommitDiagnostics([])
@@ -2486,8 +2497,8 @@ export function EditorJsonPanel() {
       <textarea
         aria-label={t('Document JSON', 'JSON del documento')}
         value={text}
-        aria-busy={readableDocument !== snapshot.document}
-        readOnly={snapshot.draft.kind !== 'text' && readableDocument !== snapshot.document}
+        aria-busy={serialized.document !== snapshot.document}
+        readOnly={snapshot.draft.kind !== 'text' && serialized.document !== snapshot.document}
         onChange={(event) => {
           setCommitDiagnostics([])
           store.setTextDraft(event.target.value)
