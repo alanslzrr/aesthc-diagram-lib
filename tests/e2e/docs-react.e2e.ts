@@ -176,6 +176,8 @@ test('unknown routes, malformed anchors and readable long source never break the
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('React, Vite and Next.js')
   await page.goto('/404.html')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found')
+  if (isMobile)
+    await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
   await page
     .locator(isMobile ? '.mobile-nav' : '.sidebar')
     .getByRole('link', { name: 'Band', exact: true })

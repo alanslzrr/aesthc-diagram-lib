@@ -81,7 +81,7 @@ function SiteTopNavigation() {
         <button
           ref={opener}
           type="button"
-          className="control"
+          className="control js-only"
           aria-haspopup="dialog"
           onClick={() => navigation.current?.showModal()}
         >
@@ -119,6 +119,24 @@ function SiteTopNavigation() {
             ))}
           </nav>
         </dialog>
+        <noscript>
+          <nav aria-label="Mobile documentation">
+            {page.nav.map((group) => (
+              <section className="nav-group" key={group.name}>
+                <h2>{group.name}</h2>
+                {group.pages.map((entry) => (
+                  <a
+                    key={entry.file}
+                    href={entry.url}
+                    aria-current={entry.file === page.file ? 'page' : undefined}
+                  >
+                    {entry.label}
+                  </a>
+                ))}
+              </section>
+            ))}
+          </nav>
+        </noscript>
       </div>
     </>
   )

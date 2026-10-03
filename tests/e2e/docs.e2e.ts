@@ -166,11 +166,13 @@ for (const theme of ['light', 'dark']) {
       expect(control.font).toContain('Geist')
     }
     if (isMobile) {
+      await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
       await expect(
         page
           .getByRole('navigation', { name: 'Mobile documentation' })
           .getByRole('link', { name: 'Theming', exact: true }),
       ).toBeVisible()
+      await page.getByRole('button', { name: 'Close navigation', exact: true }).click()
       expect(
         await page
           .locator('.preview svg.diagram-canvas')
@@ -192,7 +194,7 @@ for (const theme of ['light', 'dark']) {
   })
 }
 
-test('mobile navigation is a static section with no disclosure and works without JavaScript', async ({
+test('mobile navigation uses a modal and retains static links without JavaScript', async ({
   page,
   browser,
   isMobile,
@@ -205,6 +207,7 @@ test('mobile navigation is a static section with no disclosure and works without
   await expect(mobileNav.locator('summary')).toHaveCount(0)
   await expect(mobileNav.locator('.disclosure-icon')).toHaveCount(0)
   await expect(mobileNav.locator('[aria-expanded]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
   const theming = mobileNav.getByRole('link', { name: 'Theming', exact: true })
   await expect(theming).toBeVisible()
   await theming.focus()
