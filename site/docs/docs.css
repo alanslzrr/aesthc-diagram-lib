@@ -1080,3 +1080,30 @@ html[data-enhanced] .js-only {
     animation: none !important;
   }
 }
+/* Mobile navigation owns one modal scroll container, never article height. */
+.docs-navigation-dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--docs-bg);
+  color: var(--docs-fg);
+  border: 1px solid var(--docs-border);
+  border-radius: 8px;
+}
+.docs-navigation-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.docs-navigation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .mobile-nav .docs-navigation-dialog nav {
+    max-height: none;
+    overflow: visible;
+  }
+}

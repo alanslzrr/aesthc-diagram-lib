@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type {
   DocsPageProps,
@@ -34,6 +34,15 @@ function SiteLayout({ children, sidebar, topNavigation }: LayoutProps) {
 function SiteTopNavigation() {
   const { page, hrefFor } = useDocsRuntime()
   const home = page.nav[0]?.pages[0]?.url ?? hrefFor('/index')
+  const navigation = useRef<HTMLDialogElement>(null)
+  const opener = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    navigation.current?.close()
+  }, [page.file])
+  const closeNavigation = () => {
+    navigation.current?.close()
+    opener.current?.focus({ preventScroll: true })
+  }
   return (
     <>
       <header className="docs-header">
@@ -69,7 +78,30 @@ function SiteTopNavigation() {
         </div>
       </header>
       <div className="mobile-nav">
-        <ScrollArea className="mobile-scroll" label="Mobile documentation">
+        <button
+          ref={opener}
+          type="button"
+          className="control"
+          aria-haspopup="dialog"
+          onClick={() => navigation.current?.showModal()}
+        >
+          Browse documentation
+        </button>
+        <dialog
+          ref={navigation}
+          className="docs-navigation-dialog"
+          aria-label="Documentation navigation"
+          onCancel={(event) => {
+            event.preventDefault()
+            closeNavigation()
+          }}
+        >
+          <div className="docs-navigation-heading">
+            <strong>Documentation</strong>
+            <button type="button" className="control" onClick={closeNavigation}>
+              Close navigation
+            </button>
+          </div>
           <nav aria-label="Mobile documentation">
             {page.nav.map((group) => (
               <section className="nav-group" key={group.name}>
@@ -86,7 +118,7 @@ function SiteTopNavigation() {
               </section>
             ))}
           </nav>
-        </ScrollArea>
+        </dialog>
       </div>
     </>
   )
