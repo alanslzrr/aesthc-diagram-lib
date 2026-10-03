@@ -170,7 +170,8 @@ export async function exportDocument(
         d.code === 'renderer.empty' ||
         d.code === 'renderer.failed',
     )
-    if (missingRenderer) return failure(missingRenderer.code)
+    // Keep the subject-bearing diagnostic instead of replacing it with a code.
+    if (missingRenderer) return { ok: false, diagnostics }
     if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))
       return failure('export.quality')
     width = Math.ceil(resolved.value.layout.width * options.scale)

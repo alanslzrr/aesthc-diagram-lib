@@ -273,39 +273,56 @@ function resolveScene(
         if (!context.skipDiagnostics)
           diagnostics.push({ ...issue(code), subject: { kind: 'node', id: specNode.id } })
       }
-      let validated: ReturnType<typeof renderer.validate>
+      // Callback return shapes are validated before any property access:
+      // TypeScript types cannot enforce JavaScript plugin output at runtime.
+      let validated: unknown
       try {
         validated = renderer.validate(specNode.renderer.data)
       } catch {
         fail('renderer.failed')
         continue
       }
-      if (!validated.ok) {
+      if (!validated || typeof validated !== 'object' || Array.isArray(validated)) {
+        fail('renderer.failed')
+        continue
+      }
+      const checked = validated as { ok?: unknown; value?: unknown }
+      if (typeof checked.ok !== 'boolean') {
+        fail('renderer.failed')
+        continue
+      }
+      if (!checked.ok) {
         fail('renderer.invalid')
         continue
       }
-      let size: { width: number; height: number }
+      let size: unknown
       try {
-        size = renderer.measure(validated.value, { fontSize: 13 })
+        size = renderer.measure(checked.value, { fontSize: 13 })
       } catch {
         fail('renderer.failed')
         continue
       }
+      const measured = size as { width?: unknown; height?: unknown } | null
       if (
-        !Number.isFinite(size.width) ||
-        !Number.isFinite(size.height) ||
-        size.width <= 0 ||
-        size.height <= 0
+        !measured ||
+        typeof measured !== 'object' ||
+        !Number.isFinite(measured.width) ||
+        !Number.isFinite(measured.height) ||
+        (measured.width as number) <= 0 ||
+        (measured.height as number) <= 0
       ) {
         fail('renderer.measure')
         continue
       }
-      placed.w = size.width
-      placed.h = size.height
+      const width = measured.width as number,
+        height = measured.height as number
+      placed.w = width
+      placed.h = height
       placed.cx = placed.x + placed.w / 2
       placed.cy = placed.y + placed.h / 2
+      let svg: unknown
       try {
-        placed.customSvg = renderer.renderSvg(validated.value, {
+        svg = renderer.renderSvg(checked.value, {
           theme: mode,
           palette: {
             background: palette.background,
@@ -321,6 +338,11 @@ function resolveScene(
         fail('renderer.failed')
         continue
       }
+      if (typeof svg !== 'string' || !svg.trim()) {
+        fail('renderer.empty')
+        continue
+      }
+      placed.customSvg = svg
     }
   }
   const graphNodes =

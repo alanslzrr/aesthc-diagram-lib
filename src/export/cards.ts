@@ -95,7 +95,7 @@ export function cardSvg(
       diagnostic.code === 'renderer.empty' ||
       diagnostic.code === 'renderer.failed',
   )
-  if (missingRenderer) return failure(missingRenderer.code)
+  if (missingRenderer) return { ok: false, diagnostics: resolved.diagnostics }
   const layout = resolved.value.layout
   const padding = options.padding ?? 40
   // Reject nonfinite, negative or consuming padding before rendering: a

@@ -57,14 +57,18 @@ export function validateCustomPayload(
     return failure('renderer.invalid')
   const renderer = registry.resolve(candidate.typeKey)
   if (!renderer) return failure('renderer.unsupported')
-  let checked: ReturnType<CustomNodeRenderer['validate']>
+  let checked: unknown
   try {
     checked = renderer.validate(candidate.data)
   } catch {
     return failure('renderer.failed')
   }
-  if (!checked.ok) return checked
-  return success({ renderer, data: checked.value })
+  if (!checked || typeof checked !== 'object' || Array.isArray(checked))
+    return failure('renderer.failed')
+  const result = checked as { ok?: unknown; value?: unknown }
+  if (typeof result.ok !== 'boolean') return failure('renderer.failed')
+  if (!result.ok) return checked as Result<never>
+  return success({ renderer, data: result.value })
 }
 /** Measures with the registered renderer and renders the canonical SVG
  * fragment. An unsupported typeKey is reported before any rendering. */
@@ -75,7 +79,7 @@ export function renderCustomNode(
 ): Result<{ svg: string; width: number; height: number; typeKey: string }> {
   const validated = validateCustomPayload(registry, payload)
   if (!validated.ok) return validated
-  let size: { width: number; height: number }
+  let size: unknown
   try {
     size = validated.value.renderer.measure(validated.value.data, {
       fontSize: context.fontSize,
@@ -83,13 +87,18 @@ export function renderCustomNode(
   } catch {
     return failure('renderer.failed')
   }
+  const measured = size as { width?: unknown; height?: unknown } | null
   if (
-    !Number.isFinite(size.width) ||
-    !Number.isFinite(size.height) ||
-    size.width <= 0 ||
-    size.height <= 0
+    !measured ||
+    typeof measured !== 'object' ||
+    !Number.isFinite(measured.width) ||
+    !Number.isFinite(measured.height) ||
+    (measured.width as number) <= 0 ||
+    (measured.height as number) <= 0
   )
     return failure('renderer.measure')
+  const width = measured.width as number,
+    height = measured.height as number
   let svg: string
   try {
     svg = validated.value.renderer.renderSvg(validated.value.data, context)
@@ -99,8 +108,8 @@ export function renderCustomNode(
   if (typeof svg !== 'string' || !svg.trim()) return failure('renderer.empty')
   return success({
     svg,
-    width: size.width,
-    height: size.height,
+    width,
+    height,
     typeKey: validated.value.renderer.typeKey,
   })
 }

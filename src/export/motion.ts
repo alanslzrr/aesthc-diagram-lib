@@ -86,7 +86,7 @@ export async function exportStoryWebm(
   const missingRenderer = resolved.diagnostics.find((diagnostic) =>
     diagnostic.code.startsWith('renderer.'),
   )
-  if (missingRenderer) return failure(missingRenderer.code)
+  if (missingRenderer) return { ok: false, diagnostics: [missingRenderer] }
   const width = Math.max(2, Math.ceil(resolved.value.layout.width * scale))
   const height = Math.max(2, Math.ceil(resolved.value.layout.height * scale))
   if (

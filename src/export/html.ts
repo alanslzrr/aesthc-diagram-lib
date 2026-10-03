@@ -154,7 +154,7 @@ export function exportDocumentHtml(
       diagnostic.code === 'renderer.empty' ||
       diagnostic.code === 'renderer.failed',
   )
-  if (missingRenderer) return failure(missingRenderer.code)
+  if (missingRenderer) return { ok: false, diagnostics: resolved.diagnostics }
   const svg = renderSvg(document, resolved.value, {
     instanceId: 'standalone',
     theme,

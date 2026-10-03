@@ -376,3 +376,100 @@ describe('E18 audit regression: throwing renderer callbacks', () => {
     },
   )
 })
+
+describe('E18 audit regression: malformed renderer return values', () => {
+  function documentWith(typeKey: string) {
+    const made = createDocument(
+      {
+        type: 'graph',
+        caption: 'Malformed renderer',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [
+          { id: 'plain', label: 'Plain', description: '' },
+          {
+            id: 'custom',
+            label: 'Custom',
+            description: '',
+            renderer: { typeKey, data: { label: 'Ready' } },
+          },
+        ],
+        edges: [{ id: 'e', from: 'plain', to: 'custom' }],
+      },
+      { id: 'malformed-renderer', locale: 'en' },
+    )
+    if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+    return made.value
+  }
+  const cases = [
+    { name: 'validate null', validate: (() => null) as never, code: 'renderer.failed' },
+    {
+      name: 'validate ok false object',
+      validate: (() => ({ ok: 'yes' })) as never,
+      code: 'renderer.failed',
+    },
+    { name: 'measure null', measure: (() => null) as never, code: 'renderer.measure' },
+    { name: 'renderSvg empty', renderSvg: (() => '') as never, code: 'renderer.empty' },
+    { name: 'renderSvg object', renderSvg: (() => ({}) as never) as never, code: 'renderer.empty' },
+  ]
+  it.each(cases)(
+    'isolates $name into $code through resolver, helper and export',
+    async ({ validate, measure, renderSvg, code }) => {
+      const registry = createRendererRegistry()
+      expect(
+        registry.register({
+          typeKey: 'malformed',
+          validate: validate ?? ((data: unknown) => ({ ok: true, diagnostics: [], value: data })),
+          measure: measure ?? (() => ({ width: 100, height: 40 })),
+          renderSvg: renderSvg ?? (() => '<g data-custom-renderer="malformed"/>'),
+        }).ok,
+      ).toBe(true)
+      const { resolveDocument } = await import('../src/editor-core')
+      const document = documentWith('malformed')
+      const resolved = resolveDocument(document, {
+        quality: 'edit',
+        requestId: 'malformed',
+        renderers: registry,
+      })
+      expect(resolved.ok).toBe(true)
+      if (!resolved.ok) return
+      const diagnostic = resolved.diagnostics.find((entry) => entry.code === code)
+      expect(diagnostic?.subject).toEqual({ kind: 'node', id: 'custom' })
+      expect(resolved.value.layout.nodeById.plain).toBeTruthy()
+      const { exportDocument } = await import('../src/export')
+      const exported = await exportDocument(document, {
+        format: 'svg',
+        scope: { type: 'document' },
+        theme: 'light',
+        quality: 'publish',
+        background: 'theme',
+        scale: 1,
+        includeSource: false,
+        metadata: 'minimal',
+        fontPolicy: 'fallback',
+        renderers: registry,
+      })
+      expect(exported.ok).toBe(false)
+      if (!exported.ok) {
+        const failure = exported.diagnostics.find((entry) => entry.code === code)
+        expect(failure?.subject).toEqual({ kind: 'node', id: 'custom' })
+      }
+    },
+  )
+  it('rejects a non-object payload validation result in the registry helper', () => {
+    const registry = createRendererRegistry()
+    expect(
+      registry.register({
+        typeKey: 'null-validate',
+        validate: (() => null) as never,
+        measure: () => ({ width: 10, height: 10 }),
+        renderSvg: () => '<g/>',
+      }).ok,
+    ).toBe(true)
+    const validated = validateCustomPayload(registry, { typeKey: 'null-validate', data: {} })
+    expect(validated.ok).toBe(false)
+    if (!validated.ok)
+      expect(validated.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        'renderer.failed',
+      )
+  })
+})
