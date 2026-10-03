@@ -515,12 +515,47 @@ test('contrast instrument detects invisible paint, dimmed groups and SVG surface
   expect(elementOpacityProbe.minimum).toBeLessThan(3)
 })
 
+/**
+ * Readiness gate for contrast measurement: wait until the theme tokens are
+ * resolved and the probed paint is actually styled, then settle one painted
+ * frame. A first attempt without loaded styles used to report ratio 1.
+ */
+async function waitForPaintedStyles(page: Page, root: string, probe: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        ({ root, probe }) => {
+          const tokens = getComputedStyle(document.documentElement)
+          if (tokens.getPropertyValue('--diagram-node-border').trim() === '') return false
+          const element = document.querySelector(`${root} ${probe}`)
+          if (!element) return false
+          const style = getComputedStyle(element)
+          const paint = style.stroke !== 'none' && style.stroke !== '' ? style.stroke : style.fill
+          return paint !== 'none' && paint !== '' && paint !== 'transparent'
+        },
+        { root, probe },
+      ),
+    )
+    .toBe(true)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  )
+}
+
 test('nodes are opaque and semantic strokes keep 3:1 over their surface', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.layout-gallery-card').first()).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     for (const type of TYPES) {
+      await waitForPaintedStyles(
+        page,
+        `[data-diagram-panel="example-${type}"]`,
+        type === 'timeline' ? '[data-node-id] text' : '[data-node-surface="true"]',
+      )
       // Timeline events are dots + labels, not cards; their essential ink is
       // the label text, so contrast is measured on it.
       const selector = type === 'timeline' ? '[data-node-id] text' : '[data-node-surface="true"]'
@@ -545,6 +580,7 @@ test('lifelines, lanes, ER separators and states stay above the dots', async ({ 
   await expect(page.locator('.preview-canvas')).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
+    await waitForPaintedStyles(page, '.preview-canvas', '[data-lifeline-id] line')
     const [lifelines] = await strokeContrast(page, '.preview-canvas', ['[data-lifeline-id] line'])
     expect(lifelines.count).toBeGreaterThan(0)
     expect(lifelines.minimum, `sequence lifelines (${theme})`).toBeGreaterThanOrEqual(3)
@@ -553,6 +589,7 @@ test('lifelines, lanes, ER separators and states stay above the dots', async ({ 
   await expect(page.locator('.preview-canvas')).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
+    await waitForPaintedStyles(page, '.preview-canvas', '[data-container-id] rect')
     const [lanes] = await strokeContrast(page, '.preview-canvas', ['[data-container-id] rect'])
     expect(lanes.count).toBeGreaterThan(0)
     expect(lanes.minimum, `swimlane boundaries (${theme})`).toBeGreaterThanOrEqual(3)
@@ -561,6 +598,7 @@ test('lifelines, lanes, ER separators and states stay above the dots', async ({ 
   await expect(page.locator('.preview-canvas')).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
+    await waitForPaintedStyles(page, '.preview-canvas', '[data-structure="er-separator"]')
     const [separators] = await strokeContrast(page, '.preview-canvas', [
       '[data-structure="er-separator"]',
     ])
@@ -571,6 +609,7 @@ test('lifelines, lanes, ER separators and states stay above the dots', async ({ 
   await expect(page.locator('.preview-canvas')).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
+    await waitForPaintedStyles(page, '.preview-canvas', '[data-structure="state-outline"]')
     const [states] = await strokeContrast(page, '.preview-canvas', [
       '[data-structure="state-outline"]',
     ])
