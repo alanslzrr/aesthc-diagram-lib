@@ -141,3 +141,43 @@ evidence, not a replacement. Accessibility acceptance relies on the automated ax
 keyboard, reflow and browser-matrix gates; it does not include a person-recorded
 screen-reader review. The reference-runner performance protocol (long tasks,
 memory) is certified in CI.
+
+## Shared configuration
+
+Playground and Studio expose **Configure document** over the same public store
+commands. Document edits (caption/legend), layout (padding, text scale, grid
+spacing/snap/visibility, edge style), both palette channel sets, and selected
+node/edge metadata are submitted as one atomic transaction. The selection pane
+also exposes node kind and description where the type supports them; ports,
+routes, ER fields, participants and lanes remain in the contextual inspector.
+
+Opening configuration captures the current revision. An intervening edit makes
+Apply reject with `revision.stale`; the form remains open. Invalid values also
+preserve the form and last valid canvas. Cancel changes nothing. One Undo
+reverses Apply. Editing a palette does not change the global host theme.
+
+## Advanced authoring
+
+| Capability                           | Authoring entry point                                                                             | State ownership                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Named views and story steps          | API-only: `views.set`; compilable example `examples/editor-authoring.tsx`                         | Canonical document; revision checked, undoable                      |
+| Roles/tags used by lenses            | Configure document → Selection                                                                    | Canonical metadata                                                  |
+| Active lens/filter                   | Viewer controls / `ViewerState` integration                                                       | Transient; does not alter topology                                  |
+| Collapsed groups                     | Viewer controls / viewer state                                                                    | Transient; original IDs remain queryable                            |
+| Trace input                          | API-only: `createTracePlayer` with validated route edge IDs                                       | Finite playback; never invents a relation                           |
+| Comparison inputs                    | API-only: `compareDocuments(before, after)` and `Comparison`                                      | Read-only, not a merge                                              |
+| Evidence references and verification | API-only: `metadata.set`, `declaredEvidence`, `verifyEvidence` with a host-owned trusted verifier | Declared references are canonical; verification receipt is separate |
+
+See [Viewer](./viewer.md) for playback and query contracts, and
+[Extending](./extending.md) for trusted instance registries. Advanced authoring
+does not execute code embedded in a document. Evidence verification never
+silently gains filesystem or network access.
+
+## Export cancellation diagnostics
+
+Font readiness, SVG image loading, canvas encoding and blob reading have a
+10-second bound per operation. Cancellation returns `operation.aborted`; a
+stalled operation returns `export.timeout`. Raster object URLs, image handlers
+and canvas storage are released on either path. Browser operations that cannot
+be interrupted natively may finish later, but their callbacks cannot complete
+or mutate the canceled export.

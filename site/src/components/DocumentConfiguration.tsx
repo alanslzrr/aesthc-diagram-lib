@@ -196,6 +196,17 @@ export function DocumentConfiguration() {
             <div className="configuration-fields">
               {section === 'Document' && (
                 <>
+                  <p>
+                    <a
+                      href={`${import.meta.env.BASE_URL}docs/guides/editor/#advanced-authoring`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {locale === 'es'
+                        ? 'Vistas, historias y evidencias: flujos mediante API'
+                        : 'Views, stories and evidence: API-only authoring workflows'}
+                    </a>
+                  </p>
                   {input('Caption', draft.spec.caption, (value) =>
                     edit((next) => {
                       next.spec.caption = value
