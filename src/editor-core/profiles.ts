@@ -65,6 +65,23 @@ export function validateDeploymentProfile(
     for (const group of ancestors(nodeId)) if (group.kind === 'security-group') groups.add(group.id)
     return groups
   }
+  /**
+   * Region ancestry of a container group. Effective descendant membership is
+   * inherited through `parentGroup`, so a security group may hold no direct
+   * node ids while its nested subgroups do; the container still resolves to
+   * exactly one region.
+   */
+  const groupRegionIds = (group: DiagramGroup) => {
+    const regions = new Set<string>()
+    const seen = new Set<string>([group.id])
+    let parent = group.parentGroup ? groupById.get(group.parentGroup) : undefined
+    while (parent && !seen.has(parent.id)) {
+      seen.add(parent.id)
+      if (parent.kind === 'region') regions.add(parent.id)
+      parent = parent.parentGroup ? groupById.get(parent.parentGroup) : undefined
+    }
+    return regions
+  }
   const regions = new Set<string>()
   const nodeIds = nodesOf(document.spec).map((node) => node.id)
   for (const nodeId of nodeIds) {
@@ -92,8 +109,7 @@ export function validateDeploymentProfile(
     for (const groupId of securityGroupIds(nodeId)) {
       const group = groupById.get(groupId)
       if (!group) continue
-      const groupRegions = new Set<string>()
-      for (const id of group.nodeIds) regionIds(id).forEach((region) => groupRegions.add(region))
+      const groupRegions = groupRegionIds(group)
       if (groupRegions.size !== 1 || !nodeRegions.has([...groupRegions][0] ?? ''))
         diagnostics.push({
           ...issue('profile.region-conflict'),
@@ -109,14 +125,7 @@ export function validateDeploymentProfile(
         subject: { kind: 'group', id: group.id },
         message: 'security-group must declare visibility:private',
       })
-    const groupRegions = new Set<string>()
-    let parent = group.parentGroup ? groupById.get(group.parentGroup) : undefined
-    const seen = new Set<string>()
-    while (parent && !seen.has(parent.id)) {
-      seen.add(parent.id)
-      if (parent.kind === 'region') groupRegions.add(parent.id)
-      parent = parent.parentGroup ? groupById.get(parent.parentGroup) : undefined
-    }
+    const groupRegions = groupRegionIds(group)
     if (groupRegions.size !== 1)
       diagnostics.push({
         ...issue('profile.region-conflict'),

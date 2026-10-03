@@ -362,3 +362,65 @@ describe('E23 deployment profile is authored and fails by exact facts', () => {
       ).toBe(true)
   })
 })
+
+it('accepts a security group whose members live in descendant containers', async () => {
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Nested security group',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'n', label: 'Nested node', description: '' }],
+      edges: [],
+    },
+    { id: 'nested-profile', locale: 'en' },
+  )
+  if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+  const document = made.value
+  document.metadata.engineeringProfile = 'deployment-ownership'
+  document.metadata.nodes = { n: { roles: [], tags: [], owner: 'team-n' } }
+  document.scene.groups = [
+    { id: 'eu', label: 'EU', kind: 'region', nodeIds: [], locked: false },
+    {
+      id: 'sg',
+      label: 'Private SG',
+      kind: 'security-group',
+      nodeIds: [],
+      parentGroup: 'eu',
+      visibility: 'private',
+      locked: false,
+    },
+    {
+      id: 'system',
+      label: 'System',
+      kind: 'system',
+      nodeIds: [],
+      parentGroup: 'sg',
+      locked: false,
+    },
+    {
+      id: 'subsystem',
+      label: 'Subsystem',
+      kind: 'system',
+      nodeIds: ['n'],
+      parentGroup: 'system',
+      locked: false,
+    },
+  ]
+  const report = validateDeploymentProfile(document)
+  if (!report.ok) throw Error(JSON.stringify(report.diagnostics))
+  // Effective membership is inherited through parentGroup: the empty security
+  // group still resolves to eu and must not be reported as a conflict.
+  expect(report.value.diagnostics).toEqual([])
+  const published = await exportDocument(document, {
+    format: 'svg',
+    scope: { type: 'document' },
+    theme: 'light',
+    quality: 'publish',
+    background: 'theme',
+    scale: 1,
+    includeSource: false,
+    metadata: 'minimal',
+    fontPolicy: 'fallback',
+  })
+  expect(published.ok).toBe(true)
+})
