@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { createDocument } from '../../dist/editor-core/index.js'
@@ -329,9 +329,9 @@ test('custom node rendering survives standalone boot without executable renderer
   const registry = createRendererRegistry()
   const registered = registry.register({
     typeKey: 'frozen-badge',
-    validate: (data) => ({ ok: true, diagnostics: [], value: data }),
+    validate: (data: unknown) => ({ ok: true, diagnostics: [], value: data }),
     measure: () => ({ width: 220, height: 90 }),
-    renderSvg: (_data, context) =>
+    renderSvg: (_data: unknown, context: { x: number; y: number }) =>
       `<g data-custom-renderer="frozen-badge"><rect x="${context.x}" y="${context.y}" width="220" height="90" fill="#16a34a"/><text x="${context.x + 110}" y="${context.y + 50}" text-anchor="middle" fill="#ffffff">Ready</text></g>`,
   })
   expect(registered.ok).toBe(true)
@@ -343,6 +343,25 @@ test('custom node rendering survives standalone boot without executable renderer
     page.locator('.adl-viewer-stage [data-custom-renderer="frozen-badge"]'),
   ).toBeVisible()
   await expect(page.locator('[data-renderer-missing]')).toHaveCount(0)
+  // A corrupt frozen payload must keep the readable fallback instead of a
+  // blank page, for both malformed JSON and a wrong shape.
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  for (const payload of ['null', '{bad']) {
+    const corrupt = artifact.html.replace(
+      /(<script type="application\/json" id="aesthc-frozen">)[\s\S]*?(<\/script>)/,
+      `$1${payload}$2`,
+    )
+    const corruptFile = join(
+      dirname(artifact.file),
+      `corrupt-${payload === 'null' ? 'null' : 'json'}.html`,
+    )
+    writeFileSync(corruptFile, corrupt)
+    await page.goto(`file://${corruptFile}`)
+    await expect(page.locator('#aesthc-fallback')).toBeVisible()
+    await expect(page.locator('#aesthc-standalone')).toBeHidden()
+  }
+  expect(errors).toEqual([])
   // JavaScript off keeps the same frozen rendering in the static fallback.
   const context = await browser.newContext({ javaScriptEnabled: false })
   const staticPage = await context.newPage()
