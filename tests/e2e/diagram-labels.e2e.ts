@@ -93,6 +93,10 @@ for (const example of EXAMPLES) {
         await page.addInitScript((value) => localStorage.setItem('adl-locale', value), locale)
         await page.goto(`/playground.html?only=${example}`)
         await expect(page.locator('.adl-editor-surface [data-hit-node]').first()).toBeVisible()
+        // Pills are measured with the loaded Geist metrics; wait so the
+        // resolved widths are final before measuring at each zoom.
+        await page.evaluate(() => document.fonts.ready)
+        expect(await page.evaluate(() => document.fonts.check('11.25px "Geist Mono"'))).toBe(true)
         const achieved = await zoomTo(page, zoom)
         await expectInside(page, '.adl-editor-surface', 1, `${example} ${locale} @${achieved}%`)
       })

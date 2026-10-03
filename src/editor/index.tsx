@@ -756,7 +756,25 @@ export function EditorSurface({
     () => ({ theme: effectiveTheme, renderers: registry }),
     [effectiveTheme, registry],
   )
-  const resolvePreview = useMemo(() => createPreviewResolver(), [store])
+  // Label pills are measured at resolve time. If Geist lands after the first
+  // paint, re-resolve once so estimated widths cannot leave text overflowing
+  // its pill on slow font loads.
+  const [fontsReady, setFontsReady] = useState(false)
+  useEffect(() => {
+    if (fontsReady || typeof document === 'undefined' || !document.fonts) return
+    if (document.fonts.status === 'loaded') {
+      setFontsReady(true)
+      return
+    }
+    let cancelled = false
+    void document.fonts.ready.then(() => {
+      if (!cancelled) setFontsReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fontsReady])
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontsReady])
   // The committed scene is always resolved from the committed document. A
   // revision-keyed reuse of an earlier preview was removed: a no-op gesture
   // could leave a stale entry that a later edit consumed, painting old
@@ -772,7 +790,7 @@ export function EditorSurface({
         theme: effectiveTheme,
         renderers: registry,
       }),
-    [snapshot.document, instanceId, effectiveTheme, registry],
+    [snapshot.document, instanceId, effectiveTheme, registry, fontsReady],
   )
   const resolved = useMemo(
     () =>
