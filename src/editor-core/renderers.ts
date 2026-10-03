@@ -57,7 +57,12 @@ export function validateCustomPayload(
     return failure('renderer.invalid')
   const renderer = registry.resolve(candidate.typeKey)
   if (!renderer) return failure('renderer.unsupported')
-  const checked = renderer.validate(candidate.data)
+  let checked: ReturnType<CustomNodeRenderer['validate']>
+  try {
+    checked = renderer.validate(candidate.data)
+  } catch {
+    return failure('renderer.failed')
+  }
   if (!checked.ok) return checked
   return success({ renderer, data: checked.value })
 }
@@ -70,9 +75,14 @@ export function renderCustomNode(
 ): Result<{ svg: string; width: number; height: number; typeKey: string }> {
   const validated = validateCustomPayload(registry, payload)
   if (!validated.ok) return validated
-  const size = validated.value.renderer.measure(validated.value.data, {
-    fontSize: context.fontSize,
-  })
+  let size: { width: number; height: number }
+  try {
+    size = validated.value.renderer.measure(validated.value.data, {
+      fontSize: context.fontSize,
+    })
+  } catch {
+    return failure('renderer.failed')
+  }
   if (
     !Number.isFinite(size.width) ||
     !Number.isFinite(size.height) ||
@@ -80,7 +90,12 @@ export function renderCustomNode(
     size.height <= 0
   )
     return failure('renderer.measure')
-  const svg = validated.value.renderer.renderSvg(validated.value.data, context)
+  let svg: string
+  try {
+    svg = validated.value.renderer.renderSvg(validated.value.data, context)
+  } catch {
+    return failure('renderer.failed')
+  }
   if (typeof svg !== 'string' || !svg.trim()) return failure('renderer.empty')
   return success({
     svg,

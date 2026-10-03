@@ -167,7 +167,8 @@ export async function exportDocument(
         d.code === 'renderer.unsupported' ||
         d.code === 'renderer.invalid' ||
         d.code === 'renderer.measure' ||
-        d.code === 'renderer.empty',
+        d.code === 'renderer.empty' ||
+        d.code === 'renderer.failed',
     )
     if (missingRenderer) return failure(missingRenderer.code)
     if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))

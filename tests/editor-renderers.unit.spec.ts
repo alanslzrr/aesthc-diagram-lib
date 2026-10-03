@@ -289,3 +289,90 @@ describe('E18 audit regression: one effective theme and portable delivery', () =
     expect(html.value.html).toContain('data-theme-probe="light"')
   })
 })
+
+describe('E18 audit regression: throwing renderer callbacks', () => {
+  function documentWith(typeKey: string) {
+    const made = createDocument(
+      {
+        type: 'graph',
+        caption: 'Throwing renderer',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [
+          { id: 'plain', label: 'Plain', description: '' },
+          {
+            id: 'custom',
+            label: 'Custom',
+            description: '',
+            renderer: { typeKey, data: { label: 'Ready' } },
+          },
+        ],
+        edges: [{ id: 'e', from: 'plain', to: 'custom' }],
+      },
+      { id: 'throwing-renderer', locale: 'en' },
+    )
+    if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+    return made.value
+  }
+  it.each(['validate', 'measure', 'renderSvg'] as const)(
+    'isolates a throwing %s callback into renderer.failed',
+    async (phase) => {
+      const registry = createRendererRegistry()
+      expect(
+        registry.register({
+          typeKey: 'boom',
+          validate: (data) =>
+            phase === 'validate'
+              ? (() => {
+                  throw Error('validate boom')
+                })()
+              : { ok: true, diagnostics: [], value: data },
+          measure: () => {
+            if (phase === 'measure') throw Error('measure boom')
+            return { width: 100, height: 40 }
+          },
+          renderSvg: () => {
+            if (phase === 'renderSvg') throw Error('render boom')
+            return '<g data-custom-renderer="boom"/>'
+          },
+        }).ok,
+      ).toBe(true)
+      const { resolveDocument } = await import('../src/editor-core')
+      const document = documentWith('boom')
+      const resolved = resolveDocument(document, {
+        quality: 'edit',
+        requestId: 'throwing',
+        renderers: registry,
+      })
+      // Resolution never throws; the failure is a diagnostic on the node.
+      expect(resolved.ok).toBe(true)
+      if (!resolved.ok) return
+      expect(
+        resolved.diagnostics.some(
+          (diagnostic) =>
+            diagnostic.code === 'renderer.failed' && diagnostic.subject?.id === 'custom',
+        ),
+      ).toBe(true)
+      // Unrelated nodes still resolve.
+      expect(resolved.value.layout.nodeById.plain).toBeTruthy()
+      // The public export returns the diagnostic instead of throwing.
+      const { exportDocument } = await import('../src/export')
+      const exported = await exportDocument(document, {
+        format: 'svg',
+        scope: { type: 'document' },
+        theme: 'light',
+        quality: 'publish',
+        background: 'theme',
+        scale: 1,
+        includeSource: false,
+        metadata: 'minimal',
+        fontPolicy: 'fallback',
+        renderers: registry,
+      })
+      expect(exported.ok).toBe(false)
+      if (!exported.ok)
+        expect(exported.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+          'renderer.failed',
+        )
+    },
+  )
+})

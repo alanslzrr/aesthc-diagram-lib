@@ -92,7 +92,8 @@ export function cardSvg(
       diagnostic.code === 'renderer.unsupported' ||
       diagnostic.code === 'renderer.invalid' ||
       diagnostic.code === 'renderer.measure' ||
-      diagnostic.code === 'renderer.empty',
+      diagnostic.code === 'renderer.empty' ||
+      diagnostic.code === 'renderer.failed',
   )
   if (missingRenderer) return failure(missingRenderer.code)
   const layout = resolved.value.layout

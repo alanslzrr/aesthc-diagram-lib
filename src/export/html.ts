@@ -151,7 +151,8 @@ export function exportDocumentHtml(
       diagnostic.code === 'renderer.unsupported' ||
       diagnostic.code === 'renderer.invalid' ||
       diagnostic.code === 'renderer.measure' ||
-      diagnostic.code === 'renderer.empty',
+      diagnostic.code === 'renderer.empty' ||
+      diagnostic.code === 'renderer.failed',
   )
   if (missingRenderer) return failure(missingRenderer.code)
   const svg = renderSvg(document, resolved.value, {
