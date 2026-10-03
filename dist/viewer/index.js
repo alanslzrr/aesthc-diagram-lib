@@ -1,6 +1,6 @@
 "use client";
-import "../chunk-T2DS7LBR.js";
-import "../chunk-SSCP2WA7.js";
+import "../chunk-74BAO7V5.js";
+import "../chunk-BNDD6UNK.js";
 import {
   compareDocuments,
   findReach,
@@ -15,13 +15,13 @@ import {
   exportDocument,
   exportStoryWebm,
   webmCapability
-} from "../chunk-Z3PJ7ORH.js";
+} from "../chunk-V7J3CF4S.js";
 import {
   validateDeploymentProfile
-} from "../chunk-5MVOLWEF.js";
+} from "../chunk-D5YCKARS.js";
 import {
   resolveDocument
-} from "../chunk-FJJDAGJJ.js";
+} from "../chunk-JQT4HMUF.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import "../chunk-TSYG4LOT.js";
@@ -719,6 +719,7 @@ function DiagramViewer({
   const [publishIssue, setPublishIssue] = useState3(null);
   const [recording, setRecording] = useState3(false);
   const [motionIssue, setMotionIssue] = useState3(null);
+  const [cardIssue, setCardIssue] = useState3(null);
   const recordAbort = useRef4(null);
   const webm = useMemo3(() => webmCapability(), []);
   const [reducedMotion, setReducedMotion] = useState3(
@@ -947,7 +948,10 @@ function DiagramViewer({
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return;
+    setCardIssue(null);
     const artifact = await exportCard(document2, {
+      theme: document2.presentation.theme.mode,
+      registry,
       query: {
         documentId: document2.id,
         revision: document2.revision,
@@ -956,7 +960,10 @@ function DiagramViewer({
         label: summary ?? ""
       }
     });
-    if (!artifact.ok) return;
+    if (!artifact.ok) {
+      setCardIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code).join(", "));
+      return;
+    }
     downloadArtifact(artifact.value, "card.png");
   }
   function cancelRecording() {
@@ -969,7 +976,9 @@ function DiagramViewer({
     setRecording(true);
     const result = await exportStoryWebm(document2, {
       signal: controller.signal,
-      reducedMotion
+      reducedMotion,
+      theme: document2.presentation.theme.mode,
+      renderers: registry
     });
     recordAbort.current = null;
     setRecording(false);
@@ -1009,7 +1018,8 @@ function DiagramViewer({
       scale: 1,
       includeSource: false,
       metadata: "minimal",
-      fontPolicy: "fallback"
+      fontPolicy: "fallback",
+      renderers: registry
     });
     if (!artifact.ok) {
       setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code));
@@ -1446,6 +1456,7 @@ function DiagramViewer({
           /* @__PURE__ */ jsx5("span", { id: "adl-viewer-stale", hidden: true, children: t("Export requires a current query.", "La exportaci\xF3n requiere una consulta vigente.") })
         ] }),
         publishIssue && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: publishIssue.join(", ") }),
+        cardIssue && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: cardIssue }),
         /* @__PURE__ */ jsx5(
           Inspector,
           {

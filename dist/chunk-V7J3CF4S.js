@@ -1,6 +1,6 @@
 import {
   validateDeploymentProfile
-} from "./chunk-5MVOLWEF.js";
+} from "./chunk-D5YCKARS.js";
 import {
   createCanvasTextMeasurer,
   createEmbeddedFontTextMeasurer,
@@ -8,7 +8,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-FJJDAGJJ.js";
+} from "./chunk-JQT4HMUF.js";
 import {
   serializeDocument
 } from "./chunk-TSYG4LOT.js";
@@ -257,7 +257,7 @@ function exportDocumentHtml(input, options) {
   });
   if (!resolved.ok) return resolved;
   const missingRenderer = resolved.diagnostics.find(
-    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty"
+    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty" || diagnostic.code === "renderer.failed"
   );
   if (missingRenderer) return failure(missingRenderer.code);
   const svg = renderSvg(document2, resolved.value, {
@@ -287,9 +287,28 @@ function exportDocumentHtml(input, options) {
     ),
     "</ul>"
   ].join("\n");
+  const frozen = {};
+  if (document2.spec.type === "graph")
+    for (const node of document2.spec.nodes) {
+      if (!node.renderer) continue;
+      const placed = resolved.value.layout.nodeById[node.id];
+      if (!placed?.customSvg) continue;
+      frozen[node.id] = {
+        svg: placed.customSvg,
+        width: placed.w,
+        height: placed.h,
+        typeKey: node.renderer.typeKey
+      };
+    }
   const metadataPolicy = options.metadata ?? "minimal";
   const runtimeDocument = metadataPolicy === "all" ? structuredClone(document2) : projectDocumentMetadata(document2, "minimal");
   runtimeDocument.presentation.theme.mode = theme;
+  if (runtimeDocument.spec.type === "graph") {
+    for (const node of runtimeDocument.spec.nodes)
+      if (node.renderer && frozen[node.id])
+        node.renderer = { typeKey: node.renderer.typeKey, data: { __adlFrozen: node.id } };
+  }
+  const frozenSection = Object.keys(frozen).length > 0 ? `<script type="application/json" id="aesthc-frozen">${embedJson(frozen)}</script>` : "";
   const sourceSection = options.includeSource ? `<script type="application/json" id="aesthc-source">${canonical(document2).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e")}</script>` : "";
   const scriptHash = sha256Base64(options.runtime);
   const html = [
@@ -311,6 +330,7 @@ function exportDocumentHtml(input, options) {
     "</main>",
     '<div id="aesthc-standalone" hidden></div>',
     `<script type="application/json" id="aesthc-document">${embedJson(runtimeDocument)}</script>`,
+    frozenSection,
     sourceSection,
     `<script>${options.runtime}</script>`,
     "</body>",
@@ -328,6 +348,7 @@ function exportDocumentHtml(input, options) {
       canonical: true,
       sourceIncluded: !!options.includeSource,
       metadata: metadataPolicy,
+      frozenCustomNodes: Object.keys(frozen).length,
       verified: false,
       runtimeBytes: new TextEncoder().encode(options.runtime).byteLength,
       fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength
@@ -370,7 +391,7 @@ function cardSvg(input, options = {}) {
   });
   if (!resolved.ok) return resolved;
   const missingRenderer = resolved.diagnostics.find(
-    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty"
+    (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty" || diagnostic.code === "renderer.failed"
   );
   if (missingRenderer) return failure(missingRenderer.code);
   const layout = resolved.value.layout;
@@ -487,10 +508,11 @@ async function exportStoryWebm(input, options = {}) {
   const scale = Math.max(0.25, Math.min(2, numeric(options.scale, 1)));
   const totalDuration = document2.story.reduce((sum, step) => sum + step.durationMs, 0);
   if (totalDuration <= 0 || totalDuration > 12e4) return failure("limit.story");
+  const theme = options.theme ?? document2.presentation.theme.mode;
   const resolved = resolveDocument(document2, {
     quality: "edit",
     requestId: "motion",
-    theme: document2.presentation.theme.mode,
+    theme,
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
     renderers: options.renderers
   });
@@ -539,7 +561,7 @@ async function exportStoryWebm(input, options = {}) {
       const view = document2.views.find((candidate) => candidate.id === step.viewId);
       const svg = renderSvg(document2, resolved.value, {
         instanceId: `motion-${step.id}`,
-        theme: document2.presentation.theme.mode,
+        theme,
         highlight: view ? {
           nodes: new Set(view.focus.nodeIds),
           edges: new Set(view.focus.edgeIds)
@@ -727,7 +749,7 @@ async function exportDocument(input, options) {
     if (!resolved.ok) return resolved;
     diagnostics.push(...resolved.diagnostics);
     const missingRenderer = diagnostics.find(
-      (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure" || d.code === "renderer.empty"
+      (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure" || d.code === "renderer.empty" || d.code === "renderer.failed"
     );
     if (missingRenderer) return failure(missingRenderer.code);
     if (options.quality === "publish" && diagnostics.some((d) => d.code.startsWith("quality.")))

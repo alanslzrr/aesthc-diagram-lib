@@ -635,40 +635,53 @@ function resolveScene(document2, context, previous, extents) {
         placed.customSvg = `<rect data-renderer-missing="${escapeXml(specNode.renderer.typeKey)}" x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" rx="8" fill="none" stroke="${palette.border}" stroke-dasharray="4 4"/><text x="${placed.cx}" y="${placed.cy + 4}" text-anchor="middle" font-family="Geist, sans-serif" font-size="12" fill="${palette.mutedForeground}">${escapeXml(specNode.renderer.typeKey)} unavailable</text>`;
         continue;
       }
-      const validated = renderer.validate(specNode.renderer.data);
-      if (!validated.ok) {
+      const fail = (code) => {
         if (!context.skipDiagnostics)
-          diagnostics.push({
-            ...issue("renderer.invalid"),
-            subject: { kind: "node", id: specNode.id }
-          });
+          diagnostics.push({ ...issue(code), subject: { kind: "node", id: specNode.id } });
+      };
+      let validated;
+      try {
+        validated = renderer.validate(specNode.renderer.data);
+      } catch {
+        fail("renderer.failed");
         continue;
       }
-      const size = renderer.measure(validated.value, { fontSize: 13 });
+      if (!validated.ok) {
+        fail("renderer.invalid");
+        continue;
+      }
+      let size;
+      try {
+        size = renderer.measure(validated.value, { fontSize: 13 });
+      } catch {
+        fail("renderer.failed");
+        continue;
+      }
       if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0) {
-        if (!context.skipDiagnostics)
-          diagnostics.push({
-            ...issue("renderer.measure"),
-            subject: { kind: "node", id: specNode.id }
-          });
+        fail("renderer.measure");
         continue;
       }
       placed.w = size.width;
       placed.h = size.height;
       placed.cx = placed.x + placed.w / 2;
       placed.cy = placed.y + placed.h / 2;
-      placed.customSvg = renderer.renderSvg(validated.value, {
-        theme: mode,
-        palette: {
-          background: palette.background,
-          foreground: palette.foreground,
-          card: palette.card,
-          border: palette.border,
-          muted: palette.mutedForeground
-        },
-        x: placed.x,
-        y: placed.y
-      });
+      try {
+        placed.customSvg = renderer.renderSvg(validated.value, {
+          theme: mode,
+          palette: {
+            background: palette.background,
+            foreground: palette.foreground,
+            card: palette.card,
+            border: palette.border,
+            muted: palette.mutedForeground
+          },
+          x: placed.x,
+          y: placed.y
+        });
+      } catch {
+        fail("renderer.failed");
+        continue;
+      }
     }
   }
   const graphNodes = document2.spec.type === "graph" ? new Map(document2.spec.nodes.map((node) => [node.id, node])) : void 0;

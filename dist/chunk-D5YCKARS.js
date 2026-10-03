@@ -44,6 +44,17 @@ function validateDeploymentProfile(input, options = {}) {
     for (const group of ancestors(nodeId)) if (group.kind === "security-group") groups.add(group.id);
     return groups;
   };
+  const groupRegionIds = (group) => {
+    const regions2 = /* @__PURE__ */ new Set();
+    const seen = /* @__PURE__ */ new Set([group.id]);
+    let parent = group.parentGroup ? groupById.get(group.parentGroup) : void 0;
+    while (parent && !seen.has(parent.id)) {
+      seen.add(parent.id);
+      if (parent.kind === "region") regions2.add(parent.id);
+      parent = parent.parentGroup ? groupById.get(parent.parentGroup) : void 0;
+    }
+    return regions2;
+  };
   const regions = /* @__PURE__ */ new Set();
   const nodeIds = nodesOf(document.spec).map((node) => node.id);
   for (const nodeId of nodeIds) {
@@ -71,8 +82,7 @@ function validateDeploymentProfile(input, options = {}) {
     for (const groupId of securityGroupIds(nodeId)) {
       const group = groupById.get(groupId);
       if (!group) continue;
-      const groupRegions = /* @__PURE__ */ new Set();
-      for (const id of group.nodeIds) regionIds(id).forEach((region) => groupRegions.add(region));
+      const groupRegions = groupRegionIds(group);
       if (groupRegions.size !== 1 || !nodeRegions.has([...groupRegions][0] ?? ""))
         diagnostics.push({
           ...issue("profile.region-conflict"),
@@ -88,14 +98,7 @@ function validateDeploymentProfile(input, options = {}) {
         subject: { kind: "group", id: group.id },
         message: "security-group must declare visibility:private"
       });
-    const groupRegions = /* @__PURE__ */ new Set();
-    let parent = group.parentGroup ? groupById.get(group.parentGroup) : void 0;
-    const seen = /* @__PURE__ */ new Set();
-    while (parent && !seen.has(parent.id)) {
-      seen.add(parent.id);
-      if (parent.kind === "region") groupRegions.add(parent.id);
-      parent = parent.parentGroup ? groupById.get(parent.parentGroup) : void 0;
-    }
+    const groupRegions = groupRegionIds(group);
     if (groupRegions.size !== 1)
       diagnostics.push({
         ...issue("profile.region-conflict"),

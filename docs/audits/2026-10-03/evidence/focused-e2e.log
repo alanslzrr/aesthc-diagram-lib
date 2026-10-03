@@ -1,0 +1,205 @@
+[WebServer] (node:56430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:56431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 15 tests using 1 worker
+
+(node:56438) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/15] [chromium] › tests/e2e/editor-conversion.e2e.ts:26:1 › T53.2 cancel keeps the document, draft and saved copy untouched
+[2/15] [chromium] › tests/e2e/editor-conversion.e2e.ts:43:1 › T53.2 accepting opens a new graph document without overwriting the original
+[3/15] [chromium] › tests/e2e/editor-conversion.e2e.ts:67:1 › stale conversion confirmation keeps the intervening edit and history
+  1) [chromium] › tests/e2e/editor-conversion.e2e.ts:67:1 › stale conversion confirmation keeps the intervening edit and history 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Changed label', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Changed label', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Changed label', exact: true })
+
+
+      78 |     page.getByText('The document changed after this conversion was prepared', { exact: false }),
+      79 |   ).toBeVisible()
+    > 80 |   await expect(page.getByRole('button', { name: 'Changed label', exact: true })).toBeVisible()
+         |                                                                                  ^
+      81 |   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled()
+      82 |   await page.getByRole('button', { name: 'Undo', exact: true }).click()
+      83 |   await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-conversion.e2e.ts:80:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-conversion.e2e.ts-s-3d1e7-ntervening-edit-and-history-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-conversion.e2e.ts-s-3d1e7-ntervening-edit-and-history-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-conversion.e2e.ts-s-3d1e7-ntervening-edit-and-history-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/editor-conversion.e2e.ts-s-3d1e7-ntervening-edit-and-history-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56462) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/15] [chromium] › tests/e2e/export-dialog.e2e.ts:24:1 › Playground exports fresh JSON, SVG and PNG from the current document
+[5/15] [chromium] › tests/e2e/export-dialog.e2e.ts:38:1 › selection scope is disabled without a selection and never falls back to the document
+[6/15] [chromium] › tests/e2e/export-dialog.e2e.ts:61:1 › raster formats are gated by an actual encoder probe, never by a declared mime type
+[7/15] [chromium] › tests/e2e/export-dialog.e2e.ts:99:1 › JPEG cannot be transparent and the dialog says so instead of changing the request
+[8/15] [chromium] › tests/e2e/export-dialog.e2e.ts:114:1 › source inclusion is opt-in, disclosed and leaves JSON as the canonical document
+[9/15] [chromium] › tests/e2e/export-dialog.e2e.ts:134:1 › an in-flight export reports progress and cancellations keep the last valid state
+[10/15] [chromium] › tests/e2e/export-dialog.e2e.ts:165:1 › the card export keeps its declared 1200x630 surface
+[11/15] [chromium] › tests/e2e/export-dialog.e2e.ts:185:1 › HTML export reuses the public standalone runtime instead of a parallel renderer
+[12/15] [chromium] › tests/e2e/playground-handoff.e2e.ts:10:1 › Full studio opens the current Playground document
+  2) [chromium] › tests/e2e/playground-handoff.e2e.ts:10:1 › Full studio opens the current Playground document 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Handoff label', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Handoff label', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Handoff label', exact: true })
+
+
+       5 |   await page.getByLabel('Label', { exact: true }).fill(to)
+       6 |   await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+    >  7 |   await expect(page.getByRole('button', { name: to, exact: true })).toBeVisible()
+         |                                                                     ^
+       8 | }
+       9 |
+      10 | test('Full studio opens the current Playground document', async ({ page }) => {
+        at renameNode (/Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:7:69)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:13:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--03fd6-current-Playground-document-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playground-handoff.e2e.ts--03fd6-current-Playground-document-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--03fd6-current-Playground-document-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/playground-handoff.e2e.ts--03fd6-current-Playground-document-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56488) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[13/15] [chromium] › tests/e2e/playground-handoff.e2e.ts:20:1 › local recovery restores an unsaved playground session after reload
+  3) [chromium] › tests/e2e/playground-handoff.e2e.ts:20:1 › local recovery restores an unsaved playground session after reload 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Recovered label', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Recovered label', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Recovered label', exact: true })
+
+
+       5 |   await page.getByLabel('Label', { exact: true }).fill(to)
+       6 |   await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+    >  7 |   await expect(page.getByRole('button', { name: to, exact: true })).toBeVisible()
+         |                                                                     ^
+       8 | }
+       9 |
+      10 | test('Full studio opens the current Playground document', async ({ page }) => {
+        at renameNode (/Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:7:69)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:22:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--efcc8-ground-session-after-reload-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playground-handoff.e2e.ts--efcc8-ground-session-after-reload-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--efcc8-ground-session-after-reload-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/playground-handoff.e2e.ts--efcc8-ground-session-after-reload-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56501) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[14/15] [chromium] › tests/e2e/playground-handoff.e2e.ts:35:1 › internal navigation warns before dropping unsaved work
+  4) [chromium] › tests/e2e/playground-handoff.e2e.ts:35:1 › internal navigation warns before dropping unsaved work 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Guarded label', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Guarded label', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Guarded label', exact: true })
+
+
+       5 |   await page.getByLabel('Label', { exact: true }).fill(to)
+       6 |   await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+    >  7 |   await expect(page.getByRole('button', { name: to, exact: true })).toBeVisible()
+         |                                                                     ^
+       8 | }
+       9 |
+      10 | test('Full studio opens the current Playground document', async ({ page }) => {
+        at renameNode (/Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:7:69)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground-handoff.e2e.ts:37:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--a649f-efore-dropping-unsaved-work-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playground-handoff.e2e.ts--a649f-efore-dropping-unsaved-work-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playground-handoff.e2e.ts--a649f-efore-dropping-unsaved-work-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/playground-handoff.e2e.ts--a649f-efore-dropping-unsaved-work-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56507) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[15/15] [chromium] › tests/e2e/playground-handoff.e2e.ts:49:1 › an unapplied JSON draft offers Apply, Discard or Cancel before leaving
+  4 failed
+    [chromium] › tests/e2e/editor-conversion.e2e.ts:67:1 › stale conversion confirmation keeps the intervening edit and history 
+    [chromium] › tests/e2e/playground-handoff.e2e.ts:10:1 › Full studio opens the current Playground document 
+    [chromium] › tests/e2e/playground-handoff.e2e.ts:20:1 › local recovery restores an unsaved playground session after reload 
+    [chromium] › tests/e2e/playground-handoff.e2e.ts:35:1 › internal navigation warns before dropping unsaved work 
+  11 passed (43.9s)

@@ -1,0 +1,21 @@
+
+> @aesthc/diagram-lib@0.3.0 test:visual /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> VISUAL_REGRESSION=1 playwright test --project=chromium --grep "seven types render|layout previews preserve geometry|landing presentation" --update-snapshots=none
+
+[WebServer] (node:56836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:56837) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 2 workers
+
+(node:56852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:56851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › tests/e2e/docs.e2e.ts:234:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes (3.0s)
+  ✓  1 [chromium] › tests/e2e/adoption.e2e.ts:84:1 › landing presentation preserves both locales and themes at narrow and desktop widths (3.7s)
+  ✓  4 [chromium] › tests/e2e/playground.e2e.ts:174:1 › seven types render with unique SVG IDs in both themes (1.6s)
+  ✓  3 [chromium] › tests/e2e/docs.e2e.ts:234:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes (2.4s)
+
+  4 passed (7.9s)

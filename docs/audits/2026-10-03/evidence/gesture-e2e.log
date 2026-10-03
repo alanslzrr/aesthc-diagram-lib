@@ -1,0 +1,100 @@
+[WebServer] (node:56563) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:56564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 10 tests using 1 worker
+
+(node:56584) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-flowchart and persists with one undo entry
+[2/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-er and persists with one undo entry
+[3/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-state-machine and persists with one undo entry
+[4/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-band and persists with one undo entry
+[5/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-swimlane and persists with one undo entry
+[6/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-sequence and persists with one undo entry
+[7/10] [chromium] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-timeline and persists with one undo entry
+[8/10] [chromium] › tests/e2e/studio.e2e.ts:558:1 › Studio exposes eight resize directions with anchored keyboard edits
+  1) [chromium] › tests/e2e/studio.e2e.ts:558:1 › Studio exposes eight resize directions with anchored keyboard edits 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 256
+    Received: 240
+
+      570 |   await northwest.focus()
+      571 |   await page.keyboard.press('Shift+ArrowRight')
+    > 572 |   expect(Number(await node.getAttribute('x'))).toBe(x + 16)
+          |                                                ^
+      573 |   expect(Number(await node.getAttribute('width'))).toBe(width - 16)
+      574 |   expect(Number(await node.getAttribute('y'))).toBe(y)
+      575 |   expect(Number(await node.getAttribute('height'))).toBe(height)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/studio.e2e.ts:572:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/studio.e2e.ts-Studio-expos-70530-ith-anchored-keyboard-edits-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/studio.e2e.ts-Studio-expos-70530-ith-anchored-keyboard-edits-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/studio.e2e.ts-Studio-expos-70530-ith-anchored-keyboard-edits-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/studio.e2e.ts-Studio-expos-70530-ith-anchored-keyboard-edits-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[9/10] [chromium] › tests/e2e/studio.e2e.ts:620:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit
+  2) [chromium] › tests/e2e/studio.e2e.ts:620:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 240
+    Received:   240
+
+    Call Log:
+    - Timeout 8000ms exceeded while waiting on the predicate
+
+      665 |   await expect
+      666 |     .poll(async () => Number(await api.getAttribute('width')))
+    > 667 |     .toBeGreaterThan(beforeApi.width)
+          |      ^
+      668 |   expect(Number(await database.getAttribute('width'))).toBeGreaterThan(beforeDatabase.width)
+      669 |   await page.getByRole('button', { name: 'Undo', exact: true }).click()
+      670 |   expect(Number(await api.getAttribute('width'))).toBe(beforeApi.width)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/studio.e2e.ts:667:6
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/studio.e2e.ts-Studio-resiz-513a7-e-in-a-single-undoable-edit-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/studio.e2e.ts-Studio-resiz-513a7-e-in-a-single-undoable-edit-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/studio.e2e.ts-Studio-resiz-513a7-e-in-a-single-undoable-edit-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/studio.e2e.ts-Studio-resiz-513a7-e-in-a-single-undoable-edit-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:56627) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[10/10] [chromium] › tests/e2e/studio.e2e.ts:763:1 › low zoom resize keeps the opposite anchor, distinguishes body drags and undoes once
+  2 failed
+    [chromium] › tests/e2e/studio.e2e.ts:558:1 › Studio exposes eight resize directions with anchored keyboard edits 
+    [chromium] › tests/e2e/studio.e2e.ts:620:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit 
+  8 passed (17.0s)

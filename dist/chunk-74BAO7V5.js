@@ -1,10 +1,10 @@
 import {
   createEditorStore
-} from "./chunk-SSCP2WA7.js";
+} from "./chunk-BNDD6UNK.js";
 import {
   isNodeLocked,
   resolveDocument
-} from "./chunk-FJJDAGJJ.js";
+} from "./chunk-JQT4HMUF.js";
 import {
   createDocument
 } from "./chunk-TSYG4LOT.js";
@@ -334,19 +334,34 @@ function validateCustomPayload(registry, payload) {
     return failure("renderer.invalid");
   const renderer = registry.resolve(candidate.typeKey);
   if (!renderer) return failure("renderer.unsupported");
-  const checked = renderer.validate(candidate.data);
+  let checked;
+  try {
+    checked = renderer.validate(candidate.data);
+  } catch {
+    return failure("renderer.failed");
+  }
   if (!checked.ok) return checked;
   return success({ renderer, data: checked.value });
 }
 function renderCustomNode(registry, payload, context) {
   const validated = validateCustomPayload(registry, payload);
   if (!validated.ok) return validated;
-  const size = validated.value.renderer.measure(validated.value.data, {
-    fontSize: context.fontSize
-  });
+  let size;
+  try {
+    size = validated.value.renderer.measure(validated.value.data, {
+      fontSize: context.fontSize
+    });
+  } catch {
+    return failure("renderer.failed");
+  }
   if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0)
     return failure("renderer.measure");
-  const svg = validated.value.renderer.renderSvg(validated.value.data, context);
+  let svg;
+  try {
+    svg = validated.value.renderer.renderSvg(validated.value.data, context);
+  } catch {
+    return failure("renderer.failed");
+  }
   if (typeof svg !== "string" || !svg.trim()) return failure("renderer.empty");
   return success({
     svg,

@@ -38,6 +38,8 @@ interface ExportHtmlArtifact {
         canonical: boolean;
         sourceIncluded: boolean;
         metadata: 'minimal' | 'all';
+        /** Number of custom nodes frozen into the runtime payload. */
+        frozenCustomNodes: number;
         verified: false;
         runtimeBytes: number;
         fontBytes: number;
@@ -129,6 +131,8 @@ interface MotionOptions {
     signal?: AbortSignal;
     /** Reduced motion never records: the static story navigation stays. */
     reducedMotion?: boolean;
+    /** Effective appearance for the recorded frames; defaults to the document mode. */
+    theme?: 'light' | 'dark';
     /** Trusted renderers; without one a custom story fails instead of freezing a placeholder. */
     renderers?: ResolveRendererRegistry;
 }
