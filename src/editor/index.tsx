@@ -1571,7 +1571,7 @@ export function EditorSurface({
             !connectSourceId
           ) {
             event.preventDefault()
-            svgRef.current?.focus()
+            svgRef.current?.focus({ preventScroll: true })
             marquee.current = {
               pointer: event.pointerId,
               start: local(event),
@@ -1584,7 +1584,7 @@ export function EditorSurface({
             return
           }
           event.preventDefault()
-          svgRef.current?.focus()
+          svgRef.current?.focus({ preventScroll: true })
           let resizeIds: string[] | undefined
           if (waypointEdge) {
             const route = snapshot.document.scene.routes[waypointEdge]
