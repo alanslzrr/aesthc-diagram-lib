@@ -7,7 +7,15 @@ export interface TextRole {
   charFactor: number
 }
 
-export type TextMeasurer = (text: string, role: TextRole) => number
+export interface TextMeasurer {
+  (text: string, role: TextRole): number
+  /**
+   * Drop cached widths after the font environment changes. A measurer that
+   * caches must expose this so a scene can be re-resolved with real Geist
+   * metrics instead of pre-load fallback substitutions.
+   */
+  clear?(): void
+}
 
 /**
  * Conservative fallback used when no DOM measurer is available. It never
@@ -37,7 +45,7 @@ export function createCanvasTextMeasurer(): TextMeasurer | undefined {
   if (!context) return undefined
   const cache = new Map<string, number>()
   const CACHE_LIMIT = 20000
-  return (text, role) => {
+  const measurer: TextMeasurer = (text, role) => {
     const length = Array.from(text).length
     if (!length) return 0
     const key = `${role.size}|${role.family}|${role.tracking ?? 0}|${text}`
@@ -51,6 +59,10 @@ export function createCanvasTextMeasurer(): TextMeasurer | undefined {
     cache.set(key, width)
     return width
   }
+  // A fallback-substituted glyph measured before Geist loads must never be
+  // reused after the faces are ready.
+  measurer.clear = () => cache.clear()
+  return measurer
 }
 
 function toDataUrl(bytes: Uint8Array): string {

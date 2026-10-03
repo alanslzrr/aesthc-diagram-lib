@@ -104,6 +104,37 @@ for (const example of EXAMPLES) {
   }
 }
 
+test('delayed Geist loading still yields pill padding once the fonts arrive', async ({ page }) => {
+  await page.route('**/*.woff2', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+    await route.continue()
+  })
+  await page.goto('/playground.html?only=example-band')
+  await expect(page.locator('.adl-editor-surface [data-hit-node]').first()).toBeVisible()
+  const pillWidth = () =>
+    page.evaluate(() => {
+      const group = document.querySelector(
+        '[data-edge-label="retry-ingress"], [data-continuation-label="retry-ingress"]',
+      )
+      const rect = group?.querySelector('rect')
+      return rect ? Number(rect.getAttribute('width')) : 0
+    })
+  expect(await pillWidth()).toBeGreaterThan(0)
+  await page.evaluate(() => document.fonts.load('11.25px Geist'))
+  await page.evaluate(() => document.fonts.load('11.25px "Geist Mono"'))
+  await page.evaluate(() => document.fonts.ready)
+  expect(await page.evaluate(() => document.fonts.check('11.25px "Geist Mono"'))).toBe(true)
+  // The scene re-resolves with real metrics once the faces are usable, so the
+  // continuation pill keeps the agreed padding floor instead of cached
+  // fallback widths.
+  const retry = (await labelBounds(page, '.adl-editor-surface')).find(
+    (label) => label.id === 'retry-ingress',
+  )
+  expect(retry, 'retry-ingress label').toBeTruthy()
+  expect(retry!.left).toBeGreaterThanOrEqual(1)
+  expect(retry!.right).toBeGreaterThanOrEqual(1)
+})
+
 test('the exported SVG centers labels and keeps them inside the pill', async ({
   page,
   browserName,
