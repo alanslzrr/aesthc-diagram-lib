@@ -42,6 +42,8 @@ export interface ExportHtmlArtifact {
     canonical: boolean
     sourceIncluded: boolean
     metadata: 'minimal' | 'all'
+    /** Number of custom nodes frozen into the runtime payload. */
+    frozenCustomNodes: number
     verified: false
     runtimeBytes: number
     fontBytes: number
@@ -182,6 +184,22 @@ export function exportDocumentHtml(
     ),
     '</ul>',
   ].join('\n')
+  // Custom renderer output is validated and frozen at export time. The runtime
+  // payload references each frozen node so the standalone viewer can paint the
+  // exact same SVG after boot without shipping executable renderer callbacks.
+  const frozen: Record<string, { svg: string; width: number; height: number; typeKey: string }> = {}
+  if (document.spec.type === 'graph')
+    for (const node of document.spec.nodes) {
+      if (!node.renderer) continue
+      const placed = resolved.value.layout.nodeById[node.id]
+      if (!placed?.customSvg) continue
+      frozen[node.id] = {
+        svg: placed.customSvg,
+        width: placed.w,
+        height: placed.h,
+        typeKey: node.renderer.typeKey,
+      }
+    }
   // The runtime document follows the requested appearance and the portable
   // metadata policy; the optional source section keeps the exact canonical
   // original instead, so JS-on and JS-off never disagree about the theme.
@@ -191,6 +209,14 @@ export function exportDocumentHtml(
       ? structuredClone(document)
       : projectDocumentMetadata(document, 'minimal')
   runtimeDocument.presentation.theme.mode = theme
+  if (runtimeDocument.spec.type === 'graph')
+    for (const node of runtimeDocument.spec.nodes)
+      if (node.renderer && frozen[node.id])
+        node.renderer = { typeKey: node.renderer.typeKey, data: { __adlFrozen: node.id } }
+  const frozenSection =
+    Object.keys(frozen).length > 0
+      ? `<script type="application/json" id="aesthc-frozen">${embedJson(frozen)}</script>`
+      : ''
   const sourceSection = options.includeSource
     ? `<script type="application/json" id="aesthc-source">${canonical(document).replaceAll('<', '\\u003c').replaceAll('>', '\\u003e')}</script>`
     : ''
@@ -214,6 +240,7 @@ export function exportDocumentHtml(
     '</main>',
     '<div id="aesthc-standalone" hidden></div>',
     `<script type="application/json" id="aesthc-document">${embedJson(runtimeDocument)}</script>`,
+    frozenSection,
     sourceSection,
     `<script>${options.runtime}</script>`,
     '</body>',
@@ -231,6 +258,7 @@ export function exportDocumentHtml(
       canonical: true,
       sourceIncluded: !!options.includeSource,
       metadata: metadataPolicy,
+      frozenCustomNodes: Object.keys(frozen).length,
       verified: false,
       runtimeBytes: new TextEncoder().encode(options.runtime).byteLength,
       fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength,

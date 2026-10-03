@@ -6,6 +6,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { createDocument } from '../../dist/editor-core/index.js'
 import type { DiagramDocument } from '../../dist/editor-core/index.js'
 import { exportDocumentHtml } from '../../dist/export/index.js'
+import { createRendererRegistry } from '../../dist/editor-core/index.js'
 
 function offlineDocument(): DiagramDocument {
   const made = createDocument(
@@ -43,7 +44,12 @@ function offlineDocument(): DiagramDocument {
 
 function buildArtifact(
   document: DiagramDocument,
-  options: { includeSource?: boolean; metadata?: 'minimal' | 'all'; theme?: 'light' | 'dark' } = {},
+  options: {
+    includeSource?: boolean
+    metadata?: 'minimal' | 'all'
+    theme?: 'light' | 'dark'
+    registry?: ReturnType<typeof createRendererRegistry>
+  } = {},
 ) {
   const runtime = readFileSync('dist/standalone/viewer.js', 'utf8')
   const css = readFileSync('dist/viewer.css', 'utf8')
@@ -58,6 +64,7 @@ function buildArtifact(
     includeSource: options.includeSource,
     metadata: options.metadata,
     theme: options.theme,
+    registry: options.registry,
   })
   if (!result.ok) throw Error(JSON.stringify(result.diagnostics))
   const directory = mkdtempSync(join(tmpdir(), 'adl-html-'))
@@ -294,4 +301,54 @@ test('the export theme override reaches the hydrated standalone runtime', async 
   expect(artifact.html).toContain('data-theme="dark"')
   await page.goto(`file://${artifact.file}`)
   await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'dark')
+})
+
+test('custom node rendering survives standalone boot without executable renderer code', async ({
+  page,
+  browser,
+}) => {
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Frozen badge',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'plain', label: 'Plain', description: '' },
+        {
+          id: 'custom',
+          label: 'Custom',
+          description: '',
+          renderer: { typeKey: 'frozen-badge', data: { label: 'Ready' } },
+        },
+      ],
+      edges: [{ id: 'e', from: 'plain', to: 'custom' }],
+    },
+    { id: 'frozen-document', locale: 'en' },
+  )
+  if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+  const registry = createRendererRegistry()
+  const registered = registry.register({
+    typeKey: 'frozen-badge',
+    validate: (data) => ({ ok: true, diagnostics: [], value: data }),
+    measure: () => ({ width: 220, height: 90 }),
+    renderSvg: (_data, context) =>
+      `<g data-custom-renderer="frozen-badge"><rect x="${context.x}" y="${context.y}" width="220" height="90" fill="#16a34a"/><text x="${context.x + 110}" y="${context.y + 50}" text-anchor="middle" fill="#ffffff">Ready</text></g>`,
+  })
+  expect(registered.ok).toBe(true)
+  const artifact = buildArtifact(made.value, { registry })
+  expect(artifact.receipt.frozenCustomNodes).toBe(1)
+  await page.goto(`file://${artifact.file}`)
+  await expect(page.locator('.adl-viewer')).toBeVisible()
+  await expect(
+    page.locator('.adl-viewer-stage [data-custom-renderer="frozen-badge"]'),
+  ).toBeVisible()
+  await expect(page.locator('[data-renderer-missing]')).toHaveCount(0)
+  // JavaScript off keeps the same frozen rendering in the static fallback.
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const staticPage = await context.newPage()
+  await staticPage.goto(`file://${artifact.file}`)
+  await expect(
+    staticPage.locator('#aesthc-fallback [data-custom-renderer="frozen-badge"]'),
+  ).toBeVisible()
+  await context.close()
 })
