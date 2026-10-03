@@ -726,7 +726,22 @@ function EditorSurface({
     () => ({ theme: effectiveTheme, renderers: registry }),
     [effectiveTheme, registry]
   );
-  const resolvePreview = useMemo(() => createPreviewResolver(), [store]);
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => {
+    if (fontsReady || typeof document === "undefined" || !document.fonts) return;
+    if (document.fonts.status === "loaded") {
+      setFontsReady(true);
+      return;
+    }
+    let cancelled = false;
+    void document.fonts.ready.then(() => {
+      if (!cancelled) setFontsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fontsReady]);
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontsReady]);
   const committedResolved = useMemo(
     () => resolveDocument(snapshot.document, {
       quality: "edit",
@@ -737,7 +752,7 @@ function EditorSurface({
       theme: effectiveTheme,
       renderers: registry
     }),
-    [snapshot.document, instanceId, effectiveTheme, registry]
+    [snapshot.document, instanceId, effectiveTheme, registry, fontsReady]
   );
   const resolved = useMemo(
     () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {
