@@ -16,25 +16,28 @@ test('landing links reach adoption tools and editors mount only on demand', asyn
   await expect(page.locator('#example-band')).toBeInViewport()
 })
 
-test('full and filtered landing keep every visible internal anchor resolvable in both locales', async ({
-  page,
-}) => {
-  const visibleHrefs = (page: import('@playwright/test').Page, selector: string) =>
-    page.evaluate(
-      (selector) => [
-        ...new Set(
-          [...document.querySelectorAll<HTMLAnchorElement>(selector)]
-            .filter((anchor) => anchor.offsetParent !== null)
-            .map((anchor) => anchor.getAttribute('href') as string),
-        ),
-      ],
-      selector,
-    )
-  for (const locale of ['en', 'es']) {
-    for (const route of ['/', '/?only=example-band', '/?only=example-flowchart']) {
+const visibleHrefs = (page: import('@playwright/test').Page, selector: string) =>
+  page.evaluate(
+    (selector) => [
+      ...new Set(
+        [...document.querySelectorAll<HTMLAnchorElement>(selector)]
+          .filter((anchor) => anchor.offsetParent !== null)
+          .map((anchor) => anchor.getAttribute('href') as string),
+      ),
+    ],
+    selector,
+  )
+
+for (const locale of ['en', 'es'] as const) {
+  for (const route of ['/', '/?only=example-band', '/?only=example-flowchart'] as const) {
+    test(`${route} (${locale}) keeps every visible internal anchor resolvable`, async ({
+      page,
+    }) => {
+      // One navigation per case: the locale is persisted before the first load
+      // so the traversal never needs a reload, which was timing out on WebKit.
+      await page.addInitScript((value) => localStorage.setItem('adl-locale', value), locale)
       await page.goto(route)
-      await page.evaluate((locale) => localStorage.setItem('adl-locale', locale), locale)
-      await page.reload()
+      await page.evaluate(() => document.fonts.ready)
       for (const href of await visibleHrefs(page, 'a[href^="#"]')) {
         const id = decodeURIComponent(href.slice(1))
         expect(
@@ -52,24 +55,21 @@ test('full and filtered landing keep every visible internal anchor resolvable in
             `${route} (${locale}) ${href} has no card`,
           ).toBeVisible()
         }
-        continue
+        return
       }
       for (const href of switches) {
         const target = new URL(href, page.url()).searchParams.get('only') as string
-        await page.locator(`a[href="${href}"]`).first().click()
+        await page.goto(href)
         await expect(page).toHaveURL(new RegExp(`only=${target}`))
         await expect(page.locator(`#${target}`)).toBeVisible()
-        await page.goto(route)
-        await page.evaluate((locale) => localStorage.setItem('adl-locale', locale), locale)
-        await page.reload()
       }
       await page
         .getByRole('link', { name: /Back to all diagrams|Volver a todos los diagramas/ })
         .click()
       await expect(page.locator('.layout-gallery')).toBeVisible()
-    }
+    })
   }
-})
+}
 
 test('capabilities are a static section with no disclosure pattern', async ({ page }) => {
   await page.goto('/')
