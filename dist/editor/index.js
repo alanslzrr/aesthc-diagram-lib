@@ -44,7 +44,6 @@ import {
   memo,
   useCallback,
   useContext,
-  useDeferredValue,
   useEffect,
   useId,
   useLayoutEffect,
@@ -2236,9 +2235,18 @@ function EditorInspector() {
 function EditorJsonPanel() {
   const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
   const [commitDiagnostics, setCommitDiagnostics] = useState([]);
-  const readableDocument = useDeferredValue(snapshot.document);
-  const serialized = useMemo(() => serializeDocument(readableDocument), [readableDocument]);
-  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized;
+  const [serialized, setSerialized] = useState(() => ({
+    document: snapshot.document,
+    text: serializeDocument(snapshot.document)
+  }));
+  useEffect(() => {
+    if (serialized.document === snapshot.document) return;
+    const timer = setTimeout(() => {
+      setSerialized({ document: snapshot.document, text: serializeDocument(snapshot.document) });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [snapshot.document, serialized.document]);
+  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized.text;
   const draftKind = snapshot.draft.kind;
   useEffect(() => {
     if (draftKind !== "text") setCommitDiagnostics([]);
@@ -2258,8 +2266,8 @@ function EditorJsonPanel() {
       {
         "aria-label": t("Document JSON", "JSON del documento"),
         value: text,
-        "aria-busy": readableDocument !== snapshot.document,
-        readOnly: snapshot.draft.kind !== "text" && readableDocument !== snapshot.document,
+        "aria-busy": serialized.document !== snapshot.document,
+        readOnly: snapshot.draft.kind !== "text" && serialized.document !== snapshot.document,
         onChange: (event) => {
           setCommitDiagnostics([]);
           store.setTextDraft(event.target.value);

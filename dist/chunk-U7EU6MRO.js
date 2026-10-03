@@ -27,6 +27,28 @@ import {
   renderSvg
 } from "./chunk-S6PSHJSL.js";
 
+// src/export/wait.ts
+function waitForExport(operation, signal, timeoutMs = 1e4) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (action) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      action();
+    };
+    const abort = () => finish(() => reject(Error("operation.aborted")));
+    const timer = setTimeout(() => finish(() => reject(Error("export.timeout"))), timeoutMs);
+    operation.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error))
+    );
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+  });
+}
+
 // src/export/raster.ts
 async function rasterizeSvg(svg, mime, width, height, signal) {
   if (typeof document === "undefined" || typeof Image === "undefined")
@@ -38,40 +60,31 @@ async function rasterizeSvg(svg, mime, width, height, signal) {
   if (!context) return failure("export.context");
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })), image = new Image();
   try {
-    await new Promise((resolve, reject) => {
-      const abort = () => {
-        cleanup();
-        reject(Error("operation.aborted"));
-      };
-      const cleanup = () => {
-        image.onload = null;
-        image.onerror = null;
-        signal?.removeEventListener("abort", abort);
-      };
-      image.onload = () => {
-        cleanup();
-        resolve();
-      };
-      image.onerror = () => {
-        cleanup();
-        reject(Error("export.image"));
-      };
-      signal?.addEventListener("abort", abort, { once: true });
-      if (signal?.aborted) abort();
-      else image.src = url;
-    });
+    await waitForExport(
+      new Promise((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(Error("export.image"));
+        if (!signal?.aborted) image.src = url;
+      }),
+      signal
+    );
     if (signal?.aborted) return failure("operation.aborted");
     context.drawImage(image, 0, 0, width, height);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, 0.92));
+    const blob = await waitForExport(
+      new Promise((resolve) => canvas.toBlob(resolve, mime, 0.92)),
+      signal
+    );
     if (signal?.aborted) return failure("operation.aborted");
     if (!blob) return failure("export.encode");
     if (blob.type !== mime) return failure("export.mime");
-    return success(new Uint8Array(await blob.arrayBuffer()));
+    return success(new Uint8Array(await waitForExport(blob.arrayBuffer(), signal)));
   } catch (error) {
     return failure(
-      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : error instanceof Error && error.message === "export.image" ? "export.image" : "export.raster"
+      error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : error instanceof Error && error.message === "export.timeout" ? "export.timeout" : error instanceof Error && error.message === "export.image" ? "export.image" : "export.raster"
     );
   } finally {
+    image.onload = null;
+    image.onerror = null;
     image.src = "";
     URL.revokeObjectURL(url);
     canvas.width = 0;
@@ -726,7 +739,15 @@ async function exportDocument(input, options) {
       fonts = result.value;
       measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono);
       if (measurer) {
-        const embeddedReady = await measurer.ready();
+        let embeddedReady;
+        try {
+          embeddedReady = await waitForExport(measurer.ready(), options.signal);
+        } catch (error) {
+          measurer.dispose();
+          return failure(
+            error instanceof Error && error.message === "operation.aborted" ? "operation.aborted" : "export.timeout"
+          );
+        }
         if (!embeddedReady) {
           measurer.dispose();
           measurer = void 0;
