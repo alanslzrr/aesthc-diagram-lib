@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Locale } from '@aesthc/diagram-lib/editor-core'
 import { resolveDocument } from '@aesthc/diagram-lib/editor-core'
-import { shallowEqual, useEditorSelector } from '@aesthc/diagram-lib/editor'
+import { shallowEqual, useEditor, useEditorSelector } from '@aesthc/diagram-lib/editor'
 import { CARD_HEIGHT, CARD_WIDTH } from '@aesthc/diagram-lib/export'
 import {
   DEFAULT_EXPORT_CHOICE,
@@ -133,6 +133,8 @@ export function ExportDialog({
     shallowEqual,
   )
   const { document, selection } = snapshot
+  // The instance registry used for display must reach every visual export.
+  const { theme: viewTheme, registry } = useEditor()
   const reducedMotion = useReducedMotion()
   const [capabilities, setCapabilities] = useState<SharedCapabilities | null>(null)
   useEffect(() => {
@@ -204,7 +206,8 @@ export function ExportDialog({
         signal: controller.signal,
         filenameBase: filenameBase ?? document.id,
         reducedMotion,
-        appearance,
+        appearance: appearance ?? viewTheme,
+        renderers: registry,
         onPhase: (next) => {
           if (!controller.signal.aborted) setPhase(next)
         },

@@ -13,7 +13,11 @@ import {
   webmCapability,
 } from '@aesthc/diagram-lib/export'
 import { getAdapter } from '@aesthc/diagram-lib/editor-core'
-import type { DiagramDocument, EntityRef } from '@aesthc/diagram-lib/editor-core'
+import type {
+  DiagramDocument,
+  EntityRef,
+  ResolveRendererRegistry,
+} from '@aesthc/diagram-lib/editor-core'
 import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
 import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
 // Build-time public assets consumed by the HTML artifact; the site build emits
@@ -132,6 +136,8 @@ export interface ExportContext {
    * the authored document; the global appearance toggle never touches it.
    */
   appearance?: 'light' | 'dark'
+  /** Trusted per-instance renderers for custom nodes; never serialized. */
+  renderers?: ResolveRendererRegistry
   onPhase?: (phase: ExportPhase) => void
 }
 function failure(codes: string[]): ExportResult {
@@ -185,6 +191,7 @@ export async function performExport(
       metadata: choice.metadata,
       fonts,
       fontPolicy: choice.fontPolicy,
+      renderers: context.renderers,
       signal,
     })
     if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
@@ -242,6 +249,7 @@ export async function performExport(
       title: document.spec.caption,
       includeSource: choice.includeSource,
       metadata: choice.metadata,
+      registry: context.renderers,
     })
     if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
     onPhase?.('encoding')
@@ -261,7 +269,11 @@ export async function performExport(
   }
   if (choice.format === 'card') {
     onPhase?.('rendering')
-    const result = await exportCard(document, { theme, signal })
+    const result = await exportCard(document, {
+      theme,
+      signal,
+      registry: context.renderers,
+    })
     if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
     if (signal.aborted) return failure(['operation.aborted'])
     onPhase?.('encoding')
@@ -287,6 +299,7 @@ export async function performExport(
     signal,
     reducedMotion: context.reducedMotion,
     theme,
+    renderers: context.renderers,
   })
   if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
   if (signal.aborted) return failure(['operation.aborted'])
