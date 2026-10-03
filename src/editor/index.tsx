@@ -4,6 +4,7 @@ import {
   memo,
   useCallback,
   useContext,
+  useDeferredValue,
   useEffect,
   useId,
   useLayoutEffect,
@@ -294,6 +295,13 @@ function materialize(
   document: DiagramDocument,
   resolve?: { theme?: 'light' | 'dark'; renderers?: ResolveRendererRegistry },
 ) {
+  if (
+    document.spec.type === 'graph' &&
+    document.scene.mode === 'manual' &&
+    !resolve?.renderers &&
+    nodesOf(document.spec).every((node) => document.scene.nodes[node.id])
+  )
+    return document.scene
   const result = resolveDocument(document, {
     quality: 'edit',
     requestId: 'gesture',
@@ -2455,7 +2463,8 @@ export function EditorJsonPanel() {
   // refused (stale revision, permissions, history), and that must never be
   // confused with a live parse diagnostic or discarded on the user's behalf.
   const [commitDiagnostics, setCommitDiagnostics] = useState<readonly string[]>([])
-  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document])
+  const readableDocument = useDeferredValue(snapshot.document)
+  const serialized = useMemo(() => serializeDocument(readableDocument), [readableDocument])
   const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
   const draftKind = snapshot.draft.kind
   useEffect(() => {
@@ -2477,6 +2486,8 @@ export function EditorJsonPanel() {
       <textarea
         aria-label={t('Document JSON', 'JSON del documento')}
         value={text}
+        aria-busy={readableDocument !== snapshot.document}
+        readOnly={snapshot.draft.kind !== 'text' && readableDocument !== snapshot.document}
         onChange={(event) => {
           setCommitDiagnostics([])
           store.setTextDraft(event.target.value)
@@ -3537,18 +3548,15 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
 }
 export function EditorRelations() {
   const { store } = useEditor(),
-    snapshot = useEditorSelector(
-      (s) => ({ document: s.document, selection: s.selection }),
-      shallowEqual,
-    ),
+    spec = useEditorSelector((s) => s.document.spec),
     t = useLabels()
-  const nodes = nodesOf(snapshot.document.spec),
+  const nodes = nodesOf(spec),
     [from, setFrom] = useState(''),
     [to, setTo] = useState(''),
     [label, setLabel] = useState(''),
     [error, setError] = useState('')
-  if (snapshot.document.spec.type === 'timeline') return null
-  const adapter = getAdapter(snapshot.document.spec.type)
+  if (spec.type === 'timeline') return null
+  const adapter = getAdapter(spec.type)
   const source = nodes.some((n) => n.id === from) ? from : (nodes[0]?.id ?? ''),
     target = nodes.some((n) => n.id === to) ? to : (nodes[1]?.id ?? source)
   return (
@@ -3557,8 +3565,8 @@ export function EditorRelations() {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          const result = adapter.insertRelation(snapshot.document.spec, {
-            diagramType: snapshot.document.spec.type,
+          const result = adapter.insertRelation(spec, {
+            diagramType: spec.type,
             relation: {
               id: crypto.randomUUID(),
               from: source,
@@ -3616,18 +3624,17 @@ export function EditorRelations() {
       </form>
       <div className="adl-editor-relations">
         <h4>
-          {t('Existing connections', 'Conexiones existentes')} (
-          {edgesOf(snapshot.document.spec).length})
+          {t('Existing connections', 'Conexiones existentes')} ({edgesOf(spec).length})
         </h4>
         <ul className="adl-editor-relation-list">
-          {edgesOf(snapshot.document.spec).map((e) => (
+          {edgesOf(spec).map((e) => (
             <li className="adl-editor-relation" key={e.id}>
               <span>{e.label || `${e.from} → ${e.to}`}</span>
               <button
                 type="button"
                 aria-label={t(`Delete connection ${e.id}`, `Eliminar conexión ${e.id}`)}
                 onClick={() => {
-                  const result = adapter.removeRelations(snapshot.document.spec, [e.id!])
+                  const result = adapter.removeRelations(spec, [e.id!])
                   if (result.ok)
                     dispatch(
                       store,
@@ -3794,11 +3801,11 @@ export function useEditorStore(options: StoreOptions): EditorStore {
 export function EditorOutline({ className }: { className?: string }) {
   const { store } = useEditor(),
     snapshot = useEditorSelector(
-      (s) => ({ selection: s.selection, document: s.document }),
+      (s) => ({ selection: s.selection, spec: s.document.spec, groups: s.document.scene.groups }),
       shallowEqual,
     ),
     t = useLabels()
-  const nodes = nodesOf(snapshot.document.spec)
+  const nodes = nodesOf(snapshot.spec)
   const labels = new Map(nodes.map((n) => [n.id, n.label]))
   const sections = [
     {
@@ -3809,7 +3816,7 @@ export function EditorOutline({ className }: { className?: string }) {
     {
       label: t('Connections', 'Conexiones'),
       kind: 'edge' as const,
-      entities: edgesOf(snapshot.document.spec).map((e) => ({
+      entities: edgesOf(snapshot.spec).map((e) => ({
         id: e.id!,
         label: `${labels.get(e.from)} → ${labels.get(e.to)}${e.label ? `: ${e.label}` : ''}`,
       })),
@@ -3817,7 +3824,7 @@ export function EditorOutline({ className }: { className?: string }) {
     {
       label: t('Groups', 'Grupos'),
       kind: 'group' as const,
-      entities: snapshot.document.scene.groups.map((g) => ({ id: g.id, label: g.label })),
+      entities: snapshot.groups.map((g) => ({ id: g.id, label: g.label })),
     },
   ]
   return (
