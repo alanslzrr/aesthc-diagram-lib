@@ -425,6 +425,10 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     if (!validId(transaction.id)) return failure<DiagramDocument>('id.invalid')
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure<DiagramDocument>('revision.stale')
+    // An empty batch changes nothing in an already validated, immutable store.
+    // Keep transaction/permission/revision checks above, without cloning and
+    // revalidating thousands of entities on every pointer-down.
+    if (transaction.commands.length === 0) return success(snapshot.document)
     if (fast || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits)
       if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
