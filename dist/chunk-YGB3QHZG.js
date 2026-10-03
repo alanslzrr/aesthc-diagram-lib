@@ -430,7 +430,7 @@ function createCanvasTextMeasurer() {
   if (!context) return void 0;
   const cache = /* @__PURE__ */ new Map();
   const CACHE_LIMIT = 2e4;
-  return (text, role) => {
+  const measurer = (text, role) => {
     const length = Array.from(text).length;
     if (!length) return 0;
     const key = `${role.size}|${role.family}|${role.tracking ?? 0}|${text}`;
@@ -442,6 +442,8 @@ function createCanvasTextMeasurer() {
     cache.set(key, width);
     return width;
   };
+  measurer.clear = () => cache.clear();
+  return measurer;
 }
 function toDataUrl(bytes) {
   let raw = "";
@@ -646,27 +648,39 @@ function resolveScene(document2, context, previous, extents) {
         fail("renderer.failed");
         continue;
       }
-      if (!validated.ok) {
+      if (!validated || typeof validated !== "object" || Array.isArray(validated)) {
+        fail("renderer.failed");
+        continue;
+      }
+      const checked2 = validated;
+      if (typeof checked2.ok !== "boolean") {
+        fail("renderer.failed");
+        continue;
+      }
+      if (!checked2.ok) {
         fail("renderer.invalid");
         continue;
       }
       let size;
       try {
-        size = renderer.measure(validated.value, { fontSize: 13 });
+        size = renderer.measure(checked2.value, { fontSize: 13 });
       } catch {
         fail("renderer.failed");
         continue;
       }
-      if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0) {
+      const measured = size;
+      if (!measured || typeof measured !== "object" || !Number.isFinite(measured.width) || !Number.isFinite(measured.height) || measured.width <= 0 || measured.height <= 0) {
         fail("renderer.measure");
         continue;
       }
-      placed.w = size.width;
-      placed.h = size.height;
+      const width2 = measured.width, height2 = measured.height;
+      placed.w = width2;
+      placed.h = height2;
       placed.cx = placed.x + placed.w / 2;
       placed.cy = placed.y + placed.h / 2;
+      let svg;
       try {
-        placed.customSvg = renderer.renderSvg(validated.value, {
+        svg = renderer.renderSvg(checked2.value, {
           theme: mode,
           palette: {
             background: palette.background,
@@ -682,6 +696,11 @@ function resolveScene(document2, context, previous, extents) {
         fail("renderer.failed");
         continue;
       }
+      if (typeof svg !== "string" || !svg.trim()) {
+        fail("renderer.empty");
+        continue;
+      }
+      placed.customSvg = svg;
     }
   }
   const graphNodes = document2.spec.type === "graph" ? new Map(document2.spec.nodes.map((node) => [node.id, node])) : void 0;

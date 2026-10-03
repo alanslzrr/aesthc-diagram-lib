@@ -1,4 +1,4 @@
-import { g as DiagramDocument, k as Result, E as EditorStore } from '../layout-B9EEWMV7.js';
+import { g as DiagramDocument, k as Result, E as EditorStore } from '../layout-D_aGN70Q.js';
 import '../theme.js';
 
 /** Bounded share envelopes: `d=` carries a versioned document, `s=` stays

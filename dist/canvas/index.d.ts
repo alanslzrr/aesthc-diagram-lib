@@ -1,5 +1,5 @@
 import * as react from 'react';
-import { D as DiagramLayout, H as Highlight, l as DiagramNodeVisual } from '../layout-B9EEWMV7.js';
+import { D as DiagramLayout, H as Highlight, l as DiagramNodeVisual } from '../layout-D_aGN70Q.js';
 import '../theme.js';
 
 interface DiagramCanvasProps {

@@ -8,7 +8,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-JQT4HMUF.js";
+} from "./chunk-YGB3QHZG.js";
 import {
   serializeDocument
 } from "./chunk-TSYG4LOT.js";
@@ -259,7 +259,7 @@ function exportDocumentHtml(input, options) {
   const missingRenderer = resolved.diagnostics.find(
     (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty" || diagnostic.code === "renderer.failed"
   );
-  if (missingRenderer) return failure(missingRenderer.code);
+  if (missingRenderer) return { ok: false, diagnostics: resolved.diagnostics };
   const svg = renderSvg(document2, resolved.value, {
     instanceId: "standalone",
     theme,
@@ -393,7 +393,7 @@ function cardSvg(input, options = {}) {
   const missingRenderer = resolved.diagnostics.find(
     (diagnostic) => diagnostic.code === "renderer.unsupported" || diagnostic.code === "renderer.invalid" || diagnostic.code === "renderer.measure" || diagnostic.code === "renderer.empty" || diagnostic.code === "renderer.failed"
   );
-  if (missingRenderer) return failure(missingRenderer.code);
+  if (missingRenderer) return { ok: false, diagnostics: resolved.diagnostics };
   const layout = resolved.value.layout;
   const padding = options.padding ?? 40;
   if (!Number.isFinite(padding) || padding < 0 || padding * 2 >= Math.min(CARD_WIDTH, CARD_HEIGHT))
@@ -520,7 +520,7 @@ async function exportStoryWebm(input, options = {}) {
   const missingRenderer = resolved.diagnostics.find(
     (diagnostic) => diagnostic.code.startsWith("renderer.")
   );
-  if (missingRenderer) return failure(missingRenderer.code);
+  if (missingRenderer) return { ok: false, diagnostics: [missingRenderer] };
   const width = Math.max(2, Math.ceil(resolved.value.layout.width * scale));
   const height = Math.max(2, Math.ceil(resolved.value.layout.height * scale));
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width > 16384 || height > 16384 || width * height > 32e6)
@@ -751,7 +751,7 @@ async function exportDocument(input, options) {
     const missingRenderer = diagnostics.find(
       (d) => d.code === "renderer.unsupported" || d.code === "renderer.invalid" || d.code === "renderer.measure" || d.code === "renderer.empty" || d.code === "renderer.failed"
     );
-    if (missingRenderer) return failure(missingRenderer.code);
+    if (missingRenderer) return { ok: false, diagnostics };
     if (options.quality === "publish" && diagnostics.some((d) => d.code.startsWith("quality.")))
       return failure("export.quality");
     width = Math.ceil(resolved.value.layout.width * options.scale);

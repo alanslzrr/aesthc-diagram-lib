@@ -8,7 +8,15 @@ interface TextRole {
     /** Character-width fraction of the font size used by the conservative fallback. */
     charFactor: number;
 }
-type TextMeasurer = (text: string, role: TextRole) => number;
+interface TextMeasurer {
+    (text: string, role: TextRole): number;
+    /**
+     * Drop cached widths after the font environment changes. A measurer that
+     * caches must expose this so a scene can be re-resolved with real Geist
+     * metrics instead of pre-load fallback substitutions.
+     */
+    clear?(): void;
+}
 
 type Locale = 'en' | 'es';
 type JsonValue = null | boolean | number | string | JsonValue[] | {

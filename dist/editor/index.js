@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-BNDD6UNK.js";
+} from "../chunk-FFPDVMKM.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,7 +16,7 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-JQT4HMUF.js";
+} from "../chunk-YGB3QHZG.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import {
@@ -726,22 +726,26 @@ function EditorSurface({
     () => ({ theme: effectiveTheme, renderers: registry }),
     [effectiveTheme, registry]
   );
-  const [fontsReady, setFontsReady] = useState(false);
+  const [fontGeneration, setFontGeneration] = useState(0);
+  const fontsRefreshed = useRef(false);
   useEffect(() => {
-    if (fontsReady || typeof document === "undefined" || !document.fonts) return;
-    if (document.fonts.status === "loaded") {
-      setFontsReady(true);
-      return;
-    }
-    let cancelled = false;
-    void document.fonts.ready.then(() => {
-      if (!cancelled) setFontsReady(true);
-    });
-    return () => {
-      cancelled = true;
+    if (typeof document === "undefined" || !document.fonts) return;
+    const fonts = document.fonts;
+    const refresh = () => {
+      if (fontsRefreshed.current) return;
+      const ready = fonts.check("16px Geist") && fonts.check('16px "Geist Mono"');
+      if (!ready) return;
+      fontsRefreshed.current = true;
+      measureText?.clear?.();
+      setFontGeneration((value) => value + 1);
     };
-  }, [fontsReady]);
-  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontsReady]);
+    void Promise.allSettled([fonts.load("16px Geist"), fonts.load('16px "Geist Mono"')]).then(
+      refresh
+    );
+    fonts.addEventListener("loadingdone", refresh);
+    return () => fonts.removeEventListener("loadingdone", refresh);
+  }, []);
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontGeneration]);
   const committedResolved = useMemo(
     () => resolveDocument(snapshot.document, {
       quality: "edit",
@@ -752,7 +756,7 @@ function EditorSurface({
       theme: effectiveTheme,
       renderers: registry
     }),
-    [snapshot.document, instanceId, effectiveTheme, registry, fontsReady]
+    [snapshot.document, instanceId, effectiveTheme, registry, fontGeneration]
   );
   const resolved = useMemo(
     () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {

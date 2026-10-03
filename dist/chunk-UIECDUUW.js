@@ -1,10 +1,10 @@
 import {
   createEditorStore
-} from "./chunk-BNDD6UNK.js";
+} from "./chunk-FFPDVMKM.js";
 import {
   isNodeLocked,
   resolveDocument
-} from "./chunk-JQT4HMUF.js";
+} from "./chunk-YGB3QHZG.js";
 import {
   createDocument
 } from "./chunk-TSYG4LOT.js";
@@ -340,8 +340,12 @@ function validateCustomPayload(registry, payload) {
   } catch {
     return failure("renderer.failed");
   }
-  if (!checked.ok) return checked;
-  return success({ renderer, data: checked.value });
+  if (!checked || typeof checked !== "object" || Array.isArray(checked))
+    return failure("renderer.failed");
+  const result = checked;
+  if (typeof result.ok !== "boolean") return failure("renderer.failed");
+  if (!result.ok) return checked;
+  return success({ renderer, data: result.value });
 }
 function renderCustomNode(registry, payload, context) {
   const validated = validateCustomPayload(registry, payload);
@@ -354,8 +358,10 @@ function renderCustomNode(registry, payload, context) {
   } catch {
     return failure("renderer.failed");
   }
-  if (!Number.isFinite(size.width) || !Number.isFinite(size.height) || size.width <= 0 || size.height <= 0)
+  const measured = size;
+  if (!measured || typeof measured !== "object" || !Number.isFinite(measured.width) || !Number.isFinite(measured.height) || measured.width <= 0 || measured.height <= 0)
     return failure("renderer.measure");
+  const width = measured.width, height = measured.height;
   let svg;
   try {
     svg = validated.value.renderer.renderSvg(validated.value.data, context);
@@ -365,8 +371,8 @@ function renderCustomNode(registry, payload, context) {
   if (typeof svg !== "string" || !svg.trim()) return failure("renderer.empty");
   return success({
     svg,
-    width: size.width,
-    height: size.height,
+    width,
+    height,
     typeKey: validated.value.renderer.typeKey
   });
 }
