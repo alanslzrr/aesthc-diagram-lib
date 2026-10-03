@@ -127,6 +127,26 @@ function nodeTextExtent(
   return { width: textWidth, left: textLeft, right: textLeft + textWidth }
 }
 
+/** Pill geometry uses the same face/size as the painted text, not a fixed
+ * character-count estimate. Clone seed labels: cached layout templates are shared. */
+function measurePills(layout: DiagramLayout, document: DiagramDocument, context: ResolveContext) {
+  if (!context.measureText) return
+  const width = (label: string, current: number) =>
+    Math.max(
+      current,
+      context.measureText!(label, { size: 11.25, family: 'Geist Mono', charFactor: 0.6 }) *
+        document.presentation.textScale +
+        12,
+    )
+  layout.edges = layout.edges.map((edge) =>
+    edge.label ? { ...edge, labelWidth: width(edge.label, edge.labelWidth) } : edge,
+  )
+  layout.continuations = layout.continuations.map((label) => ({
+    ...label,
+    labelWidth: width(label.displayLabel, label.labelWidth),
+  }))
+}
+
 /** Overflow warnings apply to every type, including structured layouts. */
 function pushTextOverflow(
   layout: DiagramLayout,
@@ -217,6 +237,7 @@ function resolveScene(
     },
     diagnostics: Diagnostic[] = []
   if (!freeTypes.has(document.spec.type)) {
+    measurePills(layout, document, context)
     if (!context.skipDiagnostics) pushTextOverflow(layout, document, context, diagnostics)
     return success(
       {
@@ -497,6 +518,7 @@ function resolveScene(
       },
     ]
   })
+  measurePills(layout, document, context)
   const points: Array<[number, number]> = []
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])

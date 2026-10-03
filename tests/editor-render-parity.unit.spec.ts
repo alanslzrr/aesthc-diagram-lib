@@ -172,3 +172,23 @@ describe('editor renderer parity with the legacy canvas', () => {
     expect(markup).toContain('letter-spacing="1.6"')
   })
 })
+
+it('measures continuation and relation pills with the actual scaled mono face', () => {
+  const document = createDocument(EXAMPLE_DIAGRAMS['example-band'].diagram.en, {
+    id: 'measured-pills',
+    locale: 'en',
+  })
+  if (!document.ok) throw Error('fixture')
+  document.value.presentation.textScale = 1.5
+  const resolved = resolveDocument(document.value, {
+    quality: 'edit',
+    requestId: 'measured-pills',
+    measureText: () => 300,
+  })
+  if (!resolved.ok) throw Error('resolve')
+  for (const label of [
+    ...resolved.value.layout.edges.filter((e) => e.label),
+    ...resolved.value.layout.continuations,
+  ])
+    expect(label.labelWidth).toBeGreaterThanOrEqual(462)
+})
