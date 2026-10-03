@@ -47,7 +47,7 @@ import {
   anchorFromPoint,
 } from '../editor-core/scene'
 import { fitViewport, zoomAt, screenToWorld } from '../editor-core/viewport'
-import { serializeDocument } from '../editor-core/document'
+import { canonical } from '../editor-core/data'
 import { renderSceneMarkup } from '../render'
 import { baselineUpdate, patchBaseline, type BaselineFrame } from './baseline'
 import { createFragment, pasteFragment } from '../editor-core/clipboard'
@@ -2406,7 +2406,7 @@ export function EditorInspector() {
       )}
       {node && free && <EditorNodeGeometry nodeId={node.id} />}
       <EditorStructuredInspector />
-      <EditorRelations />
+      <MemoEditorRelations />
       <EditorRoute />
       <h3>{t('Appearance', 'Apariencia')}</h3>
       {!viewTheme && (
@@ -2464,15 +2464,17 @@ export function EditorJsonPanel() {
   const [commitDiagnostics, setCommitDiagnostics] = useState<readonly string[]>([])
   const [serialized, setSerialized] = useState(() => ({
     document: snapshot.document,
-    text: serializeDocument(snapshot.document),
+    text: canonical(snapshot.document),
   }))
   useEffect(() => {
     if (serialized.document === snapshot.document) return
+    // Store snapshots are already validated and frozen; canonical encoding
+    // must not repeat untrusted-input validation on each committed snapshot.
     // Serialization is synchronous work, not interruptible React rendering.
     // A deferred render can restart this validation for every pointer preview.
     // Run once per committed document in its own task instead.
     const timer = setTimeout(() => {
-      setSerialized({ document: snapshot.document, text: serializeDocument(snapshot.document) })
+      setSerialized({ document: snapshot.document, text: canonical(snapshot.document) })
     }, 0)
     return () => clearTimeout(timer)
   }, [snapshot.document, serialized.document])
@@ -2626,7 +2628,7 @@ export function EditorPanelTabs({ className }: { className?: string }) {
         </div>
         {supported.includes('connections') && (
           <div hidden={activeTab !== 'connections'}>
-            <EditorRelations />
+            <MemoEditorRelations />
           </div>
         )}
       </div>
@@ -3882,3 +3884,5 @@ export function EditorOutline({ className }: { className?: string }) {
     </section>
   )
 }
+
+const MemoEditorRelations = memo(EditorRelations)

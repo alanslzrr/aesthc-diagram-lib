@@ -44,6 +44,7 @@ export function limitsWith(overrides: Partial<Limits> = {}): Limits {
 /** Only plain JSON data crosses this boundary; descriptors are inspected without invoking getters. */
 export function inspectData(input: unknown, limits: Limits): Diagnostic[] {
   const ancestors = new Set<object>()
+  const encoder = new TextEncoder()
   let estimatedBytes = 0
   let visits = 0
   function walk(value: unknown, path: string, depth: number): Diagnostic | undefined {
@@ -59,7 +60,7 @@ export function inspectData(input: unknown, limits: Limits): Diagnostic[] {
       } catch {
         return issue('data.unicode', path)
       }
-      estimatedBytes += new TextEncoder().encode(value).length
+      estimatedBytes += encoder.encode(value).length
       if (estimatedBytes > limits.maxBytes) return issue('limit.bytes', path)
       return
     }
@@ -96,7 +97,7 @@ export function inspectData(input: unknown, limits: Limits): Diagnostic[] {
   if (invalid) return [invalid]
   const serialized = JSON.stringify(input)
   if (serialized === undefined) return [issue('data.type')]
-  if (new TextEncoder().encode(serialized).length > limits.maxBytes) return [issue('limit.bytes')]
+  if (encoder.encode(serialized).length > limits.maxBytes) return [issue('limit.bytes')]
   return []
 }
 export function canonical(value: unknown): string {

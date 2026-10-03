@@ -1,5 +1,5 @@
 import { DocumentConfiguration } from '../components/DocumentConfiguration'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   createDocument,
@@ -35,6 +35,8 @@ import { useThemePreference } from '../lib/theme'
 import '@aesthc/diagram-lib/editor.css'
 import '../design-system.css'
 import './studio.css'
+
+const StableOutline = memo(EditorOutline)
 
 const initial = createDocument(
   {
@@ -784,7 +786,7 @@ function Workbench() {
           <EditorInspector />
         </div>
         <DocumentConfiguration />
-        <EditorOutline />
+        <StableOutline />
         <EditorJsonPanel />
         <footer className="studio-footer">
           {t(
