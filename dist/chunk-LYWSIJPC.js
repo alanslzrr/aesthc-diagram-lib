@@ -549,6 +549,20 @@ function nodeTextExtent(n, document2, context) {
   const textLeft = n.shape === "table" ? n.x + 14 : geometry.centeredLabel ? n.cx - textWidth / 2 : geometry.textX;
   return { width: textWidth, left: textLeft, right: textLeft + textWidth };
 }
+function measurePills(layout, document2, context) {
+  if (!context.measureText) return;
+  const width = (label, current) => Math.max(
+    current,
+    context.measureText(label, { size: 11.25, family: "Geist Mono", charFactor: 0.6 }) * document2.presentation.textScale + 12
+  );
+  layout.edges = layout.edges.map(
+    (edge) => edge.label ? { ...edge, labelWidth: width(edge.label, edge.labelWidth) } : edge
+  );
+  layout.continuations = layout.continuations.map((label) => ({
+    ...label,
+    labelWidth: width(label.displayLabel, label.labelWidth)
+  }));
+}
 function pushTextOverflow(layout, document2, context, diagnostics) {
   for (const n of layout.nodes) {
     const extent = nodeTextExtent(n, document2, context);
@@ -594,6 +608,7 @@ function resolveScene(document2, context, previous, extents) {
     )
   }, diagnostics = [];
   if (!freeTypes.has(document2.spec.type)) {
+    measurePills(layout, document2, context);
     if (!context.skipDiagnostics) pushTextOverflow(layout, document2, context, diagnostics);
     return success(
       {
@@ -824,6 +839,7 @@ function resolveScene(document2, context, previous, extents) {
       }
     ];
   });
+  measurePills(layout, document2, context);
   const points = [];
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h]);

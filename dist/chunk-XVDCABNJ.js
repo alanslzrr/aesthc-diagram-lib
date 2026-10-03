@@ -3,7 +3,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-YGB3QHZG.js";
+} from "./chunk-LYWSIJPC.js";
 import {
   canonicalizeContent,
   importDocument
@@ -356,6 +356,7 @@ function createEditorStore(options) {
     if (!validId(transaction.id)) return failure("id.invalid");
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure("revision.stale");
+    if (transaction.commands.length === 0) return success(snapshot.document);
     if (fast || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits);
       if (deltaIssues.length) return { ok: false, diagnostics: deltaIssues.slice(0, 100) };

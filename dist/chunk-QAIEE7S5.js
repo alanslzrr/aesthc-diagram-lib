@@ -8,7 +8,7 @@ import {
   getAdapter,
   pruneReferences,
   resolveDocument
-} from "./chunk-YGB3QHZG.js";
+} from "./chunk-LYWSIJPC.js";
 import {
   serializeDocument
 } from "./chunk-TSYG4LOT.js";

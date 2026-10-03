@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-FFPDVMKM.js";
+} from "../chunk-XVDCABNJ.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,7 +16,7 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-YGB3QHZG.js";
+} from "../chunk-LYWSIJPC.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import {
@@ -44,6 +44,7 @@ import {
   memo,
   useCallback,
   useContext,
+  useDeferredValue,
   useEffect,
   useId,
   useLayoutEffect,
@@ -52,6 +53,45 @@ import {
   useState,
   useSyncExternalStore
 } from "react";
+
+// src/editor/baseline.ts
+function baselineUpdate(previous, next) {
+  const options = { instanceId: next.instanceId, theme: next.theme, grid: "none" };
+  const full = () => ({ full: true, markup: renderSceneMarkup(next.document, next.scene, options) });
+  if (!previous || next.document.spec.type !== "graph" || previous.document.scene.mode !== "manual" || next.document.scene.mode !== "manual" || previous.document.spec !== next.document.spec || previous.document.presentation !== next.document.presentation || previous.document.metadata !== next.document.metadata || previous.theme !== next.theme || previous.instanceId !== next.instanceId || previous.fontGeneration !== next.fontGeneration || JSON.stringify(previous.document.scene.zOrder) !== JSON.stringify(next.document.scene.zOrder) || JSON.stringify(previous.scene.layout.containers) !== JSON.stringify(next.scene.layout.containers))
+    return full();
+  const nodes = /* @__PURE__ */ new Set(), edges = /* @__PURE__ */ new Set();
+  const oldNodes = previous.scene.layout.nodeById;
+  const oldEdges = new Map(previous.scene.layout.edges.map((edge) => [edge.id, edge]));
+  for (const node of next.scene.layout.nodes)
+    if (JSON.stringify(oldNodes[node.id]) !== JSON.stringify(node)) nodes.add(node.id);
+  for (const edge of next.scene.layout.edges)
+    if (JSON.stringify(oldEdges.get(edge.id)) !== JSON.stringify(edge)) edges.add(edge.id);
+  return {
+    full: false,
+    markup: renderSceneMarkup(next.document, next.scene, { ...options, only: { nodes, edges } })
+  };
+}
+function patchBaseline(root, markup) {
+  if (!markup) return true;
+  const fragment = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  fragment.innerHTML = markup;
+  const key = (element) => {
+    for (const name of ["data-node-id", "data-edge-id", "data-edge-label"]) {
+      const value = element.getAttribute(name);
+      if (value !== null) return `${name}:${value}`;
+    }
+    return null;
+  };
+  const current = new Map([...root.children].map((element) => [key(element), element]));
+  const replacements = [...fragment.children].map((element) => ({
+    element,
+    old: current.get(key(element))
+  }));
+  if (replacements.some(({ old }) => !old)) return false;
+  for (const { element, old } of replacements) old.replaceWith(element);
+  return true;
+}
 
 // src/geometry/arrange.ts
 function arrangeRects(nodes, mode) {
@@ -349,6 +389,8 @@ function dispatch(store, commands, label) {
   });
 }
 function materialize(document2, resolve) {
+  if (document2.spec.type === "graph" && document2.scene.mode === "manual" && !resolve?.renderers && nodesOf(document2.spec).every((node) => document2.scene.nodes[node.id]))
+    return document2.scene;
   const result = resolveDocument(document2, {
     quality: "edit",
     requestId: "gesture",
@@ -650,7 +692,7 @@ var SceneHits = memo(function SceneHits2({
   ] });
 });
 var BaselineLayer = memo(function BaselineLayer2({
-  markup,
+  frame,
   hidden,
   width,
   height,
@@ -662,6 +704,20 @@ var BaselineLayer = memo(function BaselineLayer2({
   gridColor
 }) {
   const root = useRef(null);
+  const content = useRef(null);
+  const previous = useRef(null);
+  useLayoutEffect(() => {
+    if (!content.current) return;
+    if (!frame) {
+      content.current.replaceChildren();
+      previous.current = null;
+      return;
+    }
+    const update = baselineUpdate(previous.current, frame);
+    if (update.full || !patchBaseline(content.current, update.markup))
+      content.current.innerHTML = update.full ? update.markup : baselineUpdate(null, frame).markup;
+    previous.current = frame;
+  }, [frame]);
   useLayoutEffect(() => {
     if (!hidden || !root.current) return;
     const nodeIds = new Set(hidden.nodes), edgeIds = new Set(hidden.edges);
@@ -678,7 +734,7 @@ var BaselineLayer = memo(function BaselineLayer2({
     return () => {
       for (const element of elements) element.style.removeProperty("visibility");
     };
-  }, [hidden, markup]);
+  }, [hidden, frame]);
   return /* @__PURE__ */ jsx(
     "svg",
     {
@@ -699,7 +755,7 @@ var BaselineLayer = memo(function BaselineLayer2({
             color: gridColor
           }
         ),
-        /* @__PURE__ */ jsx(SceneMarkup, { markup })
+        /* @__PURE__ */ jsx("g", { ref: content })
       ] })
     }
   );
@@ -781,13 +837,15 @@ function EditorSurface({
     ]
   );
   const [gestureEntities, setGestureEntities] = useState(null);
-  const baseline = useMemo(
-    () => committedResolved.ok ? renderSceneMarkup(snapshot.document, committedResolved.value, {
+  const baselineFrame = useMemo(
+    () => committedResolved.ok ? {
+      document: snapshot.document,
+      scene: committedResolved.value,
       instanceId,
       theme: effectiveTheme,
-      grid: "none"
-    }) : "",
-    [snapshot.document, committedResolved, instanceId, effectiveTheme]
+      fontGeneration
+    } : null,
+    [snapshot.document, committedResolved, instanceId, effectiveTheme, fontGeneration]
   );
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null;
@@ -869,10 +927,10 @@ function EditorSurface({
       );
       setSelectionBox(box);
       const selected = authoredNodes.filter((n) => intersectsMarquee(box, nodeGeometry(n).hit)).map((n) => ({ kind: "node", id: n.id }));
-      const baseline2 = selection.additive ? selection.selection : [];
+      const baseline = selection.additive ? selection.selection : [];
       store.setSelection([
-        ...baseline2,
-        ...selected.filter((n) => !baseline2.some((r) => r.kind === n.kind && r.id === n.id))
+        ...baseline,
+        ...selected.filter((n) => !baseline.some((r) => r.kind === n.kind && r.id === n.id))
       ]);
       return;
     }
@@ -1294,7 +1352,7 @@ function EditorSurface({
     /* @__PURE__ */ jsx(
       BaselineLayer,
       {
-        markup: baseline,
+        frame: baselineFrame,
         hidden: gestureEntities,
         width: size.width,
         height: size.height,
@@ -1415,7 +1473,7 @@ function EditorSurface({
           if (connectSource && !connectSourceId) setConnectSource(null);
           if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId && !connectSourceId) {
             event.preventDefault();
-            svgRef.current?.focus();
+            svgRef.current?.focus({ preventScroll: true });
             marquee.current = {
               pointer: event.pointerId,
               start: local(event),
@@ -1428,7 +1486,7 @@ function EditorSurface({
             return;
           }
           event.preventDefault();
-          svgRef.current?.focus();
+          svgRef.current?.focus({ preventScroll: true });
           let resizeIds;
           if (waypointEdge) {
             const route = snapshot.document.scene.routes[waypointEdge];
@@ -2178,7 +2236,8 @@ function EditorInspector() {
 function EditorJsonPanel() {
   const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
   const [commitDiagnostics, setCommitDiagnostics] = useState([]);
-  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document]);
+  const readableDocument = useDeferredValue(snapshot.document);
+  const serialized = useMemo(() => serializeDocument(readableDocument), [readableDocument]);
   const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized;
   const draftKind = snapshot.draft.kind;
   useEffect(() => {
@@ -2199,6 +2258,8 @@ function EditorJsonPanel() {
       {
         "aria-label": t("Document JSON", "JSON del documento"),
         value: text,
+        "aria-busy": readableDocument !== snapshot.document,
+        readOnly: snapshot.draft.kind !== "text" && readableDocument !== snapshot.document,
         onChange: (event) => {
           setCommitDiagnostics([]);
           store.setTextDraft(event.target.value);
@@ -3157,13 +3218,10 @@ function EditorNodeGeometry({ nodeId }) {
   );
 }
 function EditorRelations() {
-  const { store } = useEditor(), snapshot = useEditorSelector(
-    (s) => ({ document: s.document, selection: s.selection }),
-    shallowEqual
-  ), t = useLabels();
-  const nodes = nodesOf(snapshot.document.spec), [from, setFrom] = useState(""), [to, setTo] = useState(""), [label, setLabel] = useState(""), [error, setError] = useState("");
-  if (snapshot.document.spec.type === "timeline") return null;
-  const adapter = getAdapter(snapshot.document.spec.type);
+  const { store } = useEditor(), spec = useEditorSelector((s) => s.document.spec), t = useLabels();
+  const nodes = nodesOf(spec), [from, setFrom] = useState(""), [to, setTo] = useState(""), [label, setLabel] = useState(""), [error, setError] = useState("");
+  if (spec.type === "timeline") return null;
+  const adapter = getAdapter(spec.type);
   const source = nodes.some((n) => n.id === from) ? from : nodes[0]?.id ?? "", target = nodes.some((n) => n.id === to) ? to : nodes[1]?.id ?? source;
   return /* @__PURE__ */ jsxs("section", { children: [
     /* @__PURE__ */ jsx("h3", { children: t("Connections", "Conexiones") }),
@@ -3172,8 +3230,8 @@ function EditorRelations() {
       {
         onSubmit: (event) => {
           event.preventDefault();
-          const result = adapter.insertRelation(snapshot.document.spec, {
-            diagramType: snapshot.document.spec.type,
+          const result = adapter.insertRelation(spec, {
+            diagramType: spec.type,
             relation: {
               id: crypto.randomUUID(),
               from: source,
@@ -3229,10 +3287,10 @@ function EditorRelations() {
       /* @__PURE__ */ jsxs("h4", { children: [
         t("Existing connections", "Conexiones existentes"),
         " (",
-        edgesOf(snapshot.document.spec).length,
+        edgesOf(spec).length,
         ")"
       ] }),
-      /* @__PURE__ */ jsx("ul", { className: "adl-editor-relation-list", children: edgesOf(snapshot.document.spec).map((e) => /* @__PURE__ */ jsxs("li", { className: "adl-editor-relation", children: [
+      /* @__PURE__ */ jsx("ul", { className: "adl-editor-relation-list", children: edgesOf(spec).map((e) => /* @__PURE__ */ jsxs("li", { className: "adl-editor-relation", children: [
         /* @__PURE__ */ jsx("span", { children: e.label || `${e.from} \u2192 ${e.to}` }),
         /* @__PURE__ */ jsx(
           "button",
@@ -3240,7 +3298,7 @@ function EditorRelations() {
             type: "button",
             "aria-label": t(`Delete connection ${e.id}`, `Eliminar conexi\xF3n ${e.id}`),
             onClick: () => {
-              const result = adapter.removeRelations(snapshot.document.spec, [e.id]);
+              const result = adapter.removeRelations(spec, [e.id]);
               if (result.ok)
                 dispatch(
                   store,
@@ -3383,10 +3441,10 @@ function useEditorStore(options) {
 }
 function EditorOutline({ className }) {
   const { store } = useEditor(), snapshot = useEditorSelector(
-    (s) => ({ selection: s.selection, document: s.document }),
+    (s) => ({ selection: s.selection, spec: s.document.spec, groups: s.document.scene.groups }),
     shallowEqual
   ), t = useLabels();
-  const nodes = nodesOf(snapshot.document.spec);
+  const nodes = nodesOf(snapshot.spec);
   const labels = new Map(nodes.map((n) => [n.id, n.label]));
   const sections = [
     {
@@ -3397,7 +3455,7 @@ function EditorOutline({ className }) {
     {
       label: t("Connections", "Conexiones"),
       kind: "edge",
-      entities: edgesOf(snapshot.document.spec).map((e) => ({
+      entities: edgesOf(snapshot.spec).map((e) => ({
         id: e.id,
         label: `${labels.get(e.from)} \u2192 ${labels.get(e.to)}${e.label ? `: ${e.label}` : ""}`
       }))
@@ -3405,7 +3463,7 @@ function EditorOutline({ className }) {
     {
       label: t("Groups", "Grupos"),
       kind: "group",
-      entities: snapshot.document.scene.groups.map((g) => ({ id: g.id, label: g.label }))
+      entities: snapshot.groups.map((g) => ({ id: g.id, label: g.label }))
     }
   ];
   return /* @__PURE__ */ jsxs(
