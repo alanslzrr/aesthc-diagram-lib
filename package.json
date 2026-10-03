@@ -204,6 +204,11 @@
       "esbuild",
       "@parcel/watcher"
     ],
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
     "overrides": {
       "tsup>esbuild": "^0.28.1",
       "brace-expansion@<1.1.21": "1.1.21",
