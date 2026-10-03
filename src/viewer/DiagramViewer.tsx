@@ -88,6 +88,7 @@ export function DiagramViewer({
   const [publishIssue, setPublishIssue] = useState<string[] | null>(null)
   const [recording, setRecording] = useState(false)
   const [motionIssue, setMotionIssue] = useState<string | null>(null)
+  const [cardIssue, setCardIssue] = useState<string | null>(null)
   const recordAbort = useRef<AbortController | null>(null)
   const webm = useMemo(() => webmCapability(), [])
   const [reducedMotion, setReducedMotion] = useState(
@@ -339,7 +340,10 @@ export function DiagramViewer({
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return
+    setCardIssue(null)
     const artifact = await exportCard(document, {
+      theme: document.presentation.theme.mode,
+      registry,
       query: {
         documentId: document.id,
         revision: document.revision,
@@ -348,7 +352,10 @@ export function DiagramViewer({
         label: summary ?? '',
       },
     })
-    if (!artifact.ok) return
+    if (!artifact.ok) {
+      setCardIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
+      return
+    }
     downloadArtifact(artifact.value, 'card.png')
   }
   /** Stops an in-flight recording; the recorder releases tracks and URLs. */
@@ -363,6 +370,8 @@ export function DiagramViewer({
     const result = await exportStoryWebm(document, {
       signal: controller.signal,
       reducedMotion,
+      theme: document.presentation.theme.mode,
+      renderers: registry,
     })
     recordAbort.current = null
     setRecording(false)
@@ -405,6 +414,7 @@ export function DiagramViewer({
       includeSource: false,
       metadata: 'minimal',
       fontPolicy: 'fallback',
+      renderers: registry,
     })
     if (!artifact.ok) {
       setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code))
@@ -897,6 +907,11 @@ export function DiagramViewer({
       {publishIssue && (
         <p className="adl-viewer-note" role="alert">
           {publishIssue.join(', ')}
+        </p>
+      )}
+      {cardIssue && (
+        <p className="adl-viewer-note" role="alert">
+          {cardIssue}
         </p>
       )}
       <Inspector

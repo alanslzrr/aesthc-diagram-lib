@@ -127,6 +127,11 @@ export interface ExportContext {
   signal: AbortSignal
   filenameBase: string
   reducedMotion?: boolean
+  /**
+   * Effective host appearance for every visual format. Canonical JSON keeps
+   * the authored document; the global appearance toggle never touches it.
+   */
+  appearance?: 'light' | 'dark'
   onPhase?: (phase: ExportPhase) => void
 }
 function failure(codes: string[]): ExportResult {
@@ -146,7 +151,7 @@ export async function performExport(
   if (codes.length) return failure(codes)
   if (signal.aborted) return failure(['operation.aborted'])
   const filename = safeFilename(filenameBase, choice.format)
-  const theme = document.presentation.theme.mode
+  const theme = context.appearance ?? document.presentation.theme.mode
   const scope: ExportScope = choice.scope
   if (isCanonicalFormat(choice.format)) {
     // Canonical JSON is text-only: fonts are never fetched or embedded.
@@ -281,6 +286,7 @@ export async function performExport(
   const result = await exportStoryWebm(document, {
     signal,
     reducedMotion: context.reducedMotion,
+    theme,
   })
   if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
   if (signal.aborted) return failure(['operation.aborted'])

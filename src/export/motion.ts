@@ -29,6 +29,8 @@ export interface MotionOptions {
   signal?: AbortSignal
   /** Reduced motion never records: the static story navigation stays. */
   reducedMotion?: boolean
+  /** Effective appearance for the recorded frames; defaults to the document mode. */
+  theme?: 'light' | 'dark'
   /** Trusted renderers; without one a custom story fails instead of freezing a placeholder. */
   renderers?: ResolveRendererRegistry
 }
@@ -72,10 +74,11 @@ export async function exportStoryWebm(
   const scale = Math.max(0.25, Math.min(2, numeric(options.scale, 1)))
   const totalDuration = document.story.reduce((sum, step) => sum + step.durationMs, 0)
   if (totalDuration <= 0 || totalDuration > 120000) return failure('limit.story')
+  const theme = options.theme ?? document.presentation.theme.mode
   const resolved = resolveDocument(document, {
     quality: 'edit',
     requestId: 'motion',
-    theme: document.presentation.theme.mode,
+    theme,
     measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
     renderers: options.renderers,
   })
@@ -133,7 +136,7 @@ export async function exportStoryWebm(
       const view = document.views.find((candidate) => candidate.id === step.viewId)
       const svg = renderSvg(document, resolved.value, {
         instanceId: `motion-${step.id}`,
-        theme: document.presentation.theme.mode,
+        theme,
         highlight: view
           ? {
               nodes: new Set(view.focus.nodeIds),

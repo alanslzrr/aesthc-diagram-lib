@@ -61,6 +61,22 @@ test('selection scope is disabled without a selection and never falls back to th
 test('raster formats are gated by an actual encoder probe, never by a declared mime type', async ({
   page,
 }) => {
+  // Controlled capability fixture: a supported recorder makes the WebM gate
+  // content-based below, independent of the host engine.
+  await page.addInitScript(() => {
+    Object.defineProperty(HTMLCanvasElement.prototype, 'captureStream', {
+      configurable: true,
+      value: () => ({}),
+    })
+    Object.defineProperty(window, 'MediaRecorder', {
+      configurable: true,
+      value: class {
+        static isTypeSupported() {
+          return true
+        }
+      },
+    })
+  })
   await page.addInitScript(() => {
     const originalData = HTMLCanvasElement.prototype.toDataURL
     HTMLCanvasElement.prototype.toDataURL = function (
@@ -90,10 +106,20 @@ test('raster formats are gated by an actual encoder probe, never by a declared m
     page.locator('[data-export-reason="raster.unavailable"]').filter({ hasText: 'WebP' }),
   ).toBeVisible()
   await expect(format.locator('option[value="png"]')).toHaveJSProperty('disabled', false)
-  // WebM additionally requires authored story steps.
+  // With a supported recorder, WebM's remaining gate is authored story steps.
   const webm = format.locator('option[value="webm"]')
   await expect(webm).toHaveJSProperty('disabled', true)
   await expect(webm).toHaveAttribute('data-export-gate', 'webm.empty')
+})
+
+test('webm gating reports the real engine capability without a hidden fallback', async ({
+  page,
+}) => {
+  await openExport(page)
+  const webm = page.getByLabel('Export format').locator('option[value="webm"]')
+  await expect(webm).toHaveJSProperty('disabled', true)
+  await expect(webm).toHaveAttribute('data-export-gate', /^webm\.(empty|unavailable)$/)
+  await expect(page.locator('[data-export-reason^="webm."]').first()).toBeVisible()
 })
 
 test('JPEG cannot be transparent and the dialog says so instead of changing the request', async ({
@@ -198,4 +224,21 @@ test('HTML export reuses the public standalone runtime instead of a parallel ren
   expect(html).toContain('<!doctype html>')
   expect(html).toContain('id="aesthc-document"')
   expect(html).toContain('Content-Security-Policy')
+})
+
+test('the global appearance reaches visual exports while JSON stays canonical', async ({
+  page,
+}) => {
+  await page.goto('/playground.html?only=example-band')
+  await page.getByRole('button', { name: 'Dark', exact: true }).click()
+  await expect(page.locator('.adl-editor-surface')).toBeVisible()
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Export document' })).toBeVisible()
+  const svg = (await downloadFrom(page, 'svg')).toString('utf8')
+  // The document authors the light palette; the export follows the effective
+  // global appearance instead of the canonical mode.
+  expect(svg).toContain('fill="#000000"')
+  expect(svg).toContain('fill="#0a0a0a"')
+  const json = JSON.parse((await downloadFrom(page, 'json')).toString('utf8'))
+  expect(json.presentation.theme.mode).toBe('light')
 })

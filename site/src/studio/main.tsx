@@ -664,7 +664,12 @@ function Workbench() {
             {t('Convert to graph', 'Convertir a graph')}
           </button>
         </div>
-        <ExportDialog variant="inline" locale={locale} filenameBase="diagram" />
+        <ExportDialog
+          variant="inline"
+          locale={locale}
+          filenameBase="diagram"
+          appearance={hostTheme}
+        />
         {conversion && (
           <div className="studio-notice" role="alert">
             <strong>

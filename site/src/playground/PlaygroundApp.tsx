@@ -507,6 +507,7 @@ function PlaygroundSurface({
           open={exportOpen}
           onClose={() => setExportOpen(false)}
           filenameBase={`${entry.key}-${locale}`}
+          appearance={hostTheme}
         />
       </EditorRoot>
     </div>

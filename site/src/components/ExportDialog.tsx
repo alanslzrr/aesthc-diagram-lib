@@ -111,6 +111,8 @@ export interface ExportDialogProps {
   onClose?: () => void
   /** Download basename without extension. */
   filenameBase?: string
+  /** Effective host appearance for visual exports; JSON stays canonical. */
+  appearance?: 'light' | 'dark'
 }
 /**
  * One shared export surface for the Playground and Studio. It exposes the
@@ -123,6 +125,7 @@ export function ExportDialog({
   open = false,
   onClose,
   filenameBase,
+  appearance,
 }: ExportDialogProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   const snapshot = useEditorSelector(
@@ -201,6 +204,7 @@ export function ExportDialog({
         signal: controller.signal,
         filenameBase: filenameBase ?? document.id,
         reducedMotion,
+        appearance,
         onPhase: (next) => {
           if (!controller.signal.aborted) setPhase(next)
         },
