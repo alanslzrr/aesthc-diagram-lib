@@ -757,31 +757,23 @@ export function EditorSurface({
     [effectiveTheme, registry],
   )
   const resolvePreview = useMemo(() => createPreviewResolver(), [store])
-  /**
-   * A committed gesture resolves to exactly the scene the last preview already
-   * produced. Reuse that resolution for the commit render so a large document
-   * is not laid out and routed twice in the same interaction.
-   */
-  const gestureResolved = useRef<{
-    revision: number
-    value: ReturnType<typeof resolveDocument>
-  } | null>(null)
-  const committedResolved = useMemo(() => {
-    const cached = gestureResolved.current
-    if (cached && cached.revision === snapshot.document.revision) {
-      gestureResolved.current = null
-      return cached.value
-    }
-    return resolveDocument(snapshot.document, {
-      quality: 'edit',
-      requestId: instanceId,
-      measureText,
-      skipValidation: true,
-      skipDiagnostics: true,
-      theme: effectiveTheme,
-      renderers: registry,
-    })
-  }, [snapshot.document, instanceId, effectiveTheme, registry])
+  // The committed scene is always resolved from the committed document. A
+  // revision-keyed reuse of an earlier preview was removed: a no-op gesture
+  // could leave a stale entry that a later edit consumed, painting old
+  // geometry and labels. Correctness takes precedence over the saved resolve.
+  const committedResolved = useMemo(
+    () =>
+      resolveDocument(snapshot.document, {
+        quality: 'edit',
+        requestId: instanceId,
+        measureText,
+        skipValidation: true,
+        skipDiagnostics: true,
+        theme: effectiveTheme,
+        renderers: registry,
+      }),
+    [snapshot.document, instanceId, effectiveTheme, registry],
+  )
   const resolved = useMemo(
     () =>
       activeDoc === snapshot.document
@@ -805,15 +797,6 @@ export function EditorSurface({
       registry,
     ],
   )
-  /** Commit while keeping the last preview resolution for the commit render. */
-  const commitWithResolved = () => {
-    if (resolved.ok)
-      gestureResolved.current = {
-        revision: store.getSnapshot().document.revision + 1,
-        value: resolved,
-      }
-    return store.commitGesture()
-  }
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]
     edges: string[]
@@ -1316,7 +1299,7 @@ export function EditorSurface({
               { type: 'spec.replace', spec: inserted.value, references: 'reject' },
             ])
         }
-        commitWithResolved()
+        store.commitGesture()
       }
       setConnectLine(null)
       gesture.current = null
@@ -1329,7 +1312,7 @@ export function EditorSurface({
       if (cancel) store.cancelGesture()
       else {
         flushMove()
-        commitWithResolved()
+        store.commitGesture()
       }
     }
     gesture.current = null

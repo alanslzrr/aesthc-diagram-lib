@@ -998,3 +998,45 @@ test('Studio edits graph ports and ER table fields through the structured inspec
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   await expect(fields.getByLabel('Field name 1', { exact: true })).toHaveValue('id')
 })
+
+test('a no-op click followed by a rename repaints the canvas and undo restores it', async ({
+  page,
+}) => {
+  await page.goto('/studio.html')
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const box = await node.boundingBox()
+  if (!box) throw Error('node absent')
+  // Press and release without movement: a no-op gesture must not poison the
+  // next committed edit's rendering.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await node.click()
+  await page.getByLabel('Label', { exact: true }).fill('Audit renamed')
+  await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Audit renamed', exact: true })).toBeVisible()
+  const painted = page.locator('.adl-editor-surface text[data-node-label]')
+  await expect(painted.filter({ hasText: 'Audit renamed' })).toHaveCount(1)
+  await expect(painted.filter({ hasText: 'Order API' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Order API', exact: true })).toBeVisible()
+  await expect(painted.filter({ hasText: 'Order API' })).toHaveCount(1)
+  await expect(painted.filter({ hasText: 'Audit renamed' })).toHaveCount(0)
+})
+
+test('a no-op click does not poison the next anchored keyboard resize', async ({ page }) => {
+  await page.goto('/studio.html')
+  const node = page.getByRole('button', { name: 'Order API', exact: true })
+  const box = await node.boundingBox()
+  if (!box) throw Error('node absent')
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await node.click()
+  const handle = page.locator('[data-resize-node][data-resize-direction="se"]')
+  await handle.focus()
+  const before = await geometry(node)
+  await handle.press('ArrowRight')
+  await handle.press('ArrowDown')
+  const resized = await geometry(node)
+  expect(resized.x).toBe(before.x)
+  expect(resized.y).toBe(before.y)
+  expect(resized.width).toBeGreaterThan(before.width)
+  expect(resized.height).toBeGreaterThan(before.height)
+})
