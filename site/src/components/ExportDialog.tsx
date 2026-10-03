@@ -229,22 +229,56 @@ export function ExportDialog({
   }
   const activeGate = formatGate(choice.format, facts)
   const selectionGate = scopeGate(choice.format, facts)
-  const layoutSize = useMemo(() => {
-    if (variant === 'dialog' && !open) return null
-    if (choice.format === 'json') return null
-    if (choice.format === 'card') return { width: CARD_WIDTH, height: CARD_HEIGHT }
-    const resolved = resolveDocument(document, {
-      quality: 'edit',
-      requestId: 'export-dialog',
-      skipDiagnostics: true,
-    })
-    if (!resolved.ok) return null
-    const scale = supportsScale(choice.format) ? choice.scale : 1
-    return {
-      width: Math.ceil(resolved.value.layout.width * scale),
-      height: Math.ceil(resolved.value.layout.height * scale),
-    }
-  }, [choice.format, choice.scale, document, open, variant])
+  const layoutRequest = useMemo(
+    () => ({
+      document,
+      registry,
+      theme: appearance ?? viewTheme,
+      format: choice.format,
+      scale: choice.scale,
+      open,
+      variant,
+    }),
+    [document, registry, appearance, viewTheme, choice.format, choice.scale, open, variant],
+  )
+  const [measurement, setMeasurement] = useState<{
+    request: typeof layoutRequest
+    size: { width: number; height: number } | null
+  } | null>(null)
+  useEffect(() => {
+    // This is an advisory size preview of an already validated store snapshot.
+    // Do not block a drag commit with another full validation/layout pass.
+    // Actual export always performs its own trust-boundary/resource checks.
+    const timer = setTimeout(() => {
+      let size: { width: number; height: number } | null = null
+      if (
+        !(layoutRequest.variant === 'dialog' && !layoutRequest.open) &&
+        layoutRequest.format !== 'json'
+      ) {
+        if (layoutRequest.format === 'card') size = { width: CARD_WIDTH, height: CARD_HEIGHT }
+        else {
+          const resolved = resolveDocument(layoutRequest.document, {
+            quality: 'edit',
+            requestId: 'export-dialog',
+            skipDiagnostics: true,
+            skipValidation: true,
+            theme: layoutRequest.theme,
+            renderers: layoutRequest.registry,
+          })
+          if (resolved.ok) {
+            const scale = supportsScale(layoutRequest.format) ? layoutRequest.scale : 1
+            size = {
+              width: Math.ceil(resolved.value.layout.width * scale),
+              height: Math.ceil(resolved.value.layout.height * scale),
+            }
+          }
+        }
+      }
+      setMeasurement({ request: layoutRequest, size })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [layoutRequest])
+  const layoutSize = measurement?.request === layoutRequest ? measurement.size : null
   const resourceWarning = layoutSize ? dimensionWarning(layoutSize.width, layoutSize.height) : false
   const blocked = !activeGate.available || choiceIssues(choice, selection.length).length > 0
   const phaseLabel = phase ? PHASE_LABEL[phase][locale] : ''
