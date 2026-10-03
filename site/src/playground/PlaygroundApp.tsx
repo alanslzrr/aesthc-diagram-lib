@@ -80,6 +80,10 @@ const COPY = {
     en: 'The JSON panel has an unapplied draft.',
     es: 'El panel JSON tiene un borrador sin aplicar.',
   },
+  resetDraftPending: {
+    en: 'Reset discards the unapplied JSON draft.',
+    es: 'Restaurar descarta el borrador JSON sin aplicar.',
+  },
   draftApply: { en: 'Apply draft', es: 'Aplicar borrador' },
   draftDiscard: { en: 'Discard draft', es: 'Descartar borrador' },
   handoffTooLarge: {
@@ -179,6 +183,7 @@ function PlaygroundSurface({
   const file = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null)
+  const [pendingReason, setPendingReason] = useState<'leave' | 'reset'>('leave')
   const [exportOpen, setExportOpen] = useState(false)
   const sessionKey = `${entry.key}:${locale}`
   const currentSession = useRef(sessionKey)
@@ -191,21 +196,41 @@ function PlaygroundSurface({
       const [keyName, keyLocale] = key.split(':') as [string, Locale]
       const source = SECTIONS.find((candidate) => candidate.key === keyName) ?? DEFAULT_ENTRY
       const draft = readSessionDraft(key, keyLocale)
+      // The pristine example is always the saved baseline; a recovered document
+      // is applied as an unsaved edit so it stays dirty, guardable and
+      // undoable instead of masquerading as a clean document.
+      const original = documentFor(source, keyLocale, hostTheme)
       store = createEditorStore({
-        document: draft?.document ?? documentFor(source, keyLocale, hostTheme),
+        document: original,
         permissions: { edit: true, save: false, export: true },
       })
-      if (draft) recovered.current.add(key)
-      if (draft?.text) store.setTextDraft(draft.text)
+      if (draft) {
+        const restored = store.dispatch({
+          id: 'restore-session-draft',
+          label: 'Restore session draft',
+          expectedRevision: store.getSnapshot().document.revision,
+          commands: [{ type: 'document.replace-content', document: draft.document }],
+        })
+        if (restored.status === 'committed') recovered.current.add(key)
+      }
+      if (draft?.text) {
+        store.setTextDraft(draft.text)
+        recovered.current.add(key)
+      }
       sessions.current.set(key, store)
-      // Persist the validated document and any unapplied buffer per session so
-      // returning to the playground does not lose work. Guards remain primary.
+      // Persist only real unsaved work (dirty document or unapplied buffer).
+      // A pristine session clears its record so camera/selection notices are
+      // never advertised as recovered edits. Guards remain primary.
       const session = store
       let timer: ReturnType<typeof setTimeout> | undefined
       session.subscribe(() => {
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => {
           const snapshot = session.getSnapshot()
+          if (!snapshot.dirty && snapshot.draft.kind !== 'text') {
+            clearSessionDraft(key)
+            return
+          }
           const outcome = writeSessionDraft(
             key,
             snapshot.document,
@@ -243,6 +268,7 @@ function PlaygroundSurface({
     // An unapplied JSON buffer always offers an explicit decision instead of
     // being discarded by a generic confirmation.
     if (store.getSnapshot().draft.kind === 'text') {
+      setPendingReason('leave')
       setPendingLeave(() => action)
       return
     }
@@ -277,6 +303,7 @@ function PlaygroundSurface({
   studioRequest.current = () => {
     // A text buffer is not part of the handoff; decide explicitly first.
     if (store.getSnapshot().draft.kind === 'text') {
+      setPendingReason('leave')
       setPendingLeave(() => performHandoff)
       return
     }
@@ -293,17 +320,38 @@ function PlaygroundSurface({
     registerStudio?.(() => studioRequest.current())
   }, [registerStudio])
 
-  function resetExample() {
-    if (store.getSnapshot().dirty && !window.confirm(COPY.resetConfirm[locale])) return
-    clearSessionDraft(sessionKey)
-    recovered.current.delete(sessionKey)
+  function performReset() {
     const current = store.getSnapshot()
     const original = documentFor(entry, locale, hostTheme)
     const result = store.replaceDocument(original, {
       expectedRevision: current.document.revision,
       history: 'reset',
     })
-    setMessage(result.status === 'committed' ? '' : COPY.importFailed[locale])
+    if (result.status !== 'committed') {
+      // A rejected replacement preserves the document, the draft and the
+      // recovery record byte-for-byte.
+      setMessage(
+        result.diagnostics.map((diagnostic) => diagnostic.code).join(', ') ||
+          COPY.importFailed[locale],
+      )
+      return
+    }
+    // Recovery storage is cleared only after the confirmed replacement landed.
+    clearSessionDraft(sessionKey)
+    recovered.current.delete(sessionKey)
+    setMessage('')
+  }
+  function resetExample() {
+    const snapshot = store.getSnapshot()
+    // An unapplied JSON buffer gets the explicit Apply/Discard/Cancel decision
+    // instead of being silently replaced by Reset.
+    if (snapshot.draft.kind === 'text') {
+      setPendingReason('reset')
+      setPendingLeave(() => performReset)
+      return
+    }
+    if (snapshot.dirty && !window.confirm(COPY.resetConfirm[locale])) return
+    performReset()
   }
 
   async function importFile(upload: File) {
@@ -407,7 +455,7 @@ function PlaygroundSurface({
       ) : null}
       {pendingLeave ? (
         <div className="playground-message" role="alert">
-          {COPY.draftPending[locale]}{' '}
+          {(pendingReason === 'reset' ? COPY.resetDraftPending : COPY.draftPending)[locale]}{' '}
           <button
             type="button"
             onClick={() => {
@@ -415,6 +463,7 @@ function PlaygroundSurface({
               if (result.status !== 'rejected') {
                 const action = pendingLeave
                 setPendingLeave(null)
+                setPendingReason('leave')
                 action()
               } else {
                 setMessage(result.diagnostics.map((d) => d.code).join(', '))
@@ -429,12 +478,19 @@ function PlaygroundSurface({
               store.cancelTextDraft()
               const action = pendingLeave
               setPendingLeave(null)
+              setPendingReason('leave')
               action()
             }}
           >
             {COPY.draftDiscard[locale]}
           </button>
-          <button type="button" onClick={() => setPendingLeave(null)}>
+          <button
+            type="button"
+            onClick={() => {
+              setPendingLeave(null)
+              setPendingReason('leave')
+            }}
+          >
             {locale === 'es' ? 'Cancelar' : 'Cancel'}
           </button>
         </div>
