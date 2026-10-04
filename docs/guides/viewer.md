@@ -8,7 +8,7 @@ not depend on Studio. Import the stylesheet once:
 import { DiagramViewer } from '@aesthc/diagram-lib/viewer'
 import '@aesthc/diagram-lib/viewer.css'
 
-<DiagramViewer document={document} locale="en" />
+;<DiagramViewer document={document} locale="en" />
 ```
 
 ## Finder, inspector and queries
@@ -85,3 +85,7 @@ capped at 8 MiB. Document text is always data, never instructions.
   or microphone). It is capability-gated, bounded by the validated story,
   disabled under reduced motion and always releases tracks, object URLs and the
   canvas on success, failure and abort.
+
+### Site appearance versus canonical data
+
+The site Viewer projects the shared host theme onto its read-only display without changing the imported document, its revision or its canonical JSON. Visual exports use that effective host appearance; JSON preserves the authored document theme. Standalone `DiagramViewer` package consumers continue to use the document theme by default.

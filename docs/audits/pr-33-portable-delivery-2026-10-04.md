@@ -24,7 +24,8 @@ G02/G04 retain the existing configuration dialog and explicitly documented API-o
 3. Closing a conditionally mounted dialog could lose focus restoration. Close and restoration now occur before host unmount.
 4. Firefox cancellation tests used Chromium's hard-coded mouse pointer ID. The harness now observes and cancels the actual pointer; all 19 Linux Firefox drag/grid cases passed without runtime relaxations.
 5. Canvas 2D unavailability could incorrectly claim embedded measurement while estimating widths. Missing or throwing contexts now fail required preparation and report explicit fallback, before allocating font declarations.
-6. Recording cancellation tests expected the old raw diagnostic; the shared dialog presents a localized cancellation message. The test now asserts that message and still verifies ended tracks and no download.
+6. A light authored document could make the site Viewer white under the global dark preference. A read-only appearance projection now keeps the display and visual exports aligned while downloaded JSON retains the untouched authored light mode.
+7. Recording cancellation tests expected the old raw diagnostic; the shared dialog presents a localized cancellation message. The test now asserts that message and still verifies ended tracks and no download.
 
 ## Acceptance status
 
