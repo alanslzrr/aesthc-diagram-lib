@@ -7,6 +7,9 @@ test('read-only Viewer opens the shared export dialog without an editor store', 
   await page.addInitScript(() => localStorage.setItem('adl-theme', 'dark'))
   await page.goto('/viewer.html')
   await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'dark')
+  await expect(
+    page.locator('.viewer-actions').getByRole('button', { name: 'Export', exact: true }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Export', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Export document' })
   await expect(dialog).toBeVisible()

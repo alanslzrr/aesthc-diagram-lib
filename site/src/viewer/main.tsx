@@ -256,6 +256,16 @@ function ViewerApp() {
           >
             {MESSAGES.reset[locale]}
           </button>
+          <button
+            type="button"
+            className="control"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              setExportRequest({ format: 'svg', quality: 'edit' })
+            }}
+          >
+            {locale === 'es' ? 'Exportar' : 'Export'}
+          </button>
         </div>
       </header>
       {message && (
@@ -268,16 +278,6 @@ function ViewerApp() {
         locale={locale}
         onExportRequest={setExportRequest}
       />
-      <button
-        type="button"
-        className="control"
-        onClick={(event) => {
-          event.currentTarget.focus({ preventScroll: true })
-          setExportRequest({ format: 'svg', quality: 'edit' })
-        }}
-      >
-        {locale === 'es' ? 'Exportar' : 'Export'}
-      </button>
       {exportRequest && (
         <ExportDialog
           locale={locale}
