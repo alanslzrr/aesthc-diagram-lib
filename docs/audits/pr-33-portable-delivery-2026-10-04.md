@@ -22,7 +22,9 @@ G02/G04 retain the existing configuration dialog and explicitly documented API-o
 1. Real card/PNG encoding failed because raw font license notices contained XML metacharacters. SVG font comments now escape them; actual artifact decoding passes.
 2. Moving the dialog into Viewer exposed an implicit dependency on editor CSS: native gray controls and an unstyled dialog frame. Viewer supplies scoped design-system styling without importing the editor bundle.
 3. Closing a conditionally mounted dialog could lose focus restoration. Close and restoration now occur before host unmount.
-4. Recording cancellation tests expected the old raw diagnostic; the shared dialog presents a localized cancellation message. The test now asserts that message and still verifies ended tracks and no download.
+4. Firefox cancellation tests used Chromium's hard-coded mouse pointer ID. The harness now observes and cancels the actual pointer; all 19 Linux Firefox drag/grid cases passed without runtime relaxations.
+5. Canvas 2D unavailability could incorrectly claim embedded measurement while estimating widths. Missing or throwing contexts now fail required preparation and report explicit fallback, before allocating font declarations.
+6. Recording cancellation tests expected the old raw diagnostic; the shared dialog presents a localized cancellation message. The test now asserts that message and still verifies ended tracks and no download.
 
 ## Acceptance status
 
