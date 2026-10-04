@@ -28,6 +28,17 @@ G02/G04 retain the existing configuration dialog and explicitly documented API-o
 7. Final inspection found the generic Viewer Export trigger outside the styled action header. It now belongs to that header, with a direct regression and browser-confirmed dark controls/focus restoration.
 8. Recording cancellation tests expected the old raw diagnostic; the shared dialog presents a localized cancellation message. The test now asserts that message and still verifies ended tracks and no download.
 
+## Final-matrix corrections
+
+The first complete certification attempt on `538c22e` reported **1232 passed / 133 skipped / 20 failed**. Those failures were not waived:
+
+- Five host-preference assertions still expected a light Viewer despite the explicit read-only global-appearance projection. They now assert the display contract; the canonical light JSON regression remains.
+- Studio's expanded, arrow-free export controls placed some gesture targets below the viewport. Gesture tests now scroll actual targets into view, size desktop trajectories explicitly and assert their destinations are visible. The mobile pinch scrolls the existing surface into view; no mobile workspace redesign was introduced.
+- The export grid's 190px minimum exceeded its narrow zoomed parent. Its minimum is bounded by the parent's width, and selects fit their field. Screenshot review also exposed a sticky Studio header covering a scrolled export control at 200%; a focused hit-test regression failed before the narrow header was made non-sticky. Four browser profiles passed afterward, and their eight screenshots were inspected.
+- The CI WebM artifact was valid (VP9, 500×144, 0.979745s, 11282 bytes), independently decoded with its Alpha/Beta/Write final content. The test sampled after `seeked` but before a compositor frame. It now waits for the actual presented final frame with a bounded wait, while retaining nonuniform-content and no-camera assertions. The exact failed CI artifact passed the corrected decoder in Linux Chromium/Firefox; new real recordings passed five repeated runs on Darwin and five on Linux Node 22.
+
+Focused Node 22 Linux production regressions passed **21/21** with **9 existing capability/input skips** across Chromium, Firefox, WebKit and mobile profiles. Final full-matrix certification is still required on the subsequent exact head.
+
 ## Acceptance status
 
 - **Completed implementation:** portable typography, read-only Viewer dialog integration, representative gallery, focused interaction corrections and cross-surface visual fixes.
