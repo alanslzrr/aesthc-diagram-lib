@@ -183,125 +183,135 @@ async function strokeContrast(page: Page, root: string, selectors: string[]) {
   )
 }
 
-test('gallery cards use one masked backdrop and never mask the diagram', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.locator('.layout-gallery-card').first()).toBeVisible()
-  for (const type of TYPES) {
-    // BG-05: every main label must be readable at the rendered card size.
-    for (const width of [390, 768, 1280, 1718]) {
-      await page.setViewportSize({ width, height: 1000 })
-      const measured = await page
-        .locator(`[data-diagram-panel="example-${type}"] .layout-gallery-stage`)
-        .evaluate((element) => {
-          const svg = element.querySelector('svg')!
-          // `width / viewBox.width` ignores `preserveAspectRatio="meet"` when
-          // the height is the limiting factor; getScreenCTM is the render scale.
-          const widthScale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
-          const labels = [...element.querySelectorAll<SVGGraphicsElement>('[data-node-label]')]
-          const scales = labels.map((label) => {
-            const matrix = label.getScreenCTM()!
-            return Math.hypot(matrix.a, matrix.b)
-          })
-          return {
-            count: labels.length,
-            sizes: labels.map((label, index) => {
-              return Number.parseFloat(getComputedStyle(label).fontSize) * scales[index]
-            }),
-            widthScale,
-            renderScale: Math.max(...scales),
-            svgWidth: svg.getBoundingClientRect().width,
-            viewBox: svg.getAttribute('viewBox'),
-            stageWidth: element.getBoundingClientRect().width,
-            padding: getComputedStyle(element).paddingLeft,
-            mediaMatch: window.matchMedia('(max-width: 640px)').matches,
-            matches: (() => {
-              const results: string[] = []
-              for (const sheet of [...document.styleSheets]) {
-                try {
-                  for (const rule of [...sheet.cssRules]) {
-                    const selector = (rule as CSSStyleRule).selectorText
-                    if (selector?.includes('layout-gallery-stage') && element.matches(selector))
-                      results.push(`${selector} => ${(rule as CSSStyleRule).style.padding}`)
+for (const locale of ['en', 'es'] as const) {
+  for (const theme of ['light', 'dark'] as const) {
+    test(`gallery cards use one masked backdrop with readable ${locale}/${theme} labels`, async ({
+      page,
+    }) => {
+      await page.addInitScript((locale) => localStorage.setItem('adl-locale', locale), locale)
+      await page.goto('/')
+      await setTheme(page, theme)
+      await expect(page.locator('.layout-gallery-card').first()).toBeVisible()
+      for (const type of TYPES) {
+        // BG-05: every main label must be readable at the rendered card size.
+        for (const width of [390, 768, 1280, 1718]) {
+          await page.setViewportSize({ width, height: 1000 })
+          const measured = await page
+            .locator(`[data-diagram-panel="example-${type}"] .layout-gallery-stage`)
+            .evaluate((element) => {
+              const svg = element.querySelector('svg')!
+              // `width / viewBox.width` ignores `preserveAspectRatio="meet"` when
+              // the height is the limiting factor; getScreenCTM is the render scale.
+              const widthScale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
+              const labels = [...element.querySelectorAll<SVGGraphicsElement>('[data-node-label]')]
+              const scales = labels.map((label) => {
+                const matrix = label.getScreenCTM()!
+                return Math.hypot(matrix.a, matrix.b)
+              })
+              return {
+                count: labels.length,
+                sizes: labels.map((label, index) => {
+                  return Number.parseFloat(getComputedStyle(label).fontSize) * scales[index]
+                }),
+                widthScale,
+                renderScale: Math.max(...scales),
+                svgWidth: svg.getBoundingClientRect().width,
+                viewBox: svg.getAttribute('viewBox'),
+                stageWidth: element.getBoundingClientRect().width,
+                padding: getComputedStyle(element).paddingLeft,
+                mediaMatch: window.matchMedia('(max-width: 640px)').matches,
+                matches: (() => {
+                  const results: string[] = []
+                  for (const sheet of [...document.styleSheets]) {
+                    try {
+                      for (const rule of [...sheet.cssRules]) {
+                        const selector = (rule as CSSStyleRule).selectorText
+                        if (selector?.includes('layout-gallery-stage') && element.matches(selector))
+                          results.push(`${selector} => ${(rule as CSSStyleRule).style.padding}`)
+                      }
+                    } catch {
+                      /* cross-origin sheet */
+                    }
                   }
-                } catch {
-                  /* cross-origin sheet */
-                }
+                  return results
+                })(),
+                hasPadRule: [...document.styleSheets].some((sheet) => {
+                  try {
+                    return [...sheet.cssRules].some(
+                      (rule) =>
+                        rule.cssText.includes('example-swimlane') && rule.cssText.includes('4px'),
+                    )
+                  } catch {
+                    return false
+                  }
+                }),
+                innerWidth: window.innerWidth,
               }
-              return results
-            })(),
-            hasPadRule: [...document.styleSheets].some((sheet) => {
-              try {
-                return [...sheet.cssRules].some(
-                  (rule) =>
-                    rule.cssText.includes('example-swimlane') && rule.cssText.includes('4px'),
-                )
-              } catch {
-                return false
-              }
-            }),
-            innerWidth: window.innerWidth,
+            })
+          expect(measured.count, `${type} must render main labels at ${width}px`).toBeGreaterThan(0)
+          expect(
+            Math.min(...measured.sizes),
+            `${type} smallest main label at ${width}px (${measured.sizes.join(', ')}) ${JSON.stringify({ svg: measured.svgWidth, view: measured.viewBox, stage: measured.stageWidth, padding: measured.padding, mediaMatch: measured.mediaMatch, matches: measured.matches })}`,
+          ).toBeGreaterThanOrEqual(11)
+          // The instrument must never overestimate: the render scale of a `meet`
+          // SVG is the smaller of the two axes, and the width formula can only be
+          // equal or larger.
+          expect(measured.renderScale).toBeLessThanOrEqual(measured.widthScale + 1e-6)
+          if (type === 'swimlane' && width === 390) {
+            // At phone width the swimlane bounds are wider than the stage, so the
+            // container width limits the render scale and both formulas agree.
+            expect(measured.renderScale).toBeCloseTo(measured.widthScale, 2)
+          }
+        }
+        await page.setViewportSize({ width: 1280, height: 1000 })
+        const card = page.locator(`[data-diagram-panel="example-${type}"]`)
+        await expect(card).toHaveCount(1)
+        // BG-01: the SVG document grid is off; exactly one CSS dot layer remains.
+        await expect(card.locator('[data-diagram-grid]')).toHaveCount(0)
+        const stage = card.locator('.layout-gallery-stage')
+        const backdrop = await stage.evaluate((element) => {
+          const own = getComputedStyle(element)
+          const before = getComputedStyle(element, '::before')
+          return {
+            ownBackground: own.backgroundImage,
+            mask: before.maskImage || before.webkitMaskImage,
+            background: before.backgroundImage,
+            inset: before.inset,
+            position: before.position,
           }
         })
-      expect(measured.count, `${type} must render main labels at ${width}px`).toBeGreaterThan(0)
-      expect(
-        Math.min(...measured.sizes),
-        `${type} smallest main label at ${width}px (${measured.sizes.join(', ')}) ${JSON.stringify({ svg: measured.svgWidth, view: measured.viewBox, stage: measured.stageWidth, padding: measured.padding, mediaMatch: measured.mediaMatch, matches: measured.matches })}`,
-      ).toBeGreaterThanOrEqual(10)
-      // The instrument must never overestimate: the render scale of a `meet`
-      // SVG is the smaller of the two axes, and the width formula can only be
-      // equal or larger.
-      expect(measured.renderScale).toBeLessThanOrEqual(measured.widthScale + 1e-6)
-      if (type === 'swimlane' && width === 390) {
-        // At phone width the swimlane bounds are wider than the stage, so the
-        // container width limits the render scale and both formulas agree.
-        expect(measured.renderScale).toBeCloseTo(measured.widthScale, 2)
-      }
-    }
-    await page.setViewportSize({ width: 1280, height: 1000 })
-    const card = page.locator(`[data-diagram-panel="example-${type}"]`)
-    await expect(card).toHaveCount(1)
-    // BG-01: the SVG document grid is off; exactly one CSS dot layer remains.
-    await expect(card.locator('[data-diagram-grid]')).toHaveCount(0)
-    const stage = card.locator('.layout-gallery-stage')
-    const backdrop = await stage.evaluate((element) => {
-      const own = getComputedStyle(element)
-      const before = getComputedStyle(element, '::before')
-      return {
-        ownBackground: own.backgroundImage,
-        mask: before.maskImage || before.webkitMaskImage,
-        background: before.backgroundImage,
-        inset: before.inset,
-        position: before.position,
+        // BG-02/03: the mask lives on the decorative layer, which covers the stage.
+        expect(backdrop.ownBackground, `${type} stage must not paint a second pattern`).toBe('none')
+        expect(backdrop.mask, `${type} backdrop must be masked`).not.toBe('none')
+        expect(backdrop.mask).toContain('radial-gradient')
+        expect(backdrop.background).toContain('radial-gradient')
+        expect(backdrop.position).toBe('absolute')
+        expect(backdrop.inset).toBe('0px')
+        // BG-05: thumbnails keep authored stroke width at their reduced scale.
+        const thumbnail = await stage
+          .locator('[data-node-id]')
+          .first()
+          .evaluate((element) => getComputedStyle(element).vectorEffect)
+        expect(thumbnail, `${type} thumbnail strokes must not scale down`).toBe(
+          'non-scaling-stroke',
+        )
+        // BG-02: no ancestor of the diagram carries a mask.
+        const maskedAncestors = await card.evaluate((element) => {
+          const masked: string[] = []
+          let node: Element | null = element.querySelector('svg')
+          while (node && node !== element.parentElement) {
+            const style = getComputedStyle(node)
+            if ((style.maskImage || style.webkitMaskImage) !== 'none')
+              masked.push(node.className.toString())
+            node = node.parentElement
+          }
+          return masked
+        })
+        expect(maskedAncestors, `${type} diagram must not be masked`).toEqual([])
       }
     })
-    // BG-02/03: the mask lives on the decorative layer, which covers the stage.
-    expect(backdrop.ownBackground, `${type} stage must not paint a second pattern`).toBe('none')
-    expect(backdrop.mask, `${type} backdrop must be masked`).not.toBe('none')
-    expect(backdrop.mask).toContain('radial-gradient')
-    expect(backdrop.background).toContain('radial-gradient')
-    expect(backdrop.position).toBe('absolute')
-    expect(backdrop.inset).toBe('0px')
-    // BG-05: thumbnails keep authored stroke width at their reduced scale.
-    const thumbnail = await stage
-      .locator('[data-node-id]')
-      .first()
-      .evaluate((element) => getComputedStyle(element).vectorEffect)
-    expect(thumbnail, `${type} thumbnail strokes must not scale down`).toBe('non-scaling-stroke')
-    // BG-02: no ancestor of the diagram carries a mask.
-    const maskedAncestors = await card.evaluate((element) => {
-      const masked: string[] = []
-      let node: Element | null = element.querySelector('svg')
-      while (node && node !== element.parentElement) {
-        const style = getComputedStyle(node)
-        if ((style.maskImage || style.webkitMaskImage) !== 'none')
-          masked.push(node.className.toString())
-        node = node.parentElement
-      }
-      return masked
-    })
-    expect(maskedAncestors, `${type} diagram must not be masked`).toEqual([])
   }
-})
+}
 
 test('the scale instrument detects height-limited framing', async ({ page }) => {
   await page.goto('/')

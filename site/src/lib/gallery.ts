@@ -5,7 +5,7 @@ import type { DiagramSpec, DiagramLayout } from '@aesthc/diagram-lib'
 
 import type { Locale } from '../content'
 
-// Useful-bounds frames from `previewBounds(layoutDiagram(spec))` for the English
+// Useful-bounds frames from `previewBounds(layoutDiagram(spec))` for both locale
 // fixtures. Precomputed so the landing entry does not ship the framing helper;
 // `tests/gallery-framing.unit.spec.ts` recomputes and guards every value.
 export const GALLERY_VIEWS: Record<
