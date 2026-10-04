@@ -45,8 +45,9 @@ test('host theme and locale persist across surfaces and stay separate from docum
       () => getComputedStyle(document.querySelector('.viewer-shell') as Element).backgroundColor,
     ),
   ).toBe('rgb(0, 0, 0)')
-  // The viewer component keeps the document's own light theme and English content.
-  await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'light')
+  // The site projects the global appearance without translating authored labels.
+  // Canonical JSON preservation is also covered by viewer-export-dialog.
+  await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('.adl-viewer')).toContainText('Web client')
   await expect(page.locator('.adl-viewer')).toContainText('Order API')
 
