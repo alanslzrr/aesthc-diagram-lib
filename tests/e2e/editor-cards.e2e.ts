@@ -60,7 +60,9 @@ test('T41.1 route and reach cards decode at 1200x630 with an exact non-canonical
   await expect(page.getByText('Route Alpha → Gamma', { exact: false })).toBeVisible()
   const routeDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export card PNG', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const routeCard = await routeDownload
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
   const routeDims = await decodePng(page, (await routeCard.path())!)
   expect(routeDims).toEqual({ width: 1200, height: 630 })
   // Reach stays finite over the cycle and its card decodes at the fixed size.
@@ -70,6 +72,7 @@ test('T41.1 route and reach cards decode at 1200x630 with an exact non-canonical
   await expect(page.getByText('Reach from Gamma downstream', { exact: false })).toBeVisible()
   const reachDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export card PNG', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const reachCard = await reachDownload
   const reachDims = await decodePng(page, (await reachCard.path())!)
   expect(reachDims).toEqual({ width: 1200, height: 630 })

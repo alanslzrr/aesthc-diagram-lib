@@ -130,6 +130,7 @@ test('T51.2 an authored deployment profile blocks publish and its diagnostics na
   const downloads: string[] = []
   page.on('download', (download) => downloads.push(download.suggestedFilename()))
   await page.getByRole('button', { name: 'Publish export' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const alert = page.getByRole('alert').filter({ hasText: 'profile.' })
   await expect(alert).toContainText('profile.owner-missing')
   expect(downloads).toEqual([])
@@ -140,9 +141,11 @@ test('T51.2 an authored deployment profile blocks publish and its diagnostics na
     ),
   ).toEqual([])
   // The checkbox only controls the report panel; it cannot bypass the policy.
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
   await toggle.uncheck()
   await expect(evidence.locator('.adl-viewer-profile-diagnostics')).toHaveCount(0)
   await page.getByRole('button', { name: 'Publish export' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   await expect(alert).toContainText('profile.owner-missing')
   expect(downloads).toEqual([])
 })

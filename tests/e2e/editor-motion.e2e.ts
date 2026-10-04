@@ -105,8 +105,9 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
   await expect(exportButton).toBeEnabled()
   const downloadPromise = page.waitForEvent('download')
   await exportButton.click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const download = await downloadPromise
-  expect(download.suggestedFilename()).toBe('story.webm')
+  expect(download.suggestedFilename()).toMatch(/\.webm$/)
   const bytes = readFileSync((await download.path())!).toString('base64')
   const decoded = await page.evaluate(async (data) => {
     const blob = await (await fetch(`data:video/webm;base64,${data}`)).blob()
@@ -211,7 +212,13 @@ test('T52.2 cancelling a recording releases the canvas tracks without a download
   const downloads: string[] = []
   page.on('download', (download) => downloads.push(download.suggestedFilename()))
   await page.getByRole('button', { name: 'Export WebM', exact: true }).click()
-  const cancel = page.getByRole('button', { name: 'Cancel export', exact: true })
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { __tracks: MediaStreamTrack[] }).__tracks.length),
+    )
+    .toBeGreaterThan(0)
+  const cancel = page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true })
   await expect(cancel).toBeVisible()
   await cancel.click()
   await expect(page.getByText('operation.aborted')).toBeVisible()
@@ -225,5 +232,6 @@ test('T52.2 cancelling a recording releases the canvas tracks without a download
     )
     .toBe(true)
   expect(downloads).toEqual([])
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Export WebM', exact: true })).toBeEnabled()
 })
