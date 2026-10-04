@@ -7,6 +7,7 @@ import {
   type TextMeasurer,
 } from '../geometry/text'
 import { waitForExport } from './wait'
+import { escapeXml } from '../render'
 import fontNotices from '../assets/fonts/notices.json'
 
 export interface PortableFontOptions {
@@ -39,7 +40,7 @@ export function embeddedFontCss(fonts: NonNullable<PortableFontOptions['fonts']>
     )
       return failure('export.font-invalid')
   return success(
-    `/* ${fontNotices.join('\n')} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`,
+    `/* ${escapeXml(fontNotices.join('\n'))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`,
   )
 }
 /** Per-operation measurement uses isolated families; emitted artifacts use the same bytes. */

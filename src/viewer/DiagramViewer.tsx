@@ -1,3 +1,4 @@
+import { createCanvasTextMeasurer } from '../geometry/text'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type {
@@ -64,16 +65,39 @@ export function DiagramViewer({
   onExportRequest,
 }: DiagramViewerProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
+  const measurer = useMemo(() => createCanvasTextMeasurer(), [])
+  const [fontGeneration, setFontGeneration] = useState(0)
+  useEffect(() => {
+    let active = true
+    if (typeof window !== 'undefined' && window.document.fonts) {
+      void Promise.all([
+        window.document.fonts.load('16px Geist'),
+        window.document.fonts.load('16px "Geist Mono"'),
+      ]).then(
+        () => {
+          if (active) {
+            measurer?.clear?.()
+            setFontGeneration((generation) => generation + 1)
+          }
+        },
+        () => {},
+      )
+    }
+    return () => {
+      active = false
+    }
+  }, [measurer])
   const graph = useMemo(() => graphSnapshot(document), [document])
   const scene = useMemo(
     () =>
       resolveDocument(document, {
         quality: 'edit',
         requestId: 'viewer',
+        measureText: measurer,
         skipDiagnostics: true,
         renderers: registry,
       }),
-    [document, registry],
+    [document, registry, measurer, fontGeneration],
   )
   const [selection, setSelection] = useState<EntityRef | null>(null)
   const [origin, setOrigin] = useState<string | null>(null)

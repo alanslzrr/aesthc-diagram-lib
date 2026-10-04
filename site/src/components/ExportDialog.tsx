@@ -203,6 +203,8 @@ export function ExportDialog({
   )
   const close = () => {
     if (busy) return
+    dialogRef.current?.close()
+    restoreFocus()
     onClose?.()
   }
   /** The dialog can stay mounted while closed; focus returns to the opener. */
