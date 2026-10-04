@@ -113,16 +113,36 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
     const blob = await (await fetch(`data:video/webm;base64,${data}`)).blob()
     const video = document.createElement('video')
     video.muted = true
+    video.playsInline = true
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none'
+    document.body.append(video)
     video.src = URL.createObjectURL(blob)
     await new Promise<void>((resolve, reject) => {
       video.onloadedmetadata = () => resolve()
       video.onerror = () => reject(new Error('decode failed'))
     })
     const duration = video.duration
-    video.currentTime = Math.max(0, duration - 0.05)
-    await new Promise<void>((resolve) => {
-      video.onseeked = () => resolve()
+    const target = Math.max(0, duration - 0.05)
+    // seeked reports timeline movement, not that a decoded frame was presented.
+    // Wait for the real compositor frame before sampling the final story image.
+    const presentedTime = await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('final frame unavailable')), 8000)
+      const presented: VideoFrameRequestCallback = (_now, metadata) => {
+        if (metadata.mediaTime < target - 0.1) {
+          video.requestVideoFrameCallback(presented)
+          return
+        }
+        clearTimeout(timeout)
+        resolve(metadata.mediaTime)
+      }
+      video.requestVideoFrameCallback(presented)
+      video.currentTime = target
+      void video.play().catch((error) => {
+        clearTimeout(timeout)
+        reject(error)
+      })
     })
+    video.pause()
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
@@ -138,11 +158,15 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
       width: video.videoWidth,
       height: video.videoHeight,
       duration,
+      presentedTime,
       painted,
       colorCount: colors.size,
       bytes: blob.size,
     }
     URL.revokeObjectURL(video.src)
+    video.removeAttribute('src')
+    video.load()
+    video.remove()
     canvas.width = 0
     canvas.height = 0
     return result
@@ -151,6 +175,7 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
   expect(decoded.height).toBeGreaterThan(0)
   expect(decoded.duration).toBeGreaterThanOrEqual(0.5)
   expect(decoded.duration).toBeLessThanOrEqual(4)
+  expect(decoded.presentedTime).toBeGreaterThanOrEqual(decoded.duration - 0.15)
   expect(decoded.painted).toBeGreaterThan(0)
   expect(decoded.colorCount).toBeGreaterThan(20)
   expect(decoded.bytes).toBeGreaterThan(0)
