@@ -10,15 +10,106 @@ import type { Locale } from '../content'
 // `tests/gallery-framing.unit.spec.ts` recomputes and guards every value.
 export const GALLERY_VIEWS: Record<
   string,
-  { x: number; y: number; width: number; height: number }
+  Record<Locale, { x: number; y: number; width: number; height: number }>
 > = {
-  'example-band': { x: 8, y: 36, width: 304, height: 260 },
-  'example-flowchart': { x: 40, y: 24, width: 304, height: 264 },
-  'example-sequence': { x: 40, y: -24, width: 326, height: 232 },
-  'example-state-machine': { x: 404, y: 44, width: 284, height: 488 },
-  'example-er': { x: 40, y: 32, width: 304, height: 144 },
-  'example-timeline': { x: 32, y: 20, width: 304, height: 204 },
-  'example-swimlane': { x: -32, y: 24, width: 446, height: 192 },
+  'example-band': {
+    en: {
+      x: 8,
+      y: 36,
+      width: 304,
+      height: 260,
+    },
+    es: {
+      x: 8,
+      y: 36,
+      width: 304,
+      height: 260,
+    },
+  },
+  'example-flowchart': {
+    en: {
+      x: 40,
+      y: 24,
+      width: 304,
+      height: 264,
+    },
+    es: {
+      x: 40,
+      y: 24,
+      width: 304,
+      height: 264,
+    },
+  },
+  'example-sequence': {
+    en: {
+      x: 0,
+      y: -24,
+      width: 344,
+      height: 288,
+    },
+    es: {
+      x: 0,
+      y: -24,
+      width: 344,
+      height: 288,
+    },
+  },
+  'example-state-machine': {
+    en: {
+      x: 404,
+      y: 44,
+      width: 284,
+      height: 488,
+    },
+    es: {
+      x: 404,
+      y: 44,
+      width: 284,
+      height: 488,
+    },
+  },
+  'example-er': {
+    en: {
+      x: 40,
+      y: 32,
+      width: 304,
+      height: 324,
+    },
+    es: {
+      x: 40,
+      y: 32,
+      width: 304,
+      height: 324,
+    },
+  },
+  'example-timeline': {
+    en: {
+      x: 32,
+      y: 20,
+      width: 304,
+      height: 204,
+    },
+    es: {
+      x: 32,
+      y: 20,
+      width: 304,
+      height: 204,
+    },
+  },
+  'example-swimlane': {
+    en: {
+      x: -32,
+      y: 24,
+      width: 378,
+      height: 320,
+    },
+    es: {
+      x: -32,
+      y: 24,
+      width: 378,
+      height: 320,
+    },
+  },
 }
 export type GalleryLayout = DiagramLayout
 
@@ -102,17 +193,29 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
   'example-sequence': {
     en: {
       type: 'sequence',
-      caption: 'A client retries its request on a lifeline.',
+      caption: 'A client request and API response across two lifelines.',
       legend: { main: 'Request path', branch: 'Alternative' },
-      participants: [{ id: 'client', label: 'Client' }],
-      messages: [{ id: 'retry', from: 'client', to: 'client', label: 'retry' }],
+      participants: [
+        { id: 'client', label: 'Client' },
+        { id: 'api', label: 'API' },
+      ],
+      messages: [
+        { id: 'request', from: 'client', to: 'api', label: 'GET' },
+        { id: 'reply', from: 'api', to: 'client', label: '200' },
+      ],
     },
     es: {
       type: 'sequence',
-      caption: 'Un cliente reintenta su solicitud en una línea de vida.',
+      caption: 'Solicitud y respuesta entre cliente y API.',
       legend: { main: 'Camino principal', branch: 'Alternativa' },
-      participants: [{ id: 'client', label: 'Cliente' }],
-      messages: [{ id: 'retry', from: 'client', to: 'client', label: 'retry' }],
+      participants: [
+        { id: 'client', label: 'Cliente' },
+        { id: 'api', label: 'API' },
+      ],
+      messages: [
+        { id: 'request', from: 'client', to: 'api', label: 'GET' },
+        { id: 'reply', from: 'api', to: 'client', label: '200' },
+      ],
     },
   },
   'example-state-machine': {
@@ -140,9 +243,10 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
   'example-er': {
     en: {
       type: 'er',
-      caption: 'An orders table with primary and foreign keys.',
+      caption: 'Users own orders through a primary/foreign-key relationship.',
       legend: { main: 'Relation', branch: 'Alternative' },
       entities: [
+        { id: 'users', label: 'users', fields: [{ name: 'id', type: 'uuid', key: 'pk' }] },
         {
           id: 'orders',
           label: 'orders',
@@ -152,13 +256,14 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
           ],
         },
       ],
-      relations: [],
+      relations: [{ id: 'owns', from: 'users', to: 'orders', label: '1:N' }],
     },
     es: {
       type: 'er',
-      caption: 'Una tabla de pedidos con clave primaria y foránea.',
+      caption: 'Usuarios y pedidos vinculados por claves primaria y foránea.',
       legend: { main: 'Relación', branch: 'Alternativa' },
       entities: [
+        { id: 'users', label: 'users', fields: [{ name: 'id', type: 'uuid', key: 'pk' }] },
         {
           id: 'orders',
           label: 'orders',
@@ -168,7 +273,7 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
           ],
         },
       ],
-      relations: [],
+      relations: [{ id: 'owns', from: 'users', to: 'orders', label: '1:N' }],
     },
   },
   'example-timeline': {
@@ -188,10 +293,14 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
   'example-swimlane': {
     en: {
       type: 'swimlane',
-      caption: 'Triage happens inside the support lane.',
+      caption: 'Support hands an issue to Engineering.',
       legend: { main: 'Handoff', branch: 'Alternative' },
-      lanes: [{ id: 'support', label: 'Support' }],
+      lanes: [
+        { id: 'support', label: 'Support' },
+        { id: 'engineering', label: 'Engineering' },
+      ],
       nodes: [
+        { id: 'resolve', label: 'Resolve', description: '', lane: 'engineering' },
         {
           id: 'triage',
           label: 'Triage',
@@ -199,14 +308,18 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
           lane: 'support',
         },
       ],
-      edges: [],
+      edges: [{ id: 'handoff', from: 'triage', to: 'resolve' }],
     },
     es: {
       type: 'swimlane',
-      caption: 'El triaje ocurre dentro del carril de soporte.',
+      caption: 'Soporte transfiere una incidencia a Ingeniería.',
       legend: { main: 'Traspaso', branch: 'Alternativa' },
-      lanes: [{ id: 'support', label: 'Soporte' }],
+      lanes: [
+        { id: 'support', label: 'Soporte' },
+        { id: 'engineering', label: 'Ingeniería' },
+      ],
       nodes: [
+        { id: 'resolve', label: 'Resolver', description: '', lane: 'engineering' },
         {
           id: 'triage',
           label: 'Clasificar',
@@ -214,7 +327,7 @@ export const GALLERY_FIXTURES: Record<string, Record<Locale, DiagramSpec>> = {
           lane: 'support',
         },
       ],
-      edges: [],
+      edges: [{ id: 'handoff', from: 'triage', to: 'resolve' }],
     },
   },
 }
