@@ -101,7 +101,7 @@ test('required and fallback font failures remain explicit and release scoped dec
       { id: 'font-failure', locale: 'en' },
     )
     const fonts = {
-      sans: new Uint8Array([119, 79, 70, 50]),
+      sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
       mono: new Uint8Array([119, 79, 70, 50]),
     }
     const before = document.querySelectorAll('style').length
@@ -245,4 +245,62 @@ test('exact-font standalone fallback and hydrated Viewer have identical node geo
   } finally {
     await context.close()
   }
+})
+
+test('concurrent differing font bytes are isolated from a conflicting host Geist family', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const base = location.origin + '/__portable/dist'
+    const api = await import(base + '/export/index.js'),
+      core = await import(base + '/editor-core/index.js')
+    const made = core.createDocument(
+      {
+        type: 'graph',
+        caption: 'Isolation',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'Independent typography', description: '' }],
+        edges: [],
+      },
+      { id: 'isolated-fonts', locale: 'en' },
+    )
+    const sans = new Uint8Array(
+        await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer(),
+      ),
+      mono = new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer())
+    const base64 = (bytes: Uint8Array) =>
+      btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
+    const host = document.createElement('style')
+    host.textContent = `@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(mono)})}`
+    document.head.append(host)
+    const before = document.querySelectorAll('style').length
+    try {
+      const [normal, reversed] = await Promise.all([
+        api.exportCardSvg(made.value, { fonts: { sans, mono }, fontPolicy: 'required' }),
+        api.exportCardSvg(made.value, {
+          fonts: { sans: mono, mono: sans },
+          fontPolicy: 'required',
+        }),
+      ])
+      if (!normal.ok || !reversed.ok) throw Error('font preparation failed')
+      return {
+        portable: [normal.value.typography, reversed.value.typography],
+        sameArtifact: normal.value.svg === reversed.value.svg,
+        normalSans: normal.value.svg.includes(
+          `font-family:Geist;src:url(data:font/woff2;base64,${base64(sans)})`,
+        ),
+        reversedSans: reversed.value.svg.includes(
+          `font-family:Geist;src:url(data:font/woff2;base64,${base64(mono)})`,
+        ),
+        leaked: document.querySelectorAll('style').length - before,
+      }
+    } finally {
+      host.remove()
+    }
+  })
+  expect(result.portable).toEqual(Array(2).fill({ measurement: 'embedded', embedded: true }))
+  expect(result.sameArtifact).toBe(false)
+  expect(result.normalSans).toBe(true)
+  expect(result.reversedSans).toBe(true)
+  expect(result.leaked).toBe(0)
 })
