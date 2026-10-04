@@ -423,10 +423,19 @@ var estimateTextWidth = (text, role) => {
   if (!length) return 0;
   return length * role.size * role.charFactor + (length - 1) * (role.tracking ?? 0);
 };
+function canvasContext() {
+  if (typeof document === "undefined" || typeof document.createElement !== "function")
+    return void 0;
+  try {
+    return document.createElement("canvas").getContext("2d") ?? void 0;
+  } catch {
+    return void 0;
+  }
+}
 function createCanvasTextMeasurer() {
   if (typeof document === "undefined" || typeof document.createElement !== "function")
     return void 0;
-  const context = document.createElement("canvas").getContext("2d");
+  const context = canvasContext();
   if (!context) return void 0;
   const cache = /* @__PURE__ */ new Map();
   const CACHE_LIMIT = 2e4;
@@ -453,12 +462,13 @@ function toDataUrl(bytes) {
 function createEmbeddedFontTextMeasurer(sans, mono) {
   if (typeof document === "undefined" || typeof document.createElement !== "function")
     return void 0;
+  const context = canvasContext();
+  if (!context) return void 0;
   const nonce = Math.random().toString(36).slice(2, 10);
   const sansFamily = `adl-export-${nonce}-sans`, monoFamily = `adl-export-${nonce}-mono`;
   const style = document.createElement("style");
   style.textContent = `@font-face{font-family:"${sansFamily}";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"${monoFamily}";src:url(${toDataUrl(mono)}) format("woff2")}`;
   document.head.appendChild(style);
-  const context = document.createElement("canvas").getContext("2d");
   let disposed = false;
   return {
     measure: context === null ? estimateTextWidth : (text, role) => {
