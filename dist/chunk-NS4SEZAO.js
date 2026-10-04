@@ -471,7 +471,7 @@ function createEmbeddedFontTextMeasurer(sans, mono) {
     async ready() {
       if (disposed || typeof document === "undefined" || !document.fonts) return false;
       const loaded = (family) => document.fonts.load(`16px "${family}"`).then(
-        () => true,
+        (faces) => faces.length > 0 && faces.every((face) => face.status === "loaded"),
         () => false
       );
       const [sansOk, monoOk] = await Promise.all([loaded(sansFamily), loaded(monoFamily)]);

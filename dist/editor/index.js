@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-55ICDXSN.js";
+} from "../chunk-5JZREPFY.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,7 +16,7 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-TFKE7HJ5.js";
+} from "../chunk-NS4SEZAO.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import "../chunk-UKKTZNGD.js";

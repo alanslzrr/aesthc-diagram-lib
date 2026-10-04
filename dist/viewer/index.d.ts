@@ -1,22 +1,30 @@
 import * as react from 'react';
 import { ReactNode } from 'react';
 import { g as DiagramDocument, L as Locale, R as ResolveRendererRegistry, o as EntityRef, V as Viewport, t as StoryStep, N as NamedView, k as Result, h as ResolvedScene } from '../layout-D_aGN70Q.js';
+import { C as CardQueryReceipt } from '../cards-CvxKOp96.js';
 import { GraphSnapshot, RouteResult, ReachResult, GraphFilter } from '../graph/index.js';
 export { Comparison as DocumentComparison, EntityDelta, FieldChange, GraphNodeInfo, NodeRelations, SearchMatch, SearchResult, findReach, findRoute, graphSnapshot, relationsOf, searchNodes } from '../graph/index.js';
 import { D as DeploymentProfileReport } from '../profiles-BVco6-Cr.js';
 import '../theme.js';
 
+interface ViewerExportRequest {
+    format: 'svg' | 'card' | 'webm';
+    quality: 'edit' | 'publish';
+    query?: CardQueryReceipt;
+}
 interface DiagramViewerProps {
     document: DiagramDocument;
     locale?: Locale;
     className?: string;
     /** Trusted per-instance custom node renderers; never loaded from the document. */
     registry?: ResolveRendererRegistry;
+    /** Host export UI override; no editor store is created. */
+    onExportRequest?: (request: ViewerExportRequest) => void;
 }
 /** Read-only semantic viewer: finder, inspector, exact route/reach highlight,
  * receipt-bound export, lenses, minimap, finite story and presentation.
  * Never mutates the document or the store. */
-declare function DiagramViewer({ document, locale, className, registry, }: DiagramViewerProps): react.JSX.Element;
+declare function DiagramViewer({ document, locale, className, registry, onExportRequest, }: DiagramViewerProps): react.JSX.Element;
 
 interface FinderProps {
     graph: GraphSnapshot;
@@ -254,4 +262,4 @@ interface ExportQuerySvgOptions {
 declare function exportQuerySvg(document: DiagramDocument, scene: ResolvedScene, query: ViewerQueryState, options: ExportQuerySvgOptions): string;
 declare function querySummary(query: ViewerQueryState | null, graph: GraphSnapshot, t: (en: string, es: string) => string): string | null;
 
-export { Comparison, type ComparisonProps, DiagramViewer, type DiagramViewerProps, Evidence, type EvidenceProps, type ExportQuerySvgOptions, Finder, type FinderProps, GraphFilter, GraphSnapshot, Inspector, type InspectorProps, Minimap, type MinimapProps, type MotionOwnerGuard, type PlaybackCallbacks, type PlaybackEnvironment, type PlaybackOwner, type PlaybackState, Presentation, type PresentationProps, ReachResult, type ResolvedView, RouteResult, StoryPlayback, type StoryTransition, type TraceCallbacks, type TraceEnvironment, type TraceState, type ViewerLens, type ViewerQueryState, type ViewerState, createMotionOwnerGuard, createTracePlayer, decodeViewerState, describeStoryStep, encodeViewerState, exportQuerySvg, highlightStyle, isQueryStale, lensFacets, lensMatches, queryEdgeIds, queryHighlight, queryReceipt, querySummary, resolveView };
+export { Comparison, type ComparisonProps, DiagramViewer, type DiagramViewerProps, Evidence, type EvidenceProps, type ExportQuerySvgOptions, Finder, type FinderProps, GraphFilter, GraphSnapshot, Inspector, type InspectorProps, Minimap, type MinimapProps, type MotionOwnerGuard, type PlaybackCallbacks, type PlaybackEnvironment, type PlaybackOwner, type PlaybackState, Presentation, type PresentationProps, ReachResult, type ResolvedView, RouteResult, StoryPlayback, type StoryTransition, type TraceCallbacks, type TraceEnvironment, type TraceState, type ViewerExportRequest, type ViewerLens, type ViewerQueryState, type ViewerState, createMotionOwnerGuard, createTracePlayer, decodeViewerState, describeStoryStep, encodeViewerState, exportQuerySvg, highlightStyle, isQueryStale, lensFacets, lensMatches, queryEdgeIds, queryHighlight, queryReceipt, querySummary, resolveView };

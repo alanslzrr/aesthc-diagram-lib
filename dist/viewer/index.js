@@ -1,6 +1,6 @@
 "use client";
-import "../chunk-3WSHOIWW.js";
-import "../chunk-55ICDXSN.js";
+import "../chunk-F2TI3NYN.js";
+import "../chunk-5JZREPFY.js";
 import {
   compareDocuments,
   findReach,
@@ -15,13 +15,14 @@ import {
   exportDocument,
   exportStoryWebm,
   webmCapability
-} from "../chunk-TEUR6GWY.js";
+} from "../chunk-MXYJAZZJ.js";
 import {
   validateDeploymentProfile
 } from "../chunk-NWFAZXNB.js";
 import {
+  createCanvasTextMeasurer,
   resolveDocument
-} from "../chunk-TFKE7HJ5.js";
+} from "../chunk-NS4SEZAO.js";
 import "../chunk-HIRCZVXI.js";
 import "../chunk-HN2RGNDH.js";
 import "../chunk-UKKTZNGD.js";
@@ -685,18 +686,43 @@ function DiagramViewer({
   document: document2,
   locale = "en",
   className,
-  registry
+  registry,
+  onExportRequest
 }) {
   const t = (en, es) => locale === "es" ? es : en;
+  const measurer = useMemo3(() => createCanvasTextMeasurer(), []);
+  const [fontGeneration, setFontGeneration] = useState3(0);
+  useEffect2(() => {
+    let active = true;
+    if (typeof window !== "undefined" && window.document.fonts) {
+      void Promise.all([
+        window.document.fonts.load("16px Geist"),
+        window.document.fonts.load('16px "Geist Mono"')
+      ]).then(
+        () => {
+          if (active) {
+            measurer?.clear?.();
+            setFontGeneration((generation) => generation + 1);
+          }
+        },
+        () => {
+        }
+      );
+    }
+    return () => {
+      active = false;
+    };
+  }, [measurer]);
   const graph = useMemo3(() => graphSnapshot(document2), [document2]);
   const scene = useMemo3(
     () => resolveDocument(document2, {
       quality: "edit",
       requestId: "viewer",
+      measureText: measurer,
       skipDiagnostics: true,
       renderers: registry
     }),
-    [document2, registry]
+    [document2, registry, measurer, fontGeneration]
   );
   const [selection, setSelection] = useState3(null);
   const [origin, setOrigin] = useState3(null);
@@ -922,8 +948,22 @@ function DiagramViewer({
     setDestination(null);
     setSelection(null);
   }
+  function queryReceipt2() {
+    if (!query || stale) return void 0;
+    return {
+      documentId: document2.id,
+      revision: document2.revision,
+      nodeIds: [...query.result.nodeIds],
+      edgeIds: [...query.result.edgeIds],
+      label: summary ?? ""
+    };
+  }
   function exportQuery() {
     if (!query || stale || !scene.ok) return;
+    if (onExportRequest) {
+      onExportRequest({ format: "svg", quality: "edit", query: queryReceipt2() });
+      return;
+    }
     const artifact = {
       bytes: new TextEncoder().encode(
         exportQuerySvg(document2, scene.value, query, {
@@ -948,6 +988,10 @@ function DiagramViewer({
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return;
+    if (onExportRequest) {
+      onExportRequest({ format: "card", quality: "edit", query: queryReceipt2() });
+      return;
+    }
     setCardIssue(null);
     const artifact = await exportCard(document2, {
       theme: document2.presentation.theme.mode,
@@ -970,6 +1014,10 @@ function DiagramViewer({
     recordAbort.current?.abort();
   }
   async function exportWebm() {
+    if (onExportRequest) {
+      onExportRequest({ format: "webm", quality: "edit" });
+      return;
+    }
     setMotionIssue(null);
     const controller = new AbortController();
     recordAbort.current = controller;
@@ -996,6 +1044,10 @@ function DiagramViewer({
     setTimeout(() => URL.revokeObjectURL(url), 1e3);
   }
   async function exportPublish() {
+    if (onExportRequest) {
+      onExportRequest({ format: "svg", quality: "publish" });
+      return;
+    }
     setPublishIssue(null);
     if (!scene.ok) return;
     const report = validateDeploymentProfile(document2);

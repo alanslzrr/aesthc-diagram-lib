@@ -1,4 +1,6 @@
 import { R as ResolveRendererRegistry, g as DiagramDocument, k as Result, j as Diagnostic, o as EntityRef } from '../layout-D_aGN70Q.js';
+import { T as TypographyReceipt, P as PortableFontOptions, C as CardQueryReceipt } from '../cards-CvxKOp96.js';
+export { a as CARD_HEIGHT, b as CARD_WIDTH, c as CardArtifact, d as CardSvgOptions, V as ValidatedQuery, e as cardSvg, f as exportCard, g as exportCardSvg, v as validateCardQuery } from '../cards-CvxKOp96.js';
 import '../theme.js';
 
 interface ExportHtmlOptions {
@@ -43,63 +45,12 @@ interface ExportHtmlArtifact {
         verified: false;
         runtimeBytes: number;
         fontBytes: number;
+        typography?: TypographyReceipt;
     };
 }
 declare function exportDocumentHtml(input: DiagramDocument, options: ExportHtmlOptions): Result<ExportHtmlArtifact>;
-
-declare const CARD_WIDTH = 1200;
-declare const CARD_HEIGHT = 630;
-/** Receipt carried by the query that produced the card. Stale or altered
- * receipts are rejected: a card never exports a highlight from another
- * revision, and canonical cards never carry highlights. */
-interface CardQueryReceipt {
-    documentId: string;
-    revision: number;
-    nodeIds: string[];
-    edgeIds: string[];
-    label?: string;
-}
-interface CardSvgOptions {
-    query?: CardQueryReceipt;
-    theme?: 'light' | 'dark';
-    padding?: number;
-    /** Trusted renderers; frozen into the card SVG instead of a placeholder. */
-    registry?: ResolveRendererRegistry;
-}
-interface CardArtifact {
-    bytes: Uint8Array;
-    receipt: {
-        documentId: string;
-        revision: number;
-        format: 'png';
-        mimeType: 'image/png';
-        bytes: number;
-        width: number;
-        height: number;
-        scope: 'document';
-        canonical: boolean;
-        sourceIncluded: false;
-        verified: false;
-        diagnostics: [];
-    };
-}
-interface ValidatedQuery {
-    nodes: Set<string>;
-    edges: Set<string>;
-    label: string;
-}
-declare function validateCardQuery(document: DiagramDocument, query?: CardQueryReceipt): Result<ValidatedQuery | null>;
-/** Full-diagram card at a fixed 1200x630 canvas. The whole graph is fitted;
- * the query receipt only marks exact node and edge ids (parallels included). */
-declare function cardSvg(input: DiagramDocument, options?: CardSvgOptions): Result<{
-    svg: string;
-    canonical: boolean;
-}>;
-/** Raster card at the fixed 1200x630 size. Rasterization failures keep their
- * precise code; no fallback renames one format as another. */
-declare function exportCard(input: DiagramDocument, options?: CardSvgOptions & {
-    signal?: AbortSignal;
-}): Promise<Result<CardArtifact>>;
+/** Exact-font HTML preparation. The synchronous helper remains a legacy measurement path. */
+declare function exportDocumentHtmlAsync(input: DiagramDocument, options: ExportHtmlOptions & PortableFontOptions): Promise<Result<ExportHtmlArtifact>>;
 
 interface ProbedExportCapabilities {
     png: boolean;
@@ -125,7 +76,7 @@ declare function webmCapability(): {
     supported: boolean;
     mimeType: string | null;
 };
-interface MotionOptions {
+interface MotionOptions extends PortableFontOptions {
     fps?: number;
     scale?: number;
     signal?: AbortSignal;
@@ -150,7 +101,8 @@ interface MotionArtifact {
         frameCount: number;
         /** Written but never verified as decodable by the exporter itself. */
         verified: false;
-        diagnostics: [];
+        diagnostics: Diagnostic[];
+        typography?: TypographyReceipt;
     };
 }
 /**
@@ -176,6 +128,8 @@ interface ExportOptions {
     includeSource: boolean;
     metadata: 'minimal' | 'all';
     signal?: AbortSignal;
+    /** Exact, revision-bound query highlights; only whole-document visual export. */
+    query?: CardQueryReceipt;
     fonts?: {
         sans: Uint8Array;
         mono: Uint8Array;
@@ -199,6 +153,7 @@ interface ExportArtifact {
         sourceIncluded: boolean;
         verified: boolean;
         diagnostics: Diagnostic[];
+        typography?: TypographyReceipt;
     };
 }
 declare function exportDocument(input: DiagramDocument, options: ExportOptions): Promise<Result<ExportArtifact>>;
@@ -216,4 +171,4 @@ declare function getExportCapabilities(): {
 declare function downloadArtifact(artifact: ExportArtifact, filename: string): Result<void>;
 declare function copyArtifact(artifact: ExportArtifact): Promise<Result<void>>;
 
-export { CARD_HEIGHT, CARD_WIDTH, type CardArtifact, type CardQueryReceipt, type CardSvgOptions, type ExportArtifact, type ExportFormat, type ExportHtmlArtifact, type ExportHtmlOptions, type ExportOptions, type MotionArtifact, type MotionOptions, type ProbedExportCapabilities, type ValidatedQuery, cardSvg, copyArtifact, downloadArtifact, exportCard, exportDocument, exportDocumentHtml, exportStoryWebm, getExportCapabilities, probeExportCapabilities, supportedFormats, validateCardQuery, webmCapability };
+export { CardQueryReceipt, type ExportArtifact, type ExportFormat, type ExportHtmlArtifact, type ExportHtmlOptions, type ExportOptions, type MotionArtifact, type MotionOptions, PortableFontOptions, type ProbedExportCapabilities, TypographyReceipt, copyArtifact, downloadArtifact, exportDocument, exportDocumentHtml, exportDocumentHtmlAsync, exportStoryWebm, getExportCapabilities, probeExportCapabilities, supportedFormats, webmCapability };
