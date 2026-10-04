@@ -141,11 +141,24 @@ test('a canceled drag rolls back with no history entry', async ({ page, isMobile
   const before = await center(node, page)
   const surface = page.locator('.adl-editor-surface')
   const box = (await surface.boundingBox())!
+  // Engines assign different mouse pointer IDs. Cancel the pointer that
+  // actually started this gesture, not Chromium's conventional ID 1.
+  await surface.evaluate((element) => {
+    element.addEventListener(
+      'pointerdown',
+      (event) => {
+        element.setAttribute('data-test-pointer-id', String((event as PointerEvent).pointerId))
+      },
+      { once: true },
+    )
+  })
   await page.mouse.move(before.absolute.x, before.absolute.y)
   await page.mouse.down()
   await page.mouse.move(before.absolute.x + 80, before.absolute.y + 40, { steps: 6 })
+  const pointerId = Number(await surface.getAttribute('data-test-pointer-id'))
+  expect(Number.isFinite(pointerId)).toBe(true)
   await page.locator('.adl-editor-surface > svg[role="group"]').dispatchEvent('pointercancel', {
-    pointerId: 1,
+    pointerId,
     pointerType: 'mouse',
     clientX: box.x + 10,
     clientY: box.y + 10,
