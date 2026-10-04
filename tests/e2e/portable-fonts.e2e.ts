@@ -62,6 +62,16 @@ for (const locale of ['en', 'es'] as const) {
         throw Error(JSON.stringify([card, png, html].map((result) => result.diagnostics)))
       const image = await createImageBitmap(new Blob([png.value.bytes], { type: 'image/png' }))
       const dimensions = [image.width, image.height]
+      const canvas = document.createElement('canvas')
+      canvas.width = image.width
+      canvas.height = image.height
+      const context = canvas.getContext('2d')!
+      context.drawImage(image, 0, 0)
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+      const colors = new Set<number>()
+      for (let i = 0; i < pixels.length; i += 16)
+        colors.add((pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2])
+      canvas.width = canvas.height = 0
       image.close()
       return {
         typography: [
@@ -72,6 +82,7 @@ for (const locale of ['en', 'es'] as const) {
         svg: card.value.svg,
         html: html.value.html,
         dimensions,
+        colorCount: colors.size,
         leaked: document.querySelectorAll('style').length - before,
       }
     }, locale)
@@ -79,6 +90,7 @@ for (const locale of ['en', 'es'] as const) {
     expect(result.svg).toContain('data:font/woff2;base64,')
     expect(result.html).toContain('data-font-measurement="embedded"')
     expect(result.dimensions).toEqual([1200, 630])
+    expect(result.colorCount).toBeGreaterThan(20)
     expect(result.leaked).toBe(0)
   })
 }

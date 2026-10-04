@@ -130,12 +130,16 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
     context.drawImage(video, 0, 0)
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
     let painted = 0
+    const colors = new Set<number>()
+    for (let i = 0; i < pixels.length; i += 16)
+      colors.add((pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2])
     for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) painted += 1
     const result = {
       width: video.videoWidth,
       height: video.videoHeight,
       duration,
       painted,
+      colorCount: colors.size,
       bytes: blob.size,
     }
     URL.revokeObjectURL(video.src)
@@ -148,6 +152,7 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
   expect(decoded.duration).toBeGreaterThanOrEqual(0.5)
   expect(decoded.duration).toBeLessThanOrEqual(4)
   expect(decoded.painted).toBeGreaterThan(0)
+  expect(decoded.colorCount).toBeGreaterThan(20)
   expect(decoded.bytes).toBeGreaterThan(0)
   expect(
     await page.evaluate(
