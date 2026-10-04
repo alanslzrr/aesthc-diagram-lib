@@ -255,7 +255,10 @@ function ViewerApp() {
       <button
         type="button"
         className="control"
-        onClick={() => setExportRequest({ format: 'svg', quality: 'edit' })}
+        onClick={(event) => {
+          event.currentTarget.focus({ preventScroll: true })
+          setExportRequest({ format: 'svg', quality: 'edit' })
+        }}
       >
         {locale === 'es' ? 'Exportar' : 'Export'}
       </button>

@@ -623,7 +623,13 @@ export function DiagramViewer({
             />
             {t('Show deployment profile', 'Mostrar perfil de despliegue')}
           </label>
-          <button type="button" onClick={() => void exportPublish()}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              void exportPublish()
+            }}
+          >
             {t('Publish export', 'Exportar publicación')}
           </button>
         </div>
@@ -876,7 +882,10 @@ export function DiagramViewer({
           ) : (
             <button
               type="button"
-              onClick={() => void exportWebm()}
+              onClick={(event) => {
+                event.currentTarget.focus({ preventScroll: true })
+                void exportWebm()
+              }}
               disabled={!webm.supported || reducedMotion}
               title={
                 !webm.supported
@@ -944,7 +953,10 @@ export function DiagramViewer({
           )}
           <button
             type="button"
-            onClick={exportQuery}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              exportQuery()
+            }}
             disabled={!query || stale || !scene.ok || !!storyFocus}
             aria-describedby={stale ? 'adl-viewer-stale' : undefined}
           >
@@ -952,7 +964,10 @@ export function DiagramViewer({
           </button>
           <button
             type="button"
-            onClick={() => void exportCardPng()}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              void exportCardPng()
+            }}
             disabled={!query || stale || !scene.ok || !!storyFocus}
           >
             {t('Export card PNG', 'Exportar card PNG')}
