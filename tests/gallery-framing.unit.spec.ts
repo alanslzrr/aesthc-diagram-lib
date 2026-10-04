@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layoutDiagram } from '../src/layouts'
+import { galleryLayout as layoutDiagram } from '../site/src/lib/gallery-layout'
 import { previewBounds } from '../src/canvas/bounds'
 import { GALLERY_FIXTURES, GALLERY_VIEWS } from '../site/src/lib/gallery'
 
@@ -8,7 +8,8 @@ import { GALLERY_FIXTURES, GALLERY_VIEWS } from '../site/src/lib/gallery'
 describe('gallery framing', () => {
   for (const [key, byLocale] of Object.entries(GALLERY_FIXTURES)) {
     it(`keeps the precomputed ${key} frame equal to previewBounds`, () => {
-      expect(previewBounds(layoutDiagram(byLocale.en))).toEqual(GALLERY_VIEWS[key])
+      for (const locale of ['en', 'es'] as const)
+        expect(previewBounds(layoutDiagram(byLocale[locale]))).toEqual(GALLERY_VIEWS[key][locale])
     })
   }
 
@@ -34,7 +35,8 @@ describe('gallery framing', () => {
     // getScreenCTM in `tests/e2e/diagram-backdrop.e2e.ts`; do not read this
     // unit as proof of a rendered 10px minimum.
     const phoneContent = 316
-    for (const [key, view] of Object.entries(GALLERY_VIEWS)) {
+    for (const [key, byLocale] of Object.entries(GALLERY_VIEWS)) {
+      const view = byLocale.en
       const effective = 14.5 * Math.min(1, phoneContent / view.width)
       expect(effective, `${key} main label width budget at phone width`).toBeGreaterThanOrEqual(10)
     }

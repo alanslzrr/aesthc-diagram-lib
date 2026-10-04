@@ -5,7 +5,7 @@
 import { useMemo } from 'react'
 
 import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
-import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
+import { galleryLayout } from '../lib/gallery-layout'
 
 import { STRINGS, SECTIONS, type Locale, type SectionEntry } from '../content'
 import { GALLERY_FIXTURES, GALLERY_VIEWS } from '../lib/gallery'
@@ -14,9 +14,9 @@ const BASE = import.meta.env.BASE_URL
 
 function GalleryCard({ entry, locale }: { entry: SectionEntry; locale: Locale }) {
   const spec = GALLERY_FIXTURES[entry.key][locale]
-  const layout = useMemo(() => layoutDiagram(spec), [spec])
+  const layout = useMemo(() => galleryLayout(spec), [spec])
   // Precomputed useful bounds crop authored empty margins (see lib/gallery).
-  const view = GALLERY_VIEWS[entry.key] ?? {
+  const view = GALLERY_VIEWS[entry.key][locale] ?? {
     x: 0,
     y: 0,
     width: layout.width,

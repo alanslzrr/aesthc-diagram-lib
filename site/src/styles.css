@@ -38,19 +38,19 @@
   height: 320px;
 }
 [data-diagram-panel='example-sequence'] .layout-gallery-stage {
-  height: 290px;
+  height: 320px;
 }
 [data-diagram-panel='example-state-machine'] .layout-gallery-stage {
   height: 540px;
 }
 [data-diagram-panel='example-er'] .layout-gallery-stage {
-  height: 200px;
+  height: 420px;
 }
 [data-diagram-panel='example-timeline'] .layout-gallery-stage {
   height: 260px;
 }
 [data-diagram-panel='example-swimlane'] .layout-gallery-stage {
-  height: 250px;
+  height: 360px;
 }
 /* The lane header keeps room for long labels, so this thumbnail trims its
  * own padding instead of shrinking the composition at any width. */
