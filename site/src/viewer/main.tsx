@@ -1,5 +1,5 @@
 import { ExportDialog } from '../components/ExportDialog'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createDocument, importDocument } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
@@ -124,6 +124,18 @@ function ViewerApp() {
   const [exportRequest, setExportRequest] = useState<ViewerExportRequest | null>(null)
   const { theme: hostTheme } = useThemePreference()
   const [document, setDocument] = useState<DiagramDocument>(initialDocument)
+  // Host appearance is a presentation-only projection. Canonical JSON and
+  // export/query identity still use the untouched input document below.
+  const displayedDocument = useMemo(
+    () => ({
+      ...document,
+      presentation: {
+        ...document.presentation,
+        theme: { ...document.presentation.theme, mode: hostTheme },
+      },
+    }),
+    [document, hostTheme],
+  )
   const [afterDocument, setAfterDocument] = useState<DiagramDocument | null>(null)
   const [locale, setLocale] = useState<Locale>(savedLocale)
   const [message, setMessage] = useState('')
@@ -251,7 +263,11 @@ function ViewerApp() {
           {message}
         </p>
       )}
-      <DiagramViewer document={document} locale={locale} onExportRequest={setExportRequest} />
+      <DiagramViewer
+        document={displayedDocument}
+        locale={locale}
+        onExportRequest={setExportRequest}
+      />
       <button
         type="button"
         className="control"

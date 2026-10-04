@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs'
 test('read-only Viewer opens the shared export dialog without an editor store', async ({
   page,
 }) => {
+  await page.addInitScript(() => localStorage.setItem('adl-theme', 'dark'))
   await page.goto('/viewer.html')
+  await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: 'Export', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Export document' })
   await expect(dialog).toBeVisible()
@@ -18,6 +20,7 @@ test('read-only Viewer opens the shared export dialog without an editor store', 
   const doc = JSON.parse(readFileSync(path!, 'utf8'))
   expect(doc.id).toBe('viewer-document')
   expect(doc.revision).toBe(0)
+  expect(doc.presentation.theme.mode).toBe('light')
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeFocused()
 })
