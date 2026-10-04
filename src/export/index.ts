@@ -1,3 +1,4 @@
+import { validateCardQuery, type CardQueryReceipt } from './cards'
 import { prepareExportFonts, type TypographyReceipt } from './fonts'
 import type { Diagnostic, DiagramDocument, EntityRef, Result } from '../editor-core/types'
 import { canonical, failure, issue, success } from '../editor-core/data'
@@ -21,6 +22,8 @@ export interface ExportOptions {
   includeSource: boolean
   metadata: 'minimal' | 'all'
   signal?: AbortSignal
+  /** Exact, revision-bound query highlights; only whole-document visual export. */
+  query?: CardQueryReceipt
   fonts?: { sans: Uint8Array; mono: Uint8Array }
   fontPolicy?: 'required' | 'fallback'
   /** Trusted custom node renderers for documents declaring `renderer` payloads. */
@@ -51,6 +54,10 @@ export async function exportDocument(
   if (options.signal?.aborted) return failure('operation.aborted')
   const checked = validateDocument(input)
   if (!checked.ok) return checked
+  if (options.query && (options.format === 'json' || options.scope.type !== 'document'))
+    return failure('export.scope')
+  const query = validateCardQuery(checked.value, options.query)
+  if (!query.ok) return query
   const original = structuredClone(checked.value),
     doc = structuredClone(original),
     diagnostics: Diagnostic[] = []
@@ -166,6 +173,7 @@ export async function exportDocument(
       theme: options.theme,
       background: options.background,
       fontCss: context.css,
+      highlight: query.value ? { nodes: query.value.nodes, edges: query.value.edges } : undefined,
     })
     if (options.includeSource) {
       const data = canonical(original)
@@ -199,7 +207,7 @@ export async function exportDocument(
         bytes: bytes.byteLength,
         ...(width === undefined ? {} : { width, height }),
         scope: options.scope.type,
-        canonical: options.scope.type === 'document',
+        canonical: options.scope.type === 'document' && !query.value,
         sourceIncluded: options.format === 'json' || options.includeSource,
         verified: false,
         diagnostics,
