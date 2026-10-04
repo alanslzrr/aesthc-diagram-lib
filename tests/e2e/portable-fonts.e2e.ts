@@ -118,3 +118,57 @@ test('required and fallback font failures remain explicit and release scoped dec
   expect(result.warnings).toContain('export.font-fallback')
   expect(result.leaked).toBe(0)
 })
+
+test('abort during delayed font loading releases registrations and never produces an artifact', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const base = location.origin + '/__portable/dist'
+    const api = await import(base + '/export/index.js')
+    const core = await import(base + '/editor-core/index.js')
+    const made = core.createDocument(
+      {
+        type: 'graph',
+        caption: 'Canceled',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [{ id: 'a', label: 'A', description: '' }],
+        edges: [],
+      },
+      { id: 'cancel-font', locale: 'en' },
+    )
+    const fonts = {
+      sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
+      mono: new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer()),
+    }
+    const before = document.querySelectorAll('style').length
+    const original = document.fonts.load.bind(document.fonts)
+    let started = false
+    document.fonts.load = (() => {
+      started = true
+      return new Promise(() => {})
+    }) as typeof document.fonts.load
+    const controller = new AbortController()
+    try {
+      const pending = api.exportCardSvg(made.value, {
+        fonts,
+        fontPolicy: 'required',
+        signal: controller.signal,
+      })
+      await Promise.resolve()
+      controller.abort()
+      const canceled = await pending
+      return {
+        started,
+        ok: canceled.ok,
+        codes: canceled.diagnostics.map((d: { code: string }) => d.code),
+        leaked: document.querySelectorAll('style').length - before,
+      }
+    } finally {
+      document.fonts.load = original
+    }
+  })
+  expect(result.started).toBe(true)
+  expect(result.ok).toBe(false)
+  expect(result.codes).toContain('operation.aborted')
+  expect(result.leaked).toBe(0)
+})

@@ -221,7 +221,7 @@ test('T52.2 cancelling a recording releases the canvas tracks without a download
   const cancel = page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true })
   await expect(cancel).toBeVisible()
   await cancel.click()
-  await expect(page.getByText('operation.aborted')).toBeVisible()
+  await expect(page.getByText('Export canceled. The document is unchanged.')).toBeVisible()
   await expect
     .poll(() =>
       page.evaluate(() =>
