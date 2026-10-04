@@ -638,11 +638,14 @@ export function ExportDialog({
           {formatField}
           {actionsBlock}
         </div>
-        <details className="export-advanced">
-          <summary>{t('More export options', 'Más opciones de exportación')}</summary>
+        <section
+          className="export-advanced"
+          aria-label={t('Export options', 'Opciones de exportación')}
+        >
+          <h3>{t('Export options', 'Opciones de exportación')}</h3>
           <div className="export-panel-fields">{optionFields}</div>
           <div className="export-panel-notes">{notesBlock}</div>
-        </details>
+        </section>
         {statusBlock}
       </div>
     ) : (

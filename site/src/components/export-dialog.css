@@ -25,8 +25,9 @@
 .export-inline-row .export-field {
   flex: 0 1 220px;
 }
-.export-advanced summary {
-  cursor: pointer;
+.export-advanced h3 {
+  margin: 8px 0 0;
+  font-weight: 500;
   color: var(--adl-muted, #666);
   font-size: 12px;
 }
