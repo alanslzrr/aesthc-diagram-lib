@@ -146,11 +146,14 @@ test('Studio pointer drag is one transaction and keyboard movement is undoable',
   isMobile,
 }) => {
   test.skip(isMobile, 'Mouse-specific drag; mobile controls covered separately')
+  await page.setViewportSize({ width: 1280, height: 1000 })
   await page.goto('/studio.html')
   const node = page.getByRole('button', { name: 'Order API', exact: true })
+  await node.scrollIntoViewIfNeeded()
   const before = await node.getAttribute('x'),
     box = await node.boundingBox()
   if (!box) throw Error('node absent')
+  expect(box.y + box.height / 2 + 40).toBeLessThan(page.viewportSize()!.height)
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 + 40, { steps: 5 })
