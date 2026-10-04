@@ -316,3 +316,50 @@ test('concurrent differing font bytes are isolated from a conflicting host Geist
   expect(result.reversedSans).toBe(true)
   expect(result.leaked).toBe(0)
 })
+
+for (const failure of ['null', 'throw'] as const)
+  test(`unavailable canvas measurement (${failure}) never claims embedded fidelity`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async (failure) => {
+      const base = location.origin + '/__portable/dist'
+      const api = await import(base + '/export/index.js'),
+        core = await import(base + '/editor-core/index.js')
+      const made = core.createDocument(
+        {
+          type: 'graph',
+          caption: 'No measurement',
+          legend: { main: 'Main', branch: 'Branch' },
+          nodes: [{ id: 'a', label: 'A', description: '' }],
+          edges: [],
+        },
+        { id: 'no-context', locale: 'en' },
+      )
+      const fonts = {
+        sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
+        mono: new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer()),
+      }
+      const original = HTMLCanvasElement.prototype.getContext
+      const before = document.querySelectorAll('style').length
+      HTMLCanvasElement.prototype.getContext = (() => {
+        if (failure === 'throw') throw Error('canvas denied')
+        return null
+      }) as typeof original
+      try {
+        const required = await api.exportCardSvg(made.value, { fonts, fontPolicy: 'required' })
+        const fallback = await api.exportCardSvg(made.value, { fonts, fontPolicy: 'fallback' })
+        return {
+          required: required.ok,
+          fallback: fallback.ok ? fallback.value.typography : null,
+          warnings: fallback.diagnostics.map((d: { code: string }) => d.code),
+          leaked: document.querySelectorAll('style').length - before,
+        }
+      } finally {
+        HTMLCanvasElement.prototype.getContext = original
+      }
+    }, failure)
+    expect(result.required).toBe(false)
+    expect(result.fallback).toEqual({ measurement: 'fallback', embedded: false })
+    expect(result.warnings).toContain('export.font-fallback')
+    expect(result.leaked).toBe(0)
+  })

@@ -38,10 +38,20 @@ export const estimateTextWidth: TextMeasurer = (text, role) => {
  * bounded and dropped wholesale when full, never evicting stale widths that
  * could silently change geometry.
  */
+function canvasContext(): CanvasRenderingContext2D | undefined {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function')
+    return undefined
+  try {
+    return document.createElement('canvas').getContext('2d') ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function createCanvasTextMeasurer(): TextMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
-  const context = document.createElement('canvas').getContext('2d')
+  const context = canvasContext()
   if (!context) return undefined
   const cache = new Map<string, number>()
   const CACHE_LIMIT = 20000
@@ -92,13 +102,14 @@ export function createEmbeddedFontTextMeasurer(
 ): FontMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
+  const context = canvasContext()
+  if (!context) return undefined
   const nonce = Math.random().toString(36).slice(2, 10)
   const sansFamily = `adl-export-${nonce}-sans`,
     monoFamily = `adl-export-${nonce}-mono`
   const style = document.createElement('style')
   style.textContent = `@font-face{font-family:"${sansFamily}";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"${monoFamily}";src:url(${toDataUrl(mono)}) format("woff2")}`
   document.head.appendChild(style)
-  const context = document.createElement('canvas').getContext('2d')
   let disposed = false
   return {
     measure:
