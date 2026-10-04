@@ -36,12 +36,19 @@ import {
   type ViewerQueryState,
 } from './query'
 
+export interface ViewerExportRequest {
+  format: 'svg' | 'card' | 'webm'
+  quality: 'edit' | 'publish'
+  query?: import('../export').CardQueryReceipt
+}
 export interface DiagramViewerProps {
   document: DiagramDocument
   locale?: Locale
   className?: string
   /** Trusted per-instance custom node renderers; never loaded from the document. */
   registry?: ResolveRendererRegistry
+  /** Host export UI override; no editor store is created. */
+  onExportRequest?: (request: ViewerExportRequest) => void
 }
 const ZOOM_MIN = 0.1
 const ZOOM_MAX = 4
@@ -54,6 +61,7 @@ export function DiagramViewer({
   locale = 'en',
   className,
   registry,
+  onExportRequest,
 }: DiagramViewerProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   const graph = useMemo(() => graphSnapshot(document), [document])
@@ -314,8 +322,22 @@ export function DiagramViewer({
     setDestination(null)
     setSelection(null)
   }
+  function queryReceipt() {
+    if (!query || stale) return undefined
+    return {
+      documentId: document.id,
+      revision: document.revision,
+      nodeIds: [...query.result.nodeIds],
+      edgeIds: [...query.result.edgeIds],
+      label: summary ?? '',
+    }
+  }
   function exportQuery() {
     if (!query || stale || !scene.ok) return
+    if (onExportRequest) {
+      onExportRequest({ format: 'svg', quality: 'edit', query: queryReceipt() })
+      return
+    }
     const artifact: ExportArtifact = {
       bytes: new TextEncoder().encode(
         exportQuerySvg(document, scene.value, query, {
@@ -340,6 +362,10 @@ export function DiagramViewer({
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return
+    if (onExportRequest) {
+      onExportRequest({ format: 'card', quality: 'edit', query: queryReceipt() })
+      return
+    }
     setCardIssue(null)
     const artifact = await exportCard(document, {
       theme: document.presentation.theme.mode,
@@ -363,6 +389,10 @@ export function DiagramViewer({
     recordAbort.current?.abort()
   }
   async function exportWebm() {
+    if (onExportRequest) {
+      onExportRequest({ format: 'webm', quality: 'edit' })
+      return
+    }
     setMotionIssue(null)
     const controller = new AbortController()
     recordAbort.current = controller
@@ -389,6 +419,10 @@ export function DiagramViewer({
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   async function exportPublish() {
+    if (onExportRequest) {
+      onExportRequest({ format: 'svg', quality: 'publish' })
+      return
+    }
     setPublishIssue(null)
     if (!scene.ok) return
     const report = validateDeploymentProfile(document)
