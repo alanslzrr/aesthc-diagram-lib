@@ -1226,7 +1226,17 @@ function DiagramViewer({
               ),
               t("Show deployment profile", "Mostrar perfil de despliegue")
             ] }),
-            /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => void exportPublish(), children: t("Publish export", "Exportar publicaci\xF3n") })
+            /* @__PURE__ */ jsx5(
+              "button",
+              {
+                type: "button",
+                onClick: (event) => {
+                  event.currentTarget.focus({ preventScroll: true });
+                  void exportPublish();
+                },
+                children: t("Publish export", "Exportar publicaci\xF3n")
+              }
+            )
           ] })
         ] }),
         facets.roles.length > 0 || facets.tags.length > 0 ? /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-lensbar", children: [
@@ -1446,7 +1456,10 @@ function DiagramViewer({
             "button",
             {
               type: "button",
-              onClick: () => void exportWebm(),
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                void exportWebm();
+              },
               disabled: !webm.supported || reducedMotion,
               title: !webm.supported ? t(
                 "WebM is unavailable in this browser.",
@@ -1490,7 +1503,10 @@ function DiagramViewer({
             "button",
             {
               type: "button",
-              onClick: exportQuery,
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                exportQuery();
+              },
               disabled: !query || stale || !scene.ok || !!storyFocus,
               "aria-describedby": stale ? "adl-viewer-stale" : void 0,
               children: t("Export query SVG", "Exportar SVG de la consulta")
@@ -1500,7 +1516,10 @@ function DiagramViewer({
             "button",
             {
               type: "button",
-              onClick: () => void exportCardPng(),
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                void exportCardPng();
+              },
               disabled: !query || stale || !scene.ok || !!storyFocus,
               children: t("Export card PNG", "Exportar card PNG")
             }
