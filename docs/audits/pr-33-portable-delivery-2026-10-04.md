@@ -26,7 +26,7 @@ G02/G04 retain the existing configuration dialog and explicitly documented API-o
 
 ## Executed evidence and outstanding certification
 
-- `pnpm check` passed before the last Viewer styling and caption refinements: 512 unit tests, isolated performance tests, 34 package tests, schemas/docs/types/builds/budgets. Final re-run is required.
+- `pnpm check` passed before the last Viewer styling and caption refinements: 516 unit tests, isolated performance tests, 34 package tests, schemas/docs/types/builds/budgets. Final re-run is required.
 - Focused Chromium offline/font/dialog/recording suite: 16 passed. Includes real card PNG and supported WebM decoding, offline HTML with JS on/off, font failure and cancellation cleanup.
 - Gallery matrix passed at the 11 px floor in all four widths, both themes and locales.
 - Vite/Next consumer builds, hydration, styles, keyboard selection and editor commit/undo passed.

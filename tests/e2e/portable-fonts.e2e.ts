@@ -221,7 +221,7 @@ test('exact-font standalone fallback and hydrated Viewer have identical node geo
   await page.goto(`file://${file}`)
   await expect(page.locator('.adl-viewer')).toBeVisible()
   const runtime = await page
-    .locator('.adl-viewer [data-node-surface="true"]')
+    .locator('.adl-viewer-stage [data-node-surface="true"]')
     .evaluateAll((elements) =>
       elements.map((element) =>
         ['x', 'y', 'width', 'height'].map((key) => Number(element.getAttribute(key))),
