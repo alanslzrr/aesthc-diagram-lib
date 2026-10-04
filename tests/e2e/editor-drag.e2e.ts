@@ -155,7 +155,9 @@ test('a canceled drag rolls back with no history entry', async ({ page, isMobile
   await page.mouse.move(before.absolute.x, before.absolute.y)
   await page.mouse.down()
   await page.mouse.move(before.absolute.x + 80, before.absolute.y + 40, { steps: 6 })
-  const pointerId = Number(await surface.getAttribute('data-test-pointer-id'))
+  const pointerIdValue = await surface.getAttribute('data-test-pointer-id')
+  expect(pointerIdValue).not.toBeNull()
+  const pointerId = Number(pointerIdValue)
   expect(Number.isFinite(pointerId)).toBe(true)
   await page.locator('.adl-editor-surface > svg[role="group"]').dispatchEvent('pointercancel', {
     pointerId,
