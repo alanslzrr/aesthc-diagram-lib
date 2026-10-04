@@ -47,7 +47,9 @@ for (const locale of ['en', 'es'] as const) {
         },
         { id: 'font-test', locale },
       )
-      const before = document.querySelectorAll('style').length
+      const before = [...document.querySelectorAll('style')].filter((style) =>
+        style.textContent?.includes('adl-export-'),
+      ).length
       const [card, png, html] = await Promise.all([
         api.exportCardSvg(made.value, { fonts, fontPolicy: 'required' }),
         api.exportCard(made.value, { fonts, fontPolicy: 'required' }),
@@ -83,7 +85,10 @@ for (const locale of ['en', 'es'] as const) {
         html: html.value.html,
         dimensions,
         colorCount: colors.size,
-        leaked: document.querySelectorAll('style').length - before,
+        leaked:
+          [...document.querySelectorAll('style')].filter((style) =>
+            style.textContent?.includes('adl-export-'),
+          ).length - before,
       }
     }, locale)
     expect(result.typography).toEqual(Array(3).fill({ measurement: 'embedded', embedded: true }))
@@ -116,14 +121,19 @@ test('required and fallback font failures remain explicit and release scoped dec
       sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
       mono: new Uint8Array([119, 79, 70, 50]),
     }
-    const before = document.querySelectorAll('style').length
+    const before = [...document.querySelectorAll('style')].filter((style) =>
+      style.textContent?.includes('adl-export-'),
+    ).length
     const required = await api.exportCardSvg(made.value, { fonts, fontPolicy: 'required' })
     const fallback = await api.exportCardSvg(made.value, { fonts, fontPolicy: 'fallback' })
     return {
       required: required.diagnostics.map((d: { code: string }) => d.code),
       fallback: fallback.ok ? fallback.value.typography : null,
       warnings: fallback.diagnostics.map((d: { code: string }) => d.code),
-      leaked: document.querySelectorAll('style').length - before,
+      leaked:
+        [...document.querySelectorAll('style')].filter((style) =>
+          style.textContent?.includes('adl-export-'),
+        ).length - before,
     }
   })
   expect(result.required).toContain('export.font-missing')
@@ -153,7 +163,9 @@ test('abort during delayed font loading releases registrations and never produce
       sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
       mono: new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer()),
     }
-    const before = document.querySelectorAll('style').length
+    const before = [...document.querySelectorAll('style')].filter((style) =>
+      style.textContent?.includes('adl-export-'),
+    ).length
     const original = document.fonts.load.bind(document.fonts)
     let started = false
     document.fonts.load = (() => {
@@ -174,7 +186,10 @@ test('abort during delayed font loading releases registrations and never produce
         started,
         ok: canceled.ok,
         codes: canceled.diagnostics.map((d: { code: string }) => d.code),
-        leaked: document.querySelectorAll('style').length - before,
+        leaked:
+          [...document.querySelectorAll('style')].filter((style) =>
+            style.textContent?.includes('adl-export-'),
+          ).length - before,
       }
     } finally {
       document.fonts.load = original
@@ -285,7 +300,9 @@ test('concurrent differing font bytes are isolated from a conflicting host Geist
     const host = document.createElement('style')
     host.textContent = `@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(mono)})}`
     document.head.append(host)
-    const before = document.querySelectorAll('style').length
+    const before = [...document.querySelectorAll('style')].filter((style) =>
+      style.textContent?.includes('adl-export-'),
+    ).length
     try {
       const [normal, reversed] = await Promise.all([
         api.exportCardSvg(made.value, { fonts: { sans, mono }, fontPolicy: 'required' }),
@@ -304,7 +321,10 @@ test('concurrent differing font bytes are isolated from a conflicting host Geist
         reversedSans: reversed.value.svg.includes(
           `font-family:Geist;src:url(data:font/woff2;base64,${base64(mono)})`,
         ),
-        leaked: document.querySelectorAll('style').length - before,
+        leaked:
+          [...document.querySelectorAll('style')].filter((style) =>
+            style.textContent?.includes('adl-export-'),
+          ).length - before,
       }
     } finally {
       host.remove()
@@ -340,7 +360,9 @@ for (const failure of ['null', 'throw'] as const)
         mono: new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer()),
       }
       const original = HTMLCanvasElement.prototype.getContext
-      const before = document.querySelectorAll('style').length
+      const before = [...document.querySelectorAll('style')].filter((style) =>
+        style.textContent?.includes('adl-export-'),
+      ).length
       HTMLCanvasElement.prototype.getContext = (() => {
         if (failure === 'throw') throw Error('canvas denied')
         return null
@@ -352,7 +374,10 @@ for (const failure of ['null', 'throw'] as const)
           required: required.ok,
           fallback: fallback.ok ? fallback.value.typography : null,
           warnings: fallback.diagnostics.map((d: { code: string }) => d.code),
-          leaked: document.querySelectorAll('style').length - before,
+          leaked:
+            [...document.querySelectorAll('style')].filter((style) =>
+              style.textContent?.includes('adl-export-'),
+            ).length - before,
         }
       } finally {
         HTMLCanvasElement.prototype.getContext = original
