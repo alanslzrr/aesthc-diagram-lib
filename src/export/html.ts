@@ -276,7 +276,10 @@ function renderHtml(
       frozenCustomNodes: Object.keys(frozen).length,
       verified: false,
       runtimeBytes: new TextEncoder().encode(options.runtime).byteLength,
-      fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength,
+      fontBytes:
+        context && !context.typography.embedded
+          ? 0
+          : options.fonts.sans.byteLength + options.fonts.mono.byteLength,
     },
   })
 }
