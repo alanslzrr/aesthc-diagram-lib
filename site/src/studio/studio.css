@@ -199,3 +199,11 @@ body:has([data-theme='dark']) {
     font-size: 17px;
   }
 }
+
+/* On narrow or zoomed pages the wrapped header must scroll away instead of
+ * covering the controls that keyboard focus and scrollIntoView bring forward. */
+@media (max-width: 480px) {
+  .studio-header {
+    position: static;
+  }
+}

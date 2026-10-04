@@ -161,6 +161,22 @@ test('T44.2 the editor stays operable and unclipped at 200% page zoom', async ({
     expect(group.left).toBeGreaterThanOrEqual(-1)
   }
   expect(toolbarBounds.scrollWidth).toBeLessThanOrEqual(toolbarBounds.clientWidth + 1)
+  await test.info().attach('zoomed-studio-reflow', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await page.getByLabel('Export quality', { exact: true }).scrollIntoViewIfNeeded()
+  expect(
+    await page.getByLabel('Export quality', { exact: true }).evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      return element === document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+    }),
+    'a sticky header must not cover the focused export control at 200% zoom',
+  ).toBe(true)
+  await test.info().attach('zoomed-export-options', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const box = await node.boundingBox()
   expect(box).toBeTruthy()
