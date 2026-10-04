@@ -189,3 +189,9 @@ noted.
 The entry budgets in `scripts/check-budgets.mjs` were re-measured for the
 editor entries, the landing and docs; see the comments there for the exact
 graphs and headroom.
+
+### Additive portable export preparation
+
+`exportCardSvg` and `exportDocumentHtmlAsync` add asynchronous exact-font preparation without changing the return types of `cardSvg` or `exportDocumentHtml`. Migrate fidelity-sensitive callers to the async APIs and supply local Sans/Mono bytes with `fontPolicy: 'required'`. Card/WebM receipts now accept diagnostic warnings and an additive typography receipt; `verified` remains false. Legacy synchronous helpers retain host/estimated measurement limitations.
+
+`DiagramViewer.onExportRequest` is optional. Without it, existing package export controls retain their behavior. The site uses the read-only callback to open the shared export dialog rather than constructing an editor store.

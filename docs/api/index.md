@@ -171,7 +171,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /viewer
 
-`Comparison`, `ComparisonProps`, `DiagramViewer`, `DiagramViewerProps`, `DocumentComparison`, `EntityDelta`, `Evidence`, `EvidenceProps`, `ExportQuerySvgOptions`, `FieldChange`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `TraceCallbacks`, `TraceEnvironment`, `TraceState`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `createTracePlayer`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
+`Comparison`, `ComparisonProps`, `DiagramViewer`, `DiagramViewerProps`, `DocumentComparison`, `EntityDelta`, `Evidence`, `EvidenceProps`, `ExportQuerySvgOptions`, `FieldChange`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `TraceCallbacks`, `TraceEnvironment`, `TraceState`, `ViewerExportRequest`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `createTracePlayer`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
 
 ### /graph
 
@@ -179,7 +179,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /export
 
-`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `MotionArtifact`, `MotionOptions`, `ProbedExportCapabilities`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportDocument`, `exportDocumentHtml`, `exportStoryWebm`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`, `webmCapability`
+`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `MotionArtifact`, `MotionOptions`, `PortableFontOptions`, `ProbedExportCapabilities`, `TypographyReceipt`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportCardSvg`, `exportDocument`, `exportDocumentHtml`, `exportDocumentHtmlAsync`, `exportStoryWebm`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`, `webmCapability`
 
 ### /persistence
 

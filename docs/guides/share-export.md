@@ -87,7 +87,11 @@ const result = await exportDocument(document, {
 })
 if (!result.ok) throw new Error(result.diagnostics[0].code)
 const svg = new TextDecoder().decode(result.value.bytes)
-if (!svg.startsWith('<svg') || !svg.includes('aesthc-source') || !result.value.receipt.sourceIncluded)
+if (
+  !svg.startsWith('<svg') ||
+  !svg.includes('aesthc-source') ||
+  !result.value.receipt.sourceIncluded
+)
   throw new Error('SVG source embedding failed')
 console.log(`SVG ${result.value.receipt.width}×${result.value.receipt.height}`)
 ```
@@ -224,15 +228,15 @@ console.log('cancellation returned operation.aborted')
 
 Limits for `exportDocument`:
 
-| Bound | Value |
-| --- | --- |
-| Scale | `0 < scale <= 8` |
-| Raster size | each side `<= 16384`, total pixels `<= 32,000,000` |
-| JPEG + `background: 'transparent'` | rejected with `export.alpha` |
-| `includeSource` | JSON and SVG only (`export.source-format` otherwise) |
-| `scope: { type: 'selection' }` | never JSON (`export.scope`); groups expand to their nodes |
-| `quality: 'publish'` | runs the authored deployment profile and blocks on its diagnostics |
-| Embedded fonts | each WOFF2 `<= 512 KiB`; otherwise `export.font-invalid` |
+| Bound                              | Value                                                              |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| Scale                              | `0 < scale <= 8`                                                   |
+| Raster size                        | each side `<= 16384`, total pixels `<= 32,000,000`                 |
+| JPEG + `background: 'transparent'` | rejected with `export.alpha`                                       |
+| `includeSource`                    | JSON and SVG only (`export.source-format` otherwise)               |
+| `scope: { type: 'selection' }`     | never JSON (`export.scope`); groups expand to their nodes          |
+| `quality: 'publish'`               | runs the authored deployment profile and blocks on its diagnostics |
+| Embedded fonts                     | each WOFF2 `<= 512 KiB`; otherwise `export.font-invalid`           |
 
 ### `exportDocumentHtml`
 
@@ -558,3 +562,13 @@ their earlier per-diagram tools:
 Clipboard and download errors must be visible rather than reported as
 successful. The target application remains part of compatibility testing,
 especially for SVG fonts, filters, color handling and transparency.
+
+## Exact-font portable artifacts
+
+Use `exportCardSvg` or `exportDocumentHtmlAsync` when geometry must be measured with the exact WOFF2 bytes embedded in the artifact. `exportCard` and `exportStoryWebm` also accept `fonts`, `fontPolicy`, and `signal`. The synchronous `cardSvg` and `exportDocumentHtml` helpers remain available, but their legacy measurement path cannot certify portable typography.
+
+With `fontPolicy: 'required'`, both faces must load; absent or unusable faces return `export.font-missing`, malformed/oversized bytes return `export.font-invalid`, bounded waits return `export.timeout`, and cancellation returns `operation.aborted`. `fallback` emits `export.font-fallback` and `typography: { measurement: 'fallback', embedded: false }`; it does not claim exact-font fidelity. Successful preparation reports `measurement: 'embedded'` without changing `verified: false`.
+
+See `examples/portable-export.ts` for public imports and caller-owned font bytes. Site workflows use bundled Geist with required fonts by default. HTML retains its static fallback until its embedded faces load; it never fetches fonts from the network.
+
+A Viewer host can provide `onExportRequest` to `DiagramViewer` to use its own shared dialog. The request carries the format, quality and an optional revision-bound query receipt. This callback creates no mutable editor store. Pass the receipt to visual `exportDocument` through `query`, or to `exportCard` through `query`, to preserve exact highlight IDs. Stale receipts are rejected, and highlighted artifacts are noncanonical.
