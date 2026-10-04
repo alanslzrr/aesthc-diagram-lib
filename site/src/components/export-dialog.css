@@ -1,6 +1,6 @@
 /* Shared export surface: only layout lives here. Buttons, selects and the
- * dialog frame come from the host's design system and @aesthc/diagram-lib's
- * editor.css so the surface matches both the Playground and the Studio. */
+ * dialog frame come from the host's design system. Editor and read-only
+ * Viewer hosts supply their own scoped control styles. */
 .export-panel {
   display: flex;
   flex-direction: column;
@@ -50,7 +50,7 @@
 }
 .export-panel-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
   gap: 10px 16px;
 }
 .export-field,
@@ -64,6 +64,8 @@
 }
 .export-field select {
   min-height: 32px;
+  width: 100%;
+  max-width: 100%;
 }
 .export-scope {
   margin: 0;
