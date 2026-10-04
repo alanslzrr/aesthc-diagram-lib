@@ -1,4 +1,4 @@
-import { g as DiagramDocument, R as ResolvedScene } from '../layout-BhvxbOAw.js';
+import { g as DiagramDocument, h as ResolvedScene } from '../layout-D_aGN70Q.js';
 import '../theme.js';
 
 /** Only this encoder writes authored strings into SVG/XML. */
@@ -8,6 +8,12 @@ interface RenderOptions {
     background?: 'theme' | 'transparent';
     instanceId: string;
     fontCss?: string;
+    /**
+     * Scene grid policy. `scene` (default) paints the document grid over its
+     * world bounds and is what exports and the static viewer use. `none` omits
+     * it so an editable surface can paint a viewport-continuous grid instead.
+     */
+    grid?: 'scene' | 'none';
     /**
      * Render only these entity ids (gesture delta pass). Static chrome (defs,
      * grid, containers, lifelines, decisions, notices) is skipped so the string

@@ -1,8 +1,6 @@
 "use client";
-import {
-  validateDeploymentProfile
-} from "../chunk-5Q3CWSGC.js";
-import "../chunk-3T2LMA7P.js";
+import "../chunk-BPR7LWHM.js";
+import "../chunk-WFGZGI46.js";
 import {
   compareDocuments,
   findReach,
@@ -10,36 +8,40 @@ import {
   graphSnapshot,
   relationsOf,
   searchNodes
-} from "../chunk-EILTSCOU.js";
+} from "../chunk-2G75Q7WG.js";
 import {
   downloadArtifact,
   exportCard,
   exportDocument,
   exportStoryWebm,
   webmCapability
-} from "../chunk-H7DLTDYO.js";
+} from "../chunk-VR27TFBH.js";
 import {
+  validateDeploymentProfile
+} from "../chunk-NWFAZXNB.js";
+import {
+  createCanvasTextMeasurer,
   resolveDocument
-} from "../chunk-AVTVKBIV.js";
-import "../chunk-VUW7SRON.js";
-import "../chunk-P7FW66WE.js";
-import "../chunk-3MHLUDWC.js";
-import "../chunk-QVERY2JP.js";
+} from "../chunk-G4ETUB4M.js";
+import "../chunk-HIRCZVXI.js";
+import "../chunk-HN2RGNDH.js";
+import "../chunk-UKKTZNGD.js";
+import "../chunk-BBMS4ALE.js";
 import {
   canonical,
   failure,
   success
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-QWYSRMUP.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSvg
-} from "../chunk-3I2A4V6U.js";
-import "../chunk-YKPE23VO.js";
+} from "../chunk-S6PSHJSL.js";
+import "../chunk-KKMUFXA6.js";
 import "../chunk-KDAWQGDC.js";
-import "../chunk-TVEV5XLW.js";
+import "../chunk-TGRGDAF2.js";
 
 // src/viewer/DiagramViewer.tsx
-import { useEffect as useEffect2, useMemo as useMemo3, useRef as useRef4, useState as useState3 } from "react";
+import { useEffect as useEffect2, useId as useId2, useMemo as useMemo3, useRef as useRef4, useState as useState3 } from "react";
 
 // src/viewer/Evidence.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
@@ -252,10 +254,10 @@ function Minimap({
     return layoutWidth > 0 ? width / layoutWidth : 1;
   }, [layoutWidth]);
   const viewport = {
-    left: (camera.x - viewWorldSize.width / 2 / camera.zoom) * scale,
-    top: (camera.y - viewWorldSize.height / 2 / camera.zoom) * scale,
-    width: viewWorldSize.width / camera.zoom * scale,
-    height: viewWorldSize.height / camera.zoom * scale
+    left: (camera.x - viewWorldSize.width / 2) * scale,
+    top: (camera.y - viewWorldSize.height / 2) * scale,
+    width: viewWorldSize.width * scale,
+    height: viewWorldSize.height * scale
   };
   function moveTo(event) {
     const bounds = frame.current?.getBoundingClientRect();
@@ -680,12 +682,47 @@ function querySummary(query, graph, t) {
 import { jsx as jsx5, jsxs as jsxs6 } from "react/jsx-runtime";
 var ZOOM_MIN = 0.1;
 var ZOOM_MAX = 4;
-function DiagramViewer({ document: document2, locale = "en", className }) {
+function DiagramViewer({
+  document: document2,
+  locale = "en",
+  className,
+  registry,
+  onExportRequest
+}) {
   const t = (en, es) => locale === "es" ? es : en;
+  const measurer = useMemo3(() => createCanvasTextMeasurer(), []);
+  const [fontGeneration, setFontGeneration] = useState3(0);
+  useEffect2(() => {
+    let active = true;
+    if (typeof window !== "undefined" && window.document.fonts) {
+      void Promise.all([
+        window.document.fonts.load("16px Geist"),
+        window.document.fonts.load('16px "Geist Mono"')
+      ]).then(
+        () => {
+          if (active) {
+            measurer?.clear?.();
+            setFontGeneration((generation) => generation + 1);
+          }
+        },
+        () => {
+        }
+      );
+    }
+    return () => {
+      active = false;
+    };
+  }, [measurer]);
   const graph = useMemo3(() => graphSnapshot(document2), [document2]);
   const scene = useMemo3(
-    () => resolveDocument(document2, { quality: "edit", requestId: "viewer", skipDiagnostics: true }),
-    [document2]
+    () => resolveDocument(document2, {
+      quality: "edit",
+      requestId: "viewer",
+      measureText: measurer,
+      skipDiagnostics: true,
+      renderers: registry
+    }),
+    [document2, registry, measurer, fontGeneration]
   );
   const [selection, setSelection] = useState3(null);
   const [origin, setOrigin] = useState3(null);
@@ -704,10 +741,11 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
   const [storyFocus, setStoryFocus] = useState3(
     null
   );
-  const [profileEnabled, setProfileEnabled] = useState3(false);
+  const [profileShown, setProfileShown] = useState3(true);
   const [publishIssue, setPublishIssue] = useState3(null);
   const [recording, setRecording] = useState3(false);
   const [motionIssue, setMotionIssue] = useState3(null);
+  const [cardIssue, setCardIssue] = useState3(null);
   const recordAbort = useRef4(null);
   const webm = useMemo3(() => webmCapability(), []);
   const [reducedMotion, setReducedMotion] = useState3(
@@ -769,14 +807,15 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
       theme: document2.presentation.theme.mode,
       highlight,
       dim: lensSet,
-      exclude
+      exclude,
+      // The interactive surface owns a viewport-wide backdrop below the
+      // stage; the exported artifact keeps the document's own policy.
+      background: "transparent",
+      grid: "none"
     }) : "",
     [document2, scene, highlight, lensSet, exclude]
   );
-  const profileReport = useMemo3(
-    () => validateDeploymentProfile(document2, { enabled: profileEnabled }),
-    [document2, profileEnabled]
-  );
+  const profileReport = useMemo3(() => validateDeploymentProfile(document2), [document2]);
   const relationsEnabled = graph.edges.length > 0;
   const summary = querySummary(query, graph, t);
   const edgeIds = queryEdgeIds(query);
@@ -909,8 +948,22 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     setDestination(null);
     setSelection(null);
   }
+  function queryReceipt2() {
+    if (!query || stale) return void 0;
+    return {
+      documentId: document2.id,
+      revision: document2.revision,
+      nodeIds: [...query.result.nodeIds],
+      edgeIds: [...query.result.edgeIds],
+      label: summary ?? ""
+    };
+  }
   function exportQuery() {
     if (!query || stale || !scene.ok) return;
+    if (onExportRequest) {
+      onExportRequest({ format: "svg", quality: "edit", query: queryReceipt2() });
+      return;
+    }
     const artifact = {
       bytes: new TextEncoder().encode(
         exportQuerySvg(document2, scene.value, query, {
@@ -935,7 +988,14 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return;
+    if (onExportRequest) {
+      onExportRequest({ format: "card", quality: "edit", query: queryReceipt2() });
+      return;
+    }
+    setCardIssue(null);
     const artifact = await exportCard(document2, {
+      theme: document2.presentation.theme.mode,
+      registry,
       query: {
         documentId: document2.id,
         revision: document2.revision,
@@ -944,20 +1004,29 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
         label: summary ?? ""
       }
     });
-    if (!artifact.ok) return;
+    if (!artifact.ok) {
+      setCardIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code).join(", "));
+      return;
+    }
     downloadArtifact(artifact.value, "card.png");
   }
   function cancelRecording() {
     recordAbort.current?.abort();
   }
   async function exportWebm() {
+    if (onExportRequest) {
+      onExportRequest({ format: "webm", quality: "edit" });
+      return;
+    }
     setMotionIssue(null);
     const controller = new AbortController();
     recordAbort.current = controller;
     setRecording(true);
     const result = await exportStoryWebm(document2, {
       signal: controller.signal,
-      reducedMotion
+      reducedMotion,
+      theme: document2.presentation.theme.mode,
+      renderers: registry
     });
     recordAbort.current = null;
     setRecording(false);
@@ -975,9 +1044,13 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     setTimeout(() => URL.revokeObjectURL(url), 1e3);
   }
   async function exportPublish() {
+    if (onExportRequest) {
+      onExportRequest({ format: "svg", quality: "publish" });
+      return;
+    }
     setPublishIssue(null);
     if (!scene.ok) return;
-    const report = validateDeploymentProfile(document2, { enabled: profileEnabled });
+    const report = validateDeploymentProfile(document2);
     if (!report.ok) {
       setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code));
       return;
@@ -997,7 +1070,8 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
       scale: 1,
       includeSource: false,
       metadata: "minimal",
-      fontPolicy: "fallback"
+      fontPolicy: "fallback",
+      renderers: registry
     });
     if (!artifact.ok) {
       setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code));
@@ -1027,6 +1101,31 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
     width: viewSize.width / camera.zoom,
     height: viewSize.height / camera.zoom
   };
+  const stageTransform = `translate(${viewSize.width / 2 - camera.x * camera.zoom}px, ${viewSize.height / 2 - camera.y * camera.zoom}px) scale(${camera.zoom})`;
+  const gridLayerId = useId2().replaceAll(":", "");
+  const STAGE_OFFSET = 16;
+  const viewportGrid = useMemo3(() => {
+    const grid = document2.presentation.grid;
+    if (!grid.visible || !scene.ok) return null;
+    const palette = document2.presentation.theme[document2.presentation.theme.mode];
+    const base = Number.isFinite(grid.size) && grid.size > 0 ? grid.size : 16;
+    let step = base;
+    let spacing = step * camera.zoom;
+    while (spacing < 10 && step < base * 16) {
+      step *= 2;
+      spacing = step * camera.zoom;
+    }
+    const originX = STAGE_OFFSET + viewSize.width / 2 - camera.x * camera.zoom;
+    const originY = STAGE_OFFSET + viewSize.height / 2 - camera.y * camera.zoom;
+    const phaseX = (originX % spacing + spacing) % spacing;
+    const phaseY = (originY % spacing + spacing) % spacing;
+    return {
+      palette: palette.foreground,
+      spacing,
+      phaseX,
+      phaseY
+    };
+  }, [camera, document2.presentation.grid, document2.presentation.theme, scene.ok, viewSize]);
   const proxyMarkup = useMemo3(() => {
     if (!collapse || !scene.ok) return "";
     const theme = document2.presentation.theme[document2.presentation.theme.mode];
@@ -1120,14 +1219,24 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                 "input",
                 {
                   type: "checkbox",
-                  checked: profileEnabled,
-                  onChange: (event) => setProfileEnabled(event.target.checked),
-                  "aria-label": t("Deployment profile", "Perfil de despliegue")
+                  checked: profileShown,
+                  onChange: (event) => setProfileShown(event.target.checked),
+                  "aria-label": t("Show deployment profile", "Mostrar perfil de despliegue")
                 }
               ),
-              t("Deployment profile", "Perfil de despliegue")
+              t("Show deployment profile", "Mostrar perfil de despliegue")
             ] }),
-            /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => void exportPublish(), children: t("Publish export", "Exportar publicaci\xF3n") })
+            /* @__PURE__ */ jsx5(
+              "button",
+              {
+                type: "button",
+                onClick: (event) => {
+                  event.currentTarget.focus({ preventScroll: true });
+                  void exportPublish();
+                },
+                children: t("Publish export", "Exportar publicaci\xF3n")
+              }
+            )
           ] })
         ] }),
         facets.roles.length > 0 || facets.tags.length > 0 ? /* @__PURE__ */ jsxs6("div", { className: "adl-viewer-lensbar", children: [
@@ -1222,6 +1331,64 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                     panTo(event);
                   },
                   children: [
+                    viewportGrid && /* @__PURE__ */ jsxs6(
+                      "svg",
+                      {
+                        className: "adl-viewer-backdrop",
+                        "aria-hidden": "true",
+                        width: "100%",
+                        height: "100%",
+                        viewBox: `0 0 ${viewSize.width} ${viewSize.height}`,
+                        children: [
+                          /* @__PURE__ */ jsxs6("defs", { children: [
+                            /* @__PURE__ */ jsx5(
+                              "pattern",
+                              {
+                                id: `adl-viewer-grid-${gridLayerId}`,
+                                width: viewportGrid.spacing,
+                                height: viewportGrid.spacing,
+                                patternUnits: "userSpaceOnUse",
+                                patternTransform: `translate(${viewportGrid.phaseX} ${viewportGrid.phaseY})`,
+                                children: /* @__PURE__ */ jsx5("circle", { cx: "1", cy: "1", r: "1", fill: viewportGrid.palette, fillOpacity: "0.12" })
+                              }
+                            ),
+                            /* @__PURE__ */ jsxs6(
+                              "radialGradient",
+                              {
+                                id: `adl-viewer-fade-${gridLayerId}`,
+                                gradientUnits: "userSpaceOnUse",
+                                cx: viewSize.width / 2,
+                                cy: viewSize.height / 2,
+                                r: Math.max(viewSize.width, viewSize.height) * 0.72,
+                                children: [
+                                  /* @__PURE__ */ jsx5("stop", { offset: "0%", stopColor: "#ffffff" }),
+                                  /* @__PURE__ */ jsx5("stop", { offset: "65%", stopColor: "#ffffff" }),
+                                  /* @__PURE__ */ jsx5("stop", { offset: "100%", stopColor: "#ffffff", stopOpacity: "0" })
+                                ]
+                              }
+                            ),
+                            /* @__PURE__ */ jsx5("mask", { id: `adl-viewer-mask-${gridLayerId}`, children: /* @__PURE__ */ jsx5(
+                              "rect",
+                              {
+                                width: viewSize.width,
+                                height: viewSize.height,
+                                fill: `url(#adl-viewer-fade-${gridLayerId})`
+                              }
+                            ) })
+                          ] }),
+                          /* @__PURE__ */ jsx5(
+                            "rect",
+                            {
+                              "data-viewer-grid": "true",
+                              width: viewSize.width,
+                              height: viewSize.height,
+                              fill: `url(#adl-viewer-grid-${gridLayerId})`,
+                              mask: `url(#adl-viewer-mask-${gridLayerId})`
+                            }
+                          )
+                        ]
+                      }
+                    ),
                     scene.ok ? /* @__PURE__ */ jsx5(
                       "div",
                       {
@@ -1229,7 +1396,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                         style: {
                           width: scene.value.layout.width,
                           height: scene.value.layout.height,
-                          transform: `translate(${camera.x - viewWorldSize.width / 2}px, ${camera.y - viewWorldSize.height / 2}px) scale(${camera.zoom})`,
+                          transform: stageTransform,
                           transformOrigin: "0 0"
                         },
                         dangerouslySetInnerHTML: { __html: svg }
@@ -1239,6 +1406,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
                       "div",
                       {
                         className: "adl-viewer-overlay",
+                        style: { transform: stageTransform, transformOrigin: "0 0" },
                         dangerouslySetInnerHTML: { __html: overlayMarkup }
                       }
                     )
@@ -1288,7 +1456,10 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             "button",
             {
               type: "button",
-              onClick: () => void exportWebm(),
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                void exportWebm();
+              },
               disabled: !webm.supported || reducedMotion,
               title: !webm.supported ? t(
                 "WebM is unavailable in this browser.",
@@ -1332,7 +1503,10 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             "button",
             {
               type: "button",
-              onClick: exportQuery,
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                exportQuery();
+              },
               disabled: !query || stale || !scene.ok || !!storyFocus,
               "aria-describedby": stale ? "adl-viewer-stale" : void 0,
               children: t("Export query SVG", "Exportar SVG de la consulta")
@@ -1342,7 +1516,10 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
             "button",
             {
               type: "button",
-              onClick: () => void exportCardPng(),
+              onClick: (event) => {
+                event.currentTarget.focus({ preventScroll: true });
+                void exportCardPng();
+              },
               disabled: !query || stale || !scene.ok || !!storyFocus,
               children: t("Export card PNG", "Exportar card PNG")
             }
@@ -1350,6 +1527,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
           /* @__PURE__ */ jsx5("span", { id: "adl-viewer-stale", hidden: true, children: t("Export requires a current query.", "La exportaci\xF3n requiere una consulta vigente.") })
         ] }),
         publishIssue && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: publishIssue.join(", ") }),
+        cardIssue && /* @__PURE__ */ jsx5("p", { className: "adl-viewer-note", role: "alert", children: cardIssue }),
         /* @__PURE__ */ jsx5(
           Inspector,
           {
@@ -1365,7 +1543,7 @@ function DiagramViewer({ document: document2, locale = "en", className }) {
           {
             document: document2,
             entity: selection,
-            profile: profileReport.ok ? profileReport.value : null,
+            profile: profileShown && profileReport.ok ? profileReport.value : null,
             onSelect: setSelection,
             t
           }

@@ -35,7 +35,14 @@ export type DocPage = {
   next: NavPage | null
   headings: { id: string; text: string; depth: number }[]
   blocks: DocToken[]
-  preview: { type: string; html: string; code: string; highlighted: string } | null
+  preview: {
+    type: string
+    /** Playground example key when it differs from the preview type. */
+    playground?: string
+    html: string
+    code: string
+    highlighted: string
+  } | null
 }
 export function safeHref(href = '') {
   const normalized = href.trim()

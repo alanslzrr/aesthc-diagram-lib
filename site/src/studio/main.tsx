@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { DocumentConfiguration } from '../components/DocumentConfiguration'
+import { memo, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   createDocument,
@@ -20,23 +21,22 @@ import {
   shallowEqual,
 } from '@aesthc/diagram-lib/editor'
 import {
-  downloadArtifact,
-  exportDocument,
-  probeExportCapabilities,
-} from '@aesthc/diagram-lib/export'
-import type { ExportFormat, ProbedExportCapabilities } from '@aesthc/diagram-lib/export'
-import {
   createLocalStorageAdapter,
   createAutosave,
   decodeShareDocument,
   encodeShareDocument,
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
-import sansUrl from '@aesthc/diagram-lib/fonts/geist-sans.woff2?url'
-import monoUrl from '@aesthc/diagram-lib/fonts/geist-mono.woff2?url'
+import { ExportDialog } from '../components/EditorExportDialog'
+import { clearHandoff, readHandoff } from '../lib/handoff'
+import { MESSAGES } from '../lib/messages'
+import { savedLocale, saveLocale } from '../lib/locale'
+import { useThemePreference } from '../lib/theme'
 import '@aesthc/diagram-lib/editor.css'
 import '../design-system.css'
 import './studio.css'
+
+const StableOutline = memo(EditorOutline)
 
 const initial = createDocument(
   {
@@ -83,34 +83,44 @@ const initial = createDocument(
   { id: 'studio-document', locale: 'en' },
 )
 if (!initial.ok) throw Error(initial.diagnostics.map((d) => d.code).join(', '))
+const initialDocument = initial.value
 const store = createEditorStore({
-  document: initial.value,
+  document: initialDocument,
   permissions: { edit: true, save: true, export: true },
 })
 const storage = createLocalStorageAdapter('studio')
 function Workbench() {
+  const { theme: hostTheme, choose: chooseHostTheme } = useThemePreference()
   const snapshot = useEditorSelector(
       (state) => ({ document: state.document, dirty: state.dirty }),
       shallowEqual,
     ),
-    [locale, setLocale] = useState<Locale>('en'),
+    [locale, setLocale] = useState<Locale>(savedLocale),
     [message, setMessage] = useState(''),
     [saving, setSaving] = useState<AutosaveState>({ status: 'idle' }),
     [autosave, setAutosave] = useState(false)
-  const [format, setFormat] = useState<ExportFormat>('svg'),
-    [quality, setQuality] = useState<'edit' | 'publish'>('edit'),
-    [capabilities, setCapabilities] = useState<ProbedExportCapabilities | null>(null),
-    [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState<StoredDocument | null>(null)
   const [quarantined, setQuarantined] = useState(false)
   const [copies, setCopies] = useState<StoredEntry[]>([])
+  const [copiesOpen, setCopiesOpen] = useState(false)
   const [conversion, setConversion] = useState<{
     document: DiagramDocument
     losses: ConversionReceipt['losses']
+    /** Identity and revision the snapshot was generated from. */
+    documentId: string
+    baseRevision: number
   } | null>(null)
+  const [pendingHandoff, setPendingHandoff] = useState<DiagramDocument | null>(null)
+  const [activeKey, setActiveKey] = useState(initialDocument.id)
   const token = useRef<string | null>(null),
     file = useRef<HTMLInputElement>(null),
     saveController = useRef<ReturnType<typeof createAutosave> | null>(null)
+  // Every import read owns a sequence number and is bound to the document
+  // identity/revision it started from. Committing any other document change
+  // (edit, load, open copy, share, handoff, conversion) bumps the sequence so
+  // the late result is discarded instead of overwriting the newer document.
+  const readSequence = useRef(0)
+  const mounted = useRef(true)
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
   async function refreshCopies() {
     const result = await storage.list()
@@ -138,16 +148,26 @@ function Workbench() {
     })
     if (commit.status !== 'rejected') {
       token.current = result.value.token
+      setActiveKey(key)
       setDraft(null)
       setMessage(t('Saved copy opened.', 'Copia guardada abierta.'))
     }
   }
   useEffect(() => {
     document.documentElement.lang = locale
+    saveLocale(locale)
   }, [locale])
   useEffect(() => {
-    setCapabilities(probeExportCapabilities())
-  }, [])
+    // A pending file read is only valid for the exact document it started
+    // from; any committed edit or replacement invalidates it.
+    readSequence.current += 1
+  }, [snapshot.document])
+  useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
   useEffect(() => {
     // A shared link is read once on mount, validated before replacing the
     // document, and never overwrites a saved copy.
@@ -171,6 +191,7 @@ function Workbench() {
       })
       if (commit.status !== 'rejected') {
         token.current = null
+        setActiveKey(decoded.value.document.id)
         setMessage(t('Shared document loaded.', 'Documento compartido cargado.'))
       } else {
         setMessage(commit.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
@@ -181,9 +202,52 @@ function Workbench() {
     }
     // Only the initial link matters; later edits do not re-read the hash.
   }, [])
+  function applyHandoff(document: DiagramDocument) {
+    setAutosave(false)
+    token.current = null
+    setActiveKey(document.id)
+    store.cancelTextDraft()
+    store.replaceDocument(document, {
+      expectedRevision: store.getSnapshot().document.revision,
+      history: 'reset',
+    })
+    setDraft(null)
+    setPendingHandoff(null)
+    setMessage(
+      t('Opened the current Playground document.', 'Se abrió el documento actual del playground.'),
+    )
+  }
+  useEffect(() => {
+    // Consume the bounded, same-origin transfer once on mount. The document
+    // keeps its own identity; the handoff record only says where it came from.
+    const record = readHandoff()
+    if (!record) return
+    clearHandoff()
+    const current = store.getSnapshot()
+    if (current.draft.kind === 'text') {
+      // Never drop an unapplied JSON buffer silently: Apply, Discard or Cancel.
+      setPendingHandoff(record.document)
+      return
+    }
+    if (
+      current.dirty &&
+      !window.confirm(
+        t(
+          'Replace unsaved Studio changes with the current Playground document?',
+          '¿Sustituir los cambios sin guardar de Studio por el documento actual del playground?',
+        ),
+      )
+    ) {
+      setMessage(
+        t('The Playground document was not opened.', 'No se abrió el documento del playground.'),
+      )
+      return
+    }
+    applyHandoff(record.document)
+  }, [])
   useEffect(() => {
     let cancelled = false
-    void storage.load(snapshot.document.id).then((result) => {
+    void storage.load(activeKey).then((result) => {
       if (cancelled || !result.ok) return
       if (!result.value) return
       if (canonicalizeContent(result.value.document) === canonicalizeContent(snapshot.document))
@@ -194,12 +258,12 @@ function Workbench() {
     return () => {
       cancelled = true
     }
-    // Only the initial document identity matters; edits do not reopen the notice.
-  }, [snapshot.document.id])
+    // Only the active storage identity matters; edits do not reopen the notice.
+  }, [activeKey])
   useEffect(() => {
     if (!autosave) return
     const controller = createAutosave(store, storage, {
-      key: snapshot.document.id,
+      key: activeKey,
       token: token.current,
       onState: (state) => {
         setSaving(state)
@@ -211,7 +275,7 @@ function Workbench() {
       controller.dispose()
       saveController.current = null
     }
-  }, [autosave, snapshot.document.id])
+  }, [autosave, activeKey])
   useEffect(() => {
     if (!snapshot.dirty) return
     const handler = (event: BeforeUnloadEvent) => {
@@ -221,6 +285,20 @@ function Workbench() {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [snapshot.dirty])
+  useEffect(() => {
+    // A pending conversion belongs to the revision it rendered. Editing,
+    // importing or undoing invalidates it instead of confirming stale content.
+    if (!conversion) return
+    const current = store.getSnapshot().document
+    if (current.id === conversion.documentId && current.revision === conversion.baseRevision) return
+    setConversion(null)
+    setMessage(
+      t(
+        'The document changed after this conversion was prepared. Request a new conversion to review the current content.',
+        'El documento cambió después de preparar esta conversión. Solicita una conversión nueva para revisar el contenido actual.',
+      ),
+    )
+  }, [conversion, snapshot.document.id, snapshot.document.revision])
   async function share() {
     setMessage('')
     const encoded = await encodeShareDocument(snapshot.document)
@@ -254,48 +332,6 @@ function Workbench() {
       )
     }
   }
-  async function exportFile() {
-    setBusy(true)
-    setMessage('')
-    try {
-      const fonts =
-        format === 'json'
-          ? undefined
-          : {
-              sans: new Uint8Array(await (await fetch(sansUrl)).arrayBuffer()),
-              mono: new Uint8Array(await (await fetch(monoUrl)).arrayBuffer()),
-            }
-      const result = await exportDocument(snapshot.document, {
-        format,
-        scope: { type: 'document' },
-        theme: snapshot.document.presentation.theme.mode,
-        quality,
-        background: 'theme',
-        scale: 2,
-        includeSource: false,
-        metadata: 'minimal',
-        fonts,
-      })
-      if (!result.ok) {
-        setMessage(result.diagnostics.map((d) => d.code).join(', '))
-        return
-      }
-      const warnings = result.diagnostics.filter((d) => d.severity === 'warning')
-      const download = downloadArtifact(result.value, `diagram.${format}`)
-      setMessage(
-        download.ok
-          ? t(
-              `Exported revision ${result.value.receipt.revision}${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
-              `Revisión ${result.value.receipt.revision} exportada${warnings.length ? ` · ${warnings.map((d) => d.code).join(', ')}` : ''}`,
-            )
-          : download.diagnostics.map((d) => d.code).join(', '),
-      )
-    } catch {
-      setMessage(t('Export failed. Please retry.', 'La exportación falló. Vuelve a intentarlo.'))
-    } finally {
-      setBusy(false)
-    }
-  }
   function requestConversion() {
     const current = store.getSnapshot().document
     if (current.spec.type === 'graph') return
@@ -304,19 +340,39 @@ function Workbench() {
       setMessage(converted.diagnostics.map((d) => d.code).join(', '))
       return
     }
-    setConversion({ document: converted.value.document, losses: converted.value.losses })
+    setConversion({
+      document: converted.value.document,
+      losses: converted.value.losses,
+      documentId: current.id,
+      baseRevision: current.revision,
+    })
   }
   function confirmConversion() {
     if (!conversion) return
+    const current = store.getSnapshot().document
+    // The snapshot is only valid for the exact document revision it was
+    // generated from. A fresh read must never authorize stale content.
+    if (current.id !== conversion.documentId || current.revision !== conversion.baseRevision) {
+      setConversion(null)
+      setMessage(
+        t(
+          'The document changed after this conversion was prepared. Request a new conversion to review the current content.',
+          'El documento cambió después de preparar esta conversión. Solicita una conversión nueva para revisar el contenido actual.',
+        ),
+      )
+      return
+    }
     const commit = store.replaceDocument(conversion.document, {
-      expectedRevision: store.getSnapshot().document.revision,
+      expectedRevision: conversion.baseRevision,
       history: 'reset',
     })
     if (commit.status === 'rejected') {
+      setConversion(null)
       setMessage(commit.diagnostics.map((d) => d.code).join(', '))
       return
     }
     token.current = null
+    setActiveKey(conversion.document.id)
     setDraft(null)
     setConversion(null)
     setMessage(
@@ -333,7 +389,7 @@ function Workbench() {
     }
     setSaving({ status: 'saving' })
     const document = snapshot.document
-    const result = await storage.save(document.id, document, token.current)
+    const result = await storage.save(activeKey, document, token.current)
     if (result.status === 'saved') {
       token.current = result.token
       store.markSaved(document)
@@ -341,7 +397,7 @@ function Workbench() {
     } else setSaving(result)
   }
   async function load() {
-    const result = await storage.load(snapshot.document.id)
+    const result = await storage.load(activeKey)
     if (!result.ok) {
       if (result.diagnostics.some((d) => d.code === 'storage.corrupt')) setQuarantined(true)
       else setMessage(result.diagnostics.map((d) => d.code).join(', '))
@@ -383,14 +439,36 @@ function Workbench() {
       setMessage(t('Save-as name is invalid.', 'El nombre de guardar como no es válido.'))
       return
     }
+    const key = `saveas:${slug}`
+    const existing = await storage.load(key)
+    let expectedToken: string | null = null
+    if (existing.ok && existing.value) {
+      if (
+        !window.confirm(
+          t(
+            `A saved copy named ${slug} already exists. Overwrite it?`,
+            `Ya existe una copia guardada llamada ${slug}. ¿Sobrescribirla?`,
+          ),
+        )
+      )
+        return
+      expectedToken = existing.value.token
+    }
     setSaving({ status: 'saving' })
-    const result = await storage.save(`saveas:${slug}`, snapshot.document, null)
-    setSaving(result.status === 'saved' ? { status: 'saved', token: result.token } : result)
-    setMessage(
-      result.status === 'saved'
-        ? t(`Saved a copy as ${slug}.`, `Copia guardada como ${slug}.`)
-        : t('Save-as failed.', 'Guardar como falló.'),
-    )
+    const result = await storage.save(key, snapshot.document, expectedToken)
+    if (result.status === 'saved') {
+      // Save as activates the copy: key, token and autosave ownership switch
+      // together, the snapshot is marked saved and history stays intact.
+      token.current = result.token
+      setActiveKey(key)
+      store.markSaved(snapshot.document)
+      setDraft(null)
+      setSaving({ status: 'saved', token: result.token })
+      setMessage(t(`Saved a copy as ${slug}.`, `Copia guardada como ${slug}.`))
+    } else {
+      setSaving(result)
+      setMessage(t('Save-as failed.', 'Guardar como falló.'))
+    }
   }
   async function discardQuarantined() {
     if (
@@ -402,7 +480,7 @@ function Workbench() {
       )
     )
       return
-    const result = await storage.purge(snapshot.document.id)
+    const result = await storage.purge(activeKey)
     if (result.ok) {
       setQuarantined(false)
       setMessage(t('Corrupted copy discarded.', 'Copia corrupta descartada.'))
@@ -425,6 +503,8 @@ function Workbench() {
       history: 'reset',
     })
     if (commit.status !== 'rejected') {
+      token.current = null
+      setActiveKey(draft.document.id)
       setDraft(null)
       setMessage(t('Draft restored.', 'Borrador restaurado.'))
     }
@@ -437,31 +517,78 @@ function Workbench() {
       return
     setAutosave(false)
     token.current = null
+    setActiveKey(document.id)
     store.replaceDocument(document, {
       expectedRevision: store.getSnapshot().document.revision,
       history: 'reset',
     })
   }
+  async function importFile(upload: File) {
+    // Capture the destination before the asynchronous read. The import may
+    // only land on the identity/revision that authorized it; any later edit
+    // or replacement cancels the pending result and keeps the live document.
+    const request = ++readSequence.current
+    const base = store.getSnapshot().document
+    const baseId = base.id
+    const baseRevision = base.revision
+    if (upload.size > 1048576) {
+      setMessage(MESSAGES.importTooLarge[locale])
+      return
+    }
+    let text: string
+    try {
+      text = await upload.text()
+    } catch {
+      if (request === readSequence.current && mounted.current)
+        setMessage(MESSAGES.readFailed[locale])
+      return
+    }
+    if (request !== readSequence.current || !mounted.current) {
+      if (mounted.current) setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const current = store.getSnapshot().document
+    if (current.id !== baseId || current.revision !== baseRevision) {
+      setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const result = importDocument(text, { id: crypto.randomUUID(), locale })
+    if (result.ok) imported(result.value.document)
+    else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+  }
   return (
-    <EditorRoot store={store} locale={locale}>
-      <main
-        className="adl-editor studio-shell"
-        data-theme={snapshot.document.presentation.theme.mode}
-      >
+    <EditorRoot store={store} locale={locale} theme={hostTheme}>
+      <main className="adl-editor studio-shell" data-theme={hostTheme}>
         <header className="studio-header">
           <div>
             <a href="./">aesthc / diagram-lib</a>
-            <h1>Diagram Studio</h1>
+            <h1>{MESSAGES.diagramStudio[locale]}</h1>
+            <p className="studio-role">
+              {t('Advanced tooling for the ', 'Herramienta avanzada para el ')}
+              <a href="playground.html">{t('Playground document', 'documento del playground')}</a>
+              {t('; the semantic viewer is read-only.', '; el visor semántico es de solo lectura.')}
+            </p>
           </div>
           <label>
-            {t('Language', 'Idioma')}
+            {MESSAGES.language[locale]}
             <select
-              aria-label={t('Language', 'Idioma')}
+              aria-label={MESSAGES.language[locale]}
               value={locale}
               onChange={(e) => setLocale(e.target.value as Locale)}
             >
               <option value="en">English</option>
               <option value="es">Español</option>
+            </select>
+          </label>
+          <label title={MESSAGES.hostAppearanceNote[locale]}>
+            {MESSAGES.theme[locale]}
+            <select
+              aria-label={MESSAGES.theme[locale]}
+              value={hostTheme}
+              onChange={(e) => chooseHostTheme(e.target.value as 'light' | 'dark')}
+            >
+              <option value="light">{MESSAGES.light[locale]}</option>
+              <option value="dark">{MESSAGES.dark[locale]}</option>
             </select>
           </label>
         </header>
@@ -474,20 +601,10 @@ function Workbench() {
             hidden
             type="file"
             accept=".json,application/json"
-            onChange={async (e) => {
-              const upload = e.target.files?.[0]
-              e.target.value = ''
-              if (!upload) return
-              if (upload.size > 1048576) {
-                setMessage('limit.bytes')
-                return
-              }
-              const result = importDocument(await upload.text(), {
-                id: crypto.randomUUID(),
-                locale,
-              })
-              if (result.ok) imported(result.value.document)
-              else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+            onChange={(event) => {
+              const upload = event.target.files?.[0]
+              event.target.value = ''
+              if (upload) void importFile(upload)
             }}
           />
           <button type="button" onClick={() => void save()}>
@@ -499,28 +616,38 @@ function Workbench() {
           <button type="button" onClick={() => void load()}>
             {t('Load saved', 'Cargar guardado')}
           </button>
-          <details
-            className="studio-copies"
-            onToggle={(event) => {
-              if ((event.target as HTMLDetailsElement).open) void refreshCopies()
-            }}
-          >
-            <summary>{t('Saved copies', 'Copias guardadas')}</summary>
-            {copies.length ? (
-              <ul>
-                {copies.map((copy) => (
-                  <li key={copy.key}>
-                    <span className="adl-editor-mono">{copy.label}</span>
-                    <button type="button" onClick={() => void openCopy(copy.key)}>
-                      {t('Open', 'Abrir')}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>{t('No saved copies.', 'No hay copias guardadas.')}</p>
+          <div className="studio-copies">
+            <button
+              type="button"
+              aria-expanded={copiesOpen}
+              aria-controls="studio-copies-list"
+              onClick={() => {
+                const next = !copiesOpen
+                setCopiesOpen(next)
+                if (next) void refreshCopies()
+              }}
+            >
+              {t('Saved copies', 'Copias guardadas')}
+            </button>
+            {copiesOpen && (
+              <div id="studio-copies-list">
+                {copies.length ? (
+                  <ul>
+                    {copies.map((copy) => (
+                      <li key={copy.key}>
+                        <span className="adl-editor-mono">{copy.label}</span>
+                        <button type="button" onClick={() => void openCopy(copy.key)}>
+                          {t('Open', 'Abrir')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{t('No saved copies.', 'No hay copias guardadas.')}</p>
+                )}
+              </div>
             )}
-          </details>
+          </div>
           <label>
             <input
               type="checkbox"
@@ -529,49 +656,8 @@ function Workbench() {
             />
             {t('Autosave', 'Autoguardado')}
           </label>
-          <label>
-            {t('Format', 'Formato')}{' '}
-            <select
-              aria-label={t('Export format', 'Formato de exportación')}
-              value={format}
-              onChange={(e) => setFormat(e.target.value as ExportFormat)}
-            >
-              {['json', 'svg', 'png', 'jpeg', 'webp'].map((f) => (
-                <option
-                  key={f}
-                  value={f}
-                  disabled={
-                    capabilities !== null &&
-                    (f === 'webp'
-                      ? !capabilities.webp
-                      : f === 'png'
-                        ? !capabilities.png
-                        : f === 'jpeg'
-                          ? !capabilities.jpeg
-                          : false)
-                  }
-                >
-                  {f.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('Quality', 'Calidad')}{' '}
-            <select
-              aria-label={t('Export quality', 'Calidad de exportación')}
-              value={quality}
-              onChange={(e) => setQuality(e.target.value as 'edit' | 'publish')}
-            >
-              <option value="edit">{t('Edit', 'Edición')}</option>
-              <option value="publish">{t('Publish', 'Publicación')}</option>
-            </select>
-          </label>
           <button type="button" onClick={() => void share()}>
             {t('Share link', 'Enlace para compartir')}
-          </button>
-          <button type="button" disabled={busy} onClick={() => void exportFile()}>
-            {busy ? t('Exporting…', 'Exportando…') : t('Download', 'Descargar')}
           </button>
           <button
             type="button"
@@ -581,6 +667,12 @@ function Workbench() {
             {t('Convert to graph', 'Convertir a graph')}
           </button>
         </div>
+        <ExportDialog
+          variant="inline"
+          locale={locale}
+          filenameBase="diagram"
+          appearance={hostTheme}
+        />
         {conversion && (
           <div className="studio-notice" role="alert">
             <strong>
@@ -606,6 +698,39 @@ function Workbench() {
               {t('Confirm conversion', 'Confirmar conversión')}
             </button>
             <button type="button" onClick={() => setConversion(null)}>
+              {t('Cancel', 'Cancelar')}
+            </button>
+          </div>
+        )}
+        {pendingHandoff && (
+          <div className="studio-notice" role="alert">
+            {t(
+              'The Playground document is waiting, but the JSON panel has an unapplied draft.',
+              'El documento del playground está esperando, pero el panel JSON tiene un borrador sin aplicar.',
+            )}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                const result = store.commitTextDraft()
+                if (result.status === 'rejected') {
+                  setMessage(result.diagnostics.map((d) => d.code).join(', '))
+                  return
+                }
+                applyHandoff(pendingHandoff)
+              }}
+            >
+              {t('Apply draft', 'Aplicar borrador')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                store.cancelTextDraft()
+                applyHandoff(pendingHandoff)
+              }}
+            >
+              {t('Discard draft', 'Descartar borrador')}
+            </button>
+            <button type="button" onClick={() => setPendingHandoff(null)}>
               {t('Cancel', 'Cancelar')}
             </button>
           </div>
@@ -660,7 +785,8 @@ function Workbench() {
           <EditorSurface />
           <EditorInspector />
         </div>
-        <EditorOutline />
+        <DocumentConfiguration />
+        <StableOutline />
         <EditorJsonPanel />
         <footer className="studio-footer">
           {t(

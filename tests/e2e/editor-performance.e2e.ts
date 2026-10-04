@@ -14,7 +14,8 @@ function seededDocument(nodeCount: number, edgeCount: number) {
   return {
     format: 'aesthc-diagram',
     schemaVersion: 1,
-    id: 'perf-browser',
+    // Apply JSON only edits the current Studio document identity.
+    id: 'studio-document',
     revision: 0,
     locale: 'en',
     spec: {

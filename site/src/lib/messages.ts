@@ -1,4 +1,5 @@
 import type { Locale } from '../content'
+export { savedLocale, saveLocale } from './locale'
 export const MESSAGES = {
   copied: { en: 'Copied', es: 'Copiado' },
   copyFailed: {
@@ -35,19 +36,44 @@ export const MESSAGES = {
   manager: { en: 'Package manager', es: 'Gestor de paquetes' },
   installation: { en: 'Installation command', es: 'Comando de instalación' },
   integration: { en: 'Integration code', es: 'Código de integración' },
+  zoom: { en: 'Canvas zoom', es: 'Zoom del canvas' },
+  zoomIn: { en: 'Zoom in', es: 'Acercar' },
+  zoomOut: { en: 'Zoom out', es: 'Alejar' },
+  fit: { en: 'Fit diagram to the panel', es: 'Ajustar el diagrama al panel' },
+  fitShort: { en: 'Fit', es: 'Ajustar' },
+  actualSize: { en: 'Actual size', es: 'Tamaño real' },
+  importTooLarge: {
+    en: 'The JSON file exceeds 1 MiB. Nothing was imported.',
+    es: 'El archivo JSON supera 1 MiB. No se importó nada.',
+  },
+  importInvalid: {
+    en: 'The JSON is invalid or exceeds the document limits.',
+    es: 'El JSON no es válido o supera los límites del documento.',
+  },
+  importDone: {
+    en: 'Document imported. Undo is available.',
+    es: 'Documento importado. Podés deshacer.',
+  },
+  readFailed: {
+    en: 'The file could not be read. The current document is unchanged.',
+    es: 'No se pudo leer el archivo. El documento actual no cambió.',
+  },
+  importStale: {
+    en: 'Canceled: the document changed before the import finished.',
+    es: 'Cancelado: el documento cambió antes de que terminara la importación.',
+  },
+  language: { en: 'Language', es: 'Idioma' },
+  theme: { en: 'Theme', es: 'Tema' },
+  light: { en: 'Light', es: 'Claro' },
+  dark: { en: 'Dark', es: 'Oscuro' },
+  diagramStudio: { en: 'Diagram Studio', es: 'Estudio de diagramas' },
+  semanticViewer: { en: 'Semantic viewer', es: 'Visor semántico' },
+  importJson: { en: 'Import JSON', es: 'Importar JSON' },
+  compareWith: { en: 'Compare with…', es: 'Comparar con…' },
+  reset: { en: 'Reset', es: 'Restaurar' },
+  backToGallery: { en: 'Back to all diagrams', es: 'Volver a todos los diagramas' },
+  hostAppearanceNote: {
+    en: 'Host theme is separate from the document appearance used in exports.',
+    es: 'El tema del host es independiente de la apariencia del documento usada al exportar.',
+  },
 } satisfies Record<string, Record<Locale, string>>
-
-export function savedLocale(): Locale {
-  try {
-    return localStorage.getItem('adl-locale') === 'es' ? 'es' : 'en'
-  } catch {
-    return 'en'
-  }
-}
-export function saveLocale(locale: Locale) {
-  try {
-    localStorage.setItem('adl-locale', locale)
-  } catch {
-    /* Preference is optional. */
-  }
-}

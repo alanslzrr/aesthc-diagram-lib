@@ -127,6 +127,26 @@ function nodeTextExtent(
   return { width: textWidth, left: textLeft, right: textLeft + textWidth }
 }
 
+/** Pill geometry uses the same face/size as the painted text, not a fixed
+ * character-count estimate. Clone seed labels: cached layout templates are shared. */
+function measurePills(layout: DiagramLayout, document: DiagramDocument, context: ResolveContext) {
+  if (!context.measureText) return
+  const width = (label: string, current: number) =>
+    Math.max(
+      current,
+      context.measureText!(label, { size: 11.25, family: 'Geist Mono', charFactor: 0.6 }) *
+        document.presentation.textScale +
+        12,
+    )
+  layout.edges = layout.edges.map((edge) =>
+    edge.label ? { ...edge, labelWidth: width(edge.label, edge.labelWidth) } : edge,
+  )
+  layout.continuations = layout.continuations.map((label) => ({
+    ...label,
+    labelWidth: width(label.displayLabel, label.labelWidth),
+  }))
+}
+
 /** Overflow warnings apply to every type, including structured layouts. */
 function pushTextOverflow(
   layout: DiagramLayout,
@@ -170,7 +190,9 @@ export function createPreviewResolver() {
       document.presentation === previous.document.presentation &&
       document.metadata === previous.document.metadata &&
       context.measureText === previous.context.measureText &&
-      context.quality === previous.context.quality
+      context.quality === previous.context.quality &&
+      context.theme === previous.context.theme &&
+      context.renderers === previous.context.renderers
         ? previous
         : undefined
     const extents =
@@ -215,6 +237,7 @@ function resolveScene(
     },
     diagnostics: Diagnostic[] = []
   if (!freeTypes.has(document.spec.type)) {
+    measurePills(layout, document, context)
     if (!context.skipDiagnostics) pushTextOverflow(layout, document, context, diagnostics)
     return success(
       {
@@ -245,7 +268,10 @@ function resolveScene(
   // registry. Without a renderer they are reported and shown as a placeholder;
   // the standard node card is never drawn in their place.
   if (document.spec.type === 'graph') {
-    const palette = document.presentation.theme[document.presentation.theme.mode]
+    // One effective theme for standard and custom geometry: the export or
+    // editor override must never leave custom nodes in the document mode.
+    const mode = context.theme ?? document.presentation.theme.mode
+    const palette = document.presentation.theme[mode]
     for (const specNode of document.spec.nodes) {
       if (!specNode.renderer) continue
       const placed = layout.nodeById[specNode.id]
@@ -260,45 +286,84 @@ function resolveScene(
         placed.customSvg = `<rect data-renderer-missing="${escapeXml(specNode.renderer.typeKey)}" x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" rx="8" fill="none" stroke="${palette.border}" stroke-dasharray="4 4"/><text x="${placed.cx}" y="${placed.cy + 4}" text-anchor="middle" font-family="Geist, sans-serif" font-size="12" fill="${palette.mutedForeground}">${escapeXml(specNode.renderer.typeKey)} unavailable</text>`
         continue
       }
-      const validated = renderer.validate(specNode.renderer.data)
-      if (!validated.ok) {
+      // Trusted callbacks may still throw or return malformed values: each
+      // phase is isolated so one failing renderer returns a diagnostic with
+      // its exact node and never breaks the rest of the scene or escapes the
+      // public Result API.
+      const fail = (code: string) => {
         if (!context.skipDiagnostics)
-          diagnostics.push({
-            ...issue('renderer.invalid'),
-            subject: { kind: 'node', id: specNode.id },
-          })
+          diagnostics.push({ ...issue(code), subject: { kind: 'node', id: specNode.id } })
+      }
+      // Callback return shapes are validated before any property access:
+      // TypeScript types cannot enforce JavaScript plugin output at runtime.
+      let validated: unknown
+      try {
+        validated = renderer.validate(specNode.renderer.data)
+      } catch {
+        fail('renderer.failed')
         continue
       }
-      const size = renderer.measure(validated.value, { fontSize: 13 })
+      if (!validated || typeof validated !== 'object' || Array.isArray(validated)) {
+        fail('renderer.failed')
+        continue
+      }
+      const checked = validated as { ok?: unknown; value?: unknown }
+      if (typeof checked.ok !== 'boolean') {
+        fail('renderer.failed')
+        continue
+      }
+      if (!checked.ok) {
+        fail('renderer.invalid')
+        continue
+      }
+      let size: unknown
+      try {
+        size = renderer.measure(checked.value, { fontSize: 13 })
+      } catch {
+        fail('renderer.failed')
+        continue
+      }
+      const measured = size as { width?: unknown; height?: unknown } | null
       if (
-        !Number.isFinite(size.width) ||
-        !Number.isFinite(size.height) ||
-        size.width <= 0 ||
-        size.height <= 0
+        !measured ||
+        typeof measured !== 'object' ||
+        !Number.isFinite(measured.width) ||
+        !Number.isFinite(measured.height) ||
+        (measured.width as number) <= 0 ||
+        (measured.height as number) <= 0
       ) {
-        if (!context.skipDiagnostics)
-          diagnostics.push({
-            ...issue('renderer.measure'),
-            subject: { kind: 'node', id: specNode.id },
-          })
+        fail('renderer.measure')
         continue
       }
-      placed.w = size.width
-      placed.h = size.height
+      const width = measured.width as number,
+        height = measured.height as number
+      placed.w = width
+      placed.h = height
       placed.cx = placed.x + placed.w / 2
       placed.cy = placed.y + placed.h / 2
-      placed.customSvg = renderer.renderSvg(validated.value, {
-        theme: document.presentation.theme.mode,
-        palette: {
-          background: palette.background,
-          foreground: palette.foreground,
-          card: palette.card,
-          border: palette.border,
-          muted: palette.mutedForeground,
-        },
-        x: placed.x,
-        y: placed.y,
-      })
+      let svg: unknown
+      try {
+        svg = renderer.renderSvg(checked.value, {
+          theme: mode,
+          palette: {
+            background: palette.background,
+            foreground: palette.foreground,
+            card: palette.card,
+            border: palette.border,
+            muted: palette.mutedForeground,
+          },
+          x: placed.x,
+          y: placed.y,
+        })
+      } catch {
+        fail('renderer.failed')
+        continue
+      }
+      if (typeof svg !== 'string' || !svg.trim()) {
+        fail('renderer.empty')
+        continue
+      }
+      placed.customSvg = svg
     }
   }
   const graphNodes =
@@ -453,6 +518,7 @@ function resolveScene(
       },
     ]
   })
+  measurePills(layout, document, context)
   const points: Array<[number, number]> = []
   for (const n of layout.nodes) {
     points.push([n.x, n.y], [n.x + n.w, n.y + n.h])

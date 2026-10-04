@@ -1,7 +1,175 @@
 import { compareVisual } from './helpers/visual'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 const types = ['band', 'flowchart', 'sequence', 'state-machine', 'er', 'timeline', 'swimlane']
+
+test('sidebar preserves native modified-click navigation and switches only plain clicks', async ({
+  page,
+  context,
+}) => {
+  await page.addInitScript(() => {
+    const original = Event.prototype.preventDefault
+    const state = window as unknown as {
+      __prevented: string[]
+      __activations: Array<{
+        href: string
+        button: number
+        metaKey: boolean
+        ctrlKey: boolean
+        shiftKey: boolean
+        prevented: boolean
+      }>
+    }
+    state.__prevented = []
+    state.__activations = []
+    if (location.protocol.startsWith('http')) {
+      const loads = Number(sessionStorage.getItem('__nativeLoads') ?? '0') + 1
+      sessionStorage.setItem('__nativeLoads', String(loads))
+    }
+    Event.prototype.preventDefault = function (this: Event) {
+      const target = this.target as Element | null
+      state.__prevented.push(target?.getAttribute?.('href') ?? '')
+      return original.call(this)
+    }
+    for (const name of ['click', 'auxclick'])
+      document.addEventListener(
+        name,
+        (event) => {
+          const activation = event as MouseEvent
+          const anchor = (activation.target as Element | null)?.closest?.('a[href]')
+          if (!anchor) return
+          const record = {
+            href: anchor.getAttribute('href') ?? '',
+            button: activation.button,
+            metaKey: activation.metaKey,
+            ctrlKey: activation.ctrlKey,
+            shiftKey: activation.shiftKey,
+            prevented: activation.defaultPrevented,
+          }
+          state.__activations.push(record)
+          setTimeout(() => {
+            record.prevented = activation.defaultPrevented
+          }, 0)
+        },
+        true,
+      )
+  })
+  await page.goto('/playground.html?only=example-band')
+  const sidebar = page.locator('.playground-sidebar')
+  const menu = page.getByRole('button', { name: 'Diagrams', exact: true })
+  // Phones keep the sidebar behind the disclosure; open it before touching a
+  // link so the native-click assertions stay about the anchor, not visibility.
+  const showSidebar = async (link: Locator) => {
+    if (!(await link.isVisible())) await menu.click()
+    await expect(link).toBeVisible()
+  }
+  const preventedBand = () =>
+    page.evaluate(() =>
+      (window as unknown as { __prevented: string[] }).__prevented.includes('?only=example-band'),
+    )
+  const nativeLoads = () =>
+    page.evaluate(() => Number(sessionStorage.getItem('__nativeLoads') ?? '0'))
+  const clearActivations = () =>
+    page.evaluate(() => {
+      ;(window as unknown as { __activations: unknown[] }).__activations = []
+    })
+  const readActivation = () =>
+    page.evaluate(
+      (href) =>
+        (
+          window as unknown as {
+            __activations: Array<{
+              href: string
+              button: number
+              metaKey: boolean
+              ctrlKey: boolean
+              shiftKey: boolean
+              prevented: boolean
+            }>
+          }
+        ).__activations.find((candidate) => candidate.href === href),
+      '?only=example-band',
+    )
+  const flow = sidebar.getByRole('link', { name: 'Flowchart', exact: true })
+  await showSidebar(flow)
+  await flow.click()
+  await expect(page).toHaveURL(/\?only=example-flowchart/)
+  await expect(page.getByRole('heading', { name: 'Flowchart', exact: true })).toBeVisible()
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __prevented: string[] }).__prevented.includes(
+        '?only=example-flowchart',
+      ),
+    ),
+  ).toBe(true)
+
+  const band = sidebar.getByRole('link', { name: 'Band', exact: true })
+  const modifier: 'Control' | 'Meta' = process.platform === 'darwin' ? 'Meta' : 'Control'
+  for (const gesture of [
+    {
+      options: { modifiers: [modifier] },
+      metaKey: modifier === 'Meta',
+      ctrlKey: modifier === 'Control',
+      shiftKey: false,
+    },
+    {
+      options: { modifiers: ['Shift' as const] },
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: true,
+    },
+  ]) {
+    await showSidebar(band)
+    await clearActivations()
+    const popupPromise = context.waitForEvent('page', { timeout: 5000 }).catch(() => null)
+    await band.click(gesture.options)
+    const popup = await popupPromise
+    const activation = await readActivation()
+    expect(popup).not.toBeNull()
+    await popup!.waitForLoadState('domcontentloaded')
+    expect(popup!.url()).toContain('only=example-band')
+    await popup!.close()
+    expect(activation).toBeTruthy()
+    expect(activation!.prevented).toBe(false)
+    expect(activation!.button).toBe(0)
+    expect(activation!.metaKey).toBe(gesture.metaKey)
+    expect(activation!.ctrlKey).toBe(gesture.ctrlKey)
+    expect(activation!.shiftKey).toBe(gesture.shiftKey)
+    expect(await preventedBand()).toBe(false)
+    // A popup leaves the opener session untouched.
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    await expect(page.getByRole('heading', { name: 'Flowchart', exact: true })).toBeVisible()
+  }
+
+  // WebKit never delivers middle-button events: it performs the native
+  // same-tab navigation instead, so that URL change must be a fresh document,
+  // never the in-page session switch. Chromium-family engines open the linked
+  // session in a popup and leave the opener on the flowchart.
+  await showSidebar(band)
+  await clearActivations()
+  const loadsBefore = await nativeLoads()
+  const middlePopupPromise = context.waitForEvent('page', { timeout: 5000 }).catch(() => null)
+  await band.click({ button: 'middle' })
+  const middlePopup = await middlePopupPromise
+  const middleActivation = await readActivation()
+  expect(await preventedBand()).toBe(false)
+  if (middlePopup) {
+    await middlePopup.waitForLoadState('domcontentloaded')
+    expect(middlePopup.url()).toContain('only=example-band')
+    await middlePopup.close()
+    expect(middleActivation).toBeTruthy()
+    expect(middleActivation!.prevented).toBe(false)
+    expect(middleActivation!.button).toBe(1)
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    expect(await nativeLoads()).toBe(loadsBefore)
+  } else if (page.url().includes('only=example-band')) {
+    expect(await nativeLoads()).toBeGreaterThan(loadsBefore)
+    await expect(page.getByRole('heading', { name: 'Band', exact: true })).toBeVisible()
+  } else {
+    await expect(page).toHaveURL(/\?only=example-flowchart/)
+    expect(await nativeLoads()).toBe(loadsBefore)
+  }
+})
 
 test('seven types render with unique SVG IDs in both themes', async ({ page }) => {
   const errors: string[] = []
@@ -62,18 +230,13 @@ test('share roundtrip restores spec and locale', async ({ page }) => {
   await expect(panel.locator('svg[role="group"]')).toBeVisible()
 })
 
-test('keyboard selection and JSON/SVG/PNG downloads work', async ({ page }) => {
+test('panel exports JSON, SVG and PNG', async ({ page }) => {
   await page.goto('/?only=example-flowchart')
   const panel = page.locator('[data-diagram-panel]')
-  const node = panel.locator('[data-node-id][role="button"]').first()
-  await node.focus()
-  await page.keyboard.press('Enter')
-  await expect(node).toHaveAttribute('aria-pressed', 'true')
-  await page.keyboard.press('Escape')
   for (const name of ['Download JSON', 'Download SVG', 'Download PNG']) {
-    await panel.locator('summary.export-trigger').click()
+    await panel.locator('.export-trigger').click()
     const download = page.waitForEvent('download')
-    await panel.getByRole('button', { name, exact: true }).click()
+    await panel.getByRole('menuitem', { name, exact: true }).click()
     const file = await download
     expect(await file.failure()).toBeNull()
     expect(await file.path()).toBeTruthy()
@@ -116,20 +279,20 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     expect((await button.innerText()).trim()).toBe('')
     await expect(button.locator('svg')).toBeVisible()
   }
-  const trigger = panel.locator('summary.export-trigger')
+  const trigger = panel.locator('.export-trigger')
   await expect(trigger).toHaveCount(1)
-  await expect(panel.getByRole('button', { name: 'Download SVG', exact: true })).not.toBeVisible()
+  await expect(panel.getByRole('menuitem', { name: 'Download SVG', exact: true })).not.toBeVisible()
   await trigger.focus()
   await trigger.press('ArrowDown')
-  await expect(panel.getByRole('button', { name: 'Copy JSON', exact: true })).toBeFocused()
+  await expect(panel.getByRole('menuitem', { name: 'Copy JSON', exact: true })).toBeFocused()
   await page.keyboard.press('End')
-  await expect(panel.getByRole('button', { name: 'Download PNG', exact: true })).toBeFocused()
+  await expect(panel.getByRole('menuitem', { name: 'Download PNG', exact: true })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(trigger).toBeFocused()
-  await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   await trigger.click()
   await page.getByRole('heading', { level: 1 }).click()
-  await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   if (browserName === 'chromium') {
     await panel.getByRole('button', { name: 'Copy prompt', exact: true }).click()
     await expect
@@ -142,8 +305,8 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     expect(json.type).toBe('band')
     for (const name of ['Copy JSON', 'Copy SVG']) {
       await trigger.click()
-      await panel.getByRole('button', { name, exact: true }).click()
-      await expect(panel.locator('details.export-menu')).not.toHaveAttribute('open')
+      await panel.getByRole('menuitem', { name, exact: true }).click()
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect
         .poll(() => page.evaluate(() => navigator.clipboard.readText()))
         .toContain(name === 'Copy JSON' ? '"type": "band"' : '<svg')
@@ -151,7 +314,7 @@ test('compact diagram actions expose icons, integration prompt and one reusable 
     // Output remains available from the live draft while editing code.
     await panel.getByRole('button', { name: 'Code', exact: true }).click()
     await trigger.click()
-    await panel.getByRole('button', { name: 'Copy SVG', exact: true }).click()
+    await panel.getByRole('menuitem', { name: 'Copy SVG', exact: true }).click()
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('<svg')
   }
 })

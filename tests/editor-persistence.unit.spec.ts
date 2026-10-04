@@ -195,3 +195,53 @@ describe('storage failure recovery', () => {
     expect(JSON.stringify(d)).toBe(JSON.stringify(d))
   })
 })
+
+describe('storage list corruption isolation', () => {
+  it('skips malformed encoded keys and keeps healthy documents listable', async () => {
+    const { createLocalStorageAdapter } = await import('../src/persistence')
+    const { serializeDocument } = await import('../src/editor-core')
+    const document = copyDocumentForList()
+    const entries = new Map<string, string>([
+      [
+        'adl-document-v1:studio:healthy',
+        JSON.stringify({
+          schemaVersion: 1,
+          token: 'token-1',
+          document: JSON.parse(serializeDocument(document)),
+        }),
+      ],
+      ['adl-document-v1:studio:%zz', 'not an envelope'],
+    ])
+    const stub = {
+      get length() {
+        return entries.size
+      },
+      key: (index: number) => [...entries.keys()][index] ?? null,
+      getItem: (key: string) => entries.get(key) ?? null,
+      setItem: (key: string, value: string) => void entries.set(key, value),
+      removeItem: (key: string) => void entries.delete(key),
+    }
+    vi.stubGlobal('window', { localStorage: stub })
+    const listed = await createLocalStorageAdapter('studio').list()
+    vi.unstubAllGlobals()
+    expect(listed.ok).toBe(true)
+    if (!listed.ok) return
+    expect(listed.value.map((entry) => entry.key)).toEqual(['healthy'])
+    expect(listed.value[0].token).toBe('token-1')
+  })
+})
+
+function copyDocumentForList() {
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Healthy copy',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'a', label: 'A', description: '' }],
+      edges: [],
+    },
+    { id: 'healthy', locale: 'en' },
+  )
+  if (!made.ok) throw Error('document')
+  return made.value
+}

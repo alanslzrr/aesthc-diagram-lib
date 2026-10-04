@@ -10,9 +10,10 @@ import { decodeShareHash } from './lib/share'
 
 import { Footer, Hero, QuickStart, TopBar } from './components/chrome'
 import { DiagramPanel } from './components/DiagramPanel'
+import { LayoutGallery } from './components/LayoutGallery'
 import { ThemeStudio } from './components/ThemeStudio'
 import { PanelBoundary, SectionHeader } from './components/ui'
-import { SECTIONS, STRINGS, type Locale } from './content'
+import { SECTIONS, STRINGS, type Locale, type SectionEntry } from './content'
 
 registerExampleDiagrams()
 
@@ -22,7 +23,7 @@ export default function App() {
     document.documentElement.dataset.enhanced = 'true'
   }, [])
   const [locale, setLocale] = useState<Locale>(savedLocale)
-  const sections = useDebugSections()
+  const only = useDebugEntry()
   const [shared, setShared] = useState<{ key: string; spec: DiagramSpec } | null>(null)
   const [shareError, setShareError] = useState(false)
   const [hydrated, setHydrated] = useState(!window.location.hash.includes('s='))
@@ -74,7 +75,7 @@ export default function App() {
         onLocale={() => setLocale((current) => (current === 'en' ? 'es' : 'en'))}
       />
 
-      <Hero locale={locale} theme={theme} />
+      <Hero locale={locale} theme={theme} only={only} />
 
       {shareError ? (
         <p role="alert" className="mx-auto max-w-4xl p-4">
@@ -82,47 +83,49 @@ export default function App() {
         </p>
       ) : null}
       <main id="main" tabIndex={-1} className="mx-auto mt-12 w-full max-w-[1180px] px-4 sm:px-8">
-        {sections.map((entry, index) => (
-          <article
-            key={entry.key}
-            id={entry.key}
-            className="border-t border-foreground/20 py-12 first:border-t-0 first:pt-0"
-          >
-            <SectionHeader index={index + 1} title={entry.title[locale]} meta={entry.key} />
-            <h2 className="section-title text-foreground">{entry.title[locale]}</h2>
-            <p className="section-copy mt-3 max-w-[64ch] text-foreground/74">
-              {entry.description[locale]}
+        {only ? (
+          <article id={only.key} className="border-t-0 py-2 first:pt-0">
+            <a
+              href={import.meta.env.BASE_URL}
+              className="mb-3 inline-block text-xs font-medium text-muted-foreground transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:text-foreground"
+            >
+              ← {MESSAGES.backToGallery[locale]}
+            </a>
+            <SectionHeader title={only.title[locale]} meta={only.key} />
+            <h2 className="section-title text-foreground">{only.title[locale]}</h2>
+            <p className="section-copy mt-3 max-w-[64ch] text-muted-foreground">
+              {only.description[locale]}
             </p>
 
             <PanelBoundary locale={locale}>
               {hydrated ? (
-                <DiagramPanel
-                  entry={entry}
-                  locale={locale}
-                  sharedSpec={shared?.key === entry.key ? shared.spec : undefined}
-                />
+                <div className="stage-wide">
+                  <DiagramPanel
+                    entry={only}
+                    locale={locale}
+                    sharedSpec={shared?.key === only.key ? shared.spec : undefined}
+                  />
+                </div>
               ) : null}
             </PanelBoundary>
           </article>
-        ))}
+        ) : (
+          <LayoutGallery locale={locale} />
+        )}
 
         <CloudArchitecture locale={locale} />
 
-        <article id="theme-studio" className="border-t border-foreground/20 py-12">
-          <SectionHeader
-            index={sections.length + 1}
-            title={STRINGS.themeTitle[locale]}
-            meta="--cobalt · --branch"
-          />
+        <article id="theme-studio" className="border-t border-border-subtle py-12">
+          <SectionHeader title={STRINGS.themeTitle[locale]} meta="--cobalt · --branch" />
           <h2 className="section-title text-foreground">{STRINGS.themeTitle[locale]}</h2>
-          <p className="section-copy mt-3 max-w-[64ch] text-foreground/74">
+          <p className="section-copy mt-3 max-w-[64ch] text-muted-foreground">
             {STRINGS.themeIntro[locale]}
           </p>
 
           <ThemeStudio locale={locale} theme={theme} />
         </article>
 
-        <QuickStart locale={locale} index={sections.length + 2} />
+        <QuickStart locale={locale} />
       </main>
 
       <Footer locale={locale} />
@@ -130,10 +133,9 @@ export default function App() {
   )
 }
 
-/** `?only=example-band` narrows the page to one panel for visual debugging. */
-function useDebugSections() {
+/** `?only=example-band` renders one full spec/code panel. */
+function useDebugEntry(): SectionEntry | null {
   const only = new URLSearchParams(window.location.search).get('only')
-  if (!only) return SECTIONS
-  const match = SECTIONS.filter((entry) => entry.key === only)
-  return match.length > 0 ? match : SECTIONS
+  if (!only) return null
+  return SECTIONS.find((entry) => entry.key === only) ?? null
 }

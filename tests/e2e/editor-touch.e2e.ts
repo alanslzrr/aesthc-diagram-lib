@@ -1,4 +1,17 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator } from '@playwright/test'
+
+/** Centre of the portion of an element that is inside the current viewport. */
+async function visibleCenter(locator: Locator) {
+  return locator.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    const top = Math.max(rect.top, 0)
+    const bottom = Math.min(rect.bottom, window.innerHeight)
+    const left = Math.max(rect.left, 0)
+    const right = Math.min(rect.right, window.innerWidth)
+    if (bottom <= top || right <= left) throw Error('element has no visible area')
+    return { x: (left + right) / 2, y: (top + bottom) / 2 }
+  })
+}
 
 test('two-finger pinch pans and zooms without committing node edits', async ({
   page,
@@ -10,14 +23,14 @@ test('two-finger pinch pans and zooms without committing node edits', async ({
   )
   await page.goto('/studio.html')
   const surface = page.getByRole('group', { name: /^Editable diagram/ })
-  const box = await surface.boundingBox()
-  if (!box) throw Error('surface missing')
+  await surface.scrollIntoViewIfNeeded()
   const before = await page.getByLabel('Zoom', { exact: true }).textContent()
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const x = await node.getAttribute('x')
   const cdp = await page.context().newCDPSession(page)
-  const cy = box.y + box.height / 2,
-    cx = box.x + box.width / 2
+  // The wrapped toolbar can push the canvas below the fold on phones; pinch a
+  // point that is actually inside the viewport.
+  const { x: cx, y: cy } = await visibleCenter(surface)
   await cdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
     touchPoints: [
@@ -36,7 +49,7 @@ test('two-finger pinch pans and zooms without committing node edits', async ({
   await expect(page.getByLabel('Zoom', { exact: true })).not.toHaveText(before ?? '')
   expect(await node.getAttribute('x')).toBe(x)
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
   await cdp.detach()
 })
 
@@ -68,14 +81,17 @@ test('Space drag pans without moving nodes or creating undo entries', async ({
   isMobile,
 }) => {
   test.skip(isMobile, 'Keyboard and mouse gesture')
+  await page.setViewportSize({ width: 1280, height: 1000 })
   await page.goto('/studio.html')
   const canvas = page.getByRole('group', { name: /^Editable diagram/ })
   const node = page.getByRole('button', { name: 'Order API', exact: true })
+  await canvas.focus()
+  await node.scrollIntoViewIfNeeded()
   const box = await node.boundingBox()
   if (!box) throw Error('node missing')
+  expect(box.y + box.height / 2 + 20).toBeLessThan(page.viewportSize()!.height)
   const x = await node.getAttribute('x')
   const transform = await canvas.locator(':scope > g').getAttribute('transform')
-  await canvas.focus()
   await page.keyboard.down('Space')
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
@@ -98,6 +114,7 @@ test('long touch selects without dragging, opening callouts or committing edits'
   await page.goto('/studio.html')
   const node = page.getByRole('button', { name: 'Order API', exact: true })
   const before = await node.getAttribute('x')
+  await node.scrollIntoViewIfNeeded()
   const box = await node.boundingBox()
   if (!box) throw Error('node missing')
   const cdp = await page.context().newCDPSession(page)

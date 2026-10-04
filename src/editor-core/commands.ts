@@ -42,6 +42,67 @@ export function pruneReferences(doc: DiagramDocument): void {
       (s.routeEdgeIds ?? []).every((id) => edges.has(id)),
   )
 }
+/**
+ * Lock invariants for whole-document replacement. The candidate must preserve
+ * every baseline node whose effective lock is active: same authored content,
+ * same placement and the same direct lock flag. Lock transitions are only
+ * legal through an explicit `nodes.set-lock` command earlier in the batch, so
+ * a standalone replacement can never clear a lock or move locked geometry.
+ * Locked groups keep their membership and lock state through a replacement.
+ */
+function lockedTransition(baseline: DiagramDocument, candidate: DiagramDocument): Result<void> {
+  const baselineNodes = new Map(nodesOf(baseline.spec).map((node) => [node.id, node]))
+  const candidateNodes = new Map(nodesOf(candidate.spec).map((node) => [node.id, node]))
+  for (const [id, node] of baselineNodes) {
+    const locked = isNodeLocked(baseline, id)
+    const next = candidateNodes.get(id)
+    if (locked) {
+      if (!next) return failure('entity.locked', `/spec/${id}`, 'locked node cannot be removed')
+      if (JSON.stringify(node) !== JSON.stringify(next))
+        return failure('entity.locked', `/spec/${id}`, 'locked node content cannot change')
+    }
+    const before = baseline.scene.nodes[id]
+    const after = candidate.scene.nodes[id]
+    if (before && after) {
+      if ((before.locked === true) !== (after.locked === true))
+        return failure(
+          'entity.locked',
+          `/scene/nodes/${id}`,
+          'lock transitions require nodes.set-lock',
+        )
+      if (
+        locked &&
+        (before.x !== after.x ||
+          before.y !== after.y ||
+          before.width !== after.width ||
+          before.height !== after.height)
+      )
+        return failure('entity.locked', `/scene/nodes/${id}`, 'locked node cannot move')
+    } else if (locked && before && !after) {
+      return failure('entity.locked', `/scene/nodes/${id}`, 'locked node cannot lose its placement')
+    }
+  }
+  const candidateGroups = new Map(candidate.scene.groups.map((group) => [group.id, group]))
+  for (const group of baseline.scene.groups) {
+    const next = candidateGroups.get(group.id)
+    if (!next) {
+      if (group.locked) return failure('entity.locked', `/scene/groups/${group.id}`)
+      continue
+    }
+    if (group.locked !== next.locked) return failure('entity.locked', `/scene/groups/${group.id}`)
+    if (group.locked) {
+      const before = [...group.nodeIds].sort()
+      const after = [...next.nodeIds].sort()
+      if (before.length !== after.length || before.some((id, index) => id !== after[index]))
+        return failure(
+          'entity.locked',
+          `/scene/groups/${group.id}`,
+          'locked group keeps its members',
+        )
+    }
+  }
+  return success(undefined)
+}
 /** Mutates only the transaction's private candidate; the store validates the final batch. */
 export function applyCommand(
   doc: DiagramDocument,
@@ -50,9 +111,23 @@ export function applyCommand(
   switch (command.type) {
     case 'document.replace-content': {
       const result = validateDocument(command.document)
-      return result.ok
-        ? success({ ...structuredClone(result.value), id: doc.id, revision: doc.revision })
-        : result
+      if (!result.ok) return result
+      const candidate = result.value
+      // Apply JSON edits the current document. Import/Open owns identity and
+      // type changes, so a mismatched payload is rejected instead of rebound.
+      if (candidate.format !== doc.format || candidate.schemaVersion !== doc.schemaVersion)
+        return failure('replacement.schema-mismatch', '/format', 'Use import for another schema')
+      if (candidate.spec.type !== doc.spec.type)
+        return failure(
+          'replacement.type-mismatch',
+          '/spec/type',
+          'Use import for another diagram type',
+        )
+      if (candidate.id !== doc.id)
+        return failure('replacement.id-mismatch', '/id', 'Use import for another document id')
+      const guarded = lockedTransition(doc, candidate)
+      if (!guarded.ok) return guarded
+      return success({ ...structuredClone(candidate), id: doc.id, revision: doc.revision })
     }
     case 'spec.replace': {
       const result = createDocument(command.spec, { id: doc.id, locale: doc.locale })
@@ -158,9 +233,16 @@ export function applyCommand(
       doc.views = structuredClone(command.views)
       doc.story = structuredClone(command.story)
       break
-    case 'scene.set':
-      doc.scene = structuredClone(command.scene)
+    case 'scene.set': {
+      // A whole-scene write must preserve locked placements, lock flags and
+      // locked group membership exactly like a content replacement would.
+      const next = structuredClone(command.scene)
+      const baseline = { ...doc, scene: next }
+      const guarded = lockedTransition(doc, baseline)
+      if (!guarded.ok) return guarded
+      doc.scene = next
       break
+    }
   }
   return success(doc)
 }

@@ -2,8 +2,10 @@ import { test, expect } from '@playwright/test'
 
 async function dragNodeBy(page: import('@playwright/test').Page, dx: number, dy: number) {
   const node = page.getByRole('button', { name: 'Order API', exact: true })
+  await node.scrollIntoViewIfNeeded()
   const box = await node.boundingBox()
   if (!box) throw Error('node absent')
+  expect(box.y + box.height / 2 + dy).toBeLessThan(page.viewportSize()!.height)
   const x = await node.getAttribute('x')
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
@@ -21,6 +23,7 @@ test.describe('viewport math under transforms', () => {
       isMobile,
     }) => {
       test.skip(isMobile, 'Mouse transform math; touch drag covered separately')
+      await page.setViewportSize({ width: 1280, height: 1000 })
       await page.goto('/studio.html')
       const { x, next } = await dragNodeBy(page, 192, 96)
       expect(next - x).toBeGreaterThanOrEqual(191)
@@ -65,7 +68,7 @@ test('T08.1 the middle mouse button pans the camera without touching the documen
   await page.mouse.up({ button: 'middle' })
   expect(await node.getAttribute('x')).toBe(before)
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T09.1 a node id equal to an edge id stays a distinct selectable entity', async ({ page }) => {

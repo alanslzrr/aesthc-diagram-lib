@@ -12,7 +12,7 @@ test('docs navigation, real previews, downloads and heading anchors are complete
   await page.goto('/docs/')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Documentation')
   const navigation = page.locator('.sidebar nav')
-  await expect(navigation.locator('a')).toHaveCount(18)
+  await expect(navigation.locator('a')).toHaveCount(22)
   for (const href of await navigation
     .locator('a')
     .evaluateAll((links) => links.map((a) => a.getAttribute('href')!))) {
@@ -25,7 +25,7 @@ test('docs navigation, real previews, downloads and heading anchors are complete
     await expect(page.locator('.preview svg.diagram-canvas')).toBeVisible()
     await expect(page.locator('.preview [role="button"]')).toHaveCount(0)
     await expect(page.locator('.sidebar [aria-current="page"]')).toHaveCount(1)
-    await page.locator('.complete-example summary').click()
+    await page.locator('.complete-example-trigger').click()
     await expect(page.locator('.complete-example code')).toContainText('DiagramCanvas')
     await expect(page.locator('.hljs-keyword').first()).toBeAttached()
     const accessibility = await new AxeBuilder({ page })
@@ -49,9 +49,8 @@ test('docs navigation, real previews, downloads and heading anchors are complete
 test('documentation previews open the relevant playground section', async ({ page }) => {
   await page.goto('/docs/diagrams/sequence/')
   await page.locator('.preview').getByRole('link', { name: 'Open playground ↗' }).click()
-  await expect(
-    page.locator('[data-diagram-panel="example-sequence"] svg[role="group"]'),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Sequence' })).toBeVisible()
+  await expect(page.locator('.adl-editor-surface svg[role="group"]').first()).toBeVisible()
   await expect
     .poll(() =>
       page.locator('#main').evaluate((main) => Math.abs(main.getBoundingClientRect().top)),
@@ -167,13 +166,13 @@ for (const theme of ['light', 'dark']) {
       expect(control.font).toContain('Geist')
     }
     if (isMobile) {
-      await page.locator('.mobile-nav summary').click()
+      await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
       await expect(
         page
           .getByRole('navigation', { name: 'Mobile documentation' })
           .getByRole('link', { name: 'Theming', exact: true }),
       ).toBeVisible()
-      await page.locator('.mobile-nav summary').click()
+      await page.getByRole('button', { name: 'Close navigation', exact: true }).click()
       expect(
         await page
           .locator('.preview svg.diagram-canvas')
@@ -195,48 +194,33 @@ for (const theme of ['light', 'dark']) {
   })
 }
 
-test('mobile disclosure uses a rounded chevron, keyboard states and works without JavaScript', async ({
+test('mobile navigation uses a modal and retains static links without JavaScript', async ({
   page,
   browser,
   isMobile,
 }) => {
-  test.skip(!isMobile, 'Mobile documentation disclosure is hidden on desktop')
+  test.skip(!isMobile, 'Mobile navigation is hidden on desktop')
   await page.goto('/docs/guides/react/')
-  const disclosure = page.locator('.mobile-nav')
-  const trigger = disclosure.locator('summary')
-  const icon = trigger.locator('.disclosure-icon')
-  await expect(trigger).toContainText('Browse docs')
-  await expect(trigger.locator('.current-doc')).toHaveText('React & Next.js')
-  await expect(icon).toHaveAttribute('stroke-linecap', 'round')
-  await expect(icon).toHaveAttribute('aria-hidden', 'true')
-  expect(await trigger.evaluate((summary) => getComputedStyle(summary).listStyleType)).toBe('none')
-  expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(44)
-  await trigger.focus()
+  const mobileNav = page.locator('.mobile-nav')
+  await expect(mobileNav).toBeVisible()
+  // No arrow disclosure, native or custom, remains in the mobile shell.
+  await expect(mobileNav.locator('summary')).toHaveCount(0)
+  await expect(mobileNav.locator('.disclosure-icon')).toHaveCount(0)
+  await expect(mobileNav.locator('[aria-expanded]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
+  const theming = mobileNav.getByRole('link', { name: 'Theming', exact: true })
+  await expect(theming).toBeVisible()
+  await theming.focus()
   await page.keyboard.press('Enter')
-  await expect(disclosure).toHaveAttribute('open', '')
-  await expect
-    .poll(() => icon.evaluate((svg) => getComputedStyle(svg).transform))
-    .toBe('matrix(-1, 0, 0, -1, 0, 0)')
-  await page.screenshot({ path: '/tmp/aesthc-docs-mobile-chevron-open.png' })
-  await page.keyboard.press('Escape')
-  await expect(disclosure).not.toHaveAttribute('open', '')
-  await expect(trigger).toBeFocused()
-  await expect.poll(() => icon.evaluate((svg) => getComputedStyle(svg).transform)).toBe('none')
-  await page.screenshot({ path: '/tmp/aesthc-docs-mobile-chevron-closed.png' })
-  await page.keyboard.press('Space')
-  await expect(disclosure).toHaveAttribute('open', '')
-  await disclosure.getByRole('link', { name: 'Theming', exact: true }).click()
   await expect(page).toHaveURL(/\/docs\/guides\/theming\/$/)
-  await expect(disclosure).not.toHaveAttribute('open', '')
+
   const context = await browser.newContext({
     javaScriptEnabled: false,
     viewport: { width: 390, height: 844 },
   })
   const staticPage = await context.newPage()
   await staticPage.goto(new URL('/docs/guides/react/', page.url()).href)
-  await staticPage.locator('.mobile-nav summary').click()
-  await expect(staticPage.locator('.mobile-nav')).toHaveAttribute('open', '')
-  await expect(staticPage.locator('.mobile-nav .disclosure-icon')).toBeVisible()
+  await expect(staticPage.locator('.mobile-nav summary')).toHaveCount(0)
   await staticPage
     .locator('.mobile-nav')
     .getByRole('link', { name: 'Theming', exact: true })
@@ -245,6 +229,10 @@ test('mobile disclosure uses a rounded chevron, keyboard states and works withou
   await context.close()
 })
 
+// The audited phone widths sit below the Pixel 7 project viewport (412px), so
+// the matrix is explicit and runs on every engine instead of trusting devices.
+const PREVIEW_WIDTHS = [360, 390, 412] as const
+
 for (const theme of ['light', 'dark']) {
   test(`${theme} layout previews preserve geometry, center plain labels and mask the grid under nodes`, async ({
     page,
@@ -252,59 +240,107 @@ for (const theme of ['light', 'dark']) {
     browserName,
   }) => {
     await page.addInitScript((theme) => localStorage.setItem('adl-theme', theme), theme)
+    const nativeWidth = page.viewportSize()?.width ?? 1280
+    const widths = isMobile ? PREVIEW_WIDTHS : [nativeWidth]
     for (const type of layouts) {
       await page.goto(`/docs/diagrams/${type}/`)
       await page.evaluate(() => document.fonts.ready)
       const pane = page.locator('[data-preview-panel="canvas"]')
       const svg = pane.locator('svg')
-      const geometry = await svg.evaluate((svg) => {
-        const box = svg.getBoundingClientRect()
-        const view = (svg as SVGSVGElement).viewBox.baseVal
-        return {
-          ratio: box.width / box.height,
-          expected: view.width / view.height,
-          labelFont: Array.from(svg.querySelectorAll('[data-node-label]')).map(
-            (label) => (parseFloat(getComputedStyle(label).fontSize) * box.width) / view.width,
-          ),
-          grid: getComputedStyle(svg.querySelector('rect[mask]')!).opacity,
-          innerGrid: getComputedStyle(svg.querySelector('rect[mask]')!).display,
-          outerGrid: getComputedStyle(svg.parentElement!).backgroundImage,
-          surfaces: Array.from(svg.querySelectorAll('[data-node-surface]')).map((surface) => ({
-            fill: getComputedStyle(surface).fill,
-            opacity: getComputedStyle(surface).opacity,
-          })),
-          labels: Array.from(svg.querySelectorAll('[data-node-label]'))
-            .filter((label) => label.getAttribute('text-anchor') === 'middle')
-            .map((label) => {
-              const surface = label.parentElement!.querySelector('[data-node-surface]')!
-              return {
-                x: Number(label.getAttribute('x')),
-                cx: Number(surface.getAttribute('x')) + Number(surface.getAttribute('width')) / 2,
-                y: Number(label.getAttribute('y')),
-                cy: Number(surface.getAttribute('y')) + Number(surface.getAttribute('height')) / 2,
-                baseline: label.getAttribute('dominant-baseline'),
-              }
-            }),
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: isMobile ? 844 : 720 })
+        const geometry = await svg.evaluate((svg) => {
+          const box = svg.getBoundingClientRect()
+          const view = (svg as SVGSVGElement).viewBox.baseVal
+          // The rendered font size comes from the real CTM, not a box-ratio
+          // proxy, so non-meet letterboxing or CSS transforms cannot hide a
+          // sub-11px primary label.
+          const scaleOf = (element: Element) => {
+            const ctm = (element as SVGGraphicsElement).getScreenCTM()
+            if (!ctm) return 0
+            return Math.max(Math.hypot(ctm.a, ctm.b), Math.hypot(ctm.c, ctm.d))
+          }
+          const contained = (element: Element) => {
+            const rect = element.getBoundingClientRect()
+            return (
+              rect.left >= box.left - 1 &&
+              rect.right <= box.right + 1 &&
+              rect.top >= box.top - 1 &&
+              rect.bottom <= box.bottom + 1
+            )
+          }
+          return {
+            ratio: box.width / box.height,
+            expected: view.width / view.height,
+            paneWidth: svg.parentElement!.clientWidth,
+            svgWidth: box.width,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+            labelFont: Array.from(svg.querySelectorAll('[data-node-label]')).map(
+              (label) => parseFloat(getComputedStyle(label).fontSize) * scaleOf(label),
+            ),
+            cropped: [
+              ...svg.querySelectorAll(
+                '[data-node-label], [data-node-surface], [data-container-id] > rect, [data-layer] path',
+              ),
+            ].filter((element) => !contained(element)).length,
+            innerGrid: svg.querySelector('rect[mask]') === null,
+            surfaces: Array.from(svg.querySelectorAll('[data-node-surface]')).map((surface) => ({
+              fill: getComputedStyle(surface).fill,
+              opacity: getComputedStyle(surface).opacity,
+            })),
+            labels: Array.from(svg.querySelectorAll('[data-node-label]'))
+              .filter((label) => label.getAttribute('text-anchor') === 'middle')
+              .map((label) => {
+                const surface = label.parentElement!.querySelector('[data-node-surface]')
+                if (!surface) return null
+                return {
+                  x: Number(label.getAttribute('x')),
+                  cx: Number(surface.getAttribute('x')) + Number(surface.getAttribute('width')) / 2,
+                  y: Number(label.getAttribute('y')),
+                  cy:
+                    Number(surface.getAttribute('y')) + Number(surface.getAttribute('height')) / 2,
+                  baseline: label.getAttribute('dominant-baseline'),
+                }
+              })
+              .filter((label): label is NonNullable<typeof label> => label !== null),
+          }
+        })
+        const context = `${type} at ${width}px`
+        expect(geometry.ratio, context).toBeCloseTo(geometry.expected, 2)
+        for (const size of geometry.labelFont)
+          expect(size, `${context} primary label size`).toBeGreaterThanOrEqual(11)
+        expect(geometry.cropped, `${context} crops semantic geometry`).toBe(0)
+        expect(geometry.svgWidth, `${context} svg wider than pane`).toBeLessThanOrEqual(
+          geometry.paneWidth + 1,
+        )
+        expect(geometry.scrollWidth, `${context} horizontal scroll`).toBeLessThanOrEqual(
+          geometry.innerWidth + 1,
+        )
+        expect(geometry.innerGrid, context).toBe(true)
+        const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+          const before = getComputedStyle(element, '::before')
+          return {
+            background: before.backgroundImage,
+            mask: before.maskImage || before.webkitMaskImage,
+          }
+        })
+        expect(backdrop.background).toContain('radial-gradient')
+        expect(backdrop.mask).not.toBe('none')
+        for (const surface of geometry.surfaces) {
+          expect(surface.opacity).toBe('1')
+          expect(surface.fill).not.toBe('none')
+          expect(surface.fill).not.toBe('transparent')
+          const alpha = surface.fill.startsWith('rgba(')
+            ? Number(surface.fill.split(',').at(-1)!.replace(')', ''))
+            : Number(/\/\s*([\d.]+)/.exec(surface.fill)?.[1] ?? 1)
+          expect(alpha).toBe(1)
         }
-      })
-      expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
-      for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
-      expect(geometry.grid).toBe(theme === 'light' ? '0.18' : '0.12')
-      expect(geometry.innerGrid).toBe('none')
-      expect(geometry.outerGrid).toContain('radial-gradient')
-      for (const surface of geometry.surfaces) {
-        expect(surface.opacity).toBe('1')
-        expect(surface.fill).not.toBe('none')
-        expect(surface.fill).not.toBe('transparent')
-        const alpha = surface.fill.startsWith('rgba(')
-          ? Number(surface.fill.split(',').at(-1)!.replace(')', ''))
-          : Number(/\/\s*([\d.]+)/.exec(surface.fill)?.[1] ?? 1)
-        expect(alpha).toBe(1)
-      }
-      for (const label of geometry.labels) {
-        expect(label.x).toBe(label.cx)
-        expect(label.y).toBe(label.cy)
-        expect(label.baseline).toBe('central')
+        for (const label of geometry.labels) {
+          expect(label.x).toBe(label.cx)
+          expect(label.y).toBe(label.cy)
+          expect(label.baseline).toBe('central')
+        }
       }
       await pane.screenshot({ path: `/tmp/aesthc-preview-${type}-${theme}.png` })
       if (process.env.VISUAL_REGRESSION && !isMobile && browserName === 'chromium')

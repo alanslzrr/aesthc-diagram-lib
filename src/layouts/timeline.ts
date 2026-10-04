@@ -6,7 +6,7 @@ import type { TimelineDiagramSpec } from '../types'
 import { TIMELINE_ALT_OFFSET, TIMELINE_EVENT_GAP } from '../theme'
 import type { DiagramLayout, PlacedEdge, PlacedNode } from '../layout'
 
-const MARGIN_X = 96
+const MARGIN_X = 64
 const TOP_PAD = 56
 const BOTTOM_PAD = 64
 const EVENT_W = 240

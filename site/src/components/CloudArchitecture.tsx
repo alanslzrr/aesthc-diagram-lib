@@ -4,7 +4,6 @@ import { DiagramCanvas } from '@aesthc/diagram-lib/canvas'
 import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
 import { buildAdjacency, connectedIds, diagramEdges } from '@aesthc/diagram-lib'
 import { ARCHITECTURE_EXAMPLES } from '@aesthc/diagram-lib/examples'
-import { ScrollArea } from './primitives/ScrollArea'
 import type { Locale } from '../content'
 
 export function CloudArchitecture({ locale }: { locale: Locale }) {
@@ -20,14 +19,14 @@ export function CloudArchitecture({ locale }: { locale: Locale }) {
   const active = hovered ?? focused ?? selected
   return (
     <section
-      className="border-t border-foreground/20 py-12"
+      className="border-t border-border-subtle py-12"
       aria-label={locale === 'es' ? 'Ejemplo de arquitectura cloud' : 'Cloud architecture example'}
       id="cloud-architecture"
     >
       <h2 className="section-title">
         {locale === 'es' ? 'Arquitectura en práctica' : 'Architecture in practice'}
       </h2>
-      <p className="section-copy mt-3 max-w-[64ch] text-foreground/74">
+      <p className="section-copy mt-3 max-w-[64ch] text-muted-foreground">
         {locale === 'es'
           ? 'Tres flujos de referencia: datos, pedidos y releases. Servicios concretos, responsabilidades y caminos de fallo.'
           : 'Three reference flows: data, orders and releases. Concrete services, responsibilities and failure paths.'}
@@ -54,12 +53,8 @@ export function CloudArchitecture({ locale }: { locale: Locale }) {
       <p className="section-copy mt-4 max-w-[72ch] text-muted-foreground">
         {example.summary[locale]}
       </p>
-      <ScrollArea
-        orientation="horizontal"
-        label={locale === 'es' ? 'Diagrama de arquitectura cloud' : 'Cloud architecture diagram'}
-        className="mt-6 rounded-lg border border-border bg-card/30"
-      >
-        <div className="min-w-[960px] p-6">
+      <div className="mt-6 rounded-lg border border-border-subtle bg-card">
+        <div className="diagram-fit-host p-6">
           <DiagramCanvas
             layout={layout}
             highlight={active ? connectedIds(active, adjacency) : null}
@@ -78,7 +73,7 @@ export function CloudArchitecture({ locale }: { locale: Locale }) {
             }}
           />
         </div>
-      </ScrollArea>
+      </div>
       <ul className="architecture-notes mt-4">
         {example.notes[locale].map((note) => (
           <li key={note}>{note}</li>

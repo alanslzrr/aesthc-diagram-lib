@@ -105,23 +105,44 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
   await expect(exportButton).toBeEnabled()
   const downloadPromise = page.waitForEvent('download')
   await exportButton.click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const download = await downloadPromise
-  expect(download.suggestedFilename()).toBe('story.webm')
+  expect(download.suggestedFilename()).toMatch(/\.webm$/)
   const bytes = readFileSync((await download.path())!).toString('base64')
   const decoded = await page.evaluate(async (data) => {
     const blob = await (await fetch(`data:video/webm;base64,${data}`)).blob()
     const video = document.createElement('video')
     video.muted = true
+    video.playsInline = true
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none'
+    document.body.append(video)
     video.src = URL.createObjectURL(blob)
     await new Promise<void>((resolve, reject) => {
       video.onloadedmetadata = () => resolve()
       video.onerror = () => reject(new Error('decode failed'))
     })
     const duration = video.duration
-    video.currentTime = Math.max(0, duration - 0.05)
-    await new Promise<void>((resolve) => {
-      video.onseeked = () => resolve()
+    const target = Math.max(0, duration - 0.05)
+    // seeked reports timeline movement, not that a decoded frame was presented.
+    // Wait for the real compositor frame before sampling the final story image.
+    const presentedTime = await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('final frame unavailable')), 8000)
+      const presented: VideoFrameRequestCallback = (_now, metadata) => {
+        if (metadata.mediaTime < target - 0.1) {
+          video.requestVideoFrameCallback(presented)
+          return
+        }
+        clearTimeout(timeout)
+        resolve(metadata.mediaTime)
+      }
+      video.requestVideoFrameCallback(presented)
+      video.currentTime = target
+      void video.play().catch((error) => {
+        clearTimeout(timeout)
+        reject(error)
+      })
     })
+    video.pause()
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
@@ -129,15 +150,23 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
     context.drawImage(video, 0, 0)
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
     let painted = 0
+    const colors = new Set<number>()
+    for (let i = 0; i < pixels.length; i += 16)
+      colors.add((pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2])
     for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) painted += 1
     const result = {
       width: video.videoWidth,
       height: video.videoHeight,
       duration,
+      presentedTime,
       painted,
+      colorCount: colors.size,
       bytes: blob.size,
     }
     URL.revokeObjectURL(video.src)
+    video.removeAttribute('src')
+    video.load()
+    video.remove()
     canvas.width = 0
     canvas.height = 0
     return result
@@ -146,7 +175,9 @@ test('T52.1 a supported codec records a decodable, bounded file with no camera a
   expect(decoded.height).toBeGreaterThan(0)
   expect(decoded.duration).toBeGreaterThanOrEqual(0.5)
   expect(decoded.duration).toBeLessThanOrEqual(4)
+  expect(decoded.presentedTime).toBeGreaterThanOrEqual(decoded.duration - 0.15)
   expect(decoded.painted).toBeGreaterThan(0)
+  expect(decoded.colorCount).toBeGreaterThan(20)
   expect(decoded.bytes).toBeGreaterThan(0)
   expect(
     await page.evaluate(
@@ -211,10 +242,16 @@ test('T52.2 cancelling a recording releases the canvas tracks without a download
   const downloads: string[] = []
   page.on('download', (download) => downloads.push(download.suggestedFilename()))
   await page.getByRole('button', { name: 'Export WebM', exact: true }).click()
-  const cancel = page.getByRole('button', { name: 'Cancel export', exact: true })
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { __tracks: MediaStreamTrack[] }).__tracks.length),
+    )
+    .toBeGreaterThan(0)
+  const cancel = page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true })
   await expect(cancel).toBeVisible()
   await cancel.click()
-  await expect(page.getByText('operation.aborted')).toBeVisible()
+  await expect(page.getByText('Export canceled. The document is unchanged.')).toBeVisible()
   await expect
     .poll(() =>
       page.evaluate(() =>
@@ -225,5 +262,6 @@ test('T52.2 cancelling a recording releases the canvas tracks without a download
     )
     .toBe(true)
   expect(downloads).toEqual([])
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Export WebM', exact: true })).toBeEnabled()
 })

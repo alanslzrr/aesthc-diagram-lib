@@ -1,11 +1,12 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { createDocument } from '../../dist/editor-core/index.js'
 import type { DiagramDocument } from '../../dist/editor-core/index.js'
 import { exportDocumentHtml } from '../../dist/export/index.js'
+import { createRendererRegistry } from '../../dist/editor-core/index.js'
 
 function offlineDocument(): DiagramDocument {
   const made = createDocument(
@@ -41,7 +42,15 @@ function offlineDocument(): DiagramDocument {
   return document
 }
 
-function buildArtifact(document: DiagramDocument, options: { includeSource?: boolean } = {}) {
+function buildArtifact(
+  document: DiagramDocument,
+  options: {
+    includeSource?: boolean
+    metadata?: 'minimal' | 'all'
+    theme?: 'light' | 'dark'
+    registry?: ReturnType<typeof createRendererRegistry>
+  } = {},
+) {
   const runtime = readFileSync('dist/standalone/viewer.js', 'utf8')
   const css = readFileSync('dist/viewer.css', 'utf8')
   const fonts = {
@@ -53,12 +62,30 @@ function buildArtifact(document: DiagramDocument, options: { includeSource?: boo
     css,
     fonts,
     includeSource: options.includeSource,
+    metadata: options.metadata,
+    theme: options.theme,
+    registry: options.registry,
   })
   if (!result.ok) throw Error(JSON.stringify(result.diagnostics))
   const directory = mkdtempSync(join(tmpdir(), 'adl-html-'))
   const file = join(directory, 'diagram.html')
   writeFileSync(file, result.value.html)
   return { file, html: result.value.html, receipt: result.value.receipt, fonts }
+}
+
+/** Extract the embedded runtime payload separately from the optional source. */
+function runtimePayload(html: string): string {
+  const match = /<script type="application\/json" id="aesthc-document">([\s\S]*?)<\/script>/.exec(
+    html,
+  )
+  if (!match) throw Error('missing runtime payload')
+  return match[1]
+}
+function sourcePayload(html: string): string | null {
+  const match = /<script type="application\/json" id="aesthc-source">([\s\S]*?)<\/script>/.exec(
+    html,
+  )
+  return match ? match[1] : null
 }
 
 test('T38.1 the artifact works from file:// with zero network and zero storage', async ({
@@ -197,4 +224,150 @@ test('T38.2 malicious labels stay data and the source JSON only travels explicit
   )
   expect(JSON.parse(source)).toMatchObject({ format: 'aesthc-diagram', id: 'hostile-document' })
   await sourceContext.close()
+})
+
+test('portable metadata is allowlisted and independent from source inclusion', async () => {
+  const document = offlineDocument()
+  document.metadata.nodes.api = {
+    roles: ['backend'],
+    tags: ['core'],
+    notes: 'PRIVATE_NODE_NOTE',
+    links: [{ label: 'private', href: 'https://example.com/private' }],
+    evidence: [
+      {
+        id: 'e1',
+        repository: 'https://github.com/example/repo',
+        commit: 'a'.repeat(40),
+        path: 'src/index.ts',
+        startLine: 1,
+        endLine: 2,
+      },
+    ],
+  }
+  document.metadata.edges.request = {
+    roles: [],
+    tags: [],
+    notes: 'PRIVATE_EDGE_NOTE',
+    links: [{ label: 'private', href: 'https://example.com/edge' }],
+  }
+  document.extensions = { 'com.example.audit': { secret: 'PRIVATE_EXTENSION' } }
+  const minimal = buildArtifact(document)
+  expect(minimal.receipt.metadata).toBe('minimal')
+  const runtime = runtimePayload(minimal.html)
+  for (const sentinel of [
+    'PRIVATE_NODE_NOTE',
+    'PRIVATE_EDGE_NOTE',
+    'PRIVATE_EXTENSION',
+    'https://example.com/private',
+    'https://example.com/edge',
+  ])
+    expect(runtime).not.toContain(sentinel)
+  // Displayed semantics survive the projection.
+  expect(JSON.parse(runtime.replaceAll('\\u003c', '<'))).toMatchObject({
+    metadata: { nodes: { api: { roles: ['backend'], tags: ['core'] } } },
+  })
+  const all = buildArtifact(document, { metadata: 'all' })
+  expect(all.receipt.metadata).toBe('all')
+  expect(runtimePayload(all.html)).toContain('PRIVATE_EDGE_NOTE')
+  expect(runtimePayload(all.html)).toContain('PRIVATE_EXTENSION')
+  // Minimal runtime plus exact canonical source: the source is the only place
+  // private data travels, and source=false removes it again.
+  const withSource = buildArtifact(document, { includeSource: true })
+  expect(runtimePayload(withSource.html)).not.toContain('PRIVATE_EDGE_NOTE')
+  expect(sourcePayload(withSource.html)).toContain('PRIVATE_EDGE_NOTE')
+  expect(sourcePayload(buildArtifact(document).html)).toBeNull()
+})
+
+test('the CSP only allows the exact runtime hash and blocks added inline scripts', async ({
+  page,
+}) => {
+  const artifact = buildArtifact(offlineDocument())
+  expect(artifact.html).toMatch(/script-src 'sha256-[A-Za-z0-9+/=]+'/)
+  expect(artifact.html).not.toContain("script-src 'unsafe-inline'")
+  await page.goto(`file://${artifact.file}`)
+  await expect(page.locator('.adl-viewer')).toBeVisible()
+  await page.evaluate(() => {
+    const script = document.createElement('script')
+    script.textContent = 'window.__cspExtra = 1'
+    document.body.appendChild(script)
+  })
+  expect(
+    await page.evaluate(() => (window as unknown as { __cspExtra?: number }).__cspExtra),
+  ).toBeUndefined()
+})
+
+test('the export theme override reaches the hydrated standalone runtime', async ({ page }) => {
+  const artifact = buildArtifact(offlineDocument(), { theme: 'dark' })
+  expect(artifact.html).toContain('data-theme="dark"')
+  await page.goto(`file://${artifact.file}`)
+  await expect(page.locator('.adl-viewer')).toHaveAttribute('data-theme', 'dark')
+})
+
+test('custom node rendering survives standalone boot without executable renderer code', async ({
+  page,
+  browser,
+}) => {
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Frozen badge',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        { id: 'plain', label: 'Plain', description: '' },
+        {
+          id: 'custom',
+          label: 'Custom',
+          description: '',
+          renderer: { typeKey: 'frozen-badge', data: { label: 'Ready' } },
+        },
+      ],
+      edges: [{ id: 'e', from: 'plain', to: 'custom' }],
+    },
+    { id: 'frozen-document', locale: 'en' },
+  )
+  if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+  const registry = createRendererRegistry()
+  const registered = registry.register({
+    typeKey: 'frozen-badge',
+    validate: (data: unknown) => ({ ok: true, diagnostics: [], value: data }),
+    measure: () => ({ width: 220, height: 90 }),
+    renderSvg: (_data: unknown, context: { x: number; y: number }) =>
+      `<g data-custom-renderer="frozen-badge"><rect x="${context.x}" y="${context.y}" width="220" height="90" fill="#16a34a"/><text x="${context.x + 110}" y="${context.y + 50}" text-anchor="middle" fill="#ffffff">Ready</text></g>`,
+  })
+  expect(registered.ok).toBe(true)
+  const artifact = buildArtifact(made.value, { registry })
+  expect(artifact.receipt.frozenCustomNodes).toBe(1)
+  await page.goto(`file://${artifact.file}`)
+  await expect(page.locator('.adl-viewer')).toBeVisible()
+  await expect(
+    page.locator('.adl-viewer-stage [data-custom-renderer="frozen-badge"]'),
+  ).toBeVisible()
+  await expect(page.locator('[data-renderer-missing]')).toHaveCount(0)
+  // A corrupt frozen payload must keep the readable fallback instead of a
+  // blank page, for both malformed JSON and a wrong shape.
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  for (const payload of ['null', '{bad']) {
+    const corrupt = artifact.html.replace(
+      /(<script type="application\/json" id="aesthc-frozen">)[\s\S]*?(<\/script>)/,
+      `$1${payload}$2`,
+    )
+    const corruptFile = join(
+      dirname(artifact.file),
+      `corrupt-${payload === 'null' ? 'null' : 'json'}.html`,
+    )
+    writeFileSync(corruptFile, corrupt)
+    await page.goto(`file://${corruptFile}`)
+    await expect(page.locator('#aesthc-fallback')).toBeVisible()
+    await expect(page.locator('#aesthc-standalone')).toBeHidden()
+  }
+  expect(errors).toEqual([])
+  // JavaScript off keeps the same frozen rendering in the static fallback.
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const staticPage = await context.newPage()
+  await staticPage.goto(`file://${artifact.file}`)
+  await expect(
+    staticPage.locator('#aesthc-fallback [data-custom-renderer="frozen-badge"]'),
+  ).toBeVisible()
+  await context.close()
 })

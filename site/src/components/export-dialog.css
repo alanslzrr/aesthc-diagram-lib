@@ -1,0 +1,111 @@
+/* Shared export surface: only layout lives here. Buttons, selects and the
+ * dialog frame come from the host's design system. Editor and read-only
+ * Viewer hosts supply their own scoped control styles. */
+.export-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  text-align: left;
+}
+.export-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+.export-panel[data-variant='inline'] {
+  gap: 6px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--adl-border, #eaeaea);
+}
+.export-inline-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.export-inline-row .export-field {
+  flex: 0 1 220px;
+}
+.export-advanced h3 {
+  margin: 8px 0 0;
+  font-weight: 500;
+  color: var(--adl-muted, #666);
+  font-size: 12px;
+}
+.export-advanced .export-panel-fields {
+  margin-top: 10px;
+}
+.export-advanced .export-panel-notes {
+  margin-top: 8px;
+}
+.export-panel-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.export-panel-caption {
+  margin: 2px 0 0;
+  color: var(--adl-muted, #666);
+  font-size: 12px;
+}
+.export-panel-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+  gap: 10px 16px;
+}
+.export-field,
+.export-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--adl-muted, #666);
+}
+.export-field select {
+  min-height: 32px;
+  width: 100%;
+  max-width: 100%;
+}
+.export-scope {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.export-scope legend {
+  padding: 0;
+}
+.export-scope label,
+.export-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--adl-fg, #0a0a0a);
+  font-size: 13px;
+}
+.export-panel-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--adl-muted, #666);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.export-panel-notes p,
+.export-panel-notes output {
+  margin: 0;
+}
+.export-panel-notes code {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+}
+.export-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.export-status {
+  margin: 0;
+  color: var(--adl-muted, #666);
+  font-size: 12px;
+}

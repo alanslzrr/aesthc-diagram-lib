@@ -1,0 +1,22 @@
+import { expect, test } from '@playwright/test'
+
+test('mobile docs keep the article visible and navigate through one modal', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/docs/')
+  const heading = page.locator('main h1').first()
+  await expect(heading).toBeVisible()
+  const headingBox = await heading.boundingBox()
+  expect(headingBox!.y).toBeLessThan(300)
+  const opener = page.getByRole('button', { name: 'Browse documentation', exact: true })
+  await opener.click()
+  const dialog = page.getByRole('dialog', { name: 'Documentation navigation', exact: true })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Close navigation' }).click()
+  await expect(dialog).not.toBeVisible()
+  await expect(opener).toBeFocused()
+  await opener.click()
+  await dialog.locator('a[href$="/guides/editor/"]').click()
+  await expect(page).toHaveURL(/\/docs\/guides\/editor\/$/)
+  await expect(dialog).not.toBeVisible()
+  await expect(page.locator('main h1').first()).toBeVisible()
+})

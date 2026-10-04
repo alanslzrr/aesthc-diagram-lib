@@ -1,14 +1,15 @@
+import { validateCardQuery, type CardQueryReceipt } from './cards'
+import { prepareExportFonts, type TypographyReceipt } from './fonts'
 import type { Diagnostic, DiagramDocument, EntityRef, Result } from '../editor-core/types'
-import { canonical, failure, issue, success } from '../editor-core/data'
+import { canonical, failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
+import { validateDeploymentProfile } from '../editor-core/profiles'
 import { serializeDocument } from '../editor-core/document'
 import { getAdapter } from '../editor-core/adapters'
 import { pruneReferences } from '../editor-core/commands'
 import { resolveDocument } from '../editor-core/scene'
-import { renderSvg, escapeXml } from '../render'
-import { createCanvasTextMeasurer, createEmbeddedFontTextMeasurer } from '../geometry/text'
+import { renderSvg } from '../render'
 import { rasterizeSvg } from './raster'
-import fontNotices from '../assets/fonts/notices.json'
 
 export type ExportFormat = 'json' | 'svg' | 'png' | 'jpeg' | 'webp'
 export interface ExportOptions {
@@ -21,6 +22,8 @@ export interface ExportOptions {
   includeSource: boolean
   metadata: 'minimal' | 'all'
   signal?: AbortSignal
+  /** Exact, revision-bound query highlights; only whole-document visual export. */
+  query?: CardQueryReceipt
   fonts?: { sans: Uint8Array; mono: Uint8Array }
   fontPolicy?: 'required' | 'fallback'
   /** Trusted custom node renderers for documents declaring `renderer` payloads. */
@@ -41,20 +44,8 @@ export interface ExportArtifact {
     sourceIncluded: boolean
     verified: boolean
     diagnostics: Diagnostic[]
+    typography?: TypographyReceipt
   }
-}
-function base64(bytes: Uint8Array) {
-  let raw = ''
-  for (const byte of bytes) raw += String.fromCharCode(byte)
-  return btoa(raw)
-}
-function fontCss(fonts: NonNullable<ExportOptions['fonts']>): Result<string> {
-  for (const bytes of [fonts.sans, fonts.mono])
-    if (bytes.length > 512 * 1024 || String.fromCharCode(...bytes.slice(0, 4)) !== 'wOF2')
-      return failure('export.font-invalid')
-  return success(
-    `/* ${escapeXml(fontNotices.join('\n'))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`,
-  )
 }
 export async function exportDocument(
   input: DiagramDocument,
@@ -63,6 +54,10 @@ export async function exportDocument(
   if (options.signal?.aborted) return failure('operation.aborted')
   const checked = validateDocument(input)
   if (!checked.ok) return checked
+  if (options.query && (options.format === 'json' || options.scope.type !== 'document'))
+    return failure('export.scope')
+  const query = validateCardQuery(checked.value, options.query)
+  if (!query.ok) return query
   const original = structuredClone(checked.value),
     doc = structuredClone(original),
     diagnostics: Diagnostic[] = []
@@ -81,6 +76,14 @@ export async function exportDocument(
     return failure('export.source-format')
   if (options.format === 'jpeg' && options.background === 'transparent')
     return failure('export.alpha')
+  if (options.quality === 'publish') {
+    // An authored deployment profile is authoritative and cannot be disabled
+    // through an export option; publish blocks on its exact diagnostics.
+    const profile = validateDeploymentProfile(checked.value)
+    if (!profile.ok) return profile
+    if (profile.value.enabled && profile.value.diagnostics.length)
+      return { ok: false, diagnostics: profile.value.diagnostics }
+  }
   if (options.scope.type === 'selection') {
     if (options.format === 'json') return failure('export.scope')
     const selected = new Set(
@@ -116,50 +119,45 @@ export async function exportDocument(
     doc.spec = removed.value
     pruneReferences(doc)
   }
+  let typography: TypographyReceipt | undefined
   let bytes: Uint8Array, mimeType: string, width: number | undefined, height: number | undefined
   if (options.format === 'json') {
     bytes = new TextEncoder().encode(serializeDocument(doc))
     mimeType = 'application/json'
   } else {
-    let fonts = ''
-    let measurer: ReturnType<typeof createEmbeddedFontTextMeasurer> | undefined
-    if (options.fonts) {
-      const result = fontCss(options.fonts)
-      if (!result.ok) return result
-      fonts = result.value
-      measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono)
-      if (measurer) {
-        const embeddedReady = await measurer.ready()
-        if (!embeddedReady) {
-          measurer.dispose()
-          measurer = undefined
-          if (options.fontPolicy === 'required') return failure('export.font-missing')
-          diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
-        }
-      }
-    } else if (options.fontPolicy === 'fallback')
-      diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
-    else return failure('export.font-missing')
+    const prepared = await prepareExportFonts({
+      ...options,
+      fontPolicy: options.fontPolicy ?? 'required',
+    })
+    if (!prepared.ok) return prepared
+    const context = prepared.value
+    typography = context.typography
+    diagnostics.push(...context.diagnostics)
     const resolved = resolveDocument(doc, {
       quality: options.quality,
       requestId: 'export',
       signal: options.signal,
-      measureText: measurer?.measure ?? createCanvasTextMeasurer(),
+      theme: options.theme,
+      measureText: context.measureText,
       renderers: options.renderers,
     })
-    measurer?.dispose()
+    context.dispose()
     if (!resolved.ok) return resolved
     diagnostics.push(...resolved.diagnostics)
-    if (options.quality === 'publish') {
-      const missingRenderer = diagnostics.find(
-        (d) =>
-          d.code === 'renderer.unsupported' ||
-          d.code === 'renderer.invalid' ||
-          d.code === 'renderer.measure',
-      )
-      if (missingRenderer) return failure(missingRenderer.code)
-      if (diagnostics.some((d) => d.code.startsWith('quality.'))) return failure('export.quality')
-    }
+    // A portable artifact never falls back to a placeholder for a custom
+    // node: without a renderer the specific export fails with a diagnostic.
+    const missingRenderer = diagnostics.find(
+      (d) =>
+        d.code === 'renderer.unsupported' ||
+        d.code === 'renderer.invalid' ||
+        d.code === 'renderer.measure' ||
+        d.code === 'renderer.empty' ||
+        d.code === 'renderer.failed',
+    )
+    // Keep the subject-bearing diagnostic instead of replacing it with a code.
+    if (missingRenderer) return { ok: false, diagnostics }
+    if (options.quality === 'publish' && diagnostics.some((d) => d.code.startsWith('quality.')))
+      return failure('export.quality')
     width = Math.ceil(resolved.value.layout.width * options.scale)
     height = Math.ceil(resolved.value.layout.height * options.scale)
     if (
@@ -174,7 +172,8 @@ export async function exportDocument(
       instanceId: 'export',
       theme: options.theme,
       background: options.background,
-      fontCss: fonts,
+      fontCss: context.css,
+      highlight: query.value ? { nodes: query.value.nodes, edges: query.value.edges } : undefined,
     })
     if (options.includeSource) {
       const data = canonical(original)
@@ -208,10 +207,11 @@ export async function exportDocument(
         bytes: bytes.byteLength,
         ...(width === undefined ? {} : { width, height }),
         scope: options.scope.type,
-        canonical: options.scope.type === 'document',
+        canonical: options.scope.type === 'document' && !query.value,
         sourceIncluded: options.format === 'json' || options.includeSource,
         verified: false,
         diagnostics,
+        ...(typography ? { typography } : {}),
       },
     },
     diagnostics,
@@ -262,11 +262,20 @@ export async function copyArtifact(artifact: ExportArtifact): Promise<Result<voi
     return failure('clipboard.denied')
   }
 }
-export { exportDocumentHtml } from './html'
+export { exportDocumentHtml, exportDocumentHtmlAsync } from './html'
 export type { ExportHtmlArtifact, ExportHtmlOptions } from './html'
-export { CARD_HEIGHT, CARD_WIDTH, cardSvg, exportCard, validateCardQuery } from './cards'
+export {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  cardSvg,
+  exportCardSvg,
+  exportCard,
+  validateCardQuery,
+} from './cards'
 export type { CardArtifact, CardQueryReceipt, CardSvgOptions, ValidatedQuery } from './cards'
 export { probeExportCapabilities, supportedFormats } from './capabilities'
 export type { ProbedExportCapabilities } from './capabilities'
 export { exportStoryWebm, webmCapability } from './motion'
 export type { MotionArtifact, MotionOptions } from './motion'
+
+export type { PortableFontOptions, TypographyReceipt } from './fonts'

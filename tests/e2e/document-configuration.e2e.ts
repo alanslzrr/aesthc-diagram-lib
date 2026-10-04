@@ -1,0 +1,58 @@
+import { expect, test } from '@playwright/test'
+
+for (const path of ['/playground.html?only=example-band', '/studio.html']) {
+  test(`configuration validates atomically and remains undoable in ${path}`, async ({ page }) => {
+    await page.goto(path)
+    await page.getByRole('button', { name: 'Configure document', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Configure document' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByLabel('Caption', { exact: true }).fill('Configured document')
+    await dialog.getByRole('button', { name: 'Layout', exact: true }).click()
+    await dialog.getByLabel('Text scale', { exact: true }).fill('-1')
+    await dialog.getByRole('button', { name: 'Apply configuration', exact: true }).click()
+    await expect(dialog.getByRole('alert')).toBeVisible()
+    await expect(dialog).toBeVisible()
+    await dialog.getByLabel('Text scale', { exact: true }).fill('1.2')
+    await dialog.getByLabel('Grid spacing', { exact: true }).fill('24')
+    await dialog.getByRole('button', { name: 'Apply configuration', exact: true }).click()
+    await expect(dialog).not.toBeVisible()
+    await page.getByRole('button', { name: 'Configure document', exact: true }).click()
+    await expect(dialog.getByLabel('Caption', { exact: true })).toHaveValue('Configured document')
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await page.getByRole('button', { name: 'Configure document', exact: true }).click()
+    await expect(dialog.getByLabel('Caption', { exact: true })).not.toHaveValue(
+      'Configured document',
+    )
+    await dialog.getByRole('button', { name: 'Layout', exact: true }).click()
+    await expect(dialog.getByLabel('Text scale', { exact: true })).toHaveValue('1')
+  })
+}
+
+test('configuration retains typed role delimiters and both palette channels', async ({ page }) => {
+  await page.goto('/studio.html')
+  await page.getByRole('button', { name: 'Web client', exact: true }).click()
+  await page.getByRole('button', { name: 'Configure document', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Configure document' })
+  const box = await dialog.boundingBox()
+  const viewport = page.viewportSize()!
+  expect(box).not.toBeNull()
+  expect(Math.abs(box!.x + box!.width / 2 - viewport.width / 2)).toBeLessThan(2)
+  await dialog.getByRole('button', { name: 'Selection', exact: true }).click()
+  await dialog.getByLabel('Roles', { exact: true }).pressSequentially('service, external')
+  await dialog.getByLabel('Kind', { exact: true }).fill('Client')
+  await dialog.getByLabel('Description', { exact: true }).fill('Updated description')
+  await dialog.getByRole('button', { name: 'Appearance', exact: true }).click()
+  await dialog.getByLabel('cobalt', { exact: true }).fill('#2468ac')
+  await dialog.getByRole('button', { name: 'Dark palette', exact: true }).click()
+  await dialog.getByLabel('cobalt', { exact: true }).fill('#abcdef')
+  await dialog.getByRole('button', { name: 'Apply configuration', exact: true }).click()
+  await page.getByRole('button', { name: 'Configure document', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Selection', exact: true }).click()
+  await expect(dialog.getByLabel('Roles', { exact: true })).toHaveValue('service,external')
+  await expect(dialog.getByLabel('Kind', { exact: true })).toHaveValue('Client')
+  await dialog.getByRole('button', { name: 'Appearance', exact: true }).click()
+  await expect(dialog.getByLabel('cobalt', { exact: true })).toHaveValue('#abcdef')
+  await dialog.getByRole('button', { name: 'Light palette', exact: true }).click()
+  await expect(dialog.getByLabel('cobalt', { exact: true })).toHaveValue('#2468ac')
+})

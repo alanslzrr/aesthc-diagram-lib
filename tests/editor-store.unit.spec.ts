@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createEditorStore, validateDocument, relayoutScene } from '../src/editor-core'
+import {
+  createDocument,
+  createEditorStore,
+  validateDocument,
+  relayoutScene,
+} from '../src/editor-core'
 import fixture from './fixtures/editor/graph-document.json'
 
 function doc() {
@@ -583,4 +588,301 @@ it('shares frozen untouched placements without mutating the committed baseline',
   expect(before.scene.nodes.a.x).not.toBe(500)
   store.cancelGesture()
   expect(store.getSnapshot().document).toBe(before)
+})
+
+describe('locked transition invariants', () => {
+  function locked(scope: 'node' | 'group' | 'none') {
+    const document = doc()
+    if (scope === 'node') document.scene.nodes.a.locked = true
+    if (scope === 'group')
+      document.scene.groups = [
+        { id: 'g1', label: 'Group', kind: 'visual', nodeIds: ['a'], locked: true },
+      ]
+    return createEditorStore({
+      document,
+      idFactory: (kind) => `${kind}-locked`,
+      permissions: { edit: true, save: true, export: true },
+    })
+  }
+  it.each(['node', 'group'] as const)(
+    'scene.set cannot move a %s-locked node or clear its protection',
+    (scope) => {
+      const store = locked(scope)
+      const before = store.getSnapshot()
+      let notifications = 0
+      let commits = 0
+      const unsubscribe = store.subscribe(() => {
+        notifications += 1
+      })
+      const offCommit = store.onCommit(() => {
+        commits += 1
+      })
+      const moved = structuredClone(before.document.scene)
+      moved.nodes.a.x += 40
+      const rejected = store.dispatch({
+        id: 'move-locked',
+        label: 'Move locked',
+        expectedRevision: 0,
+        commands: [{ type: 'scene.set', scene: moved }],
+      })
+      expect(rejected.status).toBe('rejected')
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('entity.locked')
+      const unlocked = structuredClone(before.document.scene)
+      if (scope === 'node') unlocked.nodes.a.locked = false
+      else unlocked.groups[0].locked = false
+      const cleared = store.dispatch({
+        id: 'clear-lock',
+        label: 'Clear lock',
+        expectedRevision: 0,
+        commands: [{ type: 'scene.set', scene: unlocked }],
+      })
+      expect(cleared.status).toBe('rejected')
+      expect(store.getSnapshot().document).toBe(before.document)
+      expect(store.getSnapshot().canUndo).toBe(false)
+      expect(notifications).toBe(0)
+      expect(commits).toBe(0)
+      unsubscribe()
+      offCommit()
+      store.dispose()
+    },
+  )
+  it('allows an explicit unlock and edit in the same transaction', () => {
+    const store = locked('node')
+    const candidate = structuredClone(store.getSnapshot().document)
+    candidate.scene.nodes.a = { ...candidate.scene.nodes.a, locked: false, x: 321 }
+    const committed = store.dispatch({
+      id: 'unlock-move',
+      label: 'Unlock and move',
+      expectedRevision: 0,
+      commands: [
+        { type: 'nodes.set-lock', ids: ['a'], locked: false },
+        { type: 'document.replace-content', document: candidate },
+      ],
+    })
+    expect(committed.status).toBe('committed')
+    expect(store.getSnapshot().document.scene.nodes.a).toMatchObject({ locked: false, x: 321 })
+    expect(store.undo().status).toBe('committed')
+    expect(store.getSnapshot().document.scene.nodes.a.locked).toBe(true)
+    store.dispose()
+  })
+  it.each(['node', 'group'] as const)(
+    'document.replace-content preserves %s-locked content and placement',
+    (scope) => {
+      const store = locked(scope)
+      const before = store.getSnapshot().document
+      const candidate = structuredClone(before)
+      if (candidate.spec.type !== 'graph') throw Error('graph')
+      candidate.spec.nodes[0].label = 'Rewritten'
+      candidate.scene.nodes.a.x += 40
+      const rejected = store.dispatch({
+        id: 'replace-locked',
+        label: 'Replace locked',
+        expectedRevision: 0,
+        commands: [{ type: 'document.replace-content', document: candidate }],
+      })
+      expect(rejected.status).toBe('rejected')
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('entity.locked')
+      expect(store.getSnapshot().document).toBe(before)
+      store.dispose()
+    },
+  )
+  it('keeps scene previews of locked nodes rejected and the last draft intact', () => {
+    const store = locked('node')
+    expect(
+      store.beginGesture({ id: 'locked-preview', label: 'Move', expectedRevision: 0 }).ok,
+    ).toBe(true)
+    const scene = structuredClone(store.getSnapshot().document.scene)
+    scene.nodes.a.x += 40
+    const rejected = store.previewGesture([{ type: 'scene.set', scene }], { skipValidation: true })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('entity.locked')
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(draft.preview.scene.nodes.a.x).toBe(0)
+    store.cancelGesture()
+    store.dispose()
+  })
+})
+
+describe('replacement identity and type', () => {
+  it('accepts a replacement with the same id and type', () => {
+    const store = makeStore()
+    const candidate = structuredClone(store.getSnapshot().document)
+    candidate.spec.caption = 'Edited caption'
+    const committed = store.dispatch({
+      id: 'same',
+      label: 'Same identity',
+      expectedRevision: 0,
+      commands: [{ type: 'document.replace-content', document: candidate }],
+    })
+    expect(committed.status).toBe('committed')
+    expect(store.getSnapshot().document.spec.caption).toBe('Edited caption')
+    store.dispose()
+  })
+  it('rejects a foreign document id with a stable diagnostic', () => {
+    const store = makeStore()
+    const before = store.getSnapshot().document
+    const candidate = structuredClone(before)
+    candidate.id = 'foreign-document'
+    candidate.spec.caption = 'Foreign'
+    const rejected = store.dispatch({
+      id: 'foreign-id',
+      label: 'Foreign id',
+      expectedRevision: 0,
+      commands: [{ type: 'document.replace-content', document: candidate }],
+    })
+    expect(rejected.status).toBe('rejected')
+    expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'replacement.id-mismatch',
+    )
+    expect(store.getSnapshot().document).toBe(before)
+    store.dispose()
+  })
+  it('rejects a different diagram type with a stable diagnostic', () => {
+    const store = makeStore()
+    const before = store.getSnapshot().document
+    const created = createDocument(
+      {
+        type: 'timeline',
+        caption: 'Timeline',
+        legend: { main: 'Main', branch: 'Alt' },
+        events: [{ id: 'e1', label: 'One', description: '' }],
+      },
+      { id: before.id, locale: 'en' },
+    )
+    if (!created.ok) throw Error('timeline')
+    const rejected = store.dispatch({
+      id: 'foreign-type',
+      label: 'Foreign type',
+      expectedRevision: 0,
+      commands: [{ type: 'document.replace-content', document: created.value }],
+    })
+    expect(rejected.status).toBe('rejected')
+    expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'replacement.type-mismatch',
+    )
+    expect(store.getSnapshot().document).toBe(before)
+    store.dispose()
+  })
+  it('surfaces a foreign id through the text draft without losing the buffer', () => {
+    const store = makeStore()
+    const candidate = structuredClone(store.getSnapshot().document)
+    candidate.id = 'foreign-document'
+    candidate.spec.caption = 'Pasted'
+    store.setTextDraft(JSON.stringify(candidate))
+    const committed = store.commitTextDraft()
+    expect(committed.status).toBe('rejected')
+    if (committed.status === 'rejected')
+      expect(committed.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        'replacement.id-mismatch',
+      )
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'text') throw Error('draft')
+    expect(draft.text).toContain('foreign-document')
+    expect(store.getSnapshot().document.id).toBe('doc-fixture')
+    store.dispose()
+  })
+  it('keeps the explicit import path for another document identity', () => {
+    const store = makeStore()
+    const created = createDocument(structuredClone(store.getSnapshot().document.spec), {
+      id: 'imported-document',
+      locale: 'en',
+    })
+    if (!created.ok) throw Error('import')
+    const replaced = store.replaceDocument(created.value, {
+      expectedRevision: 0,
+      history: 'reset',
+    })
+    expect(replaced.status).toBe('committed')
+    expect(store.getSnapshot().document.id).toBe('imported-document')
+    expect(store.getSnapshot().canUndo).toBe(false)
+    store.dispose()
+  })
+})
+
+describe('preview validation allowlist', () => {
+  function previewing() {
+    const store = makeStore()
+    expect(store.beginGesture({ id: 'allowlist', label: 'Preview', expectedRevision: 0 }).ok).toBe(
+      true,
+    )
+    const valid = structuredClone(store.getSnapshot().document.scene)
+    valid.nodes.a.x = 25
+    expect(
+      store.previewGesture([{ type: 'scene.set', scene: valid }], { skipValidation: true }).ok,
+    ).toBe(true)
+    return store
+  }
+  it('fully validates presentation previews instead of trusting the skip flag', () => {
+    const store = previewing()
+    const presentation = structuredClone(store.getSnapshot().document.presentation)
+    presentation.textScale = Number.NaN
+    const rejected = store.previewGesture([{ type: 'presentation.set', presentation }], {
+      skipValidation: true,
+    })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('data.finite')
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(Number.isFinite(draft.preview.presentation.textScale)).toBe(true)
+    expect(draft.preview.scene.nodes.a.x).toBe(25)
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('rejects unsafe metadata links in previews', () => {
+    const store = previewing()
+    const metadata = structuredClone(store.getSnapshot().document.metadata)
+    metadata.nodes.a = {
+      ...(metadata.nodes.a ?? { roles: [], tags: [] }),
+      links: [{ label: 'bad', href: 'javascript:1' }],
+    }
+    const rejected = store.previewGesture([{ type: 'metadata.set', metadata }], {
+      skipValidation: true,
+    })
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain('url.scheme')
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('does not let a mixed batch smuggle an invalid presentation through the scene path', () => {
+    const store = previewing()
+    const presentation = structuredClone(store.getSnapshot().document.presentation)
+    presentation.textScale = Number.POSITIVE_INFINITY
+    const rejected = store.previewGesture(
+      [
+        { type: 'nodes.move', positions: { b: { x: 10, y: 10 } } },
+        { type: 'presentation.set', presentation },
+      ],
+      { skipValidation: true },
+    )
+    expect(rejected.ok).toBe(false)
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(draft.preview.scene.nodes.b.x).not.toBe(10)
+    store.cancelGesture()
+    store.dispose()
+  })
+  it('fully validates replacement previews and keeps the last valid draft', () => {
+    const store = previewing()
+    const candidate = structuredClone(store.getSnapshot().document)
+    candidate.metadata.nodes.ghost = { roles: [], tags: [] }
+    const rejected = store.previewGesture(
+      [{ type: 'document.replace-content', document: candidate }],
+      { skipValidation: true },
+    )
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok)
+      expect(rejected.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        'reference.missing',
+      )
+    const draft = store.getSnapshot().draft
+    if (draft.kind !== 'gesture') throw Error('draft')
+    expect(draft.preview.metadata.nodes.ghost).toBeUndefined()
+    expect(draft.preview.scene.nodes.a.x).toBe(25)
+    store.cancelGesture()
+    store.dispose()
+  })
 })

@@ -33,7 +33,18 @@ export type {
   RegisteredLayoutOutcome,
   RegisteredLayoutProvider,
 } from './providers'
-export { declaredEvidence, evidenceDiagnostics, verifyEvidence } from './evidence'
-export type { DeclaredEvidence, EvidenceReceipt, EvidenceStatus, TrustedVerifier } from './evidence'
+export {
+  EVIDENCE_RANGE_CONTRACT,
+  declaredEvidence,
+  evidenceDiagnostics,
+  verifyEvidence,
+} from './evidence'
+export type {
+  DeclaredEvidence,
+  EvidenceReceipt,
+  EvidenceStatus,
+  EvidenceVerifierReference,
+  TrustedVerifier,
+} from './evidence'
 export { validateDeploymentProfile } from './profiles'
 export type { DeploymentProfileReport, DeploymentRule } from './profiles'

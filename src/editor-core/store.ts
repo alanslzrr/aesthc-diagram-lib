@@ -43,6 +43,12 @@ function validateCommandDeltas(commands: EditorCommand[], limits: Limits): Diagn
   }
   for (const command of commands) {
     switch (command.type) {
+      case 'nodes.set-lock':
+        if (typeof command.locked !== 'boolean')
+          issues.push({ ...issue('data.type', '/scene/nodes/locked') })
+        for (const id of command.ids)
+          if (typeof id !== 'string' || !id) issues.push({ ...issue('id.invalid', '/scene/nodes') })
+        break
       case 'nodes.move':
         for (const [id, point] of Object.entries(command.positions))
           finitePoint(point, `/scene/nodes/${pointer(id)}`)
@@ -124,11 +130,6 @@ const SCENE_ONLY: ReadonlySet<EditorCommand['type']> = new Set([
   'group.upsert',
 ])
 /** Commands that can change the scene's structure; moves/resizes only touch values. */
-const SCENE_STRUCTURE: ReadonlySet<EditorCommand['type']> = new Set([
-  'scene.set',
-  'route.set',
-  'group.upsert',
-])
 const isSceneOnly = (commands: EditorCommand[]) =>
   commands.length > 0 && commands.every((command) => SCENE_ONLY.has(command.type))
 /** Copy only mutable placement records; unchanged branches remain frozen and shared. */
@@ -364,6 +365,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     nonSceneDirty = false,
     disposed = false
   let gesture: { transaction: Omit<Transaction, 'commands'>; commands: EditorCommand[] } | undefined
+  let gestureValidated = false
   let snapshot: EditorSnapshot = freezeData({
     document: structuredClone(checked.value),
     selection: [],
@@ -406,18 +408,28 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       } else break
     }
   }
-  function candidate(transaction: Transaction, skipValidation = false) {
+  function candidate(transaction: Transaction, skipValidation = false, trustedScene = false) {
     if (disposed) return failure<DiagramDocument>('store.disposed')
     if (!permissions.edit) return failure<DiagramDocument>('permission.edit')
-    if (!skipValidation) {
+    const sceneOnly = isSceneOnly(transaction.commands)
+    // The optimized preview path is only trusted for complete scene batches
+    // whose deltas are fully validated and whose resulting scene still passes
+    // `validateSceneOnly`. Presentation, metadata, views, replacement and
+    // mixed batches always take full document validation, so a host cannot
+    // publish an invalid document through `skipValidation`.
+    const fast = skipValidation && sceneOnly
+    if (!fast) {
       const unsafe = inspectData(transaction, { ...limits, maxBytes: limits.maxBytes * 2 })
       if (unsafe.length) return { ok: false as const, diagnostics: unsafe }
     }
     if (!validId(transaction.id)) return failure<DiagramDocument>('id.invalid')
     if (transaction.expectedRevision !== snapshot.document.revision)
       return failure<DiagramDocument>('revision.stale')
-    const sceneOnly = isSceneOnly(transaction.commands)
-    if (skipValidation || sceneOnly) {
+    // An empty batch changes nothing in an already validated, immutable store.
+    // Keep transaction/permission/revision checks above, without cloning and
+    // revalidating thousands of entities on every pointer-down.
+    if (transaction.commands.length === 0) return success(snapshot.document)
+    if (fast || sceneOnly) {
       const deltaIssues = validateCommandDeltas(transaction.commands, limits)
       if (deltaIssues.length) return { ok: false as const, diagnostics: deltaIssues.slice(0, 100) }
     }
@@ -432,12 +444,9 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       if (!result.ok) return result
       doc = result.value
     }
-    if (sceneOnly) {
-      if (transaction.commands.some((command) => SCENE_STRUCTURE.has(command.type)))
-        return validateSceneOnly(doc, limits)
-      return validateSceneOnly(doc, limits)
-    }
-    if (skipValidation) return success(doc)
+    // A gesture commit reuses the validation the identical preview already
+    // performed; any other scene write still validates the resulting scene.
+    if (sceneOnly) return trustedScene ? success(doc) : validateSceneOnly(doc, limits)
     return validateDocument(doc, limits)
   }
   function publish(doc: DiagramDocument, commands: EditorCommand[]): CommitResult {
@@ -460,6 +469,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     }
     if (!sceneOnly) nonSceneDirty = canonicalizeContent({ ...doc, scene: savedScene }) !== saved
     gesture = undefined
+    gestureValidated = false
     trim()
     notify({
       document: doc,
@@ -481,6 +491,31 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     for (const listener of [...commits]) listener(result)
     return result
   }
+  /**
+   * Shared commit path. `trustedScene` is only set by `commitGesture` after a
+   * successful preview of the identical scene batch, so the scene validation
+   * already ran for this exact result.
+   */
+  function commitTransaction(transaction: Transaction, trustedScene = false): CommitResult {
+    const result = candidate(transaction, false, trustedScene)
+    if (!result.ok)
+      return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
+    const sceneOnly = isSceneOnly(transaction.commands)
+    const unchanged = sceneOnly
+      ? commandsMatchScene(snapshot.document.scene, transaction.commands)
+      : contentOf(result.value) === contentOf(snapshot.document)
+    if (unchanged) return noop()
+    if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER) return rejected('revision.overflow')
+    const entryBytes = sceneOnly
+      ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene)
+      : bytesOf(snapshot.document) + bytesOf(result.value)
+    if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
+    pastSizes.push(currentBytes)
+    past.push(snapshot.document)
+    future = []
+    futureSizes = []
+    return publish(result.value, transaction.commands)
+  }
   const store: EditorStore = {
     getSnapshot: () => snapshot,
     subscribe(listener) {
@@ -496,31 +531,14 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       }
     },
     dispatch(transaction) {
-      const result = candidate(transaction)
-      if (!result.ok)
-        return { status: 'rejected', document: snapshot.document, diagnostics: result.diagnostics }
-      const sceneOnly = isSceneOnly(transaction.commands)
-      const unchanged = sceneOnly
-        ? commandsMatchScene(snapshot.document.scene, transaction.commands)
-        : contentOf(result.value) === contentOf(snapshot.document)
-      if (unchanged) return noop()
-      if (snapshot.document.revision >= Number.MAX_SAFE_INTEGER)
-        return rejected('revision.overflow')
-      const entryBytes = sceneOnly
-        ? 2 * currentBytes + sceneBytes(result.value.scene) - sceneBytes(snapshot.document.scene)
-        : bytesOf(snapshot.document) + bytesOf(result.value)
-      if (entryBytes > historyLimits.maxBytes) return rejected('history.capacity')
-      pastSizes.push(currentBytes)
-      past.push(snapshot.document)
-      future = []
-      futureSizes = []
-      return publish(result.value, transaction.commands)
+      return commitTransaction(transaction)
     },
     beginGesture(transaction) {
       if (snapshot.draft.kind !== 'none') return failure('draft.active')
       const result = candidate({ ...transaction, commands: [] })
       if (!result.ok) return result
       gesture = { transaction: structuredClone(transaction), commands: [] }
+      gestureValidated = false
       notify({
         draft: { kind: 'gesture', preview: snapshot.document, transactionId: transaction.id },
       })
@@ -529,8 +547,12 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     previewGesture(commands, options) {
       if (!gesture) return failure('gesture.missing')
       const result = candidate({ ...gesture.transaction, commands }, options?.skipValidation)
-      if (!result.ok) return result
+      if (!result.ok) {
+        gestureValidated = false
+        return result
+      }
       gesture.commands = structuredClone(commands)
+      gestureValidated = true
       notify({
         draft: { kind: 'gesture', preview: result.value, transactionId: gesture.transaction.id },
       })
@@ -539,12 +561,15 @@ export function createEditorStore(options: StoreOptions): EditorStore {
     commitGesture() {
       if (!gesture) return rejected('gesture.missing')
       const transaction = { ...gesture.transaction, commands: gesture.commands }
+      const trusted = gestureValidated
       gesture = undefined
+      gestureValidated = false
       notify({ draft: { kind: 'none' } })
-      return store.dispatch(transaction)
+      return commitTransaction(transaction, trusted)
     },
     cancelGesture() {
       gesture = undefined
+      gestureValidated = false
       if (snapshot.draft.kind === 'gesture') notify({ draft: { kind: 'none' } })
     },
     setTextDraft(text) {
@@ -664,6 +689,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       pastSizes = []
       futureSizes = []
       gesture = undefined
+      gestureValidated = false
       saved = canonicalizeContent(result.value)
       savedScene = structuredClone(result.value.scene)
       notify({ draft: { kind: 'none' }, selection: [] })
@@ -688,6 +714,7 @@ export function createEditorStore(options: StoreOptions): EditorStore {
       pastSizes = []
       futureSizes = []
       gesture = undefined
+      gestureValidated = false
     },
   }
   return store

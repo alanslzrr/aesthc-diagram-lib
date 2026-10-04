@@ -9,6 +9,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import * as core from '@aesthc/diagram-lib'
 import * as registry from '@aesthc/diagram-lib/registry'
 import { EXAMPLE_DIAGRAMS, registerExampleDiagrams } from '@aesthc/diagram-lib/examples'
+import { layoutDiagram } from '@aesthc/diagram-lib/layouts'
+import { DiagramCanvas, previewBounds } from '@aesthc/diagram-lib/canvas'
+import './docs-examples.test.mjs'
+import './theme-contract.test.mjs'
 
 const packageRoot = fileURLToPath(new URL('./node_modules/@aesthc/diagram-lib/', import.meta.url))
 const manifest = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'))
@@ -343,4 +347,81 @@ test('structured replacements require exhaustive mappings in the installed packa
   } finally {
     store.dispose()
   }
+})
+
+test('canvas presentation contract: showGrid, fit, view and previewBounds', () => {
+  const layout = layoutDiagram(example.diagram.en)
+  const bounds = previewBounds(layout)
+  assert.ok(bounds.width > 0 && bounds.height > 0)
+  const base = {
+    layout,
+    highlight: null,
+    activeNodeId: null,
+    focusedNodeId: null,
+    selectedNodeId: null,
+    onTooltipNodeChange: () => {},
+    onFocusNode: () => {},
+    onSelectNode: () => {},
+    onDismissNode: () => {},
+    instanceId: 'contract',
+    ariaLabel: 'contract',
+    nodeVisuals: {},
+  }
+  const defaults = renderToStaticMarkup(createElement(DiagramCanvas, base))
+  assert.ok(defaults.includes(`viewBox="0 0 ${layout.width} ${layout.height}"`))
+  assert.ok(defaults.includes('data-diagram-grid'))
+  const framed = renderToStaticMarkup(
+    createElement(DiagramCanvas, { ...base, showGrid: false, fit: 'contain', view: bounds }),
+  )
+  assert.ok(!framed.includes('data-diagram-grid'))
+  assert.ok(framed.includes(`viewBox="${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}"`))
+  assert.ok(framed.includes('min-width:0'))
+})
+
+test('two packaged viewers resolve the same custom typeKey with isolated registries', async () => {
+  const { createDocument, createRendererRegistry } = await import('@aesthc/diagram-lib/editor-core')
+  const { DiagramViewer } = await import('@aesthc/diagram-lib/viewer')
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Isolated viewer',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [
+        {
+          id: 'custom',
+          label: 'Custom',
+          description: '',
+          renderer: { typeKey: 'badge', data: { label: 'A' } },
+        },
+      ],
+      edges: [],
+    },
+    { id: 'isolated-viewer', locale: 'en' },
+  )
+  assert.equal(made.ok, true)
+  const badge = (color) => ({
+    typeKey: 'badge',
+    validate: (data) => ({ ok: true, diagnostics: [], value: data }),
+    measure: () => ({ width: 120, height: 40 }),
+    renderSvg: (_data, context) =>
+      `<g data-instance-color="${color}"><rect x="${context.x}" y="${context.y}" width="120" height="40"/></g>`,
+  })
+  const first = createRendererRegistry()
+  const second = createRendererRegistry()
+  assert.equal(first.register(badge('red')).ok, true)
+  assert.equal(second.register(badge('blue')).ok, true)
+  const one = renderToStaticMarkup(
+    createElement(DiagramViewer, { document: made.value, registry: first }),
+  )
+  const two = renderToStaticMarkup(
+    createElement(DiagramViewer, { document: made.value, registry: second }),
+  )
+  assert.ok(one.includes('data-instance-color="red"'))
+  assert.ok(!one.includes('data-instance-color="blue"'))
+  assert.ok(two.includes('data-instance-color="blue"'))
+  assert.ok(!two.includes('data-instance-color="red"'))
+  // Without a registry the viewer reports the unavailable custom node instead
+  // of drawing an ordinary card in its place.
+  const bare = renderToStaticMarkup(createElement(DiagramViewer, { document: made.value }))
+  assert.ok(bare.includes('data-renderer-missing="badge"'))
 })

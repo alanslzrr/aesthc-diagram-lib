@@ -1,0 +1,868 @@
+
+> @aesthc/diagram-lib@0.3.0 test:e2e /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> playwright test --project=webkit --project=mobile --update-snapshots=none --reporter=list --output=/tmp/aesthc-audit-20261002/webkit-artifacts
+
+[WebServer] (node:58237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:58238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 416 tests using 2 workers
+
+(node:58275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:58274) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    1 [webkit] › tests/e2e/adoption.e2e.ts:4:1 › landing links reach adoption tools and editors mount only on demand (2.9s)
+  ✓    2 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:186:1 › gallery cards use one masked backdrop and never mask the diagram (3.3s)
+  ✓    3 [webkit] › tests/e2e/adoption.e2e.ts:19:1 › capabilities are a static section with no disclosure pattern (826ms)
+  -    5 [webkit] › tests/e2e/adoption.e2e.ts:29:1 › landing presentation preserves both locales and themes at narrow and desktop widths
+  ✓    4 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:306:1 › the scale instrument detects height-limited framing (1.0s)
+  ✓    6 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~50% (551ms)
+  ✓    7 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:335:1 › cropped landing showcases hint the crop without masking the SVG (594ms)
+  ✓    8 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~100% (707ms)
+  ✓    9 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:366:1 › docs previews use one masked backdrop, fitted with no amputation (1.4s)
+  ✓   10 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~200% (1.1s)
+  ✓   12 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~50% (528ms)
+  ✓   11 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:428:1 › contrast instrument detects invisible paint, dimmed groups and SVG surfaces (721ms)
+  ✓   13 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~100% (811ms)
+  ✓   14 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:518:1 › nodes are opaque and semantic strokes keep 3:1 over their surface (1.1s)
+  ✓   15 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~200% (951ms)
+  ✓   17 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~50% (677ms)
+  ✓   16 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:543:1 › lifelines, lanes, ER separators and states stay above the dots (1.4s)
+  ✓   18 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~100% (627ms)
+  ✓   20 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~200% (1.0s)
+  ✓   21 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~50% (780ms)
+  ✓   22 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~100% (913ms)
+  ✓   19 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:582:1 › every editor structure keeps 3:1 in both themes (4.3s)
+  ✓   23 [webkit] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~200% (1.1s)
+  -   25 [webkit] › tests/e2e/diagram-labels.e2e.ts:103:1 › the exported SVG centers labels and keeps them inside the pill
+  ✓   24 [webkit] › tests/e2e/diagram-backdrop.e2e.ts:603:1 › editor grid is one masked viewport layer and the document grid stays out (687ms)
+  ✓   26 [webkit] › tests/e2e/diagram-labels.e2e.ts:140:1 › the longest shipped lane label fits its header with loaded fonts (626ms)
+  ✓   27 [webkit] › tests/e2e/docs-react.e2e.ts:4:1 › React docs preserve shell, sidebar scroll, history, metadata and focus without document reloads (1.3s)
+  ✓   29 [webkit] › tests/e2e/docs-react.e2e.ts:61:1 › system theme follows OS, persists explicit selection and synchronizes tabs (1.8s)
+  ✓   30 [webkit] › tests/e2e/docs-react.e2e.ts:87:1 › blocked preference storage still allows theme changes and keyboard selection (657ms)
+  ✓   28 [webkit] › tests/e2e/docs.e2e.ts:7:1 › docs navigation, real previews, downloads and heading anchors are complete (7.8s)
+  ✓   32 [webkit] › tests/e2e/docs.e2e.ts:49:1 › documentation previews open the relevant playground section (751ms)
+  ✓   33 [webkit] › tests/e2e/docs.e2e.ts:61:1 › search supports keyboard navigation, empty results and versioned pages (798ms)
+  ✓   34 [webkit] › tests/e2e/docs.e2e.ts:85:1 › package manager preference is shared with playground and survives invalid storage (1.2s)
+  -   35 [webkit] › tests/e2e/docs.e2e.ts:118:1 › copy uses the selected command and provides real clipboard feedback
+  ✓   36 [webkit] › tests/e2e/docs.e2e.ts:142:3 › light docs have restrained Geist controls, accessible contrast and no page overflow (1.2s)
+  ✓   37 [webkit] › tests/e2e/docs.e2e.ts:142:3 › dark docs have restrained Geist controls, accessible contrast and no page overflow (1.2s)
+  -   38 [webkit] › tests/e2e/docs.e2e.ts:195:1 › mobile navigation is a static section with no disclosure and works without JavaScript
+  ✓   39 [webkit] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes (3.3s)
+  ✓   40 [webkit] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes (3.3s)
+  ✓   41 [webkit] › tests/e2e/drafts.e2e.ts:9:1 › opt-in raw draft recovery is explicit and validates before applying (3.5s)
+  ✓   42 [webkit] › tests/e2e/drafts.e2e.ts:33:1 › raw invalid edits survive locale round trips without persistence (1.7s)
+  ✓   43 [webkit] › tests/e2e/drafts.e2e.ts:56:1 › blocked draft storage shows a warning and oversized counts retain preview (1.6s)
+  ✓   44 [webkit] › tests/e2e/drafts.e2e.ts:78:1 › a shared locale opens without overwriting a saved local draft (806ms)
+  ✓   45 [webkit] › tests/e2e/editor-accessibility.e2e.ts:11:1 › T44.1 the full editing workflow runs with the keyboard alone (862ms)
+  ✘   46 [webkit] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas (8.6s)
+(node:58570) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   47 [webkit] › tests/e2e/editor-accessibility.e2e.ts:73:1 › T44.2 the editor stays operable and unclipped at 200% page zoom (674ms)
+  ✓   48 [webkit] › tests/e2e/editor-accessibility.e2e.ts:110:1 › T44.3 viewer, lenses, collapse, story and M3 controls have no serious axe violations (2.3s)
+  ✓   49 [webkit] › tests/e2e/editor-cards.e2e.ts:42:1 › T41.1 route and reach cards decode at 1200x630 with an exact non-canonical receipt (865ms)
+  ✓   50 [webkit] › tests/e2e/editor-cards.e2e.ts:78:1 › T41.1 the card SVG fits the whole graph, marks exact parallel ids and reports canonical=false (10ms)
+  ✓   51 [webkit] › tests/e2e/editor-compare.e2e.ts:114:1 › T49.2 before/delta/after navigation keeps exact IDs and exports a receipt (1.2s)
+  ✓   52 [webkit] › tests/e2e/editor-compare.e2e.ts:169:1 › T49.2 an incompatible document rejects without mutating the preview (485ms)
+  ✓   53 [webkit] › tests/e2e/editor-connections.e2e.ts:12:1 › drag from the connect handle to a target creates one undoable relation (665ms)
+  ✓   54 [webkit] › tests/e2e/editor-connections.e2e.ts:39:1 › dropping the connect drag on empty canvas cancels without changes (627ms)
+  ✓   55 [webkit] › tests/e2e/editor-connections.e2e.ts:62:1 › keyboard connect mode links the focused target and Escape cancels (687ms)
+  ✓   56 [webkit] › tests/e2e/editor-conversion.e2e.ts:24:1 › T53.2 cancel keeps the document, draft and saved copy untouched (863ms)
+  ✓   57 [webkit] › tests/e2e/editor-conversion.e2e.ts:41:1 › T53.2 accepting opens a new graph document without overwriting the original (1.1s)
+  ✓   58 [webkit] › tests/e2e/editor-crud.e2e.ts:55:1 › T16.1 IME composition never commits intermediate text and applies once on confirm (765ms)
+  ✘   31 [webkit] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export (45.3s)
+(node:58604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   59 [webkit] › tests/e2e/editor-crud.e2e.ts:82:1 › T16.1 composition left unconfirmed persists nothing (638ms)
+  ✓   61 [webkit] › tests/e2e/editor-crud.e2e.ts:99:1 › T16.1 labels stay literal text without executing markup (776ms)
+  ✓   60 [webkit] › tests/e2e/docs-react.e2e.ts:144:1 › explicit example actions stay operable and code scroll uses a bounded viewport (1.1s)
+  ✓   62 [webkit] › tests/e2e/editor-crud.e2e.ts:124:1 › T16.1 the JSON draft stays uncommitted while text is composed (626ms)
+  ✓   63 [webkit] › tests/e2e/docs-react.e2e.ts:171:1 › unknown routes, malformed anchors and readable long source never break the docs shell (856ms)
+  ✓   64 [webkit] › tests/e2e/editor-crud.e2e.ts:145:1 › portable composition event adapter preserves the draft until explicit apply (643ms)
+  ✓   66 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 360px (436ms)
+  ✓   65 [webkit] › tests/e2e/docs-react.e2e.ts:197:1 › repeated example toggles never leave hidden focusable content behind (958ms)
+  ✓   67 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 360px (492ms)
+  ✓   69 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 768px (470ms)
+  ✓   68 [webkit] › tests/e2e/docs-react.e2e.ts:213:1 › reading scroll remains native for wheel and touch gestures (543ms)
+  ✓   70 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 768px (534ms)
+  ✓   71 [webkit] › tests/e2e/docs-react.e2e.ts:249:1 › returning during a pending route aborts the request and clears the busy state (576ms)
+  ✓   72 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 1440px (547ms)
+  ✓   73 [webkit] › tests/e2e/docs-react.e2e.ts:265:1 › headers keep one Docs label, compact theme controls and icon-only GitHub with one home license mention (1.1s)
+  ✓   74 [webkit] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 1440px (675ms)
+  ✓   76 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-flowchart and persists with one undo entry (909ms)
+  ✓   75 [webkit] › tests/e2e/docs-react.e2e.ts:295:1 › installation uses colored brand tabs, an underline, icon-only copy and a separate shell prompt (1.5s)
+  ✓   77 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-er and persists with one undo entry (915ms)
+  ✓   79 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-state-machine and persists with one undo entry (898ms)
+  ✓   78 [webkit] › tests/e2e/docs-react.e2e.ts:374:1 › formal web scale bounds headings, installation icons and headers across viewports (1.9s)
+  ✓   80 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-band and persists with one undo entry (850ms)
+  ✓   81 [webkit] › tests/e2e/docs-react.e2e.ts:429:1 › ER type and unique annotations do not overlap each other or field names (605ms)
+  ✓   82 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-swimlane and persists with one undo entry (823ms)
+  ✓   84 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-sequence and persists with one undo entry (765ms)
+  ✓   85 [webkit] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-timeline and persists with one undo entry (747ms)
+  ✓   83 [webkit] › tests/e2e/docs-react.e2e.ts:449:1 › architecture showcase switches concrete service flows, failures and locales without stale selection (2.5s)
+  ✓   86 [webkit] › tests/e2e/editor-drag.e2e.ts:70:1 › dragging an imported graph node persists its scene position (791ms)
+  ✓   87 [webkit] › tests/e2e/editor-export-failures.e2e.ts:15:1 › T28.2 exported SVG reparses as well-formed XML with resolvable ids and no handlers (681ms)
+  ✓   88 [webkit] › tests/e2e/editor-drag.e2e.ts:100:1 › drag previews and commits updated connections (774ms)
+  ✓   89 [webkit] › tests/e2e/editor-export-failures.e2e.ts:45:1 › T29.2 raster image failures report precise codes and a retry succeeds (830ms)
+  ✓   90 [webkit] › tests/e2e/editor-drag.e2e.ts:113:1 › a locked node refuses to move (822ms)
+  ✓   91 [webkit] › tests/e2e/editor-export-failures.e2e.ts:75:1 › T29.2 a null canvas blob fails encoding without reporting success (789ms)
+  ✓   92 [webkit] › tests/e2e/editor-drag.e2e.ts:125:1 › a canceled drag rolls back with no history entry (672ms)
+  ✓   93 [webkit] › tests/e2e/editor-export-failures.e2e.ts:88:1 › T39.2 exports keep notes, links and extensions out of the SVG and JSON carries source (1.6s)
+  ✓   94 [webkit] › tests/e2e/editor-drag.e2e.ts:150:1 › Pan mode drags the camera and leaves the document untouched (1.3s)
+  ✓   95 [webkit] › tests/e2e/editor-grid-order.e2e.ts:102:1 › the grid layer paints below the confirmed geometry (674ms)
+  ✓   96 [webkit] › tests/e2e/editor-formats.e2e.ts:5:1 › T42.1 a browser without real WebP disables the format instead of renaming a PNG (664ms)
+  ✓   98 [webkit] › tests/e2e/editor-formats.e2e.ts:20:1 › T42.1 a WebP encode that returns PNG fails with export.mime and downloads nothing (775ms)
+  ✓   99 [webkit] › tests/e2e/editor-formats.e2e.ts:42:1 › T42.1 JPEG never silently changes a transparent background (6ms)
+  ✓   97 [webkit] › tests/e2e/editor-grid-order.e2e.ts:129:1 › toggling the grid never changes opaque card interiors (1.3s)
+  ✘  100 [webkit] › tests/e2e/editor-grid.e2e.ts:143:1 › grid covers the viewport in every corner and reacts to pan and resize (879ms)
+(node:58716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  101 [webkit] › tests/e2e/editor-grid-order.e2e.ts:178:1 › undo restores the dragged node and does not touch the grid state (1.5s)
+  ✓  102 [webkit] › tests/e2e/editor-grid.e2e.ts:211:1 › Show grid removes the single grid layer everywhere (730ms)
+  ✓  103 [webkit] › tests/e2e/editor-grid-order.e2e.ts:240:1 › the gesture preview also ignores the grid on card interiors (870ms)
+  -  105 [webkit] › tests/e2e/editor-motion.e2e.ts:81:1 › T52.1 a supported codec records a decodable, bounded file with no camera access
+  ✓  106 [webkit] › tests/e2e/editor-motion.e2e.ts:158:1 › T52.2 reduced motion, missing codecs and cancellation never report a false success (508ms)
+  -  107 [webkit] › tests/e2e/editor-motion.e2e.ts:175:1 › T52.2 a browser without a WebM codec disables recording instead of producing a file
+  -  108 [webkit] › tests/e2e/editor-motion.e2e.ts:193:1 › T52.2 cancelling a recording releases the canvas tracks without a download
+  ✓  104 [webkit] › tests/e2e/editor-html.e2e.ts:64:1 › T38.1 the artifact works from file:// with zero network and zero storage (1.9s)
+  ✓  109 [webkit] › tests/e2e/editor-profiles.e2e.ts:76:1 › T51.2 an invalid deployment profile is not auto-disabled and its diagnostics navigate (1.3s)
+  ✓  110 [webkit] › tests/e2e/editor-html.e2e.ts:142:1 › T38.2 malicious labels stay data and the source JSON only travels explicitly (1.6s)
+  ✓  111 [webkit] › tests/e2e/editor-quality.e2e.ts:73:1 › T36.2 publish export measures long labels with embedded fonts without clipping (750ms)
+  ✓  112 [webkit] › tests/e2e/editor-security.e2e.ts:9:1 › T55.2 forged storage is quarantined without executing its payload (813ms)
+  ✓  113 [webkit] › tests/e2e/editor-quality.e2e.ts:105:1 › T36.2 missing font metrics surface an actionable error and never a false success (747ms)
+  ✓  114 [webkit] › tests/e2e/editor-security.e2e.ts:39:1 › T55.2 hostile imports stay literal and dangerous schemes are rejected before layout (748ms)
+  ✓  116 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-band surface (719ms)
+  ✓  115 [webkit] › tests/e2e/editor-share.e2e.ts:69:1 › T40.2 an oversized share link offers a local JSON download and never announces success (1.9s)
+  ✓  117 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-flowchart surface (758ms)
+  ✓  118 [webkit] › tests/e2e/editor-share.e2e.ts:89:1 › T40.2 a denied clipboard falls back to the JSON download message without a false success (547ms)
+  -  120 [webkit] › tests/e2e/editor-share.e2e.ts:104:1 › T40.2 a shared link opens the shared document in a fresh context
+  ✓  119 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-sequence surface (767ms)
+  ✓  121 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 390px (en) (1.1s)
+  ✓  122 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-state-machine surface (780ms)
+  ✓  124 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-er surface (720ms)
+  ✓  123 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 390px (es) (1.2s)
+  ✓  125 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-timeline surface (702ms)
+  ✓  127 [webkit] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-swimlane surface (737ms)
+  ✓  126 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 768px (en) (1.1s)
+  ✓  128 [webkit] › tests/e2e/editor-theme.e2e.ts:70:1 › theme switch is not a document edit and never exposes a second control (708ms)
+  ✓  129 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 768px (es) (1.2s)
+  ✓  130 [webkit] › tests/e2e/editor-theme.e2e.ts:89:1 › an imported light document renders dark under the dark host without rewriting JSON (677ms)
+  -  132 [webkit] › tests/e2e/editor-touch.e2e.ts:3:1 › two-finger pinch pans and zooms without committing node edits
+  ✓  133 [webkit] › tests/e2e/editor-touch.e2e.ts:43:1 › ordinary wheel scrolls the page and modified wheel zooms only the canvas (748ms)
+  ✓  131 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1280px (en) (1.2s)
+  ✓  134 [webkit] › tests/e2e/editor-touch.e2e.ts:66:1 › Space drag pans without moving nodes or creating undo entries (586ms)
+  -  136 [webkit] › tests/e2e/editor-touch.e2e.ts:90:1 › long touch selects without dragging, opening callouts or committing edits
+  ✓  135 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1280px (es) (1.4s)
+  ✓  137 [webkit] › tests/e2e/editor-viewer-e14.e2e.ts:3:1 › T33.1 lens dims by roles without touching topology, collapse keeps original edge IDs (717ms)
+  ✓  138 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1440px (en) (1.2s)
+  ✓  140 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1440px (es) (1.3s)
+  ✓  141 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1920px (en) (1.3s)
+  ✓  139 [webkit] › tests/e2e/editor-viewer-e14.e2e.ts:38:1 › T34.2 story playback is finite, manual and stops on Escape, hidden tab and reduced motion (4.0s)
+  ✓  143 [webkit] › tests/e2e/editor-viewer-e14.e2e.ts:77:1 › T34.2 reduced motion shows static steps with working Next/Previous and disables Play (623ms)
+  ✓  142 [webkit] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1920px (es) (1.3s)
+  ✓  144 [webkit] › tests/e2e/editor-viewer-e14.e2e.ts:95:1 › T35.1 presentation falls back when fullscreen is denied and restores focus on exit (769ms)
+  ✓  145 [webkit] › tests/e2e/editor-viewer.e2e.ts:82:1 › T32.1 finder orders results deterministically and announces zero results (575ms)
+  ✓  146 [webkit] › tests/e2e/editor-viewport.e2e.ts:19:5 › viewport math under transforms › retina DPR 2 › T07.2 a screen drag applies the world delta once without double transformation (556ms)
+  ✓  147 [webkit] › tests/e2e/editor-viewer.e2e.ts:111:1 › T32.1 parallel relations keep their exact IDs in the inspector (622ms)
+  ✓  148 [webkit] › tests/e2e/editor-viewport.e2e.ts:30:3 › viewport math under transforms › T07.2 CSS-scaled canvas with letterbox maps screen deltas through the CTM (595ms)
+  ✓  149 [webkit] › tests/e2e/editor-viewer.e2e.ts:129:1 › T32.2 a stale query invalidates highlight and export when the document changes (630ms)
+  ✓  150 [webkit] › tests/e2e/editor-viewport.e2e.ts:52:1 › T08.1 the middle mouse button pans the camera without touching the document (592ms)
+  ✓  151 [webkit] › tests/e2e/editor-viewer.e2e.ts:154:1 › camera fit centers the diagram and the minimap scales inside its frame (495ms)
+  ✓  153 [webkit] › tests/e2e/editor-viewer.e2e.ts:180:1 › viewer entry loads Geist and the shared host tokens over a viewport backdrop (568ms)
+  ✓  152 [webkit] › tests/e2e/editor-viewport.e2e.ts:71:1 › T09.1 a node id equal to an edge id stays a distinct selectable entity (842ms)
+  ✓  155 [webkit] › tests/e2e/editor-viewport.e2e.ts:98:1 › the gesture baseline refreshes after content changes between drags (782ms)
+  ✓  156 [webkit] › tests/e2e/onboarding.e2e.ts:3:1 › release onboarding is explicit and generated pages link to their source (1.0s)
+  ✓  157 [webkit] › tests/e2e/onboarding.e2e.ts:20:1 › static discovery metadata and missing-page recovery are usable without JavaScript (536ms)
+  ✓  158 [webkit] › tests/e2e/playground-editor.e2e.ts:3:1 › direct playground entry loads shared styles and the editor workspace (538ms)
+  ✓  159 [webkit] › tests/e2e/playground-editor.e2e.ts:37:1 › playground edits the document, undoes and keeps drafts per type (1.1s)
+  ✓  160 [webkit] › tests/e2e/playground-editor.e2e.ts:86:1 › a deferred import cannot land on a different example (1.5s)
+  ✓  161 [webkit] › tests/e2e/playground-editor.e2e.ts:122:1 › import confirms the history reset and reports the applied result (498ms)
+  ✓  162 [webkit] › tests/e2e/playground-editor.e2e.ts:147:1 › invalid JSON keeps the last valid canvas and shows diagnostics (544ms)
+  ✓  163 [webkit] › tests/e2e/playground-editor.e2e.ts:160:1 › camera zoom and pan survive example switching and Fit still works (972ms)
+  ✓  164 [webkit] › tests/e2e/playground-editor.e2e.ts:201:1 › keyboard selects a node in the editor and Escape clears it (542ms)
+  ✓  165 [webkit] › tests/e2e/playground.e2e.ts:6:1 › seven types render with unique SVG IDs in both themes (906ms)
+  ✓  166 [webkit] › tests/e2e/playground.e2e.ts:36:1 › invalid JSON retains the last valid preview and draft across tabs (1.6s)
+  ✓  167 [webkit] › tests/e2e/playground.e2e.ts:54:1 › share roundtrip restores spec and locale (1.0s)
+  ✘  154 [webkit] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export (45.3s)
+(node:58874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  169 [webkit] › tests/e2e/light-theme.e2e.ts:46:3 › light band text and controls retain accessible contrast (1.4s)
+  ✓  170 [webkit] › tests/e2e/light-theme.e2e.ts:46:3 › dark band text and controls retain accessible contrast (1.2s)
+  -  171 [webkit] › tests/e2e/presentation-assets.e2e.ts:5:1 › regenerate presentation assets from the public playground
+  -  172 [webkit] › tests/e2e/snapshots.e2e.ts:17:1 › frozen A remains complete after rebuilding and serving only B
+  ✓  173 [webkit] › tests/e2e/studio.e2e.ts:29:1 › Studio edits, undoes, validates drafts and restores a saved document (1.2s)
+  ✓  174 [webkit] › tests/e2e/studio.e2e.ts:54:1 › Studio pointer drag is one transaction and keyboard movement is undoable (690ms)
+  ✓  175 [webkit] › tests/e2e/studio.e2e.ts:77:1 › Studio exports fresh SVG, PNG and JSON, supports both themes and Spanish (906ms)
+  ✓  176 [webkit] › tests/e2e/studio.e2e.ts:116:1 › Studio creates, resizes, connects, duplicates and groups nodes (1.1s)
+  ✓  177 [webkit] › tests/e2e/studio.e2e.ts:150:1 › Studio visual evidence has loaded fonts, bounded controls and no horizontal overflow (820ms)
+  ✓  178 [webkit] › tests/e2e/studio.e2e.ts:167:1 › Studio has no serious automated accessibility violations in either theme (1.6s)
+  ✓  179 [webkit] › tests/e2e/studio.e2e.ts:182:1 › Studio marquee selects across zoom, cancels without edits and supports additive selection (907ms)
+  ✓  180 [webkit] › tests/e2e/studio.e2e.ts:220:1 › Studio selects timeline labels and excludes sequence activation bars from focus targets (766ms)
+  ✘  168 [webkit] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG (45.3s)
+(node:58917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  181 [webkit] › tests/e2e/studio.e2e.ts:244:1 › Studio resize handle previews, cancels, commits once and supports keyboard undo (879ms)
+  ✓  183 [webkit] › tests/e2e/studio.e2e.ts:279:1 › Studio outline selects nodes and relationships by keyboard without editing content (538ms)
+  ✓  182 [webkit] › tests/e2e/playground.e2e.ts:78:1 › static docs and agent entrypoint work without JavaScript (711ms)
+  ✓  185 [webkit] › tests/e2e/playground.e2e.ts:89:1 › core page has no serious or critical accessibility violations (1.3s)
+  ✓  184 [webkit] › tests/e2e/studio.e2e.ts:300:1 › Studio system clipboard validates fragments and handles denied access without edits (1.4s)
+  ✓  186 [webkit] › tests/e2e/playground.e2e.ts:100:1 › compact diagram actions expose icons, integration prompt and one reusable export dropdown (755ms)
+  ✓  187 [webkit] › tests/e2e/studio.e2e.ts:361:1 › Studio exports local semantic and brand icons as self-contained SVG and raster (788ms)
+  ✓  189 [webkit] › tests/e2e/studio.e2e.ts:401:1 › Studio aligns a selection in one undoable transaction (765ms)
+  ✓  188 [webkit] › tests/e2e/theme-feedback.e2e.ts:4:3 › invalid theme edits preserve readable host and last valid preview: en (1.1s)
+  ✓  190 [webkit] › tests/e2e/studio.e2e.ts:418:1 › Studio exposes eight resize directions with anchored keyboard edits (664ms)
+  ✓  191 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 320 (807ms)
+  ✓  192 [webkit] › tests/e2e/studio.e2e.ts:442:1 › Studio northwest resize anchors at zoom and locked nodes hide handles (937ms)
+  ✓  193 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 360 (799ms)
+  ✓  195 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 390 (818ms)
+  ✓  194 [webkit] › tests/e2e/studio.e2e.ts:480:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit (1.0s)
+  ✓  196 [webkit] › tests/e2e/theme-feedback.e2e.ts:88:3 › clipboard denial has visible localized feedback: en (614ms)
+  ✓  197 [webkit] › tests/e2e/studio.e2e.ts:534:1 › low zoom keeps every painted resize marker on its own actionable target (1.5s)
+  ✓  198 [webkit] › tests/e2e/theme-feedback.e2e.ts:4:3 › invalid theme edits preserve readable host and last valid preview: es (1.1s)
+  ✓  200 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 320 (812ms)
+  ✓  201 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 360 (810ms)
+  ✓  199 [webkit] › tests/e2e/studio.e2e.ts:623:1 › low zoom resize keeps the opposite anchor, distinguishes body drags and undoes once (2.1s)
+  ✓  202 [webkit] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 390 (841ms)
+  ✓  203 [webkit] › tests/e2e/studio.e2e.ts:693:1 › Studio selects connections and edits manual routes through draggable waypoints and anchors (891ms)
+  ✓  204 [webkit] › tests/e2e/theme-feedback.e2e.ts:88:3 › clipboard denial has visible localized feedback: es (628ms)
+  ✓  205 [webkit] › tests/e2e/studio.e2e.ts:730:1 › Studio recovers drafts, quarantines corrupt copies and supports save-as (1.3s)
+  ✓  206 [webkit] › tests/e2e/theme-feedback.e2e.ts:105:1 › locale toggle persists independently and blocked storage falls back safely (1.4s)
+(node:58971) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  207 [webkit] › tests/e2e/studio.e2e.ts:768:1 › Studio relayout previews, applies in one undoable edit and cancels cleanly (1.1s)
+  ✓  208 [mobile] › tests/e2e/adoption.e2e.ts:4:1 › landing links reach adoption tools and editors mount only on demand (1.0s)
+  ✓  209 [webkit] › tests/e2e/studio.e2e.ts:809:1 › Studio edits graph ports and ER table fields through the structured inspector (1.2s)
+  ✓  210 [mobile] › tests/e2e/adoption.e2e.ts:19:1 › capabilities are a static section with no disclosure pattern (541ms)
+(node:58988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  211 [mobile] › tests/e2e/adoption.e2e.ts:29:1 › landing presentation preserves both locales and themes at narrow and desktop widths
+  -  213 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~50%
+  -  214 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~100%
+  -  215 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence EN keeps labels inside pills at ~200%
+  -  216 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~50%
+  -  217 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~100%
+  -  218 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-sequence ES keeps labels inside pills at ~200%
+  -  219 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~50%
+  -  220 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~100%
+  -  221 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band EN keeps labels inside pills at ~200%
+  -  222 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~50%
+  ✓  212 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:186:1 › gallery cards use one masked backdrop and never mask the diagram (2.1s)
+  -  223 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~100%
+  -  225 [mobile] › tests/e2e/diagram-labels.e2e.ts:88:7 › example-band ES keeps labels inside pills at ~200%
+  -  226 [mobile] › tests/e2e/diagram-labels.e2e.ts:103:1 › the exported SVG centers labels and keeps them inside the pill
+  ✓  224 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:306:1 › the scale instrument detects height-limited framing (865ms)
+  ✓  227 [mobile] › tests/e2e/diagram-labels.e2e.ts:140:1 › the longest shipped lane label fits its header with loaded fonts (418ms)
+  ✓  228 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:335:1 › cropped landing showcases hint the crop without masking the SVG (526ms)
+  ✓  229 [mobile] › tests/e2e/docs-react.e2e.ts:4:1 › React docs preserve shell, sidebar scroll, history, metadata and focus without document reloads (847ms)
+  ✓  230 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:366:1 › docs previews use one masked backdrop, fitted with no amputation (1.2s)
+  ✓  232 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:428:1 › contrast instrument detects invisible paint, dimmed groups and SVG surfaces (627ms)
+  ✓  231 [mobile] › tests/e2e/docs-react.e2e.ts:61:1 › system theme follows OS, persists explicit selection and synchronizes tabs (1.5s)
+  ✓  234 [mobile] › tests/e2e/docs-react.e2e.ts:87:1 › blocked preference storage still allows theme changes and keyboard selection (597ms)
+  ✓  233 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:518:1 › nodes are opaque and semantic strokes keep 3:1 over their surface (938ms)
+  ✓  236 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:543:1 › lifelines, lanes, ER separators and states stay above the dots (1.1s)
+  ✓  237 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:582:1 › every editor structure keeps 3:1 in both themes (2.7s)
+  ✓  238 [mobile] › tests/e2e/diagram-backdrop.e2e.ts:603:1 › editor grid is one masked viewport layer and the document grid stays out (468ms)
+  ✓  239 [mobile] › tests/e2e/docs.e2e.ts:7:1 › docs navigation, real previews, downloads and heading anchors are complete (6.9s)
+  ✓  240 [mobile] › tests/e2e/docs.e2e.ts:49:1 › documentation previews open the relevant playground section (634ms)
+  ✓  241 [mobile] › tests/e2e/docs.e2e.ts:61:1 › search supports keyboard navigation, empty results and versioned pages (703ms)
+  ✓  242 [mobile] › tests/e2e/docs.e2e.ts:85:1 › package manager preference is shared with playground and survives invalid storage (1.2s)
+  -  243 [mobile] › tests/e2e/docs.e2e.ts:118:1 › copy uses the selected command and provides real clipboard feedback
+  ✓  244 [mobile] › tests/e2e/docs.e2e.ts:142:3 › light docs have restrained Geist controls, accessible contrast and no page overflow (1.1s)
+  ✓  245 [mobile] › tests/e2e/docs.e2e.ts:142:3 › dark docs have restrained Geist controls, accessible contrast and no page overflow (1.1s)
+  ✓  246 [mobile] › tests/e2e/docs.e2e.ts:195:1 › mobile navigation is a static section with no disclosure and works without JavaScript (1.0s)
+  ✘  247 [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes (3.0s)
+(node:59067) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  248 [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes (3.2s)
+(node:59083) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  249 [mobile] › tests/e2e/drafts.e2e.ts:9:1 › opt-in raw draft recovery is explicit and validates before applying (3.5s)
+  ✓  250 [mobile] › tests/e2e/drafts.e2e.ts:33:1 › raw invalid edits survive locale round trips without persistence (1.7s)
+  ✓  251 [mobile] › tests/e2e/drafts.e2e.ts:56:1 › blocked draft storage shows a warning and oversized counts retain preview (1.1s)
+  ✓  252 [mobile] › tests/e2e/drafts.e2e.ts:78:1 › a shared locale opens without overwriting a saved local draft (735ms)
+  ✓  253 [mobile] › tests/e2e/editor-accessibility.e2e.ts:11:1 › T44.1 the full editing workflow runs with the keyboard alone (790ms)
+  ✘  254 [mobile] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas (8.6s)
+(node:59133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  235 [mobile] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export (45.3s)
+(node:59153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  256 [mobile] › tests/e2e/docs-react.e2e.ts:144:1 › explicit example actions stay operable and code scroll uses a bounded viewport (1.0s)
+  ✓  257 [mobile] › tests/e2e/docs-react.e2e.ts:171:1 › unknown routes, malformed anchors and readable long source never break the docs shell (803ms)
+  ✓  258 [mobile] › tests/e2e/docs-react.e2e.ts:197:1 › repeated example toggles never leave hidden focusable content behind (922ms)
+  -  259 [mobile] › tests/e2e/docs-react.e2e.ts:213:1 › reading scroll remains native for wheel and touch gestures
+  ✓  260 [mobile] › tests/e2e/docs-react.e2e.ts:249:1 › returning during a pending route aborts the request and clears the busy state (548ms)
+  ✓  261 [mobile] › tests/e2e/docs-react.e2e.ts:265:1 › headers keep one Docs label, compact theme controls and icon-only GitHub with one home license mention (899ms)
+  ✘  255 [mobile] › tests/e2e/editor-accessibility.e2e.ts:73:1 › T44.2 the editor stays operable and unclipped at 200% page zoom (8.5s)
+(node:59173) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  262 [mobile] › tests/e2e/docs-react.e2e.ts:295:1 › installation uses colored brand tabs, an underline, icon-only copy and a separate shell prompt (1.4s)
+  ✓  263 [mobile] › tests/e2e/editor-accessibility.e2e.ts:110:1 › T44.3 viewer, lenses, collapse, story and M3 controls have no serious axe violations (2.3s)
+  ✓  264 [mobile] › tests/e2e/docs-react.e2e.ts:374:1 › formal web scale bounds headings, installation icons and headers across viewports (1.8s)
+  ✓  266 [mobile] › tests/e2e/docs-react.e2e.ts:429:1 › ER type and unique annotations do not overlap each other or field names (559ms)
+  ✓  265 [mobile] › tests/e2e/editor-cards.e2e.ts:42:1 › T41.1 route and reach cards decode at 1200x630 with an exact non-canonical receipt (811ms)
+  ✓  268 [mobile] › tests/e2e/editor-cards.e2e.ts:78:1 › T41.1 the card SVG fits the whole graph, marks exact parallel ids and reports canonical=false (10ms)
+  ✓  269 [mobile] › tests/e2e/editor-compare.e2e.ts:114:1 › T49.2 before/delta/after navigation keeps exact IDs and exports a receipt (1.2s)
+  ✓  270 [mobile] › tests/e2e/editor-compare.e2e.ts:169:1 › T49.2 an incompatible document rejects without mutating the preview (451ms)
+  -  271 [mobile] › tests/e2e/editor-connections.e2e.ts:12:1 › drag from the connect handle to a target creates one undoable relation
+  ✓  267 [mobile] › tests/e2e/docs-react.e2e.ts:449:1 › architecture showcase switches concrete service flows, failures and locales without stale selection (2.1s)
+  -  272 [mobile] › tests/e2e/editor-connections.e2e.ts:39:1 › dropping the connect drag on empty canvas cancels without changes
+  ✓  274 [mobile] › tests/e2e/editor-connections.e2e.ts:62:1 › keyboard connect mode links the focused target and Escape cancels (687ms)
+  ✓  273 [mobile] › tests/e2e/editor-conversion.e2e.ts:24:1 › T53.2 cancel keeps the document, draft and saved copy untouched (817ms)
+  ✓  275 [mobile] › tests/e2e/editor-crud.e2e.ts:55:1 › T16.1 IME composition never commits intermediate text and applies once on confirm (697ms)
+  ✓  276 [mobile] › tests/e2e/editor-conversion.e2e.ts:41:1 › T53.2 accepting opens a new graph document without overwriting the original (933ms)
+  ✓  277 [mobile] › tests/e2e/editor-crud.e2e.ts:82:1 › T16.1 composition left unconfirmed persists nothing (569ms)
+  ✓  278 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 360px (475ms)
+  ✓  279 [mobile] › tests/e2e/editor-crud.e2e.ts:99:1 › T16.1 labels stay literal text without executing markup (666ms)
+  ✓  280 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 360px (547ms)
+  ✓  281 [mobile] › tests/e2e/editor-crud.e2e.ts:124:1 › T16.1 the JSON draft stays uncommitted while text is composed (556ms)
+  ✓  282 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 768px (580ms)
+  ✓  283 [mobile] › tests/e2e/editor-crud.e2e.ts:145:1 › portable composition event adapter preserves the draft until explicit apply (647ms)
+  ✓  284 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 768px (717ms)
+  -  285 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-flowchart and persists with one undo entry
+  -  287 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-er and persists with one undo entry
+  -  288 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-state-machine and persists with one undo entry
+  ✓  286 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 en layout stays coherent at 1440px (717ms)
+  -  289 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-band and persists with one undo entry
+  -  291 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-swimlane and persists with one undo entry
+  -  292 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-sequence and persists with one undo entry
+  -  293 [mobile] › tests/e2e/editor-drag.e2e.ts:47:3 › drag moves example-timeline and persists with one undo entry
+  -  294 [mobile] › tests/e2e/editor-drag.e2e.ts:70:1 › dragging an imported graph node persists its scene position
+  ✓  290 [mobile] › tests/e2e/editor-design.e2e.ts:5:5 › T45 es layout stays coherent at 1440px (898ms)
+  -  295 [mobile] › tests/e2e/editor-drag.e2e.ts:100:1 › drag previews and commits updated connections
+  -  297 [mobile] › tests/e2e/editor-drag.e2e.ts:113:1 › a locked node refuses to move
+  ✓  296 [mobile] › tests/e2e/editor-export-failures.e2e.ts:15:1 › T28.2 exported SVG reparses as well-formed XML with resolvable ids and no handlers (545ms)
+  -  298 [mobile] › tests/e2e/editor-drag.e2e.ts:125:1 › a canceled drag rolls back with no history entry
+  -  300 [mobile] › tests/e2e/editor-drag.e2e.ts:150:1 › Pan mode drags the camera and leaves the document untouched
+  ✓  299 [mobile] › tests/e2e/editor-export-failures.e2e.ts:45:1 › T29.2 raster image failures report precise codes and a retry succeeds (657ms)
+  ✓  301 [mobile] › tests/e2e/editor-formats.e2e.ts:5:1 › T42.1 a browser without real WebP disables the format instead of renaming a PNG (401ms)
+  ✓  302 [mobile] › tests/e2e/editor-export-failures.e2e.ts:75:1 › T29.2 a null canvas blob fails encoding without reporting success (560ms)
+  ✓  303 [mobile] › tests/e2e/editor-formats.e2e.ts:20:1 › T42.1 a WebP encode that returns PNG fails with export.mime and downloads nothing (649ms)
+  ✓  305 [mobile] › tests/e2e/editor-formats.e2e.ts:42:1 › T42.1 JPEG never silently changes a transparent background (2ms)
+  ✓  306 [mobile] › tests/e2e/editor-grid-order.e2e.ts:102:1 › the grid layer paints below the confirmed geometry (438ms)
+  ✓  304 [mobile] › tests/e2e/editor-export-failures.e2e.ts:88:1 › T39.2 exports keep notes, links and extensions out of the SVG and JSON carries source (788ms)
+  -  307 [mobile] › tests/e2e/editor-grid-order.e2e.ts:129:1 › toggling the grid never changes opaque card interiors
+  -  308 [mobile] › tests/e2e/editor-grid.e2e.ts:143:1 › grid covers the viewport in every corner and reacts to pan and resize
+  -  309 [mobile] › tests/e2e/editor-grid-order.e2e.ts:178:1 › undo restores the dragged node and does not touch the grid state
+  -  311 [mobile] › tests/e2e/editor-grid-order.e2e.ts:240:1 › the gesture preview also ignores the grid on card interiors
+  ✓  310 [mobile] › tests/e2e/editor-grid.e2e.ts:211:1 › Show grid removes the single grid layer everywhere (533ms)
+  -  313 [mobile] › tests/e2e/editor-motion.e2e.ts:81:1 › T52.1 a supported codec records a decodable, bounded file with no camera access
+  ✓  314 [mobile] › tests/e2e/editor-motion.e2e.ts:158:1 › T52.2 reduced motion, missing codecs and cancellation never report a false success (448ms)
+  -  315 [mobile] › tests/e2e/editor-motion.e2e.ts:175:1 › T52.2 a browser without a WebM codec disables recording instead of producing a file
+  -  316 [mobile] › tests/e2e/editor-motion.e2e.ts:193:1 › T52.2 cancelling a recording releases the canvas tracks without a download
+  ✓  312 [mobile] › tests/e2e/editor-html.e2e.ts:64:1 › T38.1 the artifact works from file:// with zero network and zero storage (1.7s)
+  ✓  317 [mobile] › tests/e2e/editor-profiles.e2e.ts:76:1 › T51.2 an invalid deployment profile is not auto-disabled and its diagnostics navigate (1.3s)
+  ✓  318 [mobile] › tests/e2e/editor-html.e2e.ts:142:1 › T38.2 malicious labels stay data and the source JSON only travels explicitly (1.4s)
+  ✓  319 [mobile] › tests/e2e/editor-quality.e2e.ts:73:1 › T36.2 publish export measures long labels with embedded fonts without clipping (672ms)
+  ✓  320 [mobile] › tests/e2e/editor-security.e2e.ts:9:1 › T55.2 forged storage is quarantined without executing its payload (701ms)
+  ✓  321 [mobile] › tests/e2e/editor-quality.e2e.ts:105:1 › T36.2 missing font metrics surface an actionable error and never a false success (615ms)
+  ✓  322 [mobile] › tests/e2e/editor-security.e2e.ts:39:1 › T55.2 hostile imports stay literal and dangerous schemes are rejected before layout (613ms)
+  ✓  324 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-band surface (694ms)
+  ✓  323 [mobile] › tests/e2e/editor-share.e2e.ts:69:1 › T40.2 an oversized share link offers a local JSON download and never announces success (1.9s)
+  ✓  325 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-flowchart surface (709ms)
+  ✓  326 [mobile] › tests/e2e/editor-share.e2e.ts:89:1 › T40.2 a denied clipboard falls back to the JSON download message without a false success (474ms)
+  -  328 [mobile] › tests/e2e/editor-share.e2e.ts:104:1 › T40.2 a shared link opens the shared document in a fresh context
+  ✓  327 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-sequence surface (619ms)
+  ✓  330 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-state-machine surface (686ms)
+  ✓  329 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 390px (en) (1.1s)
+  ✓  331 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-er surface (695ms)
+  ✓  333 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-timeline surface (650ms)
+  ✓  332 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 390px (es) (1.4s)
+  ✓  334 [mobile] › tests/e2e/editor-theme.e2e.ts:58:3 › global theme reaches every example-swimlane surface (661ms)
+  ✓  336 [mobile] › tests/e2e/editor-theme.e2e.ts:70:1 › theme switch is not a document edit and never exposes a second control (671ms)
+  ✓  335 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 768px (en) (1.2s)
+  ✓  337 [mobile] › tests/e2e/editor-theme.e2e.ts:89:1 › an imported light document renders dark under the dark host without rewriting JSON (617ms)
+  -  339 [mobile] › tests/e2e/editor-touch.e2e.ts:3:1 › two-finger pinch pans and zooms without committing node edits
+  -  340 [mobile] › tests/e2e/editor-touch.e2e.ts:43:1 › ordinary wheel scrolls the page and modified wheel zooms only the canvas
+  -  341 [mobile] › tests/e2e/editor-touch.e2e.ts:66:1 › Space drag pans without moving nodes or creating undo entries
+  -  342 [mobile] › tests/e2e/editor-touch.e2e.ts:90:1 › long touch selects without dragging, opening callouts or committing edits
+  ✓  338 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 768px (es) (1.4s)
+  ✓  343 [mobile] › tests/e2e/editor-viewer-e14.e2e.ts:3:1 › T33.1 lens dims by roles without touching topology, collapse keeps original edge IDs (625ms)
+  ✓  344 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1280px (en) (1.3s)
+  ✓  346 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1280px (es) (1.4s)
+  ✓  347 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1440px (en) (1.4s)
+  ✓  345 [mobile] › tests/e2e/editor-viewer-e14.e2e.ts:38:1 › T34.2 story playback is finite, manual and stops on Escape, hidden tab and reduced motion (4.0s)
+  ✓  349 [mobile] › tests/e2e/editor-viewer-e14.e2e.ts:77:1 › T34.2 reduced motion shows static steps with working Next/Previous and disables Play (595ms)
+  ✓  348 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1440px (es) (1.4s)
+  ✓  350 [mobile] › tests/e2e/editor-viewer-e14.e2e.ts:95:1 › T35.1 presentation falls back when fullscreen is denied and restores focus on exit (469ms)
+  ✓  352 [mobile] › tests/e2e/editor-viewer.e2e.ts:82:1 › T32.1 finder orders results deterministically and announces zero results (492ms)
+  ✓  353 [mobile] › tests/e2e/editor-viewer.e2e.ts:111:1 › T32.1 parallel relations keep their exact IDs in the inspector (536ms)
+  ✓  351 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1920px (en) (1.5s)
+  ✓  354 [mobile] › tests/e2e/editor-viewer.e2e.ts:129:1 › T32.2 a stale query invalidates highlight and export when the document changes (576ms)
+  ✓  356 [mobile] › tests/e2e/editor-viewer.e2e.ts:154:1 › camera fit centers the diagram and the minimap scales inside its frame (430ms)
+  ✓  357 [mobile] › tests/e2e/editor-viewer.e2e.ts:180:1 › viewer entry loads Geist and the shared host tokens over a viewport backdrop (498ms)
+  -  358 [mobile] › tests/e2e/editor-viewport.e2e.ts:19:5 › viewport math under transforms › retina DPR 2 › T07.2 a screen drag applies the world delta once without double transformation
+  -  359 [mobile] › tests/e2e/editor-viewport.e2e.ts:30:3 › viewport math under transforms › T07.2 CSS-scaled canvas with letterbox maps screen deltas through the CTM
+  ✓  355 [mobile] › tests/e2e/editor-toolbar.e2e.ts:67:5 › toolbar never overlaps or clips at 1920px (es) (1.6s)
+  -  360 [mobile] › tests/e2e/editor-viewport.e2e.ts:52:1 › T08.1 the middle mouse button pans the camera without touching the document
+  ✓  362 [mobile] › tests/e2e/editor-viewport.e2e.ts:71:1 › T09.1 a node id equal to an edge id stays a distinct selectable entity (709ms)
+  -  363 [mobile] › tests/e2e/editor-viewport.e2e.ts:98:1 › the gesture baseline refreshes after content changes between drags
+  ✓  364 [mobile] › tests/e2e/onboarding.e2e.ts:3:1 › release onboarding is explicit and generated pages link to their source (884ms)
+  ✓  365 [mobile] › tests/e2e/onboarding.e2e.ts:20:1 › static discovery metadata and missing-page recovery are usable without JavaScript (511ms)
+  ✓  366 [mobile] › tests/e2e/playground-editor.e2e.ts:3:1 › direct playground entry loads shared styles and the editor workspace (453ms)
+  ✓  367 [mobile] › tests/e2e/playground-editor.e2e.ts:37:1 › playground edits the document, undoes and keeps drafts per type (1.2s)
+  ✓  368 [mobile] › tests/e2e/playground-editor.e2e.ts:86:1 › a deferred import cannot land on a different example (1.5s)
+  ✓  369 [mobile] › tests/e2e/playground-editor.e2e.ts:122:1 › import confirms the history reset and reports the applied result (419ms)
+  ✓  370 [mobile] › tests/e2e/playground-editor.e2e.ts:147:1 › invalid JSON keeps the last valid canvas and shows diagnostics (499ms)
+  ✓  371 [mobile] › tests/e2e/playground-editor.e2e.ts:160:1 › camera zoom and pan survive example switching and Fit still works (912ms)
+  ✓  372 [mobile] › tests/e2e/playground-editor.e2e.ts:201:1 › keyboard selects a node in the editor and Escape clears it (449ms)
+  ✓  373 [mobile] › tests/e2e/playground.e2e.ts:6:1 › seven types render with unique SVG IDs in both themes (859ms)
+  ✓  374 [mobile] › tests/e2e/playground.e2e.ts:36:1 › invalid JSON retains the last valid preview and draft across tabs (1.6s)
+  ✓  375 [mobile] › tests/e2e/playground.e2e.ts:54:1 › share roundtrip restores spec and locale (1.0s)
+  ✘  361 [mobile] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export (45.3s)
+(node:59361) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  377 [mobile] › tests/e2e/light-theme.e2e.ts:46:3 › light band text and controls retain accessible contrast (1.3s)
+  ✓  378 [mobile] › tests/e2e/light-theme.e2e.ts:46:3 › dark band text and controls retain accessible contrast (1.2s)
+  -  379 [mobile] › tests/e2e/presentation-assets.e2e.ts:5:1 › regenerate presentation assets from the public playground
+  -  380 [mobile] › tests/e2e/snapshots.e2e.ts:17:1 › frozen A remains complete after rebuilding and serving only B
+  ✓  381 [mobile] › tests/e2e/studio.e2e.ts:29:1 › Studio edits, undoes, validates drafts and restores a saved document (1.1s)
+  -  382 [mobile] › tests/e2e/studio.e2e.ts:54:1 › Studio pointer drag is one transaction and keyboard movement is undoable
+  ✓  383 [mobile] › tests/e2e/studio.e2e.ts:77:1 › Studio exports fresh SVG, PNG and JSON, supports both themes and Spanish (723ms)
+  ✓  384 [mobile] › tests/e2e/studio.e2e.ts:116:1 › Studio creates, resizes, connects, duplicates and groups nodes (1.0s)
+  ✓  385 [mobile] › tests/e2e/studio.e2e.ts:150:1 › Studio visual evidence has loaded fonts, bounded controls and no horizontal overflow (725ms)
+  ✓  386 [mobile] › tests/e2e/studio.e2e.ts:167:1 › Studio has no serious automated accessibility violations in either theme (1.6s)
+  -  387 [mobile] › tests/e2e/studio.e2e.ts:182:1 › Studio marquee selects across zoom, cancels without edits and supports additive selection
+  ✓  388 [mobile] › tests/e2e/studio.e2e.ts:220:1 › Studio selects timeline labels and excludes sequence activation bars from focus targets (721ms)
+  -  389 [mobile] › tests/e2e/studio.e2e.ts:244:1 › Studio resize handle previews, cancels, commits once and supports keyboard undo
+  ✓  390 [mobile] › tests/e2e/studio.e2e.ts:279:1 › Studio outline selects nodes and relationships by keyboard without editing content (495ms)
+  ✘  376 [mobile] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG (45.3s)
+  ✓  391 [mobile] › tests/e2e/studio.e2e.ts:300:1 › Studio system clipboard validates fragments and handles denied access without edits (1.5s)
+(node:59394) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  392 [mobile] › tests/e2e/studio.e2e.ts:361:1 › Studio exports local semantic and brand icons as self-contained SVG and raster (780ms)
+  ✓  393 [mobile] › tests/e2e/playground.e2e.ts:78:1 › static docs and agent entrypoint work without JavaScript (634ms)
+  ✓  394 [mobile] › tests/e2e/studio.e2e.ts:401:1 › Studio aligns a selection in one undoable transaction (809ms)
+  ✓  395 [mobile] › tests/e2e/playground.e2e.ts:89:1 › core page has no serious or critical accessibility violations (1.2s)
+  ✓  396 [mobile] › tests/e2e/studio.e2e.ts:418:1 › Studio exposes eight resize directions with anchored keyboard edits (610ms)
+  -  398 [mobile] › tests/e2e/studio.e2e.ts:442:1 › Studio northwest resize anchors at zoom and locked nodes hide handles
+  -  399 [mobile] › tests/e2e/studio.e2e.ts:480:1 › Studio resizes a whole selection from one anchored handle in a single undoable edit
+  -  400 [mobile] › tests/e2e/studio.e2e.ts:534:1 › low zoom keeps every painted resize marker on its own actionable target
+  ✓  397 [mobile] › tests/e2e/playground.e2e.ts:100:1 › compact diagram actions expose icons, integration prompt and one reusable export dropdown (734ms)
+  -  401 [mobile] › tests/e2e/studio.e2e.ts:623:1 › low zoom resize keeps the opposite anchor, distinguishes body drags and undoes once
+  -  403 [mobile] › tests/e2e/studio.e2e.ts:693:1 › Studio selects connections and edits manual routes through draggable waypoints and anchors
+  ✓  402 [mobile] › tests/e2e/theme-feedback.e2e.ts:4:3 › invalid theme edits preserve readable host and last valid preview: en (1.0s)
+  ✓  404 [mobile] › tests/e2e/studio.e2e.ts:730:1 › Studio recovers drafts, quarantines corrupt copies and supports save-as (1.3s)
+  -  406 [mobile] › tests/e2e/studio.e2e.ts:768:1 › Studio relayout previews, applies in one undoable edit and cancels cleanly
+  ✓  405 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 320 (824ms)
+  ✓  408 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 360 (848ms)
+  ✓  407 [mobile] › tests/e2e/studio.e2e.ts:809:1 › Studio edits graph ports and ER table fields through the structured inspector (1.2s)
+  ✓  409 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: en 390 (792ms)
+  ✓  410 [mobile] › tests/e2e/theme-feedback.e2e.ts:88:3 › clipboard denial has visible localized feedback: en (618ms)
+  ✓  411 [mobile] › tests/e2e/theme-feedback.e2e.ts:4:3 › invalid theme edits preserve readable host and last valid preview: es (1.1s)
+  ✓  412 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 320 (841ms)
+  ✓  413 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 360 (819ms)
+  ✓  414 [mobile] › tests/e2e/theme-feedback.e2e.ts:61:5 › installation controls do not overlap: es 390 (825ms)
+  ✓  415 [mobile] › tests/e2e/theme-feedback.e2e.ts:88:3 › clipboard denial has visible localized feedback: es (610ms)
+  ✓  416 [mobile] › tests/e2e/theme-feedback.e2e.ts:105:1 › locale toggle persists independently and blocked storage falls back safely (1.3s)
+
+
+  1) [webkit] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      130 |   await page.evaluate(() => document.fonts.ready)
+      131 |   await page.locator('[data-diagram-panel] summary.export-trigger').click()
+    > 132 |   const download = page.waitForEvent('download')
+          |                         ^
+      133 |   await page
+      134 |     .locator('[data-diagram-panel]')
+      135 |     .getByRole('button', { name: 'Download SVG', exact: true })
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs-react.e2e.ts:132:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-webkit/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [webkit] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Order API', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Order API', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Order API', exact: true })
+
+
+      66 |     await page.keyboard.press(key)
+      67 |   }
+    > 68 |   await expect(node).toBeVisible()
+         |                      ^
+      69 |   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+      70 |   await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
+      71 | })
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-accessibility.e2e.ts:68:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-webkit/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [webkit] › tests/e2e/editor-grid.e2e.ts:143:1 › grid covers the viewport in every corner and reacts to pan and resize 
+
+    Error: dots moved (10, 6), geometry moved (5, 3)
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1.5
+    Received:    5.8309518948453
+
+      191 |     Math.hypot(shift.matched.x - moved.x, shift.matched.y - moved.y),
+      192 |     `dots moved (${shift.matched.x}, ${shift.matched.y}), geometry moved (${moved.x}, ${moved.y})`,
+    > 193 |   ).toBeLessThanOrEqual(1.5)
+          |     ^
+      194 |   const panned = await gridInfo(page)
+      195 |   expect(panned.offset).toBeNull()
+      196 |   for (const edge of ['left', 'top', 'right', 'bottom'] as const)
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-grid.e2e.ts:193:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-grid.e2e.ts-grid-co-8a78d-nd-reacts-to-pan-and-resize-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-grid.e2e.ts-grid-co-8a78d-nd-reacts-to-pan-and-resize-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-grid.e2e.ts-grid-co-8a78d-nd-reacts-to-pan-and-resize-webkit/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-grid.e2e.ts-grid-co-8a78d-nd-reacts-to-pan-and-resize-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [webkit] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      33 |   await expect.poll(detail).toEqual(light)
+      34 |
+    > 35 |   const pending = page.waitForEvent('download')
+         |                        ^
+      36 |   await panel.locator('summary.export-trigger').click()
+      37 |   await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+      38 |   const download = await pending
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/light-theme.e2e.ts:35:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-webkit/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [webkit] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG ─────────────────
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      68 |   for (const name of ['Download JSON', 'Download SVG', 'Download PNG']) {
+      69 |     await panel.locator('summary.export-trigger').click()
+    > 70 |     const download = page.waitForEvent('download')
+         |                           ^
+      71 |     await panel.getByRole('button', { name, exact: true }).click()
+      72 |     const file = await download
+      73 |     expect(await file.failure()).toBeNull()
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground.e2e.ts:70:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-webkit/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [mobile] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      130 |   await page.evaluate(() => document.fonts.ready)
+      131 |   await page.locator('[data-diagram-panel] summary.export-trigger').click()
+    > 132 |   const download = page.waitForEvent('download')
+          |                         ^
+      133 |   await page
+      134 |     .locator('[data-diagram-panel]')
+      135 |     .getByRole('button', { name: 'Download SVG', exact: true })
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs-react.e2e.ts:132:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs-react.e2e.ts-Geist-re-4f6b3-s-survive-standalone-export-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 11
+    Received:    10.533632286995516
+
+      270 |       })
+      271 |       expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
+    > 272 |       for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
+          |                                                           ^
+      273 |       expect(geometry.innerGrid).toBe(true)
+      274 |       const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+      275 |         const before = getComputedStyle(element, '::before')
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs.e2e.ts:272:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-light-layout-p-336c9-d-mask-the-grid-under-nodes-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 11
+    Received:    10.533632286995516
+
+      270 |       })
+      271 |       expect(geometry.ratio).toBeCloseTo(geometry.expected, 2)
+    > 272 |       for (const size of geometry.labelFont) expect(size).toBeGreaterThanOrEqual(11)
+          |                                                           ^
+      273 |       expect(geometry.innerGrid).toBe(true)
+      274 |       const backdrop = await pane.locator('.preview-canvas').evaluate((element) => {
+      275 |         const before = getComputedStyle(element, '::before')
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/docs.e2e.ts:272:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/docs.e2e.ts-dark-layout-pr-62ddd-d-mask-the-grid-under-nodes-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [mobile] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Order API', exact: true })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Order API', exact: true }) with timeout 8000ms
+      - waiting for getByRole('button', { name: 'Order API', exact: true })
+
+
+      66 |     await page.keyboard.press(key)
+      67 |   }
+    > 68 |   await expect(node).toBeVisible()
+         |                      ^
+      69 |   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+      70 |   await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
+      71 | })
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-accessibility.e2e.ts:68:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-00b7e-focus-is-outside-the-canvas-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [mobile] › tests/e2e/editor-accessibility.e2e.ts:73:1 › T44.2 the editor stays operable and unclipped at 200% page zoom 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 8000ms exceeded while waiting on the predicate
+
+       97 |   await expect
+       98 |     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2))
+    >  99 |     .toBe(true)
+          |      ^
+      100 |   const node = page.getByRole('button', { name: 'Order API', exact: true })
+      101 |   const box = await node.boundingBox()
+      102 |   expect(box).toBeTruthy()
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-accessibility.e2e.ts:99:6
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-f3c44--unclipped-at-200-page-zoom-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-f3c44--unclipped-at-200-page-zoom-mobile/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-f3c44--unclipped-at-200-page-zoom-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/editor-accessibility.e2e.t-f3c44--unclipped-at-200-page-zoom-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [mobile] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      33 |   await expect.poll(detail).toEqual(light)
+      34 |
+    > 35 |   const pending = page.waitForEvent('download')
+         |                        ^
+      36 |   await panel.locator('summary.export-trigger').click()
+      37 |   await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+      38 |   const download = await pending
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/light-theme.e2e.ts:35:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/light-theme.e2e.ts-light-s-93889-eme-switches-and-SVG-export-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [mobile] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG ────────────────
+
+    Test timeout of 45000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 45000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      68 |   for (const name of ['Download JSON', 'Download SVG', 'Download PNG']) {
+      69 |     await panel.locator('summary.export-trigger').click()
+    > 70 |     const download = page.waitForEvent('download')
+         |                           ^
+      71 |     await panel.getByRole('button', { name, exact: true }).click()
+      72 |     const file = await download
+      73 |     expect(await file.failure()).toBeNull()
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/playground.e2e.ts:70:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-mobile/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-mobile/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../../tmp/aesthc-audit-20261002/webkit-artifacts/playground.e2e.ts-panel-exports-JSON-SVG-and-PNG-mobile/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12 failed
+    [webkit] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export 
+    [webkit] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas 
+    [webkit] › tests/e2e/editor-grid.e2e.ts:143:1 › grid covers the viewport in every corner and reacts to pan and resize 
+    [webkit] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export 
+    [webkit] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG ──────────────────
+    [mobile] › tests/e2e/docs-react.e2e.ts:109:1 › Geist reading rhythm excludes diagrams and fonts survive standalone export 
+    [mobile] › tests/e2e/docs.e2e.ts:230:3 › light layout previews preserve geometry, center plain labels and mask the grid under nodes 
+    [mobile] › tests/e2e/docs.e2e.ts:230:3 › dark layout previews preserve geometry, center plain labels and mask the grid under nodes 
+    [mobile] › tests/e2e/editor-accessibility.e2e.ts:58:1 › T44.2 editor shortcuts do not hijack keys while focus is outside the canvas 
+    [mobile] › tests/e2e/editor-accessibility.e2e.ts:73:1 › T44.2 the editor stays operable and unclipped at 200% page zoom 
+    [mobile] › tests/e2e/light-theme.e2e.ts:5:1 › light surfaces and diagram detail survive theme switches and SVG export 
+    [mobile] › tests/e2e/playground.e2e.ts:65:1 › panel exports JSON, SVG and PNG ──────────────────
+  69 skipped
+  335 passed (5.8m)
+ ELIFECYCLE  Command failed with exit code 1.

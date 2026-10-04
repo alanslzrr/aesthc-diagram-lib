@@ -1,0 +1,32 @@
+/* Shared Tailwind utilities and host token mappings. Every entry that renders
+ * components using utility classes (landing, playground) must import this
+ * file, so direct entry loads never depend on another route being visited. */
+@import 'tailwindcss';
+
+/* Frozen version snapshots are copied verbatim; never scan them for utilities. */
+@source not '../public/versions';
+
+@custom-variant dark (&:is([data-theme='dark'] *));
+
+@theme {
+  --font-display: 'Geist', system-ui, sans-serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --glass-blur: 20px;
+  --glass-radius-shell: 1.15rem;
+  --glass-radius-panel: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-cobalt: var(--cobalt);
+  --color-branch: var(--branch);
+  --color-ring: var(--ring);
+}

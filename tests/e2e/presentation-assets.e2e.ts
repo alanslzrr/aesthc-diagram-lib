@@ -4,11 +4,9 @@ import { cpSync, readFileSync } from 'node:fs'
 // Explicit authoring command, never an automatic baseline update in CI.
 test('regenerate presentation assets from the public playground', async ({ page }, info) => {
   test.skip(process.env.UPDATE_PRESENTATION_ASSETS !== '1' || info.project.name !== 'chromium')
-  await page.goto('/')
   await page.evaluate(() => {
     document.documentElement.dataset.theme = 'dark'
   })
-  await page.evaluate(() => document.fonts.ready)
   for (const type of [
     'band',
     'flowchart',
@@ -18,16 +16,23 @@ test('regenerate presentation assets from the public playground', async ({ page 
     'timeline',
     'swimlane',
   ]) {
+    await page.goto(`/?only=example-${type}`)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
+    await page.evaluate(() => document.fonts.ready)
     const panel = page.locator(`[data-diagram-panel="example-${type}"]`)
-    await panel.locator('summary.export-trigger').click()
+    await panel.locator('.export-trigger').click()
     const downloading = page.waitForEvent('download')
-    await panel.getByRole('button', { name: 'Download SVG', exact: true }).click()
+    await panel.getByRole('menuitem', { name: 'Download SVG', exact: true }).click()
     const download = await downloading
     await download.saveAs(`docs/diagrams/${type}.svg`)
     const svg = readFileSync(`docs/diagrams/${type}.svg`, 'utf8')
     expect(svg).toContain('Geist')
     expect(svg).not.toMatch(/Sora|Bodoni|var\(--/)
   }
+  await page.goto('/?only=example-band')
+  await page.evaluate(() => document.fonts.ready)
   await page.addStyleTag({ content: 'header.fixed { visibility: hidden }' })
   for (const theme of ['light', 'dark']) {
     await page.evaluate((theme) => {

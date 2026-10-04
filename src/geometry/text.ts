@@ -7,7 +7,15 @@ export interface TextRole {
   charFactor: number
 }
 
-export type TextMeasurer = (text: string, role: TextRole) => number
+export interface TextMeasurer {
+  (text: string, role: TextRole): number
+  /**
+   * Drop cached widths after the font environment changes. A measurer that
+   * caches must expose this so a scene can be re-resolved with real Geist
+   * metrics instead of pre-load fallback substitutions.
+   */
+  clear?(): void
+}
 
 /**
  * Conservative fallback used when no DOM measurer is available. It never
@@ -30,14 +38,24 @@ export const estimateTextWidth: TextMeasurer = (text, role) => {
  * bounded and dropped wholesale when full, never evicting stale widths that
  * could silently change geometry.
  */
+function canvasContext(): CanvasRenderingContext2D | undefined {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function')
+    return undefined
+  try {
+    return document.createElement('canvas').getContext('2d') ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function createCanvasTextMeasurer(): TextMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
-  const context = document.createElement('canvas').getContext('2d')
+  const context = canvasContext()
   if (!context) return undefined
   const cache = new Map<string, number>()
   const CACHE_LIMIT = 20000
-  return (text, role) => {
+  const measurer: TextMeasurer = (text, role) => {
     const length = Array.from(text).length
     if (!length) return 0
     const key = `${role.size}|${role.family}|${role.tracking ?? 0}|${text}`
@@ -51,6 +69,10 @@ export function createCanvasTextMeasurer(): TextMeasurer | undefined {
     cache.set(key, width)
     return width
   }
+  // A fallback-substituted glyph measured before Geist loads must never be
+  // reused after the faces are ready.
+  measurer.clear = () => cache.clear()
+  return measurer
 }
 
 function toDataUrl(bytes: Uint8Array): string {
@@ -80,13 +102,14 @@ export function createEmbeddedFontTextMeasurer(
 ): FontMeasurer | undefined {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function')
     return undefined
+  const context = canvasContext()
+  if (!context) return undefined
   const nonce = Math.random().toString(36).slice(2, 10)
   const sansFamily = `adl-export-${nonce}-sans`,
     monoFamily = `adl-export-${nonce}-mono`
   const style = document.createElement('style')
   style.textContent = `@font-face{font-family:"${sansFamily}";src:url(${toDataUrl(sans)}) format("woff2")}@font-face{font-family:"${monoFamily}";src:url(${toDataUrl(mono)}) format("woff2")}`
   document.head.appendChild(style)
-  const context = document.createElement('canvas').getContext('2d')
   let disposed = false
   return {
     measure:
@@ -105,7 +128,7 @@ export function createEmbeddedFontTextMeasurer(
       if (disposed || typeof document === 'undefined' || !document.fonts) return false
       const loaded = (family: string) =>
         document.fonts.load(`16px "${family}"`).then(
-          () => true,
+          (faces) => faces.length > 0 && faces.every((face) => face.status === 'loaded'),
           () => false,
         )
       const [sansOk, monoOk] = await Promise.all([loaded(sansFamily), loaded(monoFamily)])

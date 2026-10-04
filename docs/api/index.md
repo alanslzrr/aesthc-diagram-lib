@@ -2,31 +2,31 @@
 
 The package is ESM. Always use declared exports rather than internal files.
 
-| Import | Exports and purpose |
-|---|---|
-| `@aesthc/diagram-lib` | Data/types, theme constants, common geometry, registry |
-| `/types` | `DiagramSpec`, seven concrete specs, nodes/relations/localized data |
-| `/theme` | Geometry constants; not a runtime theme provider |
-| `/layout` | `DiagramLayout`, placed geometry, `identifyEdges`, `edgeId`, `diagramEdges`, `buildAdjacency`, `connectedIds`, `nodePorts`, path helpers |
-| `/layouts` | `layoutDiagram`, `layoutByType`, seven named layout functions |
-| `/layouts/band` | Dedicated band layout and canvas metrics |
-| `/registry` | `registerDiagram`, `registerDiagrams`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram` |
-| `/canvas` | `DiagramCanvas`, `ArchitectureNodeIcon`, `DiagramCanvasProps` |
-| `/showcase` | `DiagramShowcase`, `DiagramShowcaseProps`, `ShowcaseEntry`, `DEFAULT_SHOWCASE_ENTRIES` |
-| `/examples` | `EXAMPLE_DIAGRAMS`, `registerExampleDiagrams`, `ARCHITECTURE_EXAMPLES`, `ArchitectureExample`; compatibility: `CLOUD_ARCHITECTURE_SPEC`, `CLOUD_ARCHITECTURE_VISUALS` |
-| `/validation` | `validateDiagramSpec`, `assertDiagramSpec`, `validateLocalizedDiagram`, issue/result types |
-| `/icons` | `BrandIcon`, `BrandIconName`, `BrandIconProps`; selected local brand artwork with theme variants |
-| `/styles.css` | Generated stylesheet, imported once by the host |
-| `/editor-core` | Opt-in versioned document, validation, adapters, immutable store, scene and viewport math |
-| `/editor` | React editor composition: root, surface, toolbar, inspector and JSON draft panel |
-| `/viewer` | Read-only semantic viewer: finder, inspector, route/reach highlight with receipt-bound queries |
-| `/graph` | Authored directed route and reach queries with stable edge identities |
-| `/export` | Snapshot-based JSON/SVG/PNG/JPEG/WebP export; explicit fonts and side effects |
-| `/persistence` | Memory storage, Web-Locks local storage and opt-in autosave |
-| `/render` | Pure escaped SVG renderer for resolved editor scenes |
-| `/editor.css` | Opt-in editor control styles; does not change legacy canvas styles |
-| `/viewer.css` | Opt-in viewer control styles for the read-only semantic surface |
-| `/fonts/*` | Packaged Geist Sans/Mono WOFF2 assets for same-origin loading and export embedding |
+| Import                | Exports and purpose                                                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@aesthc/diagram-lib` | Data/types, theme constants, common geometry, registry                                                                                                                |
+| `/types`              | `DiagramSpec`, seven concrete specs, nodes/relations/localized data                                                                                                   |
+| `/theme`              | Geometry constants; not a runtime theme provider                                                                                                                      |
+| `/layout`             | `DiagramLayout`, placed geometry, `identifyEdges`, `edgeId`, `diagramEdges`, `buildAdjacency`, `connectedIds`, `nodePorts`, path helpers                              |
+| `/layouts`            | `layoutDiagram`, `layoutByType`, seven named layout functions                                                                                                         |
+| `/layouts/band`       | Dedicated band layout and canvas metrics                                                                                                                              |
+| `/registry`           | `registerDiagram`, `registerDiagrams`, `getDiagram`, `getDiagramEntry`, `getDiagramKeys`, `getDiagramVisuals`, `hasDiagram`                                           |
+| `/canvas`             | `DiagramCanvas`, `ArchitectureNodeIcon`, `DiagramCanvasProps`, `previewBounds`                                                                                        |
+| `/showcase`           | `DiagramShowcase`, `DiagramShowcaseProps`, `ShowcaseEntry`, `DEFAULT_SHOWCASE_ENTRIES`                                                                                |
+| `/examples`           | `EXAMPLE_DIAGRAMS`, `registerExampleDiagrams`, `ARCHITECTURE_EXAMPLES`, `ArchitectureExample`; compatibility: `CLOUD_ARCHITECTURE_SPEC`, `CLOUD_ARCHITECTURE_VISUALS` |
+| `/validation`         | `validateDiagramSpec`, `assertDiagramSpec`, `validateLocalizedDiagram`, issue/result types                                                                            |
+| `/icons`              | `BrandIcon`, `BrandIconName`, `BrandIconProps`; selected local brand artwork with theme variants                                                                      |
+| `/styles.css`         | Generated stylesheet, imported once by the host                                                                                                                       |
+| `/editor-core`        | Opt-in versioned document, validation, adapters, immutable store, scene and viewport math                                                                             |
+| `/editor`             | React editor composition: root, surface, toolbar, inspector and JSON draft panel                                                                                      |
+| `/viewer`             | Read-only semantic viewer: finder, inspector, route/reach highlight with receipt-bound queries                                                                        |
+| `/graph`              | Authored directed route and reach queries with stable edge identities                                                                                                 |
+| `/export`             | Snapshot-based JSON/SVG/PNG/JPEG/WebP export; explicit fonts and side effects                                                                                         |
+| `/persistence`        | Memory storage, Web-Locks local storage and opt-in autosave                                                                                                           |
+| `/render`             | Pure escaped SVG renderer for resolved editor scenes                                                                                                                  |
+| `/editor.css`         | Opt-in editor control styles; does not change legacy canvas styles                                                                                                    |
+| `/viewer.css`         | Opt-in viewer control styles for the read-only semantic surface                                                                                                       |
+| `/fonts/*`            | Packaged Geist Sans/Mono WOFF2 assets for same-origin loading and export embedding                                                                                    |
 
 ## Canvas contract
 
@@ -35,6 +35,25 @@ The package is ESM. Always use declared exports rather than internal files.
 `onTooltipNodeChange(id, open)`, `onFocusNode(id | null)`, `onSelectNode(id)` and
 `onDismissNode(id)`. Also pass unique `instanceId`, meaningful `ariaLabel` and a
 `nodeVisuals` record. The complete getting-started example wires these together.
+
+### Presentation framing
+
+Three optional props control how a static `DiagramCanvas` sits on the page:
+
+- `showGrid?: boolean` (default `true`) paints the document dot grid. Set
+  `false` when the host renders its own masked backdrop, so a surface never
+  shows two superimposed patterns.
+- `fit?: 'natural' | 'contain'` (default `'natural'`). `natural` keeps the
+  legibility floor for wide artboards; `contain` drops it and scales the whole
+  SVG down to the container instead of forcing a horizontal scroll.
+- `view?: { x, y, width, height }` overrides the visible frame, and
+  `previewBounds(layout)` returns the content bounds plus padding. Use it to
+  crop authored empty margins; the frame keeps every node inside.
+
+The host owns legibility: after choosing a view and a container, verify the
+effective label size at the rendered width (font size × render scale). The
+gallery and documentation previews in this repository use these props with
+`previewBounds` and assert the minimum size in tests.
 
 ## Validation
 
@@ -69,7 +88,16 @@ import { BrandIcon } from '@aesthc/diagram-lib/icons'
 import '@aesthc/diagram-lib/styles.css'
 
 export function PackageMark() {
-  return <BrandIcon name="pnpm" width={16} height={16} aria-label="pnpm" aria-hidden={false} role="img" />
+  return (
+    <BrandIcon
+      name="pnpm"
+      width={16}
+      height={16}
+      aria-label="pnpm"
+      aria-hidden={false}
+      role="img"
+    />
+  )
 }
 ```
 
@@ -91,7 +119,7 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /canvas
 
-`ArchitectureNodeIcon`, `DiagramCanvas`, `DiagramCanvasDefault`, `DiagramCanvasProps`
+`ArchitectureNodeIcon`, `DiagramCanvas`, `DiagramCanvasDefault`, `DiagramCanvasProps`, `previewBounds`
 
 ### /layouts
 
@@ -135,23 +163,23 @@ subpaths are excluded; the stylesheet has no JavaScript symbols.
 
 ### /editor-core
 
-`Capability`, `ChangeSet`, `CommitResult`, `ConversionReceipt`, `CustomNodePayload`, `CustomNodeRenderer`, `CustomRenderContext`, `DEFAULT_LIMITS`, `DeclaredEvidence`, `DeploymentProfileReport`, `DeploymentRule`, `Diagnostic`, `DiagramDocument`, `DiagramFragment`, `DiagramGroup`, `DiagramLink`, `DiagramScene`, `DocumentMetadata`, `EditorCommand`, `EditorDiagramType`, `EditorPermissions`, `EditorSnapshot`, `EditorSpec`, `EditorStore`, `EditorTool`, `EndpointAnchor`, `EntityMetadata`, `EntityRef`, `EvidenceReceipt`, `EvidenceStatus`, `FocusSet`, `GraphDiagramSpec`, `GraphEdge`, `GraphNode`, `GraphPort`, `ImportOptions`, `ImportReceipt`, `JsonValue`, `LayoutProvider`, `LayoutProviderRegistry`, `LayoutProviderResult`, `Limits`, `Locale`, `NamedView`, `NodeInput`, `NodePlacement`, `OrthogonalRouteRequest`, `Palette`, `Point`, `Presentation`, `Rect`, `RegisteredLayoutOptions`, `RegisteredLayoutOutcome`, `RegisteredLayoutProvider`, `RelationInput`, `RendererRegistry`, `ReorderCollection`, `ResolveContext`, `ResolveCustomRenderer`, `ResolveRendererRegistry`, `ResolvedScene`, `Result`, `RouteObstacle`, `RoutePlacement`, `RoutedPath`, `Size`, `SourceEvidence`, `StoreOptions`, `StoryStep`, `StructuralEdit`, `Transaction`, `TrustedVerifier`, `TypeAdapter`, `Viewport`, `applyLayoutResult`, `applyTransaction`, `canonicalizeContent`, `convertToGraph`, `createDocument`, `createEditorStore`, `createFragment`, `createLayoutProvider`, `createLayoutProviderRegistry`, `createRendererRegistry`, `declaredEvidence`, `defaultPresentation`, `evidenceDiagnostics`, `exportLegacySpec`, `fitViewport`, `getAdapter`, `importDocument`, `pasteFragment`, `relayoutScene`, `renderCustomNode`, `resolveDocument`, `routeOrthogonal`, `runLayoutProvider`, `runRegisteredLayout`, `screenToWorld`, `serializeDocument`, `validateCustomPayload`, `validateDeploymentProfile`, `validateDocument`, `validateEditorSpec`, `verifyEvidence`, `worldToScreen`, `zoomAt`
+`Capability`, `ChangeSet`, `CommitResult`, `ConversionReceipt`, `CustomNodePayload`, `CustomNodeRenderer`, `CustomRenderContext`, `DEFAULT_LIMITS`, `DeclaredEvidence`, `DeploymentProfileReport`, `DeploymentRule`, `Diagnostic`, `DiagramDocument`, `DiagramFragment`, `DiagramGroup`, `DiagramLink`, `DiagramScene`, `DocumentMetadata`, `EVIDENCE_RANGE_CONTRACT`, `EditorCommand`, `EditorDiagramType`, `EditorPermissions`, `EditorSnapshot`, `EditorSpec`, `EditorStore`, `EditorTool`, `EndpointAnchor`, `EntityMetadata`, `EntityRef`, `EvidenceReceipt`, `EvidenceStatus`, `EvidenceVerifierReference`, `FocusSet`, `GraphDiagramSpec`, `GraphEdge`, `GraphNode`, `GraphPort`, `ImportOptions`, `ImportReceipt`, `JsonValue`, `LayoutProvider`, `LayoutProviderRegistry`, `LayoutProviderResult`, `Limits`, `Locale`, `NamedView`, `NodeInput`, `NodePlacement`, `OrthogonalRouteRequest`, `Palette`, `Point`, `Presentation`, `Rect`, `RegisteredLayoutOptions`, `RegisteredLayoutOutcome`, `RegisteredLayoutProvider`, `RelationInput`, `RendererRegistry`, `ReorderCollection`, `ResolveContext`, `ResolveCustomRenderer`, `ResolveRendererRegistry`, `ResolvedScene`, `Result`, `RouteObstacle`, `RoutePlacement`, `RoutedPath`, `Size`, `SourceEvidence`, `StoreOptions`, `StoryStep`, `StructuralEdit`, `Transaction`, `TrustedVerifier`, `TypeAdapter`, `Viewport`, `applyLayoutResult`, `applyTransaction`, `canonicalizeContent`, `convertToGraph`, `createDocument`, `createEditorStore`, `createFragment`, `createLayoutProvider`, `createLayoutProviderRegistry`, `createRendererRegistry`, `declaredEvidence`, `defaultPresentation`, `evidenceDiagnostics`, `exportLegacySpec`, `fitViewport`, `getAdapter`, `importDocument`, `pasteFragment`, `relayoutScene`, `renderCustomNode`, `resolveDocument`, `routeOrthogonal`, `runLayoutProvider`, `runRegisteredLayout`, `screenToWorld`, `serializeDocument`, `validateCustomPayload`, `validateDeploymentProfile`, `validateDocument`, `validateEditorSpec`, `verifyEvidence`, `worldToScreen`, `zoomAt`
 
 ### /editor
 
-`EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorStatus`, `EditorStructuredInspector`, `EditorSurface`, `EditorToolbar`, `shallowEqual`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
+`EditorInspector`, `EditorJsonPanel`, `EditorNodeGeometry`, `EditorOutline`, `EditorPanelTabs`, `EditorRelations`, `EditorRoot`, `EditorRoute`, `EditorSelectionTools`, `EditorStatus`, `EditorStructuredInspector`, `EditorSurface`, `EditorToolbar`, `shallowEqual`, `useEditor`, `useEditorSelector`, `useEditorSnapshot`, `useEditorStore`
 
 ### /viewer
 
-`Comparison`, `ComparisonProps`, `DiagramViewer`, `DiagramViewerProps`, `DocumentComparison`, `EntityDelta`, `Evidence`, `EvidenceProps`, `ExportQuerySvgOptions`, `FieldChange`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `TraceCallbacks`, `TraceEnvironment`, `TraceState`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `createTracePlayer`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
+`Comparison`, `ComparisonProps`, `DiagramViewer`, `DiagramViewerProps`, `DocumentComparison`, `EntityDelta`, `Evidence`, `EvidenceProps`, `ExportQuerySvgOptions`, `FieldChange`, `Finder`, `FinderProps`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `Inspector`, `InspectorProps`, `Minimap`, `MinimapProps`, `MotionOwnerGuard`, `NodeRelations`, `PlaybackCallbacks`, `PlaybackEnvironment`, `PlaybackOwner`, `PlaybackState`, `Presentation`, `PresentationProps`, `ReachResult`, `ResolvedView`, `RouteResult`, `SearchMatch`, `SearchResult`, `StoryPlayback`, `StoryTransition`, `TraceCallbacks`, `TraceEnvironment`, `TraceState`, `ViewerExportRequest`, `ViewerLens`, `ViewerQueryState`, `ViewerState`, `createMotionOwnerGuard`, `createTracePlayer`, `decodeViewerState`, `describeStoryStep`, `encodeViewerState`, `exportQuerySvg`, `findReach`, `findRoute`, `graphSnapshot`, `highlightStyle`, `isQueryStale`, `lensFacets`, `lensMatches`, `queryEdgeIds`, `queryHighlight`, `queryReceipt`, `querySummary`, `relationsOf`, `resolveView`, `searchNodes`
 
 ### /graph
 
-`Comparison`, `EntityDelta`, `FieldChange`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `compareDocuments`, `findReach`, `findRoute`, `graphSnapshot`, `relationsOf`, `searchNodes`
+`Comparison`, `DocumentDelta`, `EntityDelta`, `ExtensionDelta`, `FieldChange`, `GraphFilter`, `GraphNodeInfo`, `GraphSnapshot`, `KeyedDelta`, `MetadataDelta`, `NodeRelations`, `ReachResult`, `RouteResult`, `SearchMatch`, `SearchResult`, `compareDocuments`, `findReach`, `findRoute`, `graphSnapshot`, `relationsOf`, `searchNodes`
 
 ### /export
 
-`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `MotionArtifact`, `MotionOptions`, `ProbedExportCapabilities`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportDocument`, `exportDocumentHtml`, `exportStoryWebm`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`, `webmCapability`
+`CARD_HEIGHT`, `CARD_WIDTH`, `CardArtifact`, `CardQueryReceipt`, `CardSvgOptions`, `ExportArtifact`, `ExportFormat`, `ExportHtmlArtifact`, `ExportHtmlOptions`, `ExportOptions`, `MotionArtifact`, `MotionOptions`, `PortableFontOptions`, `ProbedExportCapabilities`, `TypographyReceipt`, `ValidatedQuery`, `cardSvg`, `copyArtifact`, `downloadArtifact`, `exportCard`, `exportCardSvg`, `exportDocument`, `exportDocumentHtml`, `exportDocumentHtmlAsync`, `exportStoryWebm`, `getExportCapabilities`, `probeExportCapabilities`, `supportedFormats`, `validateCardQuery`, `webmCapability`
 
 ### /persistence
 

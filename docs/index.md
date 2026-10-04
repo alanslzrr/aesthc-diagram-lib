@@ -3,11 +3,26 @@
 Build diagrams that belong in your product. Seven SVG layouts, declarative data,
 and the same considered visual language from the first node to the last connection.
 
-## Start with a diagram
+## Choose a task
 
-[Getting started](getting-started.md) takes you from installation to a complete,
-interactive React diagram. You supply the data and host theme; the library handles
-geometry and rendering. You do not need Tailwind in your application.
+- **Render a diagram** in your React app. [Getting started](getting-started.md)
+  takes you from installation to a complete interactive diagram; you supply the
+  data and host theme, and Tailwind is not required.
+- **Edit a diagram** visually or through JSON. The [editor guide](guides/editor.md)
+  covers the public store, commands, selection, history and persistence.
+- **Explore relationships** read-only: search, routes, reachability, lenses and
+  stories live in the [viewer guide](guides/viewer.md).
+- **Export and share** JSON, SVG, PNG, JPEG, WebP, offline HTML and bounded
+  links through the public `export` and `persistence` entrypoints, or through
+  the Playground and Studio controls, in [sharing & exports](guides/share-export.md).
+- **Extend it** with per-instance node renderers and layout providers in
+  [extending](guides/extending.md).
+
+## Try it first
+
+Open the [playground](https://alanslzrr.github.io/aesthc-diagram-lib/playground.html)
+to select, move, edit, connect and undo on the example diagrams, or read the
+[public API](api/index.md) before importing anything.
 
 ## Choose your layout
 
@@ -18,12 +33,6 @@ geometry and rendering. You do not need Tailwind in your application.
 - [Entity relationship](diagrams/er.md) — entities, fields and cardinality.
 - [Timeline](diagrams/timeline.md) — an ordered set of milestones.
 - [Swimlane](diagrams/swimlane.md) — a process organized by responsibility.
-
-## Make it yours
-
-Define your [theme](guides/theming.md), connect [React state](guides/react.md),
-and validate imported data with the [public API](api/index.md). Each layout page
-includes a minimal spec, its field reference and a complete React example.
 
 ## Work with your agent
 

@@ -75,16 +75,21 @@ Do not freeze a candidate as a stable release. Run `pnpm test:snapshots` to veri
 A survives a changed B build with and without JavaScript. Never edit a frozen
 snapshot to repair drift; use a new version.
 
-Transfer budgets gate total site JavaScript at 175 KiB gzip, CSS at 12 KiB gzip,
-and the package at 2 MiB packed / 8 MiB unpacked. These are regression ceilings,
-not performance scores; changes require measured justification.
+Transfer budgets gate total site JavaScript at 175 KiB gzip and CSS at 12 KiB
+gzip per entry, and the package at 2 MiB packed / 8 MiB unpacked. The two
+editor-bearing entries (`playground.html`, `studio.html`) carry a reviewed
+180 KiB JavaScript ceiling because they embed the full public editor; every
+reader-facing entry stays at 175 KiB. These are regression ceilings, not
+performance scores; changes require measured justification.
 
 ## Documentation pipeline
 
 `pnpm site:build` builds the package-consuming playground, renders seven validated
 SVG illustrations through public exports, then builds the dedicated `/docs/` site.
-The same Markdown supplies HTML pages, heading navigation and the local search
-index. `site/docs` owns the responsive shell, theme and progressive enhancements;
+The navigation model is authored with the pinned Heyo Docs config builder
+(`heyo-docs.config.mjs`); see [the integration map](heyo-integration.md). The same
+Markdown supplies HTML pages, heading navigation and the local search index.
+`site/docs` owns the responsive shell, theme and progressive enhancements;
 reading, links and complete examples do not depend on browser JavaScript.
 
 After editing navigation, check every page, heading link and download, including

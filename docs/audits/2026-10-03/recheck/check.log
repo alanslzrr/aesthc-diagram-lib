@@ -1,0 +1,458 @@
+
+> @aesthc/diagram-lib@0.3.0 check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm lint && pnpm format:check && pnpm icons:check && pnpm schemas:check && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:perf && pnpm test:package && pnpm --dir site exec tsc --noEmit && pnpm site:build && pnpm check:budgets
+
+
+> @aesthc/diagram-lib@0.3.0 lint /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> eslint src site/src site/docs scripts tests
+
+
+> @aesthc/diagram-lib@0.3.0 format:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> prettier --check src scripts tests site/src site/docs *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> @aesthc/diagram-lib@0.3.0 icons:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/generate-semantic-icons.mjs --check
+
+
+> @aesthc/diagram-lib@0.3.0 schemas:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/generate-schemas.mjs --check
+
+Schemas and standalone validator are in sync
+
+> @aesthc/diagram-lib@0.3.0 docs:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsx scripts/generate-docs.ts --check
+
+Examples, README and documentation are in sync
+
+> @aesthc/diagram-lib@0.3.0 typecheck /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsc --noEmit
+
+
+> @aesthc/diagram-lib@0.3.0 test /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> vitest run
+
+
+ RUN  v4.1.11 /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+
+
+ Test Files  60 passed (60)
+      Tests  492 passed (492)
+   Start at  16:04:17
+   Duration  8.24s (transform 6.92s, setup 0ms, import 38.38s, tests 15.83s, environment 5ms)
+
+
+> @aesthc/diagram-lib@0.3.0 test:perf /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> vitest run --config vitest.perf.config.ts
+
+
+ RUN  v4.1.11 /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  16:04:26
+   Duration  24.31s (transform 388ms, setup 0ms, import 805ms, tests 23.37s, environment 0ms)
+
+
+> @aesthc/diagram-lib@0.3.0 test:package /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm build && node ./scripts/test-package.mjs
+
+
+> @aesthc/diagram-lib@0.3.0 build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsup && node ./scripts/inject-use-client.mjs && node scripts/build-standalone.mjs && pnpm build:css
+
+CLI Building entry: {"index":"src/index.ts","editor-core/index":"src/editor-core/index.ts","editor/index":"src/editor/index.tsx","viewer/index":"src/viewer/index.tsx","graph/index":"src/graph/index.ts","export/index":"src/export/index.ts","persistence/index":"src/persistence/index.ts","render/index":"src/render/index.ts","icons/index":"src/brand-icons/index.tsx","canvas/index":"src/canvas/index.ts","layouts/index":"src/layouts/index.ts","layouts/band":"src/layouts/band.ts","registry":"src/registry.ts","validation/index":"src/validation/index.ts","types":"src/types.ts","theme":"src/theme.ts","layout":"src/layout.ts","examples":"src/examples.ts","showcase/index":"src/showcase/index.ts"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tsup.config.ts
+CLI Target: es2022
+CLI Cleaning output folder
+ESM Build start
+ESM dist/chunk-IDNRW7UP.js    0 B
+ESM dist/chunk-6F4PWJZI.js    0 B
+ESM dist/showcase/index.js    11.20 KB
+ESM dist/icons/index.js       107.00 B
+ESM dist/layout.js            495.00 B
+ESM dist/layouts/index.js     493.00 B
+ESM dist/chunk-LDT4SVVQ.js    38.79 KB
+ESM dist/chunk-LALSN5FV.js    48.33 KB
+ESM dist/canvas/index.js      364.00 B
+ESM dist/types.js             30.00 B
+ESM dist/examples.js          337.00 B
+ESM dist/registry.js          299.00 B
+ESM dist/chunk-GIHY37DH.js    1.70 KB
+ESM dist/validation/index.js  230.00 B
+ESM dist/index.js             2.11 KB
+ESM dist/theme.js             1.37 KB
+ESM dist/editor-core/index.js 1.88 KB
+ESM dist/chunk-UNV5K3AO.js    959.00 B
+ESM dist/layouts/band.js      196.00 B
+ESM dist/viewer/index.js      68.65 KB
+ESM dist/chunk-74BAO7V5.js    20.71 KB
+ESM dist/chunk-BNDD6UNK.js    397.56 KB
+ESM dist/export/index.js      942.00 B
+ESM dist/chunk-YAAL62LR.js    14.17 KB
+ESM dist/editor/index.js      134.01 KB
+ESM dist/chunk-HIRCZVXI.js    34.37 KB
+ESM dist/graph/index.js       298.00 B
+ESM dist/chunk-V7J3CF4S.js    40.45 KB
+ESM dist/chunk-D5YCKARS.js    4.87 KB
+ESM dist/chunk-HN2RGNDH.js    9.63 KB
+ESM dist/chunk-TSYG4LOT.js    6.26 KB
+ESM dist/persistence/index.js 14.20 KB
+ESM dist/chunk-BBMS4ALE.js    5.91 KB
+ESM dist/chunk-JQT4HMUF.js    39.44 KB
+ESM dist/chunk-UHROM3FO.js    180.66 KB
+ESM dist/chunk-S6PSHJSL.js    30.08 KB
+ESM dist/chunk-TN5OC77A.js    423.29 KB
+ESM dist/render/index.js      237.00 B
+ESM dist/chunk-KKMUFXA6.js    1.32 KB
+ESM dist/chunk-TGRGDAF2.js    1.63 KB
+ESM dist/chunk-KDAWQGDC.js    32.94 KB
+ESM ⚡️ Build success in 73ms
+DTS Build start
+DTS ⚡️ Build success in 12992ms
+DTS dist/icons/index.d.ts       597.00 B
+DTS dist/editor/index.d.ts      3.06 KB
+DTS dist/layouts/band.d.ts      1.09 KB
+DTS dist/render/index.d.ts      2.03 KB
+DTS dist/validation/index.d.ts  927.00 B
+DTS dist/theme.d.ts             3.15 KB
+DTS dist/examples.d.ts          5.31 KB
+DTS dist/persistence/index.d.ts 3.41 KB
+DTS dist/showcase/index.d.ts    1.40 KB
+DTS dist/graph/index.d.ts       6.23 KB
+DTS dist/canvas/index.d.ts      2.59 KB
+DTS dist/export/index.d.ts      7.63 KB
+DTS dist/layouts/index.d.ts     1.35 KB
+DTS dist/viewer/index.d.ts      10.69 KB
+DTS dist/editor-core/index.d.ts 15.64 KB
+DTS dist/registry.d.ts          969.00 B
+DTS dist/types.d.ts             1.00 KB
+DTS dist/layout.d.ts            515.00 B
+DTS dist/index.d.ts             2.17 KB
+DTS dist/profiles-CPgNfHct.d.ts 976.00 B
+DTS dist/layout-B9EEWMV7.d.ts   29.14 KB
+injected 'use client' → dist/icons/index.js
+injected 'use client' → dist/canvas/index.js
+injected 'use client' → dist/showcase/index.js
+CLI Building entry: {"standalone/viewer":"src/export/standalone.tsx"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tsup.config.ts
+CLI Target: es2022
+IIFE Build start
+IIFE dist/standalone/viewer.js 662.35 KB
+IIFE ⚡️ Build success in 82ms
+standalone viewer runtime built → dist/standalone/viewer.js
+
+> @aesthc/diagram-lib@0.3.0 build:css /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs && node scripts/copy-fonts.mjs
+
+≈ tailwindcss v4.3.3
+
+Done in 77ms
+dist/styles.css fully wrapped in @layer diagram-lib
+Testing /var/folders/8t/s_sqr2_s3dsdk5_dk0jctb700000gn/T/aesthc-package-Q5P2oC/aesthc-diagram-lib-0.3.0.tgz in an isolated consumer
+
+added 35 packages in 4s
+TAP version 13
+# Subtest: the sharing guide documents only identified, unique examples
+ok 1 - the sharing guide documents only identified, unique examples
+  ---
+  duration_ms: 0.770625
+  type: 'test'
+  ...
+# Subtest: every documented example compiles against the installed declarations
+ok 2 - every documented example compiles against the installed declarations
+  ---
+  duration_ms: 675.195625
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-json
+ok 3 - documented example runs: export-json
+  ---
+  duration_ms: 155.287958
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-svg
+ok 4 - documented example runs: export-svg
+  ---
+  duration_ms: 65.5865
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-png
+ok 5 - documented example runs: export-png
+  ---
+  duration_ms: 64.483292
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-jpeg
+ok 6 - documented example runs: export-jpeg
+  ---
+  duration_ms: 65.812125
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-webp
+ok 7 - documented example runs: export-webp
+  ---
+  duration_ms: 68.551375
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-cancel
+ok 8 - documented example runs: export-cancel
+  ---
+  duration_ms: 59.725667
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-html
+ok 9 - documented example runs: export-html
+  ---
+  duration_ms: 147.98075
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-card
+ok 10 - documented example runs: export-card
+  ---
+  duration_ms: 71.0775
+  type: 'test'
+  ...
+# Subtest: documented example runs: export-webm
+ok 11 - documented example runs: export-webm
+  ---
+  duration_ms: 2687.143042
+  type: 'test'
+  ...
+# Subtest: documented example runs: persistence-memory
+ok 12 - documented example runs: persistence-memory
+  ---
+  duration_ms: 78.614708
+  type: 'test'
+  ...
+# Subtest: documented example runs: persistence-local
+ok 13 - documented example runs: persistence-local
+  ---
+  duration_ms: 64.554083
+  type: 'test'
+  ...
+# Subtest: documented example runs: persistence-autosave
+ok 14 - documented example runs: persistence-autosave
+  ---
+  duration_ms: 67.9825
+  type: 'test'
+  ...
+# Subtest: documented example runs: share-roundtrip
+ok 15 - documented example runs: share-roundtrip
+  ---
+  duration_ms: 68.517291
+  type: 'test'
+  ...
+# Subtest: documented example runs: share-limits
+ok 16 - documented example runs: share-limits
+  ---
+  duration_ms: 69.090167
+  type: 'test'
+  ...
+# Subtest: the documented snippet is byte-identical to the copied CSS
+ok 17 - the documented snippet is byte-identical to the copied CSS
+  ---
+  duration_ms: 0.12825
+  type: 'test'
+  ...
+# Subtest: both themes keep opaque surfaces, strong structure and readable ink
+ok 18 - both themes keep opaque surfaces, strong structure and readable ink
+  ---
+  duration_ms: 0.686792
+  type: 'test'
+  ...
+# Subtest: all seven diagram types render geometry that consumes the copied tokens
+ok 19 - all seven diagram types render geometry that consumes the copied tokens
+  ---
+  duration_ms: 50.745583
+  type: 'test'
+  ...
+# Subtest: imports resolve inside the installed tarball, not the source workspace
+ok 20 - imports resolve inside the installed tarball, not the source workspace
+  ---
+  duration_ms: 0.28925
+  type: 'test'
+  ...
+# Subtest: root and registry expose the same registry implementation
+ok 21 - root and registry expose the same registry implementation
+  ---
+  duration_ms: 0.051667
+  type: 'test'
+  ...
+# Subtest: examples registered from their entrypoint are visible through root and registry
+ok 22 - examples registered from their entrypoint are visible through root and registry
+  ---
+  duration_ms: 0.554084
+  type: 'test'
+  ...
+# Subtest: registration and replacement work in both directions across entrypoints
+ok 23 - registration and replacement work in both directions across entrypoints
+  ---
+  duration_ms: 0.081125
+  type: 'test'
+  ...
+# Subtest: showcase renders a diagram registered by the consumer through the root entrypoint
+ok 24 - showcase renders a diagram registered by the consumer through the root entrypoint
+  ---
+  duration_ms: 29.080625
+  type: 'test'
+  ...
+# Subtest: every declared runtime and type export is present in the tarball
+ok 25 - every declared runtime and type export is present in the tarball
+  ---
+  duration_ms: 74.046
+  type: 'test'
+  ...
+# Subtest: interactive public entrypoints retain their client directives
+ok 26 - interactive public entrypoints retain their client directives
+  ---
+  duration_ms: 1.059333
+  type: 'test'
+  ...
+# Subtest: package CSS resolves bundled Geist assets and preserves host font tokens
+ok 27 - package CSS resolves bundled Geist assets and preserves host font tokens
+  ---
+  duration_ms: 0.195375
+  type: 'test'
+  ...
+# Subtest: selected brand entrypoint and cloud examples render from the installed tarball
+ok 28 - selected brand entrypoint and cloud examples render from the installed tarball
+  ---
+  duration_ms: 4.273875
+  type: 'test'
+  ...
+# Subtest: installed architecture examples render localized service flows through public exports
+ok 29 - installed architecture examples render localized service flows through public exports
+  ---
+  duration_ms: 37.799125
+  type: 'test'
+  ...
+# Subtest: editor core, graph and canonical export work from the installed package
+ok 30 - editor core, graph and canonical export work from the installed package
+  ---
+  duration_ms: 10.624458
+  type: 'test'
+  ...
+# Subtest: editor entry and core extensions resolve from the installed package
+ok 31 - editor entry and core extensions resolve from the installed package
+  ---
+  duration_ms: 2.66925
+  type: 'test'
+  ...
+# Subtest: structured replacements require exhaustive mappings in the installed package
+ok 32 - structured replacements require exhaustive mappings in the installed package
+  ---
+  duration_ms: 2.979042
+  type: 'test'
+  ...
+# Subtest: canvas presentation contract: showGrid, fit, view and previewBounds
+ok 33 - canvas presentation contract: showGrid, fit, view and previewBounds
+  ---
+  duration_ms: 8.19575
+  type: 'test'
+  ...
+# Subtest: two packaged viewers resolve the same custom typeKey with isolated registries
+ok 34 - two packaged viewers resolve the same custom typeKey with isolated registries
+  ---
+  duration_ms: 7.948959
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10199.724167
+All seven layouts work under the react-server condition
+Headless editor subpaths work under the react-server condition
+Published declarations resolve with NodeNext
+Published declarations resolve with Bundler
+
+> @aesthc/diagram-lib@0.3.0 site:build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm --dir site build && pnpm docs:build
+
+
+> @aesthc/diagram-lib-site@ build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/site
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5033 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/docs.html                            0.83 kB │ gzip:   0.34 kB
+dist/studio.html                          0.96 kB │ gzip:   0.43 kB
+dist/viewer.html                          1.03 kB │ gzip:   0.43 kB
+dist/playground.html                      2.30 kB │ gzip:   0.95 kB
+dist/index.html                           2.80 kB │ gzip:   1.07 kB
+dist/.vite/manifest.json                  5.78 kB │ gzip:   0.93 kB
+dist/assets/geist-sans-Bj2R_7yk.woff2    69.65 kB
+dist/assets/geist-mono-Dispecij.woff2    71.37 kB
+dist/assets/viewer-CuQ5k1nR.js          678.25 kB
+dist/assets/palette-ChFwdIkQ.css          0.71 kB │ gzip:   0.31 kB
+dist/assets/theme-tokens-GsaUiONm.css     2.13 kB │ gzip:   0.49 kB
+dist/assets/studio-a7IOTRpi.css           3.80 kB │ gzip:   1.24 kB
+dist/assets/primitives-DwdwpdGz.css       4.57 kB │ gzip:   1.34 kB
+dist/assets/viewer-8HVj1qoN.css           7.35 kB │ gzip:   1.70 kB
+dist/assets/design-system-35KlrfxL.css    7.39 kB │ gzip:   2.07 kB
+dist/assets/handoff-4mQ8G2Z2.css          9.70 kB │ gzip:   2.43 kB
+dist/assets/viewer-sKQURxdt.css          10.24 kB │ gzip:   2.28 kB
+dist/assets/styles-DP6yiIIe.css          14.91 kB │ gzip:   3.29 kB
+dist/assets/docs-ClkTYEAV.css            21.00 kB │ gzip:   4.60 kB
+dist/assets/playground-CvOXqYz-.css      27.11 kB │ gzip:   6.01 kB
+dist/assets/landing-HXe-TIqk.css         39.70 kB │ gzip:   8.42 kB
+dist/assets/messages-CGPQWa76.js          3.15 kB │ gzip:   1.39 kB
+dist/assets/playground-C45DHNd_.js       18.62 kB │ gzip:   6.55 kB
+dist/assets/studio-Dy_gBNu6.js           21.92 kB │ gzip:   7.46 kB
+dist/assets/content-BaXHoSHh.js          38.97 kB │ gzip:  12.16 kB
+dist/assets/styles-BxJeFauR.js           44.49 kB │ gzip:  14.56 kB
+dist/assets/viewer-DbEcoxz-.js           45.10 kB │ gzip:  14.32 kB
+dist/assets/chunk-UHROM3FO-DO7NHLk8.js  118.81 kB │ gzip:  16.49 kB
+dist/assets/landing-G61ys11p.js         208.18 kB │ gzip:  63.44 kB
+dist/assets/theme-B9u9xSsi.js           227.96 kB │ gzip:  71.95 kB
+dist/assets/handoff-gZZChlJB.js         300.73 kB │ gzip:  46.83 kB
+dist/assets/chunk-V7J3CF4S-CN_A_kdP.js  307.44 kB │ gzip:  49.26 kB
+dist/assets/docs-DByb53Ma.js            474.82 kB │ gzip: 150.97 kB
+✓ built in 4.42s
+
+> @aesthc/diagram-lib@0.3.0 docs:build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsx scripts/render-doc-previews.tsx && tsx --tsconfig site/tsconfig.json scripts/build-docs.mjs
+
+Built 22 static pages, Markdown, versioned docs, schemas and agent indexes
+
+> @aesthc/diagram-lib@0.3.0 check:budgets /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/check-budgets.mjs
+
+docs.html js: 238877 gzip bytes / 245760 budget
+docs.html css: 11609 gzip bytes / 12288 budget
+index.html js: 179993 gzip bytes / 184320 budget
+index.html css: 11711 gzip bytes / 12288 budget
+playground.html js: 203246 gzip bytes / 208896 budget
+playground.html css: 12655 gzip bytes / 13312 budget
+studio.html js: 193385 gzip bytes / 200704 budget
+studio.html css: 5744 gzip bytes / 13312 budget
+viewer.html js: 153416 gzip bytes / 179200 budget
+viewer.html css: 5150 gzip bytes / 12288 budget
+Package: 1034813 packed bytes; 4686506 unpacked bytes; 242 files

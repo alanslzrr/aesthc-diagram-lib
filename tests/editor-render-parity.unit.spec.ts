@@ -10,6 +10,7 @@ import {
   PILL_R,
 } from '../src/theme'
 import type { DiagramSpec } from '../src/types'
+import { EXAMPLE_DIAGRAMS } from '../src/examples'
 import fixtures from './fixtures/editor/legacy-specs.json'
 
 function render(spec: DiagramSpec) {
@@ -52,7 +53,7 @@ describe('editor renderer parity with the legacy canvas', () => {
 
   it('keeps sequence lifelines dashed exactly like the legacy canvas', () => {
     const markup = render(fixtures.sequence as DiagramSpec)
-    expect(markup).toContain('stroke-dasharray="2 6"')
+    expect(markup).toContain('stroke-dasharray="3 5"')
   })
 
   it('renders edge labels as mono pills sized by the shared pill constants', () => {
@@ -63,6 +64,22 @@ describe('editor renderer parity with the legacy canvas', () => {
       expect(markup).toContain(`rx="${PILL_R}"`)
       expect(markup).toContain('font-family="Geist Mono, monospace"')
     }
+  })
+
+  it('centers every pill label on the pill instead of starting at its centre', () => {
+    for (const name of ['sequence', 'state-machine', 'er'] as const) {
+      const markup = render(fixtures[name] as DiagramSpec)
+      const groups = [...markup.matchAll(/data-edge-label="[^"]+">(.*?)<\/g>/g)]
+      expect(groups.length).toBeGreaterThan(0)
+      for (const [, body] of groups) expect(body).toContain('text-anchor="middle"')
+    }
+  })
+
+  it('centers continuation labels on their pills', () => {
+    const markup = render(EXAMPLE_DIAGRAMS['example-band'].diagram.en)
+    const groups = [...markup.matchAll(/data-continuation-label="[^"]+">(.*?)<\/g>/g)]
+    expect(groups.length).toBeGreaterThan(0)
+    for (const [, body] of groups) expect(body).toContain('text-anchor="middle"')
   })
 
   it('draws band decisions as pills and continuations with the same pill and arrowhead', () => {
@@ -154,4 +171,24 @@ describe('editor renderer parity with the legacy canvas', () => {
     expect(markup).toContain('API')
     expect(markup).toContain('letter-spacing="1.6"')
   })
+})
+
+it('measures continuation and relation pills with the actual scaled mono face', () => {
+  const document = createDocument(EXAMPLE_DIAGRAMS['example-band'].diagram.en, {
+    id: 'measured-pills',
+    locale: 'en',
+  })
+  if (!document.ok) throw Error('fixture')
+  document.value.presentation.textScale = 1.5
+  const resolved = resolveDocument(document.value, {
+    quality: 'edit',
+    requestId: 'measured-pills',
+    measureText: () => 300,
+  })
+  if (!resolved.ok) throw Error('resolve')
+  for (const label of [
+    ...resolved.value.layout.edges.filter((e) => e.label),
+    ...resolved.value.layout.continuations,
+  ])
+    expect(label.labelWidth).toBeGreaterThanOrEqual(462)
 })

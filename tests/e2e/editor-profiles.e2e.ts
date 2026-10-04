@@ -17,7 +17,10 @@ function profileFixture() {
         { id: 'b', label: 'Beta', description: '', kind: 'Database' },
         { id: 'd', label: 'Delta', description: '', kind: 'Service' },
       ],
-      edges: [{ id: 'ab', from: 'a', to: 'b', label: 'Write' }],
+      edges: [
+        { id: 'ad', from: 'a', to: 'd', label: 'Write' },
+        { id: 'bd', from: 'b', to: 'd', label: 'Replicate' },
+      ],
     },
     scene: {
       mode: 'manual',
@@ -27,28 +30,56 @@ function profileFixture() {
         d: { x: 520, y: 100, width: 160, height: 64, locked: false },
       },
       routes: {},
-      groups: [],
+      groups: [
+        { id: 'eu', label: 'EU', kind: 'region', nodeIds: [], locked: false },
+        {
+          id: 'eu2',
+          label: 'EU secondary',
+          kind: 'region',
+          nodeIds: [],
+          parentGroup: 'eu',
+          locked: false,
+        },
+        { id: 'us', label: 'US', kind: 'region', nodeIds: ['d'], locked: false },
+        {
+          id: 'nested',
+          label: 'Nested team',
+          kind: 'system',
+          nodeIds: ['b'],
+          parentGroup: 'eu2',
+          locked: false,
+        },
+        {
+          id: 'sg',
+          label: 'Public security group',
+          kind: 'security-group',
+          nodeIds: ['a'],
+          parentGroup: 'eu',
+          visibility: 'public',
+          locked: false,
+        },
+      ],
       zOrder: ['a', 'b', 'd'],
     },
     presentation: {
       theme: {
         mode: 'light',
         light: {
-          background: '#e9eef4',
-          foreground: '#202b38',
-          card: '#f9fbfd',
-          border: '#aebdcd',
-          mutedForeground: '#536273',
-          cobalt: '#087cbd',
+          background: '#ffffff',
+          foreground: '#0a0a0a',
+          card: '#fafafa',
+          border: '#eaeaea',
+          mutedForeground: '#666666',
+          cobalt: '#0070f3',
           branch: '#a66b21',
         },
         dark: {
-          background: '#070707',
-          foreground: '#f2f2ee',
-          card: '#101010',
-          border: '#242424',
-          mutedForeground: '#a8a8a1',
-          cobalt: '#14a8ff',
+          background: '#000000',
+          foreground: '#ededed',
+          card: '#0a0a0a',
+          border: '#1f1f1f',
+          mutedForeground: '#a1a1a1',
+          cobalt: '#3291ff',
           branch: '#d6a55e',
         },
       },
@@ -59,10 +90,11 @@ function profileFixture() {
       textScale: 1,
     },
     metadata: {
+      engineeringProfile: 'deployment-ownership',
       nodes: {
-        a: { roles: [], tags: ['region:eu'], owner: 'team-a' },
-        b: { roles: [], tags: ['region:us'], visibility: 'public' },
-        d: { roles: [], tags: ['region:eu', 'region:us'], owner: 'team-d' },
+        a: { roles: ['external'], tags: [] },
+        b: { roles: ['database'], tags: [], owner: 'team-b', visibility: 'public' },
+        d: { roles: ['storage'], tags: [], visibility: 'private' },
       },
       edges: {},
       visuals: {},
@@ -73,7 +105,7 @@ function profileFixture() {
   })
 }
 
-test('T51.2 an invalid deployment profile is not auto-disabled and its diagnostics navigate', async ({
+test('T51.2 an authored deployment profile blocks publish and its diagnostics navigate', async ({
   page,
 }) => {
   await page.goto('/viewer.html')
@@ -83,37 +115,37 @@ test('T51.2 an invalid deployment profile is not auto-disabled and its diagnosti
     buffer: Buffer.from(profileFixture()),
   })
   await expect(page.getByRole('heading', { name: 'Profile fixture' })).toBeVisible()
-  const toggle = page.getByLabel('Deployment profile')
-  await toggle.check()
+  const toggle = page.getByLabel('Show deployment profile')
   const evidence = page.locator('.adl-viewer-evidence')
-  await expect(evidence).toContainText('3 nodes · 2 regions · 1 cross-region edges')
+  await expect(evidence).toContainText('3 nodes · 3 regions · 2 cross-region edges')
   const diagnostics = evidence.locator('.adl-viewer-profile-diagnostics button')
   await expect(diagnostics.filter({ hasText: 'profile.owner-missing' })).toHaveCount(1)
-  await expect(diagnostics.filter({ hasText: 'profile.public-entity' })).toHaveCount(1)
+  await expect(diagnostics.filter({ hasText: 'profile.public-entity' })).toHaveCount(2)
   await expect(diagnostics.filter({ hasText: 'profile.region-conflict' })).toHaveCount(1)
-  await expect(diagnostics.filter({ hasText: 'profile.crossing-missing' })).toHaveCount(1)
+  await expect(diagnostics.filter({ hasText: 'profile.crossing-missing' })).toHaveCount(2)
   // The diagnostic navigates to the exact edge subject.
-  await diagnostics.filter({ hasText: 'profile.crossing-missing' }).click()
-  await expect(page.locator('.adl-viewer-inspector')).toContainText('ab')
+  await diagnostics.filter({ hasText: 'profile.crossing-missing' }).first().click()
+  await expect(page.locator('.adl-viewer-inspector')).toContainText('ad')
   // Publish stays blocked; the profile is never auto-disabled.
   const downloads: string[] = []
   page.on('download', (download) => downloads.push(download.suggestedFilename()))
   await page.getByRole('button', { name: 'Publish export' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
   const alert = page.getByRole('alert').filter({ hasText: 'profile.' })
   await expect(alert).toContainText('profile.owner-missing')
-  await expect(toggle).toBeChecked()
   expect(downloads).toEqual([])
-  // The blocked profile state has no serious automated accessibility violations.
   const accessibility = await new AxeBuilder({ page }).analyze()
   expect(
     accessibility.violations.filter(
       (issue) => issue.impact === 'serious' || issue.impact === 'critical',
     ),
   ).toEqual([])
-  // Disabled (opt-out): the same document publishes without profile rules.
+  // The checkbox only controls the report panel; it cannot bypass the policy.
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
   await toggle.uncheck()
-  const downloadPromise = page.waitForEvent('download')
+  await expect(evidence.locator('.adl-viewer-profile-diagnostics')).toHaveCount(0)
   await page.getByRole('button', { name: 'Publish export' }).click()
-  const download = await downloadPromise
-  expect(download.suggestedFilename()).toBe('diagram.svg')
+  await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click()
+  await expect(alert).toContainText('profile.owner-missing')
+  expect(downloads).toEqual([])
 })

@@ -1,20 +1,26 @@
+/* Editor surface tokens. The host can remap these to its own palette; the
+ * values below match the documentation site (Vercel) defaults. */
 .adl-editor {
-  --adl-bg: #e9eef4;
-  --adl-fg: #202b38;
-  --adl-card: #f9fbfd;
-  --adl-border: #aebdcd;
-  --adl-muted: #536273;
+  --adl-bg: #ffffff;
+  --adl-fg: #0a0a0a;
+  --adl-card: #fafafa;
+  --adl-border: #eaeaea;
+  --adl-muted: #666666;
+  --adl-cobalt: #0070f3;
+  --adl-branch: #a66b21;
   color: var(--adl-fg);
   background: var(--adl-bg);
   font-family: Geist, system-ui, sans-serif;
   font-size: 13px;
 }
 .adl-editor[data-theme='dark'] {
-  --adl-bg: #070707;
-  --adl-fg: #f2f2ee;
-  --adl-card: #101010;
-  --adl-border: #242424;
-  --adl-muted: #a8a8a1;
+  --adl-bg: #000000;
+  --adl-fg: #ededed;
+  --adl-card: #0a0a0a;
+  --adl-border: #1f1f1f;
+  --adl-muted: #a1a1a1;
+  --adl-cobalt: #3291ff;
+  --adl-branch: #d6a55e;
 }
 .adl-editor button,
 .adl-editor input,
@@ -40,25 +46,153 @@
   border-color: var(--adl-muted);
 }
 .adl-editor :focus-visible {
-  outline: 2px solid #087cbd;
-  outline-offset: 3px;
+  outline: 2px solid var(--adl-cobalt);
+  outline-offset: 2px;
 }
 .adl-editor button[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 1px #087cbd;
+  box-shadow: inset 0 0 0 1px var(--adl-cobalt);
 }
+/* Toolbar: intrinsic-width controls in labelled groups. The toolbar wraps whole
+ * groups, and each group may shrink and wrap its controls too, so a zoomed or
+ * narrow host never widens the page. Buttons keep their intrinsic width and
+ * whole labels; only the group's inline size gives way. */
 .adl-editor-toolbar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 6px 8px;
+  min-width: 0;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--adl-border);
   background: var(--adl-card);
 }
+.adl-editor-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.adl-editor-group > button,
+.adl-editor-group > select,
+.adl-editor-group > output,
+.adl-editor-group > .adl-editor-menu {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.adl-editor-separator {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  margin-inline: 2px;
+  background: var(--adl-border);
+}
+.adl-editor-toolbar output {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.adl-editor-toolbar [role='alert'] {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--adl-branch);
+  overflow-wrap: anywhere;
+}
 .adl-editor-status {
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  max-width: 100%;
   color: var(--adl-muted);
   font-size: 12px;
+  white-space: nowrap;
+}
+.adl-editor-status-dot {
+  display: none;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid var(--adl-muted);
+  background: transparent;
+  flex: 0 0 auto;
+}
+.adl-editor-status-dot[data-dirty] {
+  border-color: var(--adl-branch);
+  background: var(--adl-branch);
+}
+/* Explicit actions menu (no arrow disclosures). */
+.adl-editor-menu {
+  position: relative;
+}
+.adl-editor-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline-end: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 232px;
+  padding: 4px;
+  border: 1px solid var(--adl-border);
+  border-radius: 8px;
+  background: var(--adl-card);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 12px 32px -16px rgb(0 0 0 / 0.3);
+}
+/* Compact widths: the anchored popover can overflow a wrapped toolbar row, so
+ * the same actions present as a bounded bottom sheet. */
+@media (max-width: 900px) {
+  .adl-editor-menu-list {
+    position: fixed;
+    inset-inline: 12px;
+    inset-block-end: 12px;
+    top: auto;
+    max-height: 60dvh;
+    overflow: auto;
+  }
+}
+.adl-editor-menu-list button {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: start;
+}
+.adl-editor-menu-list button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--adl-fg) 6%, transparent);
+}
+.adl-editor-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--adl-border);
+}
+.adl-editor-menu-field {
+  display: block;
+  padding: 4px 10px;
+  color: var(--adl-muted);
+  font-size: 12px;
+}
+.adl-editor-menu-field select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
 }
 .adl-editor-body {
   display: grid;
@@ -78,11 +212,6 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-}
-.adl-editor-fit {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
 }
 .adl-editor-connect-hint {
   position: absolute;
@@ -135,12 +264,47 @@
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
 }
-.adl-editor-json {
-  padding: 16px;
+/* Document panels: explicit tabs instead of collapsible summaries. */
+.adl-editor-panels {
   border-top: 1px solid var(--adl-border);
 }
-.adl-editor-json summary {
-  cursor: pointer;
+.adl-editor-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--adl-border);
+}
+.adl-editor-tabs button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--adl-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.adl-editor-tabs button:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--adl-fg) 6%, transparent);
+  color: var(--adl-fg);
+}
+.adl-editor-tabs button[aria-selected='true'] {
+  border-color: var(--adl-border);
+  background: var(--adl-card);
+  color: var(--adl-fg);
+  box-shadow: none;
+}
+.adl-editor-tabpanel > div[hidden] {
+  display: none;
+}
+.adl-editor-panel-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 550;
+}
+.adl-editor-json {
+  padding: 16px;
 }
 .adl-editor-json textarea {
   box-sizing: border-box;
@@ -151,8 +315,54 @@
   padding: 12px;
   resize: vertical;
 }
-.adl-editor-json button {
+.adl-editor-json-actions button {
   margin-right: 8px;
+}
+.adl-editor-outline {
+  padding: 16px;
+}
+.adl-editor-outline > section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+  max-height: 320px;
+  overflow: auto;
+}
+.adl-editor-outline ul {
+  list-style: none;
+  padding: 0;
+}
+.adl-editor-outline li {
+  margin-block: 4px;
+}
+.adl-editor-outline button {
+  max-width: 100%;
+  height: auto;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.adl-editor-relations {
+  margin-top: 16px;
+}
+.adl-editor-relations h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.adl-editor-relation-list {
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+@media (max-width: 900px) {
+  .adl-editor-status-text {
+    display: none;
+  }
+  .adl-editor-status-dot {
+    display: inline-block;
+  }
 }
 @media (max-width: 760px) {
   .adl-editor-body {
@@ -167,14 +377,16 @@
     border-top: 1px solid var(--adl-border);
   }
   .adl-editor-status {
-    margin-left: 0;
-    width: 100%;
+    margin-inline-start: 0;
   }
 }
 @media (pointer: coarse), (max-width: 760px) {
   .adl-editor button,
   .adl-editor select {
     min-height: 44px;
+  }
+  .adl-editor-tabs button {
+    min-height: 40px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -202,42 +414,78 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.adl-editor-inspector details {
-  margin-top: 12px;
+/* Commit-time draft feedback stays visually separate from parse diagnostics. */
+.adl-editor-json-commit-alert {
+  color: var(--adl-branch);
 }
-.adl-editor-inspector summary {
-  cursor: pointer;
+.adl-editor-json-commit-hint {
+  margin: 8px 0 0;
+  color: var(--adl-muted);
+  line-height: 1.5;
 }
-.adl-editor-outline {
-  border-top: 1px solid var(--adl-border);
-  padding: 12px 16px;
+/* Native modal dialog (the repository has no component library): top layer,
+   focus trap and Escape come from the platform; only the surface is themed. */
+.adl-editor-dialog {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--adl-border);
+  border-radius: 8px;
+  background: var(--adl-bg);
+  color: var(--adl-fg);
+  font-family: Geist, system-ui, sans-serif;
+  font-size: 13px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 24px 48px -24px rgb(0 0 0 / 0.4);
 }
-.adl-editor-outline summary {
-  cursor: pointer;
+.adl-editor-dialog::backdrop {
+  background: rgb(0 0 0 / 0.32);
 }
-.adl-editor-outline > section {
+.adl-editor-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 550;
+}
+.adl-editor-dialog .adl-editor-dialog-count {
+  margin: 0 0 12px;
+  color: var(--adl-muted);
+}
+.adl-editor-dialog fieldset {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: 16px;
-  max-height: 320px;
-  overflow: auto;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--adl-border);
+  border-radius: 6px;
 }
-.adl-editor-outline ul {
-  list-style: none;
-  padding: 0;
+.adl-editor-dialog legend {
+  padding: 0 4px;
+  color: var(--adl-muted);
+  font-size: 12px;
 }
-.adl-editor-outline li {
-  margin-block: 4px;
+.adl-editor-dialog label {
+  display: block;
+  margin: 0;
 }
-.adl-editor-outline button {
-  max-width: 100%;
-  height: auto;
-  text-align: left;
-  overflow-wrap: anywhere;
+.adl-editor-dialog label.adl-editor-dialog-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
-.adl-editor-toolbar > * {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
+.adl-editor-dialog select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+.adl-editor-dialog .adl-editor-dialog-consequence {
+  margin: 0;
+  color: var(--adl-branch);
+  line-height: 1.5;
+}
+.adl-editor-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

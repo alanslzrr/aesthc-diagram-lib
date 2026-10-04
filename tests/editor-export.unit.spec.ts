@@ -163,3 +163,26 @@ describe('export failure and limit paths', () => {
     }
   })
 })
+
+describe('query-bound portable export', () => {
+  it('rejects a stale query receipt instead of exporting the document', async () => {
+    const d = doc()
+    const result = await exportDocument(d, {
+      ...options,
+      query: { documentId: d.id, revision: d.revision + 1, nodeIds: ['a'], edgeIds: [] },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics[0].code).toBe('query.stale')
+  })
+  it('highlights exact ids and reports noncanonical output', async () => {
+    const d = doc()
+    const result = await exportDocument(d, {
+      ...options,
+      query: { documentId: d.id, revision: d.revision, nodeIds: ['a'], edgeIds: [] },
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.receipt.canonical).toBe(false)
+    expect(new TextDecoder().decode(result.value.bytes)).toContain('data-query-highlight="true"')
+  })
+})

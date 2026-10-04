@@ -1556,6 +1556,14 @@
         },
         "locked": {
           "type": "boolean"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ],
+          "description": "Explicit group visibility. Missing is not implicitly private while the deployment profile is active; security groups must declare `private`."
         }
       },
       "required": [

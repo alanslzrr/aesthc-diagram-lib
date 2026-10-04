@@ -150,3 +150,179 @@ test('T32.2 a stale query invalidates highlight and export when the document cha
   await expect(page.locator('.adl-viewer-stage [data-query-highlight="true"]')).toHaveCount(0)
   await expect(exportButton).toBeDisabled()
 })
+
+test('camera fit centers the diagram and the minimap scales inside its frame', async ({ page }) => {
+  await page.goto('/viewer.html')
+  const canvas = page.locator('.adl-viewer-canvas')
+  const stage = page.locator('.adl-viewer-stage')
+  await expect(stage).toBeVisible()
+  await expect
+    .poll(async () => {
+      const host = await canvas.boundingBox()
+      const diagram = await stage.boundingBox()
+      if (!host || !diagram) return 999
+      return Math.max(
+        Math.abs(host.x + host.width / 2 - (diagram.x + diagram.width / 2)),
+        Math.abs(host.y + host.height / 2 - (diagram.y + diagram.height / 2)),
+      )
+    })
+    .toBeLessThan(24)
+  const minimap = page.locator('.adl-viewer-minimap')
+  await expect(minimap).toBeVisible()
+  const map = await minimap.boundingBox()
+  const mapSvg = await page.locator('.adl-viewer-minimap-svg').boundingBox()
+  expect(map).not.toBeNull()
+  expect(mapSvg).not.toBeNull()
+  expect(mapSvg!.width).toBeLessThanOrEqual(map!.width)
+  expect(mapSvg!.height).toBeGreaterThan(0)
+})
+
+/** Replaces the primary file input payload with a read that rejects or defers. */
+async function dispatchViewerRead(
+  page: import('@playwright/test').Page,
+  mode: 'reject' | 'deferred',
+) {
+  await page.evaluate((mode) => {
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['{}'], 'fixture.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', {
+      configurable: true,
+      value: () =>
+        mode === 'reject'
+          ? Promise.reject(new Error('read failed'))
+          : new Promise<string>((resolve) => {
+              ;(window as unknown as { __finishRead: (value: string) => void }).__finishRead =
+                resolve
+            }),
+    })
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    input.files = transfer.files
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  }, mode)
+}
+
+test('viewer reports a failed file read and keeps the last valid document', async ({ page }) => {
+  await page.goto('/viewer.html')
+  await dispatchViewerRead(page, 'reject')
+  await expect(page.locator('.viewer-message')).toContainText('could not be read')
+  await expect(page.getByRole('heading', { name: 'Order platform', exact: true })).toBeVisible()
+})
+
+test('viewer discards a pending import when the document is reset while reading', async ({
+  page,
+}) => {
+  await page.goto('/viewer.html')
+  await dispatchViewerRead(page, 'deferred')
+  await page.getByRole('button', { name: 'Reset', exact: true }).click()
+  await page.evaluate(
+    (text) => (window as unknown as { __finishRead: (value: string) => void }).__finishRead(text),
+    viewerDocument(9),
+  )
+  await expect(page.locator('.viewer-message')).toContainText('Canceled')
+  await expect(page.getByRole('heading', { name: 'Semantic fixture', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Order platform', exact: true })).toBeVisible()
+})
+
+test('viewer entry loads Geist and the shared host tokens over a viewport backdrop', async ({
+  page,
+}) => {
+  await page.goto('/viewer.html')
+  const canvas = page.locator('.adl-viewer-canvas')
+  await expect(canvas).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+
+  const shell = await page.evaluate(() => {
+    const faces = Array.from(document.fonts, (face) => ({
+      family: face.family.replaceAll('"', '').replaceAll("'", ''),
+      status: face.status,
+    }))
+    const element = document.querySelector('.viewer-shell')!
+    return {
+      faces,
+      background: getComputedStyle(element).backgroundColor,
+      font: getComputedStyle(element).fontFamily,
+      bodyMargin: getComputedStyle(document.body).margin,
+    }
+  })
+  for (const family of ['Geist', 'Geist Mono']) {
+    expect(
+      shell.faces.some((face) => face.family === family && face.status === 'loaded'),
+      `${family} must be loaded on direct viewer entry`,
+    ).toBe(true)
+  }
+  expect(shell.font).toContain('Geist')
+  expect(shell.background).toBe('rgb(255, 255, 255)')
+  expect(shell.bodyMargin).toBe('0px')
+
+  // The component itself must follow the host tokens, not only its shell: the
+  // package declares defaults on `.adl-viewer`, so the host overrides at that
+  // element and this checks the effective canvas/control palette.
+  const palette = () =>
+    page.evaluate(() => {
+      const viewer = document.querySelector('.adl-viewer') as HTMLElement
+      const control = document.querySelector('.adl-viewer-controls select') as HTMLElement
+      return {
+        viewerBackground: getComputedStyle(viewer).backgroundColor,
+        viewerColor: getComputedStyle(viewer).color,
+        controlBackground: getComputedStyle(control).backgroundColor,
+        controlBorder: getComputedStyle(control).borderTopColor,
+        shellBackground: getComputedStyle(document.querySelector('.viewer-shell')!).backgroundColor,
+      }
+    })
+  await expect.poll(palette).toEqual({
+    viewerBackground: 'rgb(255, 255, 255)',
+    viewerColor: 'rgb(10, 10, 10)',
+    controlBackground: 'rgb(250, 250, 250)',
+    controlBorder: 'rgb(234, 234, 234)',
+    shellBackground: 'rgb(255, 255, 255)',
+  })
+  // Dark document mode flips the component tokens while the host shell keeps
+  // its own preference: document/export appearance is separate from the host
+  // chrome (the host preference test covers a dark host independently).
+  await page.evaluate(() => {
+    document.querySelector('.adl-viewer')!.setAttribute('data-theme', 'dark')
+  })
+  await expect.poll(palette).toEqual({
+    viewerBackground: 'rgb(0, 0, 0)',
+    viewerColor: 'rgb(237, 237, 237)',
+    controlBackground: 'rgb(10, 10, 10)',
+    controlBorder: 'rgb(31, 31, 31)',
+    shellBackground: 'rgb(255, 255, 255)',
+  })
+  await page.evaluate(() => {
+    document.querySelector('.adl-viewer')!.setAttribute('data-theme', 'light')
+  })
+
+  // One viewport backdrop layer; the interactive stage no longer paints the
+  // document artboard grid (exports keep their own policy).
+  await expect(page.locator('[data-viewer-grid]')).toHaveCount(1)
+  await expect(page.locator('.adl-viewer-stage rect[fill^="url(#grid-"]')).toHaveCount(0)
+  const cover = await page.evaluate(() => {
+    const host = document.querySelector('.adl-viewer-canvas')!.getBoundingClientRect()
+    const grid = document.querySelector('[data-viewer-grid]')!.getBoundingClientRect()
+    return [
+      grid.left - host.left,
+      grid.top - host.top,
+      host.right - grid.right,
+      host.bottom - grid.bottom,
+    ]
+  })
+  for (const edge of cover) expect(Math.abs(edge)).toBeLessThanOrEqual(1)
+
+  const phase = () =>
+    page.evaluate(() => {
+      const rect = document.querySelector('[data-viewer-grid]') as SVGRectElement | null
+      const pattern = rect?.ownerSVGElement?.querySelector('pattern')
+      return pattern?.getAttribute('patternTransform') ?? null
+    })
+  const first = await phase()
+  expect(first).not.toBeNull()
+  const box = (await canvas.boundingBox())!
+  // Start on empty canvas (the stage itself owns pointer events over nodes).
+  await page.mouse.move(box.x + 8, box.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 5 })
+  await page.mouse.up()
+  await expect.poll(phase).not.toBe(first)
+})

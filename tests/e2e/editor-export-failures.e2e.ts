@@ -10,13 +10,15 @@ async function exportNow(page: import('@playwright/test').Page, format: string) 
   if (!path) throw Error('download without path')
   return readFile(path, 'utf8')
 }
-const status = (page: import('@playwright/test').Page) => page.locator('.studio-message')
+const exportError = (page: import('@playwright/test').Page) => page.locator('[data-export-error]')
+const exportReceipt = (page: import('@playwright/test').Page) =>
+  page.locator('[data-export-receipt]')
 
 test('T28.2 exported SVG reparses as well-formed XML with resolvable ids and no handlers', async ({
   page,
 }) => {
   await page.goto('/studio.html')
-  const svg = await exportNow(page, 'SVG')
+  const svg = await exportNow(page, 'svg')
   const parsed = await page.evaluate((markup: string) => {
     const doc = new DOMParser().parseFromString(markup, 'image/svg+xml')
     const error = doc.querySelector('parsererror')
@@ -56,10 +58,20 @@ test('T29.2 raster image failures report precise codes and a retry succeeds', as
     ;(window as unknown as { Image: unknown }).Image = BrokenImage
   })
   await page.goto('/studio.html')
-  await page.getByLabel('Export format').selectOption('PNG')
+  const documentJson = page.getByRole('textbox', { name: 'Document JSON' })
+  const before = await documentJson.inputValue()
+  await page.getByLabel('Export format').selectOption('png')
+  let downloads = 0
+  page.on('download', () => {
+    downloads += 1
+  })
   await page.getByRole('button', { name: 'Download', exact: true }).click()
-  await expect(status(page)).toContainText('export.image')
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(exportError(page)).toContainText('export.image')
+  await expect(exportReceipt(page)).toHaveCount(0)
+  expect(downloads).toBe(0)
+  // A failed export never mutates the document behind the dialog.
+  expect(await documentJson.inputValue()).toBe(before)
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
   await page.evaluate(() => {
     ;(window as unknown as { Image: unknown }).Image = (
       window as unknown as { __originalImage: unknown }
@@ -69,7 +81,9 @@ test('T29.2 raster image failures report precise codes and a retry succeeds', as
   await page.getByRole('button', { name: 'Download', exact: true }).click()
   const retry = await retryPromise
   expect(await retry.path()).toBeTruthy()
-  await expect(status(page)).toContainText('Exported revision')
+  expect(downloads).toBe(1)
+  await expect(exportReceipt(page)).toContainText('Exported revision')
+  expect(await documentJson.inputValue()).toBe(before)
 })
 
 test('T29.2 a null canvas blob fails encoding without reporting success', async ({ page }) => {
@@ -79,10 +93,19 @@ test('T29.2 a null canvas blob fails encoding without reporting success', async 
     }
   })
   await page.goto('/studio.html')
-  await page.getByLabel('Export format').selectOption('PNG')
+  const documentJson = page.getByRole('textbox', { name: 'Document JSON' })
+  const before = await documentJson.inputValue()
+  await page.getByLabel('Export format').selectOption('png')
+  let downloads = 0
+  page.on('download', () => {
+    downloads += 1
+  })
   await page.getByRole('button', { name: 'Download', exact: true }).click()
-  await expect(status(page)).toContainText('export.encode')
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(exportError(page)).toContainText('export.encode')
+  await expect(exportReceipt(page)).toHaveCount(0)
+  expect(downloads).toBe(0)
+  expect(await documentJson.inputValue()).toBe(before)
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T39.2 exports keep notes, links and extensions out of the SVG and JSON carries source', async ({
@@ -103,7 +126,7 @@ test('T39.2 exports keep notes, links and extensions out of the SVG and JSON car
   doc.extensions = { 'com.example': { deployment: 'private' } }
   await page.getByRole('textbox', { name: 'Document JSON' }).fill(JSON.stringify(doc))
   await page.getByRole('button', { name: 'Apply JSON' }).click()
-  const svg = await exportNow(page, 'SVG')
+  const svg = await exportNow(page, 'svg')
   const parsed = await page.evaluate((markup: string) => {
     const parsedDoc = new DOMParser().parseFromString(markup, 'image/svg+xml')
     return {
@@ -115,7 +138,14 @@ test('T39.2 exports keep notes, links and extensions out of the SVG and JSON car
   expect(parsed.text).not.toContain('PRIVATE SECRET')
   expect(parsed.text).not.toContain('com.example')
   expect(parsed.links).toBe(0)
-  const json = await exportNow(page, 'JSON')
+  // Source inclusion is an explicit opt-in; the default vector export omits it.
+  await expect(
+    page.getByRole('checkbox', { name: 'Include source JSON', exact: true }),
+  ).not.toBeChecked()
+  await expect(page.locator('[data-export-disclosure="source"]')).toContainText(
+    'canonical document JSON',
+  )
+  const json = await exportNow(page, 'json')
   const decoded = JSON.parse(json)
   expect(decoded.metadata.nodes.client.notes).toBe('PRIVATE SECRET')
 })

@@ -1,0 +1,49 @@
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #fafafa;
+  --muted: #f2f2f2;
+  --muted-foreground: #666666;
+  --border: #eaeaea;
+  --border-subtle: color-mix(in srgb, var(--border) 42%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 88%, var(--foreground) 8%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  --diagram-node-fill: var(--card);
+  --diagram-secondary-fill: color-mix(in srgb, var(--card) 55%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  --diagram-grid-opacity: 0.18;
+  --diagram-main-tail-opacity: 0.62;
+  --diagram-branch-tail-opacity: 0.48;
+  --cobalt: #0070f3;
+  --cobalt-ink: #0060df;
+  --branch: #a66b21;
+  --branch-ink: #8a6425;
+  --ring: #0070f3;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #ededed;
+  --card: #0a0a0a;
+  --muted: #141414;
+  --muted-foreground: #a1a1a1;
+  --border: #1f1f1f;
+  --border-subtle: color-mix(in srgb, var(--border) 62%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 80%, var(--foreground) 10%);
+  --diagram-node-border: color-mix(in srgb, var(--foreground) 34%, var(--border));
+  --diagram-structure: color-mix(in srgb, var(--foreground) 34%, var(--border));
+  --diagram-node-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --diagram-secondary-fill: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  --diagram-container-fill: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --diagram-grid-opacity: 0.12;
+  --diagram-main-tail-opacity: 0.24;
+  --diagram-branch-tail-opacity: 0.12;
+  --cobalt: #3291ff;
+  --cobalt-ink: #3291ff;
+  --branch: #d6a55e;
+  --branch-ink: var(--branch);
+  --ring: #3291ff;
+}

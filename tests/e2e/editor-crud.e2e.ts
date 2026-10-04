@@ -93,7 +93,7 @@ test('T16.1 composition left unconfirmed persists nothing', async ({ page, brows
   await page.getByRole('button', { name: 'Pan', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Order API', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('T16.1 labels stay literal text without executing markup', async ({ page, browserName }) => {
@@ -139,7 +139,7 @@ test('T16.1 the JSON draft stays uncommitted while text is composed', async ({
   await expect(undo).toBeDisabled()
   await page.getByRole('button', { name: 'Discard draft', exact: true }).click()
   await expect(undo).toBeDisabled()
-  await expect(page.getByText('No pending changes', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status', { name: 'No pending changes' })).toBeVisible()
 })
 
 test('portable composition event adapter preserves the draft until explicit apply', async ({

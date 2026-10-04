@@ -15,14 +15,21 @@ Import `@aesthc/diagram-lib/editor.css` once. Wrap controls in an `adl-editor` e
 ```tsx
 import { type DiagramDocument } from '@aesthc/diagram-lib/editor-core'
 import {
-  EditorRoot, EditorToolbar, EditorSurface, EditorInspector, EditorJsonPanel, EditorOutline,
-  EditorStatus, useEditorStore,
+  EditorRoot,
+  EditorToolbar,
+  EditorSurface,
+  EditorInspector,
+  EditorJsonPanel,
+  EditorOutline,
+  EditorStatus,
+  useEditorStore,
 } from '@aesthc/diagram-lib/editor'
 import '@aesthc/diagram-lib/editor.css'
 
 export function Editor({ document }: { document: DiagramDocument }) {
   const store = useEditorStore({
-    document, permissions: { edit: true, save: true, export: true },
+    document,
+    permissions: { edit: true, save: true, export: true },
   })
   return (
     <EditorRoot store={store} locale="en">
@@ -51,7 +58,7 @@ A store captures its initial document; later host changes must use `replaceDocum
 
 ## Keyboard and touch navigation
 
-`EditorOutline` provides a collapsible native-button list of authored nodes, connections and groups. Enter/Space selects an entity; Shift adds or removes it without editing content. Synthetic activation bars are not listed.
+The document panels present the authored nodes, connections and groups in an `Outline` tab (no disclosure triangle), with the JSON editor and the connections list in sibling tabs. Enter/Space selects an entity; Shift adds or removes it without editing content. Synthetic activation bars are not listed.
 
 Ordinary wheel input retains native page scrolling. Ctrl/Meta + wheel zooms around the cursor; the toolbar provides an alternative. Hold Space while the canvas itself is focused and drag to pan, or select the Pan tool. Two touch pointers pan and zoom around their midpoint; starting a pinch cancels any in-progress node drag instead of committing it. Navigation never enters document history.
 
@@ -76,7 +83,8 @@ const updated = getAdapter('band').editStructure(document.spec, {
 })
 if (updated.ok) {
   store.dispatch({
-    id: 'merge-bands', label: 'Merge bands',
+    id: 'merge-bands',
+    label: 'Merge bands',
     expectedRevision: document.revision,
     commands: [{ type: 'spec.replace', spec: updated.value, references: 'prune-references' }],
   })
@@ -89,7 +97,7 @@ The adapter leaves the original spec unchanged. Removed nodes and their dependen
 
 Drag empty canvas space in Select mode to draw a selection rectangle; any positive overlap selects a node. Shift adds to the previous selection. Reverse drags and zoom are supported. Escape or pointer cancellation restores the previous selection. Selection does not create undo entries, dirty the document or appear in exports. In Pan mode, dragging the background still moves the camera.
 
-A single unlocked node in a free-layout diagram exposes eight edge/corner resize handles. Drag it to preview a snapped size and release to commit one undoable transaction; Escape cancels. Each handle has a 44-screen-pixel target at every zoom. Focus it and use arrow keys for one-pixel resizing (Shift for 16 pixels), or use the inspector's width/height fields. Pointer resizing clamps sizes to 96×48 through 4096×4096. The opposite edge/corner stays fixed, including at the size limits; edges change only their own axis. Multi-node resizing remains pending. Structured diagrams retain their semantic geometry.
+A single unlocked node in a free-layout diagram exposes eight edge/corner resize handles. Drag it to preview a snapped size and release to commit one undoable transaction; Escape cancels. Handle targets stay 44 screen pixels when there is room and clamp to a fraction of the node at low zoom, so a handle never covers the card body and dragging a selected card still moves it. Focus it and use arrow keys for one-pixel resizing (Shift for 16 pixels), or use the inspector's width/height fields. Pointer resizing clamps sizes to 96×48 through 4096×4096. The opposite edge/corner stays fixed, including at the size limits; edges change only their own axis. Multi-node resizing from one anchored handle is supported and covered by the studio suite. Structured diagrams retain their semantic geometry.
 
 With two unlocked free-layout nodes selected, arrangement controls align their edges or centers to the selection bounds. Three or more nodes can be distributed with equal gaps, preserving the first and last positions on that axis. Arrangement preserves sizes, does not grid-round the resulting coordinates and commits one undo entry. A selection containing a locked node disables arrangement rather than moving only part of it.
 
@@ -133,3 +141,43 @@ evidence, not a replacement. Accessibility acceptance relies on the automated ax
 keyboard, reflow and browser-matrix gates; it does not include a person-recorded
 screen-reader review. The reference-runner performance protocol (long tasks,
 memory) is certified in CI.
+
+## Shared configuration
+
+Playground and Studio expose **Configure document** over the same public store
+commands. Document edits (caption/legend), layout (padding, text scale, grid
+spacing/snap/visibility, edge style), both palette channel sets, and selected
+node/edge metadata are submitted as one atomic transaction. The selection pane
+also exposes node kind and description where the type supports them; ports,
+routes, ER fields, participants and lanes remain in the contextual inspector.
+
+Opening configuration captures the current revision. An intervening edit makes
+Apply reject with `revision.stale`; the form remains open. Invalid values also
+preserve the form and last valid canvas. Cancel changes nothing. One Undo
+reverses Apply. Editing a palette does not change the global host theme.
+
+## Advanced authoring
+
+| Capability                           | Authoring entry point                                                                             | State ownership                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Named views and story steps          | API-only: `views.set`; compilable example `examples/editor-authoring.tsx`                         | Canonical document; revision checked, undoable                      |
+| Roles/tags used by lenses            | Configure document → Selection                                                                    | Canonical metadata                                                  |
+| Active lens/filter                   | Viewer controls / `ViewerState` integration                                                       | Transient; does not alter topology                                  |
+| Collapsed groups                     | Viewer controls / viewer state                                                                    | Transient; original IDs remain queryable                            |
+| Trace input                          | API-only: `createTracePlayer` with validated route edge IDs                                       | Finite playback; never invents a relation                           |
+| Comparison inputs                    | API-only: `compareDocuments(before, after)` and `Comparison`                                      | Read-only, not a merge                                              |
+| Evidence references and verification | API-only: `metadata.set`, `declaredEvidence`, `verifyEvidence` with a host-owned trusted verifier | Declared references are canonical; verification receipt is separate |
+
+See [Viewer](./viewer.md) for playback and query contracts, and
+[Extending](./extending.md) for trusted instance registries. Advanced authoring
+does not execute code embedded in a document. Evidence verification never
+silently gains filesystem or network access.
+
+## Export cancellation diagnostics
+
+Font readiness, SVG image loading, canvas encoding and blob reading have a
+10-second bound per operation. Cancellation returns `operation.aborted`; a
+stalled operation returns `export.timeout`. Raster object URLs, image handlers
+and canvas storage are released on either path. Browser operations that cannot
+be interrupted natively may finish later, but their callbacks cannot complete
+or mutate the canceled export.

@@ -6,7 +6,7 @@ import {
   pasteFragment,
   screenToWorld,
   zoomAt
-} from "../chunk-3T2LMA7P.js";
+} from "../chunk-WFGZGI46.js";
 import {
   anchorFromPoint,
   anchorPoint,
@@ -16,27 +16,26 @@ import {
   isNodeLocked,
   relayoutScene,
   resolveDocument
-} from "../chunk-AVTVKBIV.js";
-import "../chunk-VUW7SRON.js";
-import "../chunk-P7FW66WE.js";
+} from "../chunk-G4ETUB4M.js";
+import "../chunk-HIRCZVXI.js";
+import "../chunk-HN2RGNDH.js";
+import "../chunk-UKKTZNGD.js";
+import "../chunk-BBMS4ALE.js";
 import {
-  serializeDocument
-} from "../chunk-3MHLUDWC.js";
-import "../chunk-QVERY2JP.js";
-import {
+  canonical,
   edgesOf,
   freeTypes,
   nodesOf
-} from "../chunk-6NELNSRC.js";
+} from "../chunk-QWYSRMUP.js";
 import "../chunk-UHROM3FO.js";
 import {
   renderSceneMarkup
-} from "../chunk-3I2A4V6U.js";
+} from "../chunk-S6PSHJSL.js";
 import {
   nodeGeometry
-} from "../chunk-YKPE23VO.js";
+} from "../chunk-KKMUFXA6.js";
 import "../chunk-KDAWQGDC.js";
-import "../chunk-TVEV5XLW.js";
+import "../chunk-TGRGDAF2.js";
 
 // src/editor/index.tsx
 import {
@@ -52,6 +51,45 @@ import {
   useState,
   useSyncExternalStore
 } from "react";
+
+// src/editor/baseline.ts
+function baselineUpdate(previous, next) {
+  const options = { instanceId: next.instanceId, theme: next.theme, grid: "none" };
+  const full = () => ({ full: true, markup: renderSceneMarkup(next.document, next.scene, options) });
+  if (!previous || next.document.spec.type !== "graph" || previous.document.scene.mode !== "manual" || next.document.scene.mode !== "manual" || previous.document.spec !== next.document.spec || previous.document.presentation !== next.document.presentation || previous.document.metadata !== next.document.metadata || previous.theme !== next.theme || previous.instanceId !== next.instanceId || previous.fontGeneration !== next.fontGeneration || JSON.stringify(previous.document.scene.zOrder) !== JSON.stringify(next.document.scene.zOrder) || JSON.stringify(previous.scene.layout.containers) !== JSON.stringify(next.scene.layout.containers))
+    return full();
+  const nodes = /* @__PURE__ */ new Set(), edges = /* @__PURE__ */ new Set();
+  const oldNodes = previous.scene.layout.nodeById;
+  const oldEdges = new Map(previous.scene.layout.edges.map((edge) => [edge.id, edge]));
+  for (const node of next.scene.layout.nodes)
+    if (JSON.stringify(oldNodes[node.id]) !== JSON.stringify(node)) nodes.add(node.id);
+  for (const edge of next.scene.layout.edges)
+    if (JSON.stringify(oldEdges.get(edge.id)) !== JSON.stringify(edge)) edges.add(edge.id);
+  return {
+    full: false,
+    markup: renderSceneMarkup(next.document, next.scene, { ...options, only: { nodes, edges } })
+  };
+}
+function patchBaseline(root, markup) {
+  if (!markup) return true;
+  const fragment = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  fragment.innerHTML = markup;
+  const key = (element) => {
+    for (const name of ["data-node-id", "data-edge-id", "data-edge-label"]) {
+      const value = element.getAttribute(name);
+      if (value !== null) return `${name}:${value}`;
+    }
+    return null;
+  };
+  const current = new Map([...root.children].map((element) => [key(element), element]));
+  const replacements = [...fragment.children].map((element) => ({
+    element,
+    old: current.get(key(element))
+  }));
+  if (replacements.some(({ old }) => !old)) return false;
+  for (const { element, old } of replacements) old.replaceWith(element);
+  return true;
+}
 
 // src/geometry/arrange.ts
 function arrangeRects(nodes, mode) {
@@ -168,6 +206,23 @@ function intersectsMarquee(a, b) {
   return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0 && a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+// src/editor/panel-tabs.ts
+function panelTabsFor(type) {
+  return type === "timeline" ? ["outline", "json"] : ["outline", "json", "connections"];
+}
+function coercePanelTab(tab, supported) {
+  return supported.includes(tab) ? tab : supported[0];
+}
+function panelTabId(scope, tab) {
+  return `adl-editor-tab-${scope}-${tab}`;
+}
+function panelTabPanelId(scope, tab) {
+  return `adl-editor-tabpanel-${scope}-${tab}`;
+}
+function panelTabScope(reactId) {
+  return reactId.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
 // src/editor/index.tsx
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 var Context = createContext(null);
@@ -175,9 +230,14 @@ var measureText = createCanvasTextMeasurer();
 function EditorRoot({
   store,
   locale,
+  theme,
+  registry,
   children
 }) {
-  const value = useMemo(() => ({ store, locale }), [store, locale]);
+  const value = useMemo(
+    () => ({ store, locale, theme, registry }),
+    [store, locale, theme, registry]
+  );
   return /* @__PURE__ */ jsx(Context.Provider, { value, children });
 }
 function useEditor() {
@@ -188,6 +248,10 @@ function useEditor() {
 function useEditorSnapshot() {
   const { store } = useEditor();
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+}
+function useEditorResolveContext() {
+  const { theme, registry } = useEditor();
+  return useMemo(() => ({ theme, renderers: registry }), [theme, registry]);
 }
 var shallowEqual = (a, b) => {
   if (Object.is(a, b)) return true;
@@ -253,6 +317,7 @@ var NodeHitRect = memo(function NodeHitRect2({
       height,
       rx: 4,
       fill: "transparent",
+      pointerEvents: "all",
       stroke: selected ? stroke : "none",
       strokeWidth: 2 / zoom,
       tabIndex: 0,
@@ -295,6 +360,7 @@ var EdgeHitRect = memo(function EdgeHitRect2({
       height,
       rx: 6,
       fill: "transparent",
+      pointerEvents: "all",
       stroke: selected ? stroke : "transparent",
       style: { cursor: "pointer" },
       tabIndex: 0,
@@ -320,17 +386,21 @@ function dispatch(store, commands, label) {
     commands
   });
 }
-function materialize(document) {
-  const result = resolveDocument(document, {
+function materialize(document2, resolve) {
+  if (document2.spec.type === "graph" && document2.scene.mode === "manual" && !resolve?.renderers && nodesOf(document2.spec).every((node) => document2.scene.nodes[node.id]))
+    return document2.scene;
+  const result = resolveDocument(document2, {
     quality: "edit",
     requestId: "gesture",
     measureText,
     skipValidation: true,
-    skipDiagnostics: true
+    skipDiagnostics: true,
+    theme: resolve?.theme,
+    renderers: resolve?.renderers
   });
-  if (!result.ok) return document.scene;
+  if (!result.ok) return document2.scene;
   return {
-    ...structuredClone(document.scene),
+    ...structuredClone(document2.scene),
     mode: "manual",
     nodes: Object.fromEntries(
       result.value.layout.nodes.map((n) => [
@@ -340,7 +410,7 @@ function materialize(document) {
           y: n.y,
           width: n.w,
           height: n.h,
-          locked: document.scene.nodes[n.id]?.locked ?? false
+          locked: document2.scene.nodes[n.id]?.locked ?? false
         }
       ])
     )
@@ -348,10 +418,21 @@ function materialize(document) {
 }
 function EditorStatus() {
   const dirty = useEditorSelector((s) => s.dirty), t = useLabels();
-  return /* @__PURE__ */ jsx("span", { className: "adl-editor-status", role: "status", children: dirty ? t("Unsaved changes", "Cambios sin guardar") : t("No pending changes", "Sin cambios pendientes") });
+  const text = dirty ? t("Unsaved changes", "Cambios sin guardar") : t("No pending changes", "Sin cambios pendientes");
+  return /* @__PURE__ */ jsxs("span", { className: "adl-editor-status", role: "status", "aria-label": text, children: [
+    /* @__PURE__ */ jsx(
+      "span",
+      {
+        className: "adl-editor-status-dot",
+        "aria-hidden": "true",
+        "data-dirty": dirty ? "" : void 0
+      }
+    ),
+    /* @__PURE__ */ jsx("span", { className: "adl-editor-status-text", children: text })
+  ] });
 }
 function EditorToolbar() {
-  const { store } = useEditor(), snapshot = useEditorSelector(
+  const { store, registry } = useEditor(), snapshot = useEditorSelector(
     (s) => ({
       tool: s.tool,
       selection: s.selection,
@@ -362,6 +443,22 @@ function EditorToolbar() {
     }),
     shallowEqual
   ), t = useLabels();
+  const fit = () => {
+    const result = resolveDocument(store.getSnapshot().document, {
+      quality: "edit",
+      requestId: "toolbar-fit",
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true,
+      renderers: registry
+    });
+    if (result.ok) {
+      const svg = document.querySelector('.adl-editor-surface > svg[role="group"]');
+      const rect = svg?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0)
+        store.setViewport(fitViewport(result.value.worldBounds, rect, 24));
+    }
+  };
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -369,54 +466,63 @@ function EditorToolbar() {
       role: "toolbar",
       "aria-label": t("Editor tools", "Herramientas de edici\xF3n"),
       children: [
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            "aria-pressed": snapshot.tool === "select",
-            onClick: () => store.setTool("select"),
-            children: t("Select", "Seleccionar")
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            "aria-pressed": snapshot.tool === "hand",
-            onClick: () => store.setTool("hand"),
-            children: t("Pan", "Desplazar")
-          }
-        ),
-        /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.canUndo, onClick: () => store.undo(), children: t("Undo", "Deshacer") }),
-        /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.canRedo, onClick: () => store.redo(), children: t("Redo", "Rehacer") }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            onClick: () => store.setViewport({
-              ...snapshot.viewport,
-              zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25)
-            }),
-            "aria-label": t("Zoom out", "Alejar"),
-            children: "\u2212"
-          }
-        ),
-        /* @__PURE__ */ jsxs("output", { "aria-label": t("Zoom", "Zoom"), children: [
-          Math.round(snapshot.viewport.zoom * 100),
-          "%"
+        /* @__PURE__ */ jsxs("div", { className: "adl-editor-group", role: "group", "aria-label": t("Tools", "Herramientas"), children: [
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              "aria-pressed": snapshot.tool === "select",
+              onClick: () => store.setTool("select"),
+              children: t("Select", "Seleccionar")
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              "aria-pressed": snapshot.tool === "hand",
+              onClick: () => store.setTool("hand"),
+              children: t("Pan", "Desplazar")
+            }
+          )
         ] }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            onClick: () => store.setViewport({
-              ...snapshot.viewport,
-              zoom: Math.min(4, snapshot.viewport.zoom * 1.25)
-            }),
-            "aria-label": t("Zoom in", "Acercar"),
-            children: "+"
-          }
-        ),
+        /* @__PURE__ */ jsx("span", { className: "adl-editor-separator", "aria-hidden": "true" }),
+        /* @__PURE__ */ jsxs("div", { className: "adl-editor-group", role: "group", "aria-label": t("History", "Historial"), children: [
+          /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.canUndo, onClick: () => store.undo(), children: t("Undo", "Deshacer") }),
+          /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.canRedo, onClick: () => store.redo(), children: t("Redo", "Rehacer") })
+        ] }),
+        /* @__PURE__ */ jsx("span", { className: "adl-editor-separator", "aria-hidden": "true" }),
+        /* @__PURE__ */ jsxs("div", { className: "adl-editor-group", role: "group", "aria-label": t("Camera", "C\xE1mara"), children: [
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => store.setViewport({
+                ...snapshot.viewport,
+                zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25)
+              }),
+              "aria-label": t("Zoom out", "Alejar"),
+              children: "\u2212"
+            }
+          ),
+          /* @__PURE__ */ jsxs("output", { "aria-label": t("Zoom", "Zoom"), children: [
+            Math.round(snapshot.viewport.zoom * 100),
+            "%"
+          ] }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => store.setViewport({
+                ...snapshot.viewport,
+                zoom: Math.min(4, snapshot.viewport.zoom * 1.25)
+              }),
+              "aria-label": t("Zoom in", "Acercar"),
+              children: "+"
+            }
+          ),
+          /* @__PURE__ */ jsx("button", { type: "button", onClick: fit, children: t("Fit diagram", "Ajustar diagrama") })
+        ] }),
         /* @__PURE__ */ jsx(EditorSelectionTools, {}),
         /* @__PURE__ */ jsx(EditorRelayout, {}),
         /* @__PURE__ */ jsx(EditorStatus, {})
@@ -462,6 +568,63 @@ function EditorRelayout() {
 }
 var SceneMarkup = memo(function SceneMarkup2({ markup }) {
   return /* @__PURE__ */ jsx("g", { dangerouslySetInnerHTML: { __html: markup } });
+});
+var ViewportGrid = memo(function ViewportGrid2({
+  width,
+  height,
+  viewport,
+  cell,
+  color
+}) {
+  const base = Number.isFinite(cell) && cell > 0 ? cell : 16;
+  let step = base;
+  let spacing = step * viewport.zoom;
+  while (spacing < 12 && step < base * 16) {
+    step *= 2;
+    spacing = step * viewport.zoom;
+  }
+  const unique = useId().replaceAll(":", "");
+  const patternId = `adl-viewport-grid-${unique}`;
+  const fadeId = `adl-viewport-grid-fade-${unique}`;
+  const maskId = `adl-viewport-grid-mask-${unique}`;
+  const x0 = -viewport.x / viewport.zoom;
+  const y0 = -viewport.y / viewport.zoom;
+  const w = width / viewport.zoom;
+  const h = height / viewport.zoom;
+  return /* @__PURE__ */ jsxs(Fragment, { children: [
+    /* @__PURE__ */ jsxs("defs", { children: [
+      /* @__PURE__ */ jsx("pattern", { id: patternId, width: step, height: step, patternUnits: "userSpaceOnUse", children: /* @__PURE__ */ jsx("circle", { cx: 1, cy: 1, r: 1, fill: color, fillOpacity: 0.12 }) }),
+      /* @__PURE__ */ jsxs(
+        "radialGradient",
+        {
+          id: fadeId,
+          gradientUnits: "userSpaceOnUse",
+          cx: x0 + w / 2,
+          cy: y0 + h / 2,
+          r: Math.max(w, h) * 0.75,
+          children: [
+            /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "#ffffff" }),
+            /* @__PURE__ */ jsx("stop", { offset: "62%", stopColor: "#ffffff" }),
+            /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "#ffffff", stopOpacity: "0" })
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsx("mask", { id: maskId, maskUnits: "userSpaceOnUse", x: x0, y: y0, width: w, height: h, children: /* @__PURE__ */ jsx("rect", { x: x0, y: y0, width: w, height: h, fill: `url(#${fadeId})` }) })
+    ] }),
+    /* @__PURE__ */ jsx(
+      "rect",
+      {
+        "data-editor-grid": "true",
+        x: x0,
+        y: y0,
+        width: w,
+        height: h,
+        fill: `url(#${patternId})`,
+        mask: `url(#${maskId})`,
+        pointerEvents: "none"
+      }
+    )
+  ] });
 });
 var SceneHits = memo(function SceneHits2({
   nodes,
@@ -527,15 +690,32 @@ var SceneHits = memo(function SceneHits2({
   ] });
 });
 var BaselineLayer = memo(function BaselineLayer2({
-  markup,
+  frame,
   hidden,
   width,
   height,
   x,
   y,
-  zoom
+  zoom,
+  gridVisible,
+  gridCell,
+  gridColor
 }) {
   const root = useRef(null);
+  const content = useRef(null);
+  const previous = useRef(null);
+  useLayoutEffect(() => {
+    if (!content.current) return;
+    if (!frame) {
+      content.current.replaceChildren();
+      previous.current = null;
+      return;
+    }
+    const update = baselineUpdate(previous.current, frame);
+    if (update.full || !patchBaseline(content.current, update.markup))
+      content.current.innerHTML = update.full ? update.markup : baselineUpdate(null, frame).markup;
+    previous.current = frame;
+  }, [frame]);
   useLayoutEffect(() => {
     if (!hidden || !root.current) return;
     const nodeIds = new Set(hidden.nodes), edgeIds = new Set(hidden.edges);
@@ -552,7 +732,7 @@ var BaselineLayer = memo(function BaselineLayer2({
     return () => {
       for (const element of elements) element.style.removeProperty("visibility");
     };
-  }, [hidden, markup]);
+  }, [hidden, frame]);
   return /* @__PURE__ */ jsx(
     "svg",
     {
@@ -562,27 +742,77 @@ var BaselineLayer = memo(function BaselineLayer2({
       height: "100%",
       viewBox: `0 0 ${width} ${height}`,
       style: { position: "absolute", inset: 0, pointerEvents: "none", willChange: "transform" },
-      children: /* @__PURE__ */ jsx("g", { transform: `translate(${x} ${y}) scale(${zoom})`, children: /* @__PURE__ */ jsx(SceneMarkup, { markup }) })
+      children: /* @__PURE__ */ jsxs("g", { transform: `translate(${x} ${y}) scale(${zoom})`, children: [
+        gridVisible && /* @__PURE__ */ jsx(
+          ViewportGrid,
+          {
+            width,
+            height,
+            viewport: { x, y, zoom },
+            cell: gridCell,
+            color: gridColor
+          }
+        ),
+        /* @__PURE__ */ jsx("g", { ref: content })
+      ] })
     }
   );
 });
+function moveWithinOrder(items, id, before) {
+  const current = items.findIndex((item) => item.id === id);
+  if (current < 0) return items;
+  const next = items.slice();
+  const [moved] = next.splice(current, 1);
+  const index = before === void 0 ? -1 : next.findIndex((item) => item.id === before);
+  next.splice(index < 0 ? next.length : index, 0, moved);
+  return next;
+}
 function EditorSurface({
   ariaLabel,
-  className
+  className,
+  autoFit = true
 }) {
   const { store } = useEditor(), snapshot = useEditorSnapshot(), t = useLabels(), instanceId = useId();
   const svgRef = useRef(null), [size, setSize] = useState({ width: 800, height: 600 });
+  const { theme: viewTheme, registry } = useEditor();
   const activeDoc = snapshot.draft.kind === "gesture" ? snapshot.draft.preview : snapshot.document;
-  const resolvePreview = useMemo(() => createPreviewResolver(), [store]);
+  const effectiveTheme = viewTheme ?? activeDoc.presentation.theme.mode;
+  const palette = activeDoc.presentation.theme[effectiveTheme];
+  const resolveContext = useMemo(
+    () => ({ theme: effectiveTheme, renderers: registry }),
+    [effectiveTheme, registry]
+  );
+  const [fontGeneration, setFontGeneration] = useState(0);
+  const fontsRefreshed = useRef(false);
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.fonts) return;
+    const fonts = document.fonts;
+    const refresh = () => {
+      if (fontsRefreshed.current) return;
+      const ready = fonts.check("16px Geist") && fonts.check('16px "Geist Mono"');
+      if (!ready) return;
+      fontsRefreshed.current = true;
+      measureText?.clear?.();
+      setFontGeneration((value) => value + 1);
+    };
+    void Promise.allSettled([fonts.load("16px Geist"), fonts.load('16px "Geist Mono"')]).then(
+      refresh
+    );
+    fonts.addEventListener("loadingdone", refresh);
+    return () => fonts.removeEventListener("loadingdone", refresh);
+  }, []);
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontGeneration]);
   const committedResolved = useMemo(
     () => resolveDocument(snapshot.document, {
       quality: "edit",
       requestId: instanceId,
       measureText,
       skipValidation: true,
-      skipDiagnostics: true
+      skipDiagnostics: true,
+      theme: effectiveTheme,
+      renderers: registry
     }),
-    [snapshot.document, instanceId]
+    [snapshot.document, instanceId, effectiveTheme, registry, fontGeneration]
   );
   const resolved = useMemo(
     () => activeDoc === snapshot.document ? committedResolved : resolvePreview(activeDoc, {
@@ -590,22 +820,39 @@ function EditorSurface({
       requestId: instanceId,
       measureText,
       skipValidation: true,
-      skipDiagnostics: true
+      skipDiagnostics: true,
+      theme: effectiveTheme,
+      renderers: registry
     }),
-    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview]
+    [
+      activeDoc,
+      snapshot.document,
+      committedResolved,
+      instanceId,
+      resolvePreview,
+      effectiveTheme,
+      registry
+    ]
   );
   const [gestureEntities, setGestureEntities] = useState(null);
-  const baseline = useMemo(
-    () => committedResolved.ok ? renderSceneMarkup(snapshot.document, committedResolved.value, { instanceId }) : "",
-    [snapshot.document, committedResolved, instanceId]
+  const baselineFrame = useMemo(
+    () => committedResolved.ok ? {
+      document: snapshot.document,
+      scene: committedResolved.value,
+      instanceId,
+      theme: effectiveTheme,
+      fontGeneration
+    } : null,
+    [snapshot.document, committedResolved, instanceId, effectiveTheme, fontGeneration]
   );
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null;
     return renderSceneMarkup(activeDoc, resolved.value, {
       instanceId,
+      theme: effectiveTheme,
       only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) }
     });
-  }, [activeDoc, resolved, gestureEntities, instanceId]);
+  }, [activeDoc, resolved, gestureEntities, instanceId, effectiveTheme]);
   const gesture = useRef(null);
   const marquee = useRef(null);
   const [selectionBox, setSelectionBox] = useState(null);
@@ -644,6 +891,7 @@ function EditorSurface({
   const pinch = useRef(null);
   const spacePan = useRef(false);
   const fitted = useRef(false);
+  const fittedViewport = useRef(null);
   const moveRaf = useRef(0);
   const pendingMove = useRef(null);
   const pendingPointer = useRef(-1);
@@ -677,10 +925,10 @@ function EditorSurface({
       );
       setSelectionBox(box);
       const selected = authoredNodes.filter((n) => intersectsMarquee(box, nodeGeometry(n).hit)).map((n) => ({ kind: "node", id: n.id }));
-      const baseline2 = selection.additive ? selection.selection : [];
+      const baseline = selection.additive ? selection.selection : [];
       store.setSelection([
-        ...baseline2,
-        ...selected.filter((n) => !baseline2.some((r) => r.kind === n.kind && r.id === n.id))
+        ...baseline,
+        ...selected.filter((n) => !baseline.some((r) => r.kind === n.kind && r.id === n.id))
       ]);
       return;
     }
@@ -698,6 +946,90 @@ function EditorSurface({
       const world = screenToWorld(point, current.viewport), source = current.scene.nodes[current.connect.sourceId];
       const anchor = source ? anchorPoint(source, { side: "right", offset: 0.5 }) : { x: 0, y: 0 };
       setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y });
+      return;
+    }
+    if (current.structured) {
+      const structured = current.structured;
+      const world = screenToWorld(point, current.viewport);
+      const spec = snapshot.document.spec;
+      const placed = (id) => structured.placements.find((entry) => entry.id === id);
+      let next = null;
+      if (structured.kind === "band" && spec.type === "band") {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId);
+        if (dragged) {
+          const ranges = spec.bands.map((_band, index) => {
+            const members = structured.placements.filter((entry) => {
+              const node = spec.nodes.find((candidate) => candidate.id === entry.id);
+              return node?.band === index;
+            });
+            if (!members.length) return { index, x0: Infinity, x1: -Infinity, cx: 0 };
+            const x0 = Math.min(...members.map((member) => member.x));
+            const x1 = Math.max(...members.map((member) => member.x + member.width));
+            return { index, x0, x1, cx: (x0 + x1) / 2 };
+          });
+          const target = ranges.find((range) => world.x >= range.x0 && world.x <= range.x1) ?? ranges.reduce(
+            (best, range) => Math.abs(range.cx - world.x) < Math.abs(best.cx - world.x) ? range : best
+          );
+          const siblings = spec.nodes.filter(
+            (node) => node.band === target.index && node.id !== dragged.id
+          );
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cy ?? 0) > world.y);
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map(
+              (node) => node.id === dragged.id ? { ...dragged, band: target.index } : node
+            )
+          };
+        }
+      } else if (structured.kind === "lane" && spec.type === "swimlane") {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId);
+        const lanes = structured.containers;
+        if (dragged && lanes.length) {
+          const target = lanes.find((lane) => world.y >= lane.y && world.y <= lane.y + lane.h) ?? lanes.reduce(
+            (best, lane) => Math.abs(lane.y + lane.h / 2 - world.y) < Math.abs(best.y + best.h / 2 - world.y) ? lane : best
+          );
+          const siblings = spec.nodes.filter(
+            (node) => node.lane === target.id && node.id !== dragged.id
+          );
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cx ?? 0) > world.x);
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map(
+              (node) => node.id === dragged.id ? { ...dragged, lane: target.id } : node
+            )
+          };
+        }
+      } else if (structured.kind === "order" && spec.type === "sequence") {
+        const dragged = spec.participants.find(
+          (participant) => participant.id === structured.nodeId
+        );
+        if (dragged) {
+          const others = spec.participants.filter((participant) => participant.id !== dragged.id);
+          const slot = others.findIndex(
+            (participant) => (placed(participant.id)?.cx ?? 0) > world.x
+          );
+          next = {
+            ...spec,
+            participants: moveWithinOrder(spec.participants, dragged.id, others[slot]?.id)
+          };
+        }
+      } else if (structured.kind === "order" && spec.type === "timeline") {
+        const dragged = spec.events.find((event) => event.id === structured.nodeId);
+        if (dragged) {
+          const others = spec.events.filter((event) => event.id !== dragged.id);
+          const slot = others.findIndex((event) => (placed(event.id)?.cx ?? 0) > world.x);
+          next = { ...spec, events: moveWithinOrder(spec.events, dragged.id, others[slot]?.id) };
+        }
+      }
+      if (next) {
+        const signature = JSON.stringify(next);
+        if (signature !== structured.signature) {
+          structured.signature = signature;
+          store.previewGesture([{ type: "spec.replace", spec: next, references: "reject" }], {
+            skipValidation: true
+          });
+        }
+      }
       return;
     }
     const sceneCommands = snapshot.document.scene.mode === "manual" && Object.keys(snapshot.document.scene.nodes).length === nodesOf(snapshot.document.spec).length ? [] : [{ type: "scene.set", scene: current.scene }];
@@ -826,17 +1158,26 @@ function EditorSurface({
       if (r.width > 0 && r.height > 0) {
         const measured = { width: r.width, height: r.height };
         setSize(measured);
-        if (!fitted.current) {
-          const current = resolveDocument(store.getSnapshot().document, {
-            quality: "edit",
-            requestId: "initial-fit",
-            measureText,
-            skipValidation: true
-          });
-          if (current.ok) {
-            fitted.current = true;
-            store.setViewport(fitViewport(current.value.worldBounds, measured, 24));
-          }
+        if (!autoFit) {
+          fitted.current = true;
+          return;
+        }
+        const current = resolveDocument(store.getSnapshot().document, {
+          quality: "edit",
+          requestId: "initial-fit",
+          measureText,
+          skipValidation: true,
+          theme: effectiveTheme,
+          renderers: registry
+        });
+        if (!current.ok) return;
+        const next = fitViewport(current.value.worldBounds, measured, 24);
+        const latest = store.getSnapshot().viewport;
+        const untouched = !fitted.current || fittedViewport.current !== null && latest.x === fittedViewport.current.x && latest.y === fittedViewport.current.y && latest.zoom === fittedViewport.current.zoom;
+        if (untouched) {
+          fitted.current = true;
+          fittedViewport.current = next;
+          store.setViewport(next);
         }
       }
     });
@@ -845,7 +1186,7 @@ function EditorSurface({
       observer.disconnect();
       store.cancelGesture();
     };
-  }, [store]);
+  }, [store, autoFit]);
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -1009,13 +1350,16 @@ function EditorSurface({
     /* @__PURE__ */ jsx(
       BaselineLayer,
       {
-        markup: baseline,
+        frame: baselineFrame,
         hidden: gestureEntities,
         width: size.width,
         height: size.height,
         x: snapshot.viewport.x,
         y: snapshot.viewport.y,
-        zoom: snapshot.viewport.zoom
+        zoom: snapshot.viewport.zoom,
+        gridVisible: activeDoc.presentation.grid.visible,
+        gridCell: activeDoc.presentation.grid.size,
+        gridColor: palette.foreground
       }
     ),
     /* @__PURE__ */ jsx(
@@ -1072,7 +1416,7 @@ function EditorSurface({
             removeSelection();
           } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && getAdapter(snapshot.document.spec.type).capabilities.includes("move-free")) {
             event.preventDefault();
-            const scene = materialize(snapshot.document), positions = {};
+            const scene = materialize(snapshot.document, resolveContext), positions = {};
             for (const ref of snapshot.selection)
               if (ref.kind === "node" && scene.nodes[ref.id] && !isNodeLocked(snapshot.document, ref.id)) {
                 const p = scene.nodes[ref.id], step = event.shiftKey ? 16 : 1;
@@ -1127,7 +1471,7 @@ function EditorSurface({
           if (connectSource && !connectSourceId) setConnectSource(null);
           if (!pan && !id && !resizeSelection && !edgeId && !waypointEdge && !portId && !connectSourceId) {
             event.preventDefault();
-            svgRef.current?.focus();
+            svgRef.current?.focus({ preventScroll: true });
             marquee.current = {
               pointer: event.pointerId,
               start: local(event),
@@ -1140,7 +1484,7 @@ function EditorSurface({
             return;
           }
           event.preventDefault();
-          svgRef.current?.focus();
+          svgRef.current?.focus({ preventScroll: true });
           let resizeIds;
           if (waypointEdge) {
             const route = snapshot.document.scene.routes[waypointEdge];
@@ -1159,7 +1503,7 @@ function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
@@ -1186,7 +1530,7 @@ function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               port: {
                 nodeId: portNodeId,
@@ -1206,7 +1550,7 @@ function EditorSurface({
             }).ok)
               return;
             const startPoint = local(event);
-            const scene2 = materialize(snapshot.document), source = scene2.nodes[connectSourceId];
+            const scene2 = materialize(snapshot.document, resolveContext), source = scene2.nodes[connectSourceId];
             const anchor = source ? anchorPoint(source, { side: "right", offset: 0.5 }) : { x: 0, y: 0 };
             const startWorld = screenToWorld(startPoint, snapshot.viewport);
             gesture.current = {
@@ -1238,11 +1582,54 @@ function EditorSurface({
               ...!snapshot.selection.some((r) => r.kind === "node" && r.id === id) ? [{ kind: "node", id }] : []
             ] : snapshot.selection.some((r) => r.kind === "node" && r.id === id) ? [...snapshot.selection] : [{ kind: "node", id }];
             store.setSelection(selection);
-            if (!getAdapter(snapshot.document.spec.type).capabilities.includes("move-free") || isNodeLocked(snapshot.document, id))
+            if (isNodeLocked(snapshot.document, id)) return;
+            const adapter = getAdapter(snapshot.document.spec.type);
+            if (!adapter.capabilities.includes("move-free")) {
+              const kind = snapshot.document.spec.type === "band" ? "band" : snapshot.document.spec.type === "swimlane" ? "lane" : snapshot.document.spec.type === "sequence" || snapshot.document.spec.type === "timeline" ? "order" : void 0;
+              if (!kind) return;
+              const placements = nodesOf(snapshot.document.spec).map((n) => {
+                const placed = resolved.ok ? resolved.value.layout.nodeById[n.id] : void 0;
+                return {
+                  id: n.id,
+                  cx: placed?.cx ?? 0,
+                  cy: placed?.cy ?? 0,
+                  x: placed?.x ?? 0,
+                  width: placed?.w ?? 0
+                };
+              });
+              if (!store.beginGesture({
+                id: globalThis.crypto.randomUUID(),
+                label: t("Move node", "Mover nodo"),
+                expectedRevision: snapshot.document.revision
+              }).ok)
+                return;
+              setGestureEntities({
+                nodes: nodesOf(snapshot.document.spec).map((node) => node.id),
+                edges: edgesOf(snapshot.document.spec).map((edge) => edge.id)
+              });
+              gesture.current = {
+                pointer: event.pointerId,
+                start: local(event),
+                viewport: { ...snapshot.viewport },
+                positions: {},
+                scene: materialize(snapshot.document, resolveContext),
+                pan: false,
+                structured: {
+                  kind,
+                  nodeId: id,
+                  placements,
+                  containers: (resolved.ok ? resolved.value.layout.containers ?? [] : []).map(
+                    (container) => ({ id: container.id, y: container.y, h: container.h })
+                  ),
+                  signature: JSON.stringify(snapshot.document.spec)
+                }
+              };
+              event.currentTarget.setPointerCapture(event.pointerId);
               return;
+            }
             if (resizeId) resizeIds = [id];
           }
-          const scene = materialize(snapshot.document), positions = {};
+          const scene = materialize(snapshot.document, resolveContext), positions = {};
           for (const ref of store.getSnapshot().selection)
             if (ref.kind === "node" && scene.nodes[ref.id])
               positions[ref.id] = { x: scene.nodes[ref.id].x, y: scene.nodes[ref.id].y };
@@ -1311,7 +1698,7 @@ function EditorSurface({
                   edges: hitBaseline.edges,
                   selection: snapshot.selection,
                   zoom: snapshot.viewport.zoom,
-                  color: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  color: palette.cobalt,
                   connectionLabel: t("Connection", "Conexi\xF3n"),
                   selectEdge,
                   selectNode,
@@ -1325,7 +1712,7 @@ function EditorSurface({
                   edges: authoredEdges.filter((edge) => gestureEntities.edges.includes(edge.id)),
                   selection: snapshot.selection,
                   zoom: snapshot.viewport.zoom,
-                  color: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  color: palette.cobalt,
                   connectionLabel: t("Connection", "Conexi\xF3n"),
                   selectEdge,
                   selectNode,
@@ -1343,7 +1730,7 @@ function EditorSurface({
                 const resizeTarget = selected.length === 1 ? selected[0].id : void 0;
                 const name = selected.length === 1 ? `${t("Resize", "Redimensionar")} ${selected[0].label}` : t("Resize selection", "Redimensionar selecci\xF3n");
                 const apply = (direction, delta, step) => {
-                  const scene = materialize(store.getSnapshot().document);
+                  const scene = materialize(store.getSnapshot().document, resolveContext);
                   const ids = resizeTarget ? [resizeTarget] : snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
                   const rects = ids.map((resizeId) => scene.nodes[resizeId]).filter((node) => node).map((node) => ({
                     x: node.x,
@@ -1377,16 +1764,27 @@ function EditorSurface({
                     resizeTarget ? "Resize node" : "Resize selection"
                   );
                 };
+                const handleHalf = Math.min(
+                  22 / snapshot.viewport.zoom,
+                  group.width / 4,
+                  group.height / 4
+                );
+                const strokeHalf = 0.5 / snapshot.viewport.zoom;
+                const markerHalf = Math.max(
+                  0,
+                  Math.min(5 / snapshot.viewport.zoom, handleHalf - strokeHalf)
+                );
                 return RESIZE_HANDLES.map((handle) => /* @__PURE__ */ jsxs("g", { children: [
                   /* @__PURE__ */ jsx(
                     "rect",
                     {
-                      x: group.x + group.width * handle.x - 5 / snapshot.viewport.zoom,
-                      y: group.y + group.height * handle.y - 5 / snapshot.viewport.zoom,
-                      width: 10 / snapshot.viewport.zoom,
-                      height: 10 / snapshot.viewport.zoom,
-                      fill: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].card,
-                      stroke: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                      "data-resize-marker": handle.direction,
+                      x: group.x + group.width * handle.x - markerHalf,
+                      y: group.y + group.height * handle.y - markerHalf,
+                      width: markerHalf * 2,
+                      height: markerHalf * 2,
+                      fill: palette.card,
+                      stroke: palette.cobalt,
                       strokeWidth: 1 / snapshot.viewport.zoom,
                       pointerEvents: "none"
                     }
@@ -1396,11 +1794,12 @@ function EditorSurface({
                     {
                       ...resizeTarget ? { "data-resize-node": resizeTarget } : { "data-resize-selection": "" },
                       "data-resize-direction": handle.direction,
-                      x: group.x + group.width * handle.x - 22 / snapshot.viewport.zoom,
-                      y: group.y + group.height * handle.y - 22 / snapshot.viewport.zoom,
-                      width: 44 / snapshot.viewport.zoom,
-                      height: 44 / snapshot.viewport.zoom,
+                      x: group.x + group.width * handle.x - handleHalf,
+                      y: group.y + group.height * handle.y - handleHalf,
+                      width: handleHalf * 2,
+                      height: handleHalf * 2,
                       fill: "transparent",
+                      pointerEvents: "all",
                       style: { cursor: handle.cursor },
                       tabIndex: 0,
                       role: "button",
@@ -1439,7 +1838,6 @@ function EditorSurface({
                 };
                 const source = anchorPoint(from, route.source);
                 const target = anchorPoint(to, route.target);
-                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
                 const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
                 return /* @__PURE__ */ jsxs("g", { children: [
                   route.points.map((p, index) => /* @__PURE__ */ jsxs("g", { children: [
@@ -1464,6 +1862,7 @@ function EditorSurface({
                         cy: p.y,
                         r: Math.max(16, 22 / snapshot.viewport.zoom),
                         fill: "transparent",
+                        pointerEvents: "all",
                         style: { cursor: "move" },
                         tabIndex: 0,
                         role: "button",
@@ -1496,6 +1895,7 @@ function EditorSurface({
                         cy: position.y,
                         r: Math.max(16, 22 / snapshot.viewport.zoom),
                         fill: "transparent",
+                        pointerEvents: "all",
                         style: { cursor: "crosshair" },
                         tabIndex: 0,
                         role: "button",
@@ -1514,8 +1914,18 @@ function EditorSurface({
                 const rect = authoredRect ?? (laidOut ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h } : void 0);
                 const ports = authored?.ports ?? [];
                 if (!rect || !ports.length) return null;
-                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
-                const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
+                const portTarget = Math.min(
+                  Math.max(16, 22 / snapshot.viewport.zoom),
+                  rect.width / 4,
+                  rect.height / 4
+                );
+                const portDot = Math.max(
+                  0,
+                  Math.min(
+                    Math.max(5, 5 / snapshot.viewport.zoom),
+                    portTarget - 0.75 / snapshot.viewport.zoom
+                  )
+                );
                 return /* @__PURE__ */ jsx("g", { children: ports.map((port) => {
                   const position = anchorPoint(rect, port);
                   return /* @__PURE__ */ jsxs("g", { children: [
@@ -1524,7 +1934,7 @@ function EditorSurface({
                       {
                         cx: position.x,
                         cy: position.y,
-                        r: dot(5),
+                        r: portDot,
                         fill: palette.background,
                         stroke: palette.cobalt,
                         strokeWidth: 1.5 / snapshot.viewport.zoom,
@@ -1538,8 +1948,9 @@ function EditorSurface({
                         "data-port-node": id,
                         cx: position.x,
                         cy: position.y,
-                        r: Math.max(16, 22 / snapshot.viewport.zoom),
+                        r: portTarget,
                         fill: "transparent",
+                        pointerEvents: "all",
                         style: { cursor: "crosshair" },
                         tabIndex: 0,
                         role: "button",
@@ -1557,15 +1968,25 @@ function EditorSurface({
                 const rect = authoredRect ?? (laidOut ? { x: laidOut.x, y: laidOut.y, width: laidOut.w, height: laidOut.h } : void 0);
                 if (!authored || !rect) return null;
                 const anchor = anchorPoint(rect, { side: "right", offset: 0.5 });
-                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
-                const dot = (radius) => Math.max(5, radius / snapshot.viewport.zoom);
+                const connectTarget = Math.min(
+                  Math.max(16, 22 / snapshot.viewport.zoom),
+                  rect.width / 4,
+                  rect.height / 4
+                );
+                const connectDot = Math.max(
+                  0,
+                  Math.min(
+                    Math.max(5, 5 / snapshot.viewport.zoom),
+                    connectTarget - 0.75 / snapshot.viewport.zoom
+                  )
+                );
                 return /* @__PURE__ */ jsxs("g", { children: [
                   /* @__PURE__ */ jsx(
                     "circle",
                     {
                       cx: anchor.x,
                       cy: anchor.y,
-                      r: dot(5),
+                      r: connectDot,
                       fill: palette.background,
                       stroke: palette.branch,
                       strokeWidth: 1.5 / snapshot.viewport.zoom,
@@ -1578,8 +1999,9 @@ function EditorSurface({
                       "data-connect-source": id,
                       cx: anchor.x,
                       cy: anchor.y,
-                      r: Math.max(16, 22 / snapshot.viewport.zoom),
+                      r: connectTarget,
                       fill: "transparent",
+                      pointerEvents: "all",
                       style: { cursor: "crosshair" },
                       tabIndex: 0,
                       role: "button",
@@ -1596,7 +2018,6 @@ function EditorSurface({
                 ] });
               })(),
               connectSource && (() => {
-                const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode];
                 return /* @__PURE__ */ jsx("g", { pointerEvents: "none", children: authoredNodes.filter((n) => n.id !== connectSource).map((n) => /* @__PURE__ */ jsx(
                   "rect",
                   {
@@ -1620,7 +2041,7 @@ function EditorSurface({
                   y1: connectLine.y1,
                   x2: connectLine.x2,
                   y2: connectLine.y2,
-                  stroke: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  stroke: palette.cobalt,
                   strokeWidth: 2 / snapshot.viewport.zoom,
                   strokeDasharray: "4 4",
                   pointerEvents: "none"
@@ -1634,9 +2055,9 @@ function EditorSurface({
                   y: selectionBox.y,
                   width: selectionBox.width,
                   height: selectionBox.height,
-                  fill: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  fill: palette.cobalt,
                   fillOpacity: 0.08,
-                  stroke: activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt,
+                  stroke: palette.cobalt,
                   strokeWidth: 1 / snapshot.viewport.zoom,
                   pointerEvents: "none"
                 }
@@ -1644,17 +2065,6 @@ function EditorSurface({
             ]
           }
         )
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        className: "adl-editor-fit",
-        type: "button",
-        onClick: () => {
-          if (resolved.ok) store.setViewport(fitViewport(resolved.value.worldBounds, size, 24));
-        },
-        children: t("Fit diagram", "Ajustar diagrama")
       }
     ),
     !resolved.ok && /* @__PURE__ */ jsx("p", { role: "alert", children: resolved.diagnostics.map((d) => d.code).join(", ") }),
@@ -1665,10 +2075,11 @@ function EditorSurface({
   ] });
 }
 function EditorInspector() {
-  const { store } = useEditor(), snapshot = useEditorSelector(
+  const { store, theme: viewTheme } = useEditor(), snapshot = useEditorSelector(
     (s) => ({ selection: s.selection, document: s.document }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const id = snapshot.selection.find((r) => r.kind === "node")?.id, node = nodesOf(snapshot.document.spec).find((n) => n.id === id);
   const [label, setLabel] = useState(""), [error, setError] = useState("");
   useEffect(() => {
@@ -1745,7 +2156,7 @@ function EditorInspector() {
         {
           type: "button",
           onClick: () => {
-            const scene = materialize(snapshot.document);
+            const scene = materialize(snapshot.document, resolveContext);
             dispatch(
               store,
               [
@@ -1765,10 +2176,10 @@ function EditorInspector() {
     ] }),
     node && free && /* @__PURE__ */ jsx(EditorNodeGeometry, { nodeId: node.id }),
     /* @__PURE__ */ jsx(EditorStructuredInspector, {}),
-    /* @__PURE__ */ jsx(EditorRelations, {}),
+    /* @__PURE__ */ jsx(MemoEditorRelations, {}),
     /* @__PURE__ */ jsx(EditorRoute, {}),
     /* @__PURE__ */ jsx("h3", { children: t("Appearance", "Apariencia") }),
-    /* @__PURE__ */ jsxs("label", { children: [
+    !viewTheme && /* @__PURE__ */ jsxs("label", { children: [
       t("Theme", "Tema"),
       /* @__PURE__ */ jsxs(
         "select",
@@ -1822,39 +2233,164 @@ function EditorInspector() {
 }
 function EditorJsonPanel() {
   const { store } = useEditor(), snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual), t = useLabels();
-  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document]);
-  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized;
-  return /* @__PURE__ */ jsxs("details", { className: "adl-editor-json", children: [
-    /* @__PURE__ */ jsx("summary", { children: t("Document JSON", "JSON del documento") }),
+  const [commitDiagnostics, setCommitDiagnostics] = useState([]);
+  const [serialized, setSerialized] = useState(() => ({
+    document: snapshot.document,
+    text: canonical(snapshot.document)
+  }));
+  useEffect(() => {
+    if (serialized.document === snapshot.document) return;
+    const timer = setTimeout(() => {
+      setSerialized({ document: snapshot.document, text: canonical(snapshot.document) });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [snapshot.document, serialized.document]);
+  const text = snapshot.draft.kind === "text" ? snapshot.draft.text : serialized.text;
+  const draftKind = snapshot.draft.kind;
+  useEffect(() => {
+    if (draftKind !== "text") setCommitDiagnostics([]);
+  }, [draftKind]);
+  const applyDraft = () => {
+    const result = store.commitTextDraft();
+    setCommitDiagnostics(result.status === "rejected" ? result.diagnostics.map((d) => d.code) : []);
+  };
+  const parseDiagnostics = snapshot.draft.kind === "text" ? snapshot.draft.diagnostics : [];
+  const parseCodes = parseDiagnostics.map((d) => d.code);
+  const commitCodes = commitDiagnostics.filter((code) => !parseCodes.includes(code));
+  const stale = commitCodes.includes("revision.stale");
+  return /* @__PURE__ */ jsxs("section", { className: "adl-editor-json", "aria-label": t("Document JSON", "JSON del documento"), children: [
+    /* @__PURE__ */ jsx("h2", { className: "adl-editor-panel-title", children: t("Document JSON", "JSON del documento") }),
     /* @__PURE__ */ jsx(
       "textarea",
       {
         "aria-label": t("Document JSON", "JSON del documento"),
         value: text,
-        onChange: (event) => store.setTextDraft(event.target.value),
+        "aria-busy": serialized.document !== snapshot.document,
+        readOnly: snapshot.draft.kind !== "text" && serialized.document !== snapshot.document,
+        onChange: (event) => {
+          setCommitDiagnostics([]);
+          store.setTextDraft(event.target.value);
+        },
         spellCheck: false
       }
     ),
-    /* @__PURE__ */ jsxs("div", { children: [
+    /* @__PURE__ */ jsxs("div", { className: "adl-editor-json-actions", children: [
+      /* @__PURE__ */ jsx("button", { type: "button", disabled: snapshot.draft.kind !== "text", onClick: applyDraft, children: t("Apply JSON", "Aplicar JSON") }),
       /* @__PURE__ */ jsx(
         "button",
         {
           type: "button",
-          disabled: snapshot.draft.kind !== "text",
-          onClick: () => store.commitTextDraft(),
-          children: t("Apply JSON", "Aplicar JSON")
+          onClick: () => {
+            setCommitDiagnostics([]);
+            store.cancelTextDraft();
+          },
+          children: t("Discard draft", "Descartar borrador")
         }
-      ),
-      /* @__PURE__ */ jsx("button", { type: "button", onClick: () => store.cancelTextDraft(), children: t("Discard draft", "Descartar borrador") })
+      )
     ] }),
-    snapshot.draft.kind === "text" && snapshot.draft.diagnostics.length > 0 && /* @__PURE__ */ jsx("p", { role: "alert", children: snapshot.draft.diagnostics.map((d) => d.code).join(", ") })
+    parseDiagnostics.length > 0 && /* @__PURE__ */ jsx("p", { role: "alert", children: parseDiagnostics.map((d) => d.code).join(", ") }),
+    commitCodes.length > 0 && /* @__PURE__ */ jsxs("p", { role: "alert", className: "adl-editor-json-commit-alert", children: [
+      t("Draft not applied", "Borrador no aplicado"),
+      ": ",
+      commitCodes.join(", ")
+    ] }),
+    stale && /* @__PURE__ */ jsx("p", { className: "adl-editor-json-commit-hint", children: t(
+      "The document changed while this draft was open. Your text is preserved; discard the draft to start again from the current revision.",
+      "El documento cambi\xF3 mientras este borrador estaba abierto. Tu texto se conserva; descarta el borrador para empezar de nuevo desde la revisi\xF3n actual."
+    ) })
   ] });
+}
+function EditorPanelTabs({ className }) {
+  const snapshot = useEditorSelector((s) => ({ document: s.document }), shallowEqual), t = useLabels();
+  const scope = panelTabScope(useId());
+  const [tab, setTab] = useState("outline");
+  const tabRefs = useRef({});
+  const connections = edgesOf(snapshot.document.spec).length;
+  const supported = panelTabsFor(snapshot.document.spec.type);
+  const activeTab = coercePanelTab(tab, supported);
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab);
+  }, [activeTab, tab]);
+  const tabs = [
+    { id: "outline", label: t("Outline", "Estructura") },
+    { id: "json", label: t("JSON", "JSON") },
+    ...supported.includes("connections") ? [
+      {
+        id: "connections",
+        label: `${t("Connections", "Conexiones")} (${connections})`
+      }
+    ] : []
+  ];
+  const move = (direction) => {
+    const index = supported.indexOf(activeTab);
+    const next = supported[(index + direction + supported.length) % supported.length];
+    setTab(next);
+    tabRefs.current[next]?.focus();
+  };
+  return /* @__PURE__ */ jsxs(
+    "section",
+    {
+      className: `adl-editor-panels ${className ?? ""}`,
+      "aria-label": t("Document panels", "Paneles del documento"),
+      children: [
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: "adl-editor-tabs",
+            role: "tablist",
+            "aria-label": t("Document panels", "Paneles del documento"),
+            onKeyDown: (event) => {
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                move(1);
+              } else if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                move(-1);
+              }
+            },
+            children: tabs.map((entry) => /* @__PURE__ */ jsx(
+              "button",
+              {
+                ref: (element) => {
+                  tabRefs.current[entry.id] = element;
+                },
+                type: "button",
+                role: "tab",
+                id: panelTabId(scope, entry.id),
+                "aria-selected": activeTab === entry.id,
+                "aria-controls": panelTabPanelId(scope, entry.id),
+                tabIndex: activeTab === entry.id ? 0 : -1,
+                onClick: () => setTab(entry.id),
+                children: entry.label
+              },
+              entry.id
+            ))
+          }
+        ),
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            className: "adl-editor-tabpanel",
+            role: "tabpanel",
+            id: panelTabPanelId(scope, activeTab),
+            "aria-labelledby": panelTabId(scope, activeTab),
+            children: [
+              /* @__PURE__ */ jsx("div", { hidden: activeTab !== "outline", children: /* @__PURE__ */ jsx(EditorOutline, {}) }),
+              /* @__PURE__ */ jsx("div", { hidden: activeTab !== "json", children: /* @__PURE__ */ jsx(EditorJsonPanel, {}) }),
+              supported.includes("connections") && /* @__PURE__ */ jsx("div", { hidden: activeTab !== "connections", children: /* @__PURE__ */ jsx(MemoEditorRelations, {}) })
+            ]
+          }
+        )
+      ]
+    }
+  );
 }
 function EditorSelectionTools() {
   const { store } = useEditor(), snapshot = useEditorSelector(
     (s) => ({ document: s.document, selection: s.selection }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const fragment = useRef(null), [hasCopy, setHasCopy] = useState(false), [clipboardBusy, setClipboardBusy] = useState(false), [arrangement, setArrangement] = useState("left"), [error, setError] = useState("");
   const free = getAdapter(snapshot.document.spec.type).capabilities.includes("move-free");
   function copy() {
@@ -1933,134 +2469,256 @@ function EditorSelectionTools() {
     }
   }
   const nodeIds = snapshot.selection.filter((r) => r.kind === "node").map((r) => r.id);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== "Escape") return;
+      } else if (menuRef.current?.contains(event.target)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menuOpen]);
+  const arrange = () => {
+    const current = store.getSnapshot().document;
+    const scene = materialize(current, resolveContext);
+    const positions = arrangeRects(
+      nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
+      arrangement
+    );
+    const result = dispatch(
+      store,
+      [
+        { type: "scene.set", scene },
+        { type: "nodes.move", positions }
+      ],
+      "Arrange selection"
+    );
+    setError(result.diagnostics.map((d) => d.code).join(", "));
+  };
+  const group = () => {
+    const groups = structuredClone(snapshot.document.scene.groups);
+    groups.forEach((g) => {
+      g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id));
+    });
+    dispatch(
+      store,
+      [
+        { type: "scene.set", scene: { ...structuredClone(snapshot.document.scene), groups } },
+        {
+          type: "group.upsert",
+          group: {
+            id: crypto.randomUUID(),
+            label: t("Group", "Grupo"),
+            kind: "visual",
+            nodeIds,
+            locked: false
+          }
+        }
+      ],
+      "Group selection"
+    );
+  };
+  const ungroup = () => {
+    const scene = structuredClone(snapshot.document.scene);
+    const removed = new Set(
+      scene.groups.filter((g) => g.nodeIds.some((id) => nodeIds.includes(id))).map((g) => g.id)
+    );
+    scene.groups = scene.groups.filter((g) => !removed.has(g.id));
+    scene.groups.forEach((g) => {
+      if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup;
+    });
+    dispatch(store, [{ type: "scene.set", scene }], "Ungroup selection");
+  };
+  const groupDisabled = nodeIds.length < 2 || !free || nodeIds.some((id) => isNodeLocked(snapshot.document, id));
+  const ungroupDisabled = !nodeIds.length || !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id)));
   return /* @__PURE__ */ jsxs(Fragment, { children: [
-    /* @__PURE__ */ jsx(
-      "select",
+    /* @__PURE__ */ jsx("span", { className: "adl-editor-separator", "aria-hidden": "true" }),
+    /* @__PURE__ */ jsxs(
+      "div",
       {
-        "aria-label": t("Arrangement", "Alineaci\xF3n y distribuci\xF3n"),
-        value: arrangement,
-        onChange: (event) => setArrangement(event.target.value),
+        className: "adl-editor-group",
+        role: "group",
+        "aria-label": t("Selection actions", "Acciones de selecci\xF3n"),
         children: [
-          ["left", t("Align left", "Alinear izquierda")],
-          ["right", t("Align right", "Alinear derecha")],
-          ["top", t("Align top", "Alinear arriba")],
-          ["bottom", t("Align bottom", "Alinear abajo")],
-          ["center-x", t("Center horizontally", "Centrar horizontalmente")],
-          ["center-y", t("Center vertically", "Centrar verticalmente")],
-          ["horizontal", t("Distribute horizontally", "Distribuir horizontalmente")],
-          ["vertical", t("Distribute vertically", "Distribuir verticalmente")]
-        ].map(([value, label]) => /* @__PURE__ */ jsx("option", { value, children: label }, value))
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: !free || nodeIds.length < (arrangement === "horizontal" || arrangement === "vertical" ? 3 : 2) || nodeIds.some((id) => isNodeLocked(snapshot.document, id)),
-        onClick: () => {
-          const current = store.getSnapshot().document;
-          const scene = materialize(current);
-          const positions = arrangeRects(
-            nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
-            arrangement
-          );
-          const result = dispatch(
-            store,
-            [
-              { type: "scene.set", scene },
-              { type: "nodes.move", positions }
-            ],
-            "Arrange selection"
-          );
-          setError(result.diagnostics.map((d) => d.code).join(", "));
-        },
-        children: t("Arrange selection", "Organizar selecci\xF3n")
-      }
-    ),
-    /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.selection.length, onClick: () => copy(), children: t("Copy", "Copiar") }),
-    /* @__PURE__ */ jsx("button", { type: "button", disabled: !hasCopy || !free, onClick: () => paste(), children: t("Paste", "Pegar") }),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: clipboardBusy || !snapshot.selection.length,
-        onClick: () => void systemClipboard("copy"),
-        children: t("Copy to clipboard", "Copiar al portapapeles")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: clipboardBusy || !free,
-        onClick: () => void systemClipboard("paste"),
-        children: t("Paste from clipboard", "Pegar del portapapeles")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: !snapshot.selection.length || !free,
-        onClick: () => {
-          const result = copy();
-          if (result.ok) paste(result.value);
-        },
-        children: t("Duplicate", "Duplicar")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: nodeIds.length < 2 || !free,
-        onClick: () => {
-          const groups = structuredClone(snapshot.document.scene.groups);
-          groups.forEach((g) => {
-            g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id));
-          });
-          dispatch(
-            store,
-            [
-              { type: "scene.set", scene: { ...structuredClone(snapshot.document.scene), groups } },
+          /* @__PURE__ */ jsx("button", { type: "button", disabled: !snapshot.selection.length, onClick: () => copy(), children: t("Copy", "Copiar") }),
+          /* @__PURE__ */ jsx("button", { type: "button", disabled: !hasCopy || !free, onClick: () => paste(), children: t("Paste", "Pegar") }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              disabled: !snapshot.selection.length || !free,
+              onClick: () => {
+                const result = copy();
+                if (result.ok) paste(result.value);
+              },
+              children: t("Duplicate", "Duplicar")
+            }
+          ),
+          /* @__PURE__ */ jsxs("div", { className: "adl-editor-menu", "data-open": menuOpen ? "" : void 0, ref: menuRef, children: [
+            /* @__PURE__ */ jsx(
+              "button",
               {
-                type: "group.upsert",
-                group: {
-                  id: crypto.randomUUID(),
-                  label: t("Group", "Grupo"),
-                  kind: "visual",
-                  nodeIds,
-                  locked: false
-                }
+                type: "button",
+                "aria-haspopup": "menu",
+                "aria-expanded": menuOpen,
+                onClick: () => setMenuOpen((open) => !open),
+                children: t("More actions", "M\xE1s acciones")
               }
-            ],
-            "Group selection"
-          );
-        },
-        children: t("Group", "Agrupar")
-      }
-    ),
-    /* @__PURE__ */ jsx(
-      "button",
-      {
-        type: "button",
-        disabled: !nodeIds.length || !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id))),
-        onClick: () => {
-          const scene = structuredClone(snapshot.document.scene);
-          const removed = new Set(
-            scene.groups.filter((g) => g.nodeIds.some((id) => nodeIds.includes(id))).map((g) => g.id)
-          );
-          scene.groups = scene.groups.filter((g) => !removed.has(g.id));
-          scene.groups.forEach((g) => {
-            if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup;
-          });
-          dispatch(store, [{ type: "scene.set", scene }], "Ungroup selection");
-        },
-        children: t("Ungroup", "Desagrupar")
+            ),
+            menuOpen && /* @__PURE__ */ jsxs("div", { className: "adl-editor-menu-list", children: [
+              /* @__PURE__ */ jsxs("div", { role: "menu", "aria-label": t("More actions", "M\xE1s acciones"), children: [
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    role: "menuitem",
+                    disabled: clipboardBusy || !snapshot.selection.length,
+                    onClick: () => {
+                      setMenuOpen(false);
+                      void systemClipboard("copy");
+                    },
+                    children: t("Copy to clipboard", "Copiar al portapapeles")
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    role: "menuitem",
+                    disabled: clipboardBusy || !free,
+                    onClick: () => {
+                      setMenuOpen(false);
+                      void systemClipboard("paste");
+                    },
+                    children: t("Paste from clipboard", "Pegar del portapapeles")
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    role: "menuitem",
+                    disabled: groupDisabled,
+                    onClick: () => {
+                      setMenuOpen(false);
+                      group();
+                    },
+                    children: t("Group", "Agrupar")
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    role: "menuitem",
+                    disabled: ungroupDisabled,
+                    onClick: () => {
+                      setMenuOpen(false);
+                      ungroup();
+                    },
+                    children: t("Ungroup", "Desagrupar")
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "adl-editor-menu-section", children: [
+                /* @__PURE__ */ jsxs("label", { className: "adl-editor-menu-field", children: [
+                  t("Arrangement", "Alineaci\xF3n y distribuci\xF3n"),
+                  /* @__PURE__ */ jsx(
+                    "select",
+                    {
+                      "aria-label": t("Arrangement", "Alineaci\xF3n y distribuci\xF3n"),
+                      value: arrangement,
+                      onChange: (event) => setArrangement(event.target.value),
+                      children: [
+                        ["left", t("Align left", "Alinear izquierda")],
+                        ["right", t("Align right", "Alinear derecha")],
+                        ["top", t("Align top", "Alinear arriba")],
+                        ["bottom", t("Align bottom", "Alinear abajo")],
+                        ["center-x", t("Center horizontally", "Centrar horizontalmente")],
+                        ["center-y", t("Center vertically", "Centrar verticalmente")],
+                        ["horizontal", t("Distribute horizontally", "Distribuir horizontalmente")],
+                        ["vertical", t("Distribute vertically", "Distribuir verticalmente")]
+                      ].map(([value, label]) => /* @__PURE__ */ jsx("option", { value, children: label }, value))
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    className: "adl-editor-menu-action",
+                    disabled: !free || nodeIds.length < (arrangement === "horizontal" || arrangement === "vertical" ? 3 : 2) || nodeIds.some((id) => isNodeLocked(snapshot.document, id)),
+                    onClick: () => {
+                      setMenuOpen(false);
+                      arrange();
+                    },
+                    children: t("Arrange selection", "Organizar selecci\xF3n")
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        ]
       }
     ),
     error && /* @__PURE__ */ jsx("span", { role: "alert", children: error })
   ] });
+}
+function EditorDialog({
+  open,
+  titleId,
+  onClose,
+  children
+}) {
+  const dialogRef = useRef(null);
+  const openerRef = useRef(null);
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      dialog.showModal();
+      dialog.querySelector("[data-dialog-initial-focus]")?.focus();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  useEffect(
+    () => () => {
+      const dialog = dialogRef.current;
+      if (dialog?.open) dialog.close();
+    },
+    []
+  );
+  return /* @__PURE__ */ jsx(
+    "dialog",
+    {
+      ref: dialogRef,
+      className: "adl-editor-dialog",
+      "aria-labelledby": titleId,
+      onCancel: (event) => {
+        event.preventDefault();
+        onClose();
+      },
+      onClose: () => {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        if (opener?.isConnected) opener.focus();
+      },
+      onClick: (event) => {
+        if (event.target === event.currentTarget) onClose();
+      },
+      children
+    }
+  );
 }
 function EditorStructuredInspector() {
   const { store } = useEditor(), snapshot = useEditorSelector(
@@ -2069,6 +2727,10 @@ function EditorStructuredInspector() {
   ), t = useLabels();
   const type = snapshot.document.spec.type, ref = snapshot.selection.find((r) => r.kind === "node"), node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : void 0;
   const [error, setError] = useState("");
+  const [pendingLaneId, setPendingLaneId] = useState(null);
+  const [laneAction, setLaneAction] = useState(null);
+  const [laneDestination, setLaneDestination] = useState("");
+  const laneDialogTitleId = useId();
   if (!node) return null;
   const commitNode = (next, label) => {
     const result = getAdapter(type).replaceNode(snapshot.document.spec, {
@@ -2229,19 +2891,69 @@ function EditorStructuredInspector() {
     const swimNode = node;
     const laneId = swimNode.lane;
     const lanes = spec.lanes;
-    const replaceLanes = (nextLanes, assignment, label) => {
-      const nodes = nodesOf(spec);
+    const laneNodes = nodesOf(spec);
+    const replaceLanes = (nextLanes, assignment, label, removeNodeIds = []) => {
+      const removed = new Set(removeNodeIds);
       const assignments = {};
-      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n);
+      for (const n of laneNodes)
+        if (!removed.has(n.id)) assignments[n.id] = assignment(n.lane, n.id, n);
       const result = getAdapter("swimlane").editStructure(spec, {
         type: "lanes.replace",
         lanes: nextLanes,
         assignments,
-        removeNodeIds: []
+        removeNodeIds
       });
-      if (result.ok)
-        dispatch(store, [{ type: "spec.replace", spec: result.value, references: "reject" }], label);
-      else setError(result.diagnostics.map((d) => d.code).join(", "));
+      if (!result.ok) {
+        setError(result.diagnostics.map((d) => d.code).join(", "));
+        return;
+      }
+      const commit = dispatch(
+        store,
+        [
+          {
+            type: "spec.replace",
+            spec: result.value,
+            references: removeNodeIds.length ? "prune-references" : "reject"
+          }
+        ],
+        label
+      );
+      if (commit.status === "rejected") setError(commit.diagnostics.map((d) => d.code).join(", "));
+    };
+    const laneMembers = (id) => laneNodes.filter((candidate) => candidate.lane === id);
+    const pendingLane = pendingLaneId ? lanes.find((candidate) => candidate.id === pendingLaneId) : void 0;
+    const pendingMembers = pendingLane ? laneMembers(pendingLane.id) : [];
+    const pendingMemberIds = new Set(pendingMembers.map((member) => member.id));
+    const pendingConnections = edgesOf(spec).filter(
+      (edge) => pendingMemberIds.has(edge.from) || pendingMemberIds.has(edge.to)
+    );
+    const destinationLanes = pendingLane ? lanes.filter((candidate) => candidate.id !== pendingLane.id) : [];
+    const closeLaneDialog = () => {
+      setPendingLaneId(null);
+      setLaneAction(null);
+      setLaneDestination("");
+    };
+    const openLaneDialog = (id) => {
+      setPendingLaneId(id);
+      setLaneAction(null);
+      setLaneDestination(lanes.find((candidate) => candidate.id !== id)?.id ?? "");
+    };
+    const confirmLaneRemoval = () => {
+      if (!pendingLane || !laneAction) return;
+      const nextLanes = lanes.filter((candidate) => candidate.id !== pendingLane.id);
+      if (laneAction === "move") {
+        if (!destinationLanes.some((candidate) => candidate.id === laneDestination)) return;
+        replaceLanes(
+          nextLanes,
+          (source) => source === pendingLane.id ? laneDestination : source,
+          "Move lane members"
+        );
+      } else {
+        replaceLanes(nextLanes, (source) => source, "Delete lane and members", [
+          ...pendingMemberIds
+        ]);
+      }
+      closeLaneDialog();
     };
     return /* @__PURE__ */ jsxs("section", { "aria-label": t("Swimlane lanes", "Carriles"), children: [
       /* @__PURE__ */ jsx("h3", { children: t("Swimlane lanes", "Carriles") }),
@@ -2257,26 +2969,31 @@ function EditorStructuredInspector() {
           }
         )
       ] }),
-      /* @__PURE__ */ jsx("ol", { children: lanes.map((lane) => /* @__PURE__ */ jsxs("li", { children: [
-        /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: lane.label }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            type: "button",
-            disabled: lanes.length <= 1,
-            "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
-            onClick: () => {
-              const first = lanes.find((candidate) => candidate.id !== lane.id);
-              replaceLanes(
-                lanes.filter((candidate) => candidate.id !== lane.id),
-                (source) => source === lane.id ? first.id : source,
-                "Remove lane"
-              );
-            },
-            children: "\xD7"
-          }
-        )
-      ] }, lane.id)) }),
+      /* @__PURE__ */ jsx("ol", { children: lanes.map((lane) => {
+        const members = laneMembers(lane.id);
+        return /* @__PURE__ */ jsxs("li", { children: [
+          /* @__PURE__ */ jsx("span", { className: "adl-editor-mono", children: lane.label }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              disabled: lanes.length <= 1,
+              "aria-label": `${t("Remove lane", "Quitar carril")}: ${lane.label}`,
+              onClick: (event) => {
+                event.currentTarget.focus();
+                if (members.length === 0)
+                  replaceLanes(
+                    lanes.filter((candidate) => candidate.id !== lane.id),
+                    (source) => source,
+                    "Remove lane"
+                  );
+                else openLaneDialog(lane.id);
+              },
+              children: "\xD7"
+            }
+          )
+        ] }, lane.id);
+      }) }),
       /* @__PURE__ */ jsx(
         "button",
         {
@@ -2292,7 +3009,84 @@ function EditorStructuredInspector() {
           children: t("Add lane", "A\xF1adir carril")
         }
       ),
-      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
+      error && /* @__PURE__ */ jsx("p", { role: "alert", children: error }),
+      /* @__PURE__ */ jsx(
+        EditorDialog,
+        {
+          open: pendingLane !== void 0,
+          titleId: laneDialogTitleId,
+          onClose: closeLaneDialog,
+          children: pendingLane && /* @__PURE__ */ jsxs(Fragment, { children: [
+            /* @__PURE__ */ jsxs("h2", { id: laneDialogTitleId, children: [
+              t("Remove lane", "Quitar carril"),
+              ": ",
+              pendingLane.label
+            ] }),
+            /* @__PURE__ */ jsxs("p", { className: "adl-editor-dialog-count", children: [
+              t("Members affected", "Miembros afectados"),
+              ": ",
+              pendingMembers.length
+            ] }),
+            /* @__PURE__ */ jsxs("fieldset", { children: [
+              /* @__PURE__ */ jsx("legend", { children: t("What happens to the members?", "\xBFQu\xE9 ocurre con los miembros?") }),
+              /* @__PURE__ */ jsxs("label", { className: "adl-editor-dialog-choice", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: `${laneDialogTitleId}-action`,
+                    value: "move",
+                    checked: laneAction === "move",
+                    onChange: () => setLaneAction("move")
+                  }
+                ),
+                t("Move them to another lane", "Moverlos a otro carril")
+              ] }),
+              laneAction === "move" && /* @__PURE__ */ jsxs("label", { children: [
+                t("Destination lane", "Carril de destino"),
+                /* @__PURE__ */ jsx(
+                  "select",
+                  {
+                    "aria-label": t("Destination lane", "Carril de destino"),
+                    value: laneDestination,
+                    onChange: (event) => setLaneDestination(event.target.value),
+                    children: destinationLanes.map((candidate) => /* @__PURE__ */ jsx("option", { value: candidate.id, children: candidate.label }, candidate.id))
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("label", { className: "adl-editor-dialog-choice", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: `${laneDialogTitleId}-action`,
+                    value: "delete",
+                    checked: laneAction === "delete",
+                    onChange: () => setLaneAction("delete")
+                  }
+                ),
+                t("Delete the members with the lane", "Eliminar los miembros con el carril")
+              ] }),
+              laneAction === "delete" && /* @__PURE__ */ jsx("p", { className: "adl-editor-dialog-consequence", children: pendingConnections.length ? t(
+                `Deleting the members also removes ${pendingConnections.length} connection${pendingConnections.length === 1 ? "" : "s"} that reference them.`,
+                `Eliminar los miembros tambi\xE9n quita ${pendingConnections.length} conexi\xF3n${pendingConnections.length === 1 ? "" : "es"} que los referencia${pendingConnections.length === 1 ? "" : "n"}.`
+              ) : t("The members have no connections.", "Los miembros no tienen conexiones.") })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "adl-editor-dialog-actions", children: [
+              /* @__PURE__ */ jsx("button", { type: "button", "data-dialog-initial-focus": true, onClick: closeLaneDialog, children: t("Cancel", "Cancelar") }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  disabled: !laneAction || laneAction === "move" && !laneDestination,
+                  onClick: confirmLaneRemoval,
+                  children: laneAction === "delete" ? t("Delete lane and members", "Eliminar carril y miembros") : t("Move members and remove lane", "Mover miembros y quitar carril")
+                }
+              )
+            ] })
+          ] })
+        }
+      )
     ] });
   }
   if (type === "graph") {
@@ -2370,7 +3164,11 @@ function EditorNodeGeometry({ nodeId }) {
     (s) => ({ document: s.document, selection: s.selection }),
     shallowEqual
   ), t = useLabels();
-  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document]);
+  const resolveContext = useEditorResolveContext();
+  const scene = useMemo(
+    () => materialize(snapshot.document, resolveContext),
+    [snapshot.document, resolveContext]
+  );
   const placement = scene.nodes[nodeId];
   const [values, setValues] = useState({ x: "0", y: "0", width: "240", height: "64" }), [error, setError] = useState("");
   useEffect(() => {
@@ -2388,7 +3186,7 @@ function EditorNodeGeometry({ nodeId }) {
     {
       onSubmit: (event) => {
         event.preventDefault();
-        const scene2 = materialize(snapshot.document), result = dispatch(
+        const scene2 = materialize(snapshot.document, resolveContext), result = dispatch(
           store,
           [
             { type: "scene.set", scene: scene2 },
@@ -2427,13 +3225,10 @@ function EditorNodeGeometry({ nodeId }) {
   );
 }
 function EditorRelations() {
-  const { store } = useEditor(), snapshot = useEditorSelector(
-    (s) => ({ document: s.document, selection: s.selection }),
-    shallowEqual
-  ), t = useLabels();
-  const nodes = nodesOf(snapshot.document.spec), [from, setFrom] = useState(""), [to, setTo] = useState(""), [label, setLabel] = useState(""), [error, setError] = useState("");
-  if (snapshot.document.spec.type === "timeline") return null;
-  const adapter = getAdapter(snapshot.document.spec.type);
+  const { store } = useEditor(), spec = useEditorSelector((s) => s.document.spec), t = useLabels();
+  const nodes = nodesOf(spec), [from, setFrom] = useState(""), [to, setTo] = useState(""), [label, setLabel] = useState(""), [error, setError] = useState("");
+  if (spec.type === "timeline") return null;
+  const adapter = getAdapter(spec.type);
   const source = nodes.some((n) => n.id === from) ? from : nodes[0]?.id ?? "", target = nodes.some((n) => n.id === to) ? to : nodes[1]?.id ?? source;
   return /* @__PURE__ */ jsxs("section", { children: [
     /* @__PURE__ */ jsx("h3", { children: t("Connections", "Conexiones") }),
@@ -2442,8 +3237,8 @@ function EditorRelations() {
       {
         onSubmit: (event) => {
           event.preventDefault();
-          const result = adapter.insertRelation(snapshot.document.spec, {
-            diagramType: snapshot.document.spec.type,
+          const result = adapter.insertRelation(spec, {
+            diagramType: spec.type,
             relation: {
               id: crypto.randomUUID(),
               from: source,
@@ -2495,14 +3290,14 @@ function EditorRelations() {
         ]
       }
     ),
-    /* @__PURE__ */ jsxs("details", { children: [
-      /* @__PURE__ */ jsxs("summary", { children: [
+    /* @__PURE__ */ jsxs("div", { className: "adl-editor-relations", children: [
+      /* @__PURE__ */ jsxs("h4", { children: [
         t("Existing connections", "Conexiones existentes"),
         " (",
-        edgesOf(snapshot.document.spec).length,
+        edgesOf(spec).length,
         ")"
       ] }),
-      edgesOf(snapshot.document.spec).map((e) => /* @__PURE__ */ jsxs("div", { className: "adl-editor-relation", children: [
+      /* @__PURE__ */ jsx("ul", { className: "adl-editor-relation-list", children: edgesOf(spec).map((e) => /* @__PURE__ */ jsxs("li", { className: "adl-editor-relation", children: [
         /* @__PURE__ */ jsx("span", { children: e.label || `${e.from} \u2192 ${e.to}` }),
         /* @__PURE__ */ jsx(
           "button",
@@ -2510,18 +3305,24 @@ function EditorRelations() {
             type: "button",
             "aria-label": t(`Delete connection ${e.id}`, `Eliminar conexi\xF3n ${e.id}`),
             onClick: () => {
-              const result = adapter.removeRelations(snapshot.document.spec, [e.id]);
+              const result = adapter.removeRelations(spec, [e.id]);
               if (result.ok)
                 dispatch(
                   store,
-                  [{ type: "spec.replace", spec: result.value, references: "prune-references" }],
+                  [
+                    {
+                      type: "spec.replace",
+                      spec: result.value,
+                      references: "prune-references"
+                    }
+                  ],
                   "Delete connection"
                 );
             },
             children: "\xD7"
           }
         )
-      ] }, e.id))
+      ] }, e.id)) })
     ] }),
     error && /* @__PURE__ */ jsx("p", { role: "alert", children: error })
   ] });
@@ -2531,6 +3332,7 @@ function EditorRoute() {
     (s) => ({ selection: s.selection, document: s.document }),
     shallowEqual
   ), t = useLabels();
+  const resolveContext = useEditorResolveContext();
   const ref = snapshot.selection.find((r) => r.kind === "edge"), edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : void 0;
   const [error, setError] = useState("");
   if (!edge || !edge.id || !freeTypes.has(snapshot.document.spec.type)) return null;
@@ -2538,7 +3340,7 @@ function EditorRoute() {
   const route = snapshot.document.scene.routes[edgeId];
   const manual = route?.mode === "manual" ? route : void 0;
   const setRoute = (next, label) => {
-    const scene = materialize(snapshot.document);
+    const scene = materialize(snapshot.document, resolveContext);
     const commit = dispatch(
       store,
       [
@@ -2553,7 +3355,9 @@ function EditorRoute() {
     const result = resolveDocument(snapshot.document, {
       quality: "edit",
       requestId: "route-manual",
-      skipValidation: true
+      skipValidation: true,
+      theme: resolveContext.theme,
+      renderers: resolveContext.renderers
     });
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(", "));
@@ -2644,10 +3448,10 @@ function useEditorStore(options) {
 }
 function EditorOutline({ className }) {
   const { store } = useEditor(), snapshot = useEditorSelector(
-    (s) => ({ selection: s.selection, document: s.document }),
+    (s) => ({ selection: s.selection, spec: s.document.spec, groups: s.document.scene.groups }),
     shallowEqual
   ), t = useLabels();
-  const nodes = nodesOf(snapshot.document.spec);
+  const nodes = nodesOf(snapshot.spec);
   const labels = new Map(nodes.map((n) => [n.id, n.label]));
   const sections = [
     {
@@ -2658,7 +3462,7 @@ function EditorOutline({ className }) {
     {
       label: t("Connections", "Conexiones"),
       kind: "edge",
-      entities: edgesOf(snapshot.document.spec).map((e) => ({
+      entities: edgesOf(snapshot.spec).map((e) => ({
         id: e.id,
         label: `${labels.get(e.from)} \u2192 ${labels.get(e.to)}${e.label ? `: ${e.label}` : ""}`
       }))
@@ -2666,44 +3470,53 @@ function EditorOutline({ className }) {
     {
       label: t("Groups", "Grupos"),
       kind: "group",
-      entities: snapshot.document.scene.groups.map((g) => ({ id: g.id, label: g.label }))
+      entities: snapshot.groups.map((g) => ({ id: g.id, label: g.label }))
     }
   ];
-  return /* @__PURE__ */ jsxs("details", { className: `adl-editor-outline ${className ?? ""}`, children: [
-    /* @__PURE__ */ jsx("summary", { children: t("Diagram outline", "Estructura del diagrama") }),
-    /* @__PURE__ */ jsx("section", { role: "region", "aria-label": t("Diagram outline", "Estructura del diagrama"), children: sections.map((section) => /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsxs("h3", { children: [
-        section.label,
-        " (",
-        section.entities.length,
-        ")"
-      ] }),
-      /* @__PURE__ */ jsx("ul", { children: section.entities.map((entity) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(
-        "button",
-        {
-          type: "button",
-          "aria-label": `${section.kind === "node" ? t("Select node", "Seleccionar nodo") : section.kind === "edge" ? t("Select connection", "Seleccionar conexi\xF3n") : t("Select group", "Seleccionar grupo")}: ${entity.label}`,
-          "aria-pressed": snapshot.selection.some(
-            (r) => r.kind === section.kind && r.id === entity.id
-          ),
-          onClick: (event) => {
-            const ref = { kind: section.kind, id: entity.id };
-            const current = store.getSnapshot().selection;
-            store.setSelection(
-              event.shiftKey ? current.some((r) => r.kind === ref.kind && r.id === ref.id) ? current.filter((r) => !(r.kind === ref.kind && r.id === ref.id)) : [...current, ref] : [ref]
-            );
-          },
-          children: entity.label
-        }
-      ) }, entity.id)) })
-    ] }, section.kind)) })
-  ] });
+  return /* @__PURE__ */ jsxs(
+    "section",
+    {
+      className: `adl-editor-outline ${className ?? ""}`,
+      "aria-label": t("Diagram outline", "Estructura del diagrama"),
+      children: [
+        /* @__PURE__ */ jsx("h2", { className: "adl-editor-panel-title", children: t("Diagram outline", "Estructura del diagrama") }),
+        /* @__PURE__ */ jsx("section", { role: "region", "aria-label": t("Diagram outline", "Estructura del diagrama"), children: sections.map((section) => /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("h3", { children: [
+            section.label,
+            " (",
+            section.entities.length,
+            ")"
+          ] }),
+          /* @__PURE__ */ jsx("ul", { children: section.entities.map((entity) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              "aria-label": `${section.kind === "node" ? t("Select node", "Seleccionar nodo") : section.kind === "edge" ? t("Select connection", "Seleccionar conexi\xF3n") : t("Select group", "Seleccionar grupo")}: ${entity.label}`,
+              "aria-pressed": snapshot.selection.some(
+                (r) => r.kind === section.kind && r.id === entity.id
+              ),
+              onClick: (event) => {
+                const ref = { kind: section.kind, id: entity.id };
+                const current = store.getSnapshot().selection;
+                store.setSelection(
+                  event.shiftKey ? current.some((r) => r.kind === ref.kind && r.id === ref.id) ? current.filter((r) => !(r.kind === ref.kind && r.id === ref.id)) : [...current, ref] : [ref]
+                );
+              },
+              children: entity.label
+            }
+          ) }, entity.id)) })
+        ] }, section.kind)) })
+      ]
+    }
+  );
 }
+var MemoEditorRelations = memo(EditorRelations);
 export {
   EditorInspector,
   EditorJsonPanel,
   EditorNodeGeometry,
   EditorOutline,
+  EditorPanelTabs,
   EditorRelations,
   EditorRoot,
   EditorRoute,

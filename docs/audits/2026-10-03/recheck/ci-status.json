@@ -1,0 +1,417 @@
+{
+  "conclusion": "failure",
+  "event": "pull_request",
+  "headSha": "7b3f4c6a0842813c67e76c29d870198a8cbcf8c8",
+  "jobs": [
+    {
+      "completedAt": "2026-10-03T07:05:24Z",
+      "conclusion": "failure",
+      "databaseId": 111151841133,
+      "name": "Reference frame budget",
+      "startedAt": "2026-10-03T07:03:17Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-03T07:03:18Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-03T07:03:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:20Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 2,
+          "startedAt": "2026-10-03T07:03:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:21Z",
+          "conclusion": "success",
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 3,
+          "startedAt": "2026-10-03T07:03:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:24Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "startedAt": "2026-10-03T07:03:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:27Z",
+          "conclusion": "success",
+          "name": "Run pnpm install --frozen-lockfile",
+          "number": 5,
+          "startedAt": "2026-10-03T07:03:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:50Z",
+          "conclusion": "success",
+          "name": "Run pnpm build && pnpm site:build",
+          "number": 6,
+          "startedAt": "2026-10-03T07:03:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:21Z",
+          "conclusion": "success",
+          "name": "Run pnpm exec playwright install --with-deps chromium",
+          "number": 7,
+          "startedAt": "2026-10-03T07:03:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:01Z",
+          "conclusion": "failure",
+          "name": "Enforce the unchanged reference frame budget without competing browser workers",
+          "number": 8,
+          "startedAt": "2026-10-03T07:04:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:21Z",
+          "conclusion": "failure",
+          "name": "Capture a diagnostic CPU profile after a frame-budget failure",
+          "number": 9,
+          "startedAt": "2026-10-03T07:05:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:21Z",
+          "conclusion": "skipped",
+          "name": "Enforce the memory and raster reference gates",
+          "number": 10,
+          "startedAt": "2026-10-03T07:05:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:22Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 11,
+          "startedAt": "2026-10-03T07:05:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:22Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 20,
+          "startedAt": "2026-10-03T07:05:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:22Z",
+          "conclusion": "success",
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 21,
+          "startedAt": "2026-10-03T07:05:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:22Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 22,
+          "startedAt": "2026-10-03T07:05:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:05:22Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 23,
+          "startedAt": "2026-10-03T07:05:22Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/37105059402/job/111151841133"
+    },
+    {
+      "completedAt": "2026-10-03T07:04:11Z",
+      "conclusion": "success",
+      "databaseId": 111151841261,
+      "name": "Node 20.19 / React 18.3.1 consumer",
+      "startedAt": "2026-10-03T07:03:16Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-03T07:03:18Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-03T07:03:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:19Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 2,
+          "startedAt": "2026-10-03T07:03:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:21Z",
+          "conclusion": "success",
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 3,
+          "startedAt": "2026-10-03T07:03:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:28Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "startedAt": "2026-10-03T07:03:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:32Z",
+          "conclusion": "success",
+          "name": "Run pnpm install --frozen-lockfile",
+          "number": 5,
+          "startedAt": "2026-10-03T07:03:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:49Z",
+          "conclusion": "success",
+          "name": "Run pnpm build",
+          "number": 6,
+          "startedAt": "2026-10-03T07:03:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:03:52Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 7,
+          "startedAt": "2026-10-03T07:03:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:09Z",
+          "conclusion": "success",
+          "name": "Run node scripts/test-package.mjs",
+          "number": 8,
+          "startedAt": "2026-10-03T07:03:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:09Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 13,
+          "startedAt": "2026-10-03T07:04:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:09Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 14,
+          "startedAt": "2026-10-03T07:04:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:10Z",
+          "conclusion": "success",
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 15,
+          "startedAt": "2026-10-03T07:04:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:10Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 16,
+          "startedAt": "2026-10-03T07:04:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:10Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-10-03T07:04:10Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/37105059402/job/111151841261"
+    },
+    {
+      "completedAt": "2026-10-03T07:31:23Z",
+      "conclusion": "failure",
+      "databaseId": 111151995319,
+      "name": "Contracts and package",
+      "startedAt": "2026-10-03T07:04:13Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-03T07:04:14Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-03T07:04:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:14Z",
+          "conclusion": "skipped",
+          "name": "Require a successful minimum consumer",
+          "number": 2,
+          "startedAt": "2026-10-03T07:04:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:16Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 3,
+          "startedAt": "2026-10-03T07:04:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:17Z",
+          "conclusion": "success",
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 4,
+          "startedAt": "2026-10-03T07:04:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:21Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 5,
+          "startedAt": "2026-10-03T07:04:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:04:24Z",
+          "conclusion": "success",
+          "name": "Run pnpm install --frozen-lockfile",
+          "number": 6,
+          "startedAt": "2026-10-03T07:04:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:06:51Z",
+          "conclusion": "success",
+          "name": "Run pnpm check",
+          "number": 7,
+          "startedAt": "2026-10-03T07:04:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:06:52Z",
+          "conclusion": "success",
+          "name": "Run pnpm audit --audit-level=high",
+          "number": 8,
+          "startedAt": "2026-10-03T07:06:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:06:52Z",
+          "conclusion": "success",
+          "name": "Verify tracked distribution",
+          "number": 9,
+          "startedAt": "2026-10-03T07:06:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:07:11Z",
+          "conclusion": "success",
+          "name": "Test React 18 consumer",
+          "number": 10,
+          "startedAt": "2026-10-03T07:06:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:08:08Z",
+          "conclusion": "success",
+          "name": "Run pnpm exec playwright install --with-deps chromium firefox webkit",
+          "number": 11,
+          "startedAt": "2026-10-03T07:07:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:08:26Z",
+          "conclusion": "success",
+          "name": "Compare reviewed Chromium visuals",
+          "number": 12,
+          "startedAt": "2026-10-03T07:08:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:16Z",
+          "conclusion": "failure",
+          "name": "Run pnpm test:e2e --project=mobile-chromium --project=chromium --project=firefox --project=webkit --project=mobile",
+          "number": 13,
+          "startedAt": "2026-10-03T07:08:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:16Z",
+          "conclusion": "skipped",
+          "name": "Run node scripts/test-frameworks.mjs",
+          "number": 14,
+          "startedAt": "2026-10-03T07:31:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:21Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "number": 15,
+          "startedAt": "2026-10-03T07:31:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:21Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 28,
+          "startedAt": "2026-10-03T07:31:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:21Z",
+          "conclusion": "success",
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "number": 29,
+          "startedAt": "2026-10-03T07:31:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:22Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 30,
+          "startedAt": "2026-10-03T07:31:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-03T07:31:22Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-03T07:31:22Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/alanslzrr/aesthc-diagram-lib/actions/runs/37105059402/job/111151995319"
+    }
+  ],
+  "status": "completed"
+}

@@ -128,11 +128,11 @@ test('Geist reading rhythm excludes diagrams and fonts survive standalone export
   ).toBe('14.5px')
   await page.goto('/?only=example-band')
   await page.evaluate(() => document.fonts.ready)
-  await page.locator('[data-diagram-panel] summary.export-trigger').click()
+  await page.locator('[data-diagram-panel] .export-trigger').click()
   const download = page.waitForEvent('download')
   await page
     .locator('[data-diagram-panel]')
-    .getByRole('button', { name: 'Download SVG', exact: true })
+    .getByRole('menuitem', { name: 'Download SVG', exact: true })
     .click()
   const markup = await readFile((await (await download).path())!, 'utf8')
   expect(markup).toContain('font/woff2;base64')
@@ -141,22 +141,24 @@ test('Geist reading rhythm excludes diagrams and fonts survive standalone export
   expect(markup).not.toContain('Bodoni')
 })
 
-test('disclosures remain operable during reversals and code scroll uses a bounded viewport', async ({
+test('explicit example actions stay operable and code scroll uses a bounded viewport', async ({
   page,
 }) => {
   await page.goto('/docs/diagrams/band/')
-  const disclosure = page.locator('.complete-example')
-  const trigger = disclosure.locator('summary')
+  const root = page.locator('.complete-example')
+  const trigger = root.locator('.complete-example-trigger')
+  await expect(root.locator('summary')).toHaveCount(0)
   await trigger.click()
   await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await expect(disclosure.locator('code')).toBeVisible()
+  await expect(root.locator('code')).toBeVisible()
   await trigger.click()
-  await expect(disclosure).not.toHaveAttribute('open', '')
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(root.locator('code')).toHaveCount(0)
   await trigger.focus()
   await page.keyboard.press('Enter')
-  await expect(disclosure).toHaveAttribute('open', '')
-  await page.keyboard.press('Escape')
-  await expect(disclosure).not.toHaveAttribute('open', '')
+  await expect(root.locator('code')).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(root.locator('code')).toHaveCount(0)
   await expect(trigger).toBeFocused()
   await page.getByRole('tab', { name: 'Code', exact: true }).click()
   const viewport = page.locator('.preview-code .scroll-viewport')
@@ -174,7 +176,8 @@ test('unknown routes, malformed anchors and readable long source never break the
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('React, Vite and Next.js')
   await page.goto('/404.html')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found')
-  if (isMobile) await page.locator('.mobile-nav summary').click()
+  if (isMobile)
+    await page.getByRole('button', { name: 'Browse documentation', exact: true }).click()
   await page
     .locator(isMobile ? '.mobile-nav' : '.sidebar')
     .getByRole('link', { name: 'Band', exact: true })
@@ -193,26 +196,20 @@ test('unknown routes, malformed anchors and readable long source never break the
   ).toBe(true)
 })
 
-test('animated disclosure can reverse without leaving clipped or focusable closed content', async ({
-  page,
-}) => {
+test('repeated example toggles never leave hidden focusable content behind', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/docs/diagrams/band/')
   const root = page.locator('.complete-example')
-  const trigger = root.locator('summary')
+  const trigger = root.locator('.complete-example-trigger')
   await trigger.click()
   await trigger.click()
   await trigger.click()
   await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await expect(root).toHaveAttribute('open', '')
-  await expect
-    .poll(() =>
-      root.locator('[data-disclosure-content]').evaluate((element) => element.style.height),
-    )
-    .toBe('')
+  await expect(root.locator('code')).toBeVisible()
   await trigger.click()
-  await expect(root).not.toHaveAttribute('open', '')
-  await expect(root.locator('button')).not.toBeVisible()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(root.locator('code')).toHaveCount(0)
+  await expect(root.locator('[data-disclosure-content]')).toHaveCount(0)
 })
 
 test('reading scroll remains native for wheel and touch gestures', async ({
@@ -363,9 +360,10 @@ test('installation uses colored brand tabs, an underline, icon-only copy and a s
   const ids = await cloud.locator('svg [id]').evaluateAll((nodes) => nodes.map((node) => node.id))
   expect(new Set(ids).size).toBe(ids.length)
   if (browserName === 'chromium') {
+    await page.goto('/?only=example-sequence')
     const sequence = page.locator('[data-diagram-panel="example-sequence"]')
-    await sequence.locator('summary.export-trigger').click()
-    await sequence.getByRole('button', { name: 'Copy SVG', exact: true }).click()
+    await sequence.locator('.export-trigger').click()
+    await sequence.getByRole('menuitem', { name: 'Copy SVG', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toContain('rgb(51, 103, 145)')
@@ -433,7 +431,7 @@ test('formal web scale bounds headings, installation icons and headers across vi
 test('ER type and unique annotations do not overlap each other or field names', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/?only=example-er')
   await page.evaluate(() => document.fonts.ready)
   const er = page.locator('[data-diagram-panel="example-er"]')
   await expect(er.locator('[data-field-annotation="slug"]')).toHaveText('varchar(120) · unique')

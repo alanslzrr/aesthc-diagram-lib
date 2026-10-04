@@ -1,0 +1,336 @@
+
+> @aesthc/diagram-lib@0.3.0 check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm lint && pnpm format:check && pnpm icons:check && pnpm schemas:check && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:perf && pnpm test:package && pnpm --dir site exec tsc --noEmit && pnpm site:build && pnpm check:budgets
+
+
+> @aesthc/diagram-lib@0.3.0 lint /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> eslint src site/src site/docs scripts tests
+
+
+> @aesthc/diagram-lib@0.3.0 format:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> prettier --check src scripts tests site/src site/docs *.json *.ts *.mjs .github/*.yml .github/workflows/*.yml
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> @aesthc/diagram-lib@0.3.0 icons:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/generate-semantic-icons.mjs --check
+
+
+> @aesthc/diagram-lib@0.3.0 schemas:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/generate-schemas.mjs --check
+
+Schemas and standalone validator are in sync
+
+> @aesthc/diagram-lib@0.3.0 docs:check /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsx scripts/generate-docs.ts --check
+
+Examples, README and documentation are in sync
+
+> @aesthc/diagram-lib@0.3.0 typecheck /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsc --noEmit
+
+
+> @aesthc/diagram-lib@0.3.0 test /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> vitest run
+
+
+ RUN  v4.1.11 /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+
+
+ Test Files  52 passed (52)
+      Tests  403 passed (403)
+   Start at  09:18:56
+   Duration  8.02s (transform 5.79s, setup 0ms, import 33.22s, tests 9.76s, environment 4ms)
+
+
+> @aesthc/diagram-lib@0.3.0 test:perf /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> vitest run --config vitest.perf.config.ts
+
+
+ RUN  v4.1.11 /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  09:19:05
+   Duration  24.29s (transform 383ms, setup 0ms, import 814ms, tests 23.34s, environment 0ms)
+
+
+> @aesthc/diagram-lib@0.3.0 test:package /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm build && node ./scripts/test-package.mjs
+
+
+> @aesthc/diagram-lib@0.3.0 build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsup && node ./scripts/inject-use-client.mjs && node scripts/build-standalone.mjs && pnpm build:css
+
+CLI Building entry: {"index":"src/index.ts","editor-core/index":"src/editor-core/index.ts","editor/index":"src/editor/index.tsx","viewer/index":"src/viewer/index.tsx","graph/index":"src/graph/index.ts","export/index":"src/export/index.ts","persistence/index":"src/persistence/index.ts","render/index":"src/render/index.ts","icons/index":"src/brand-icons/index.tsx","canvas/index":"src/canvas/index.ts","layouts/index":"src/layouts/index.ts","layouts/band":"src/layouts/band.ts","registry":"src/registry.ts","validation/index":"src/validation/index.ts","types":"src/types.ts","theme":"src/theme.ts","layout":"src/layout.ts","examples":"src/examples.ts","showcase/index":"src/showcase/index.ts"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tsup.config.ts
+CLI Target: es2022
+CLI Cleaning output folder
+ESM Build start
+ESM dist/chunk-IDNRW7UP.js    0 B
+ESM dist/chunk-6F4PWJZI.js    0 B
+ESM dist/icons/index.js       107.00 B
+ESM dist/showcase/index.js    11.20 KB
+ESM dist/canvas/index.js      364.00 B
+ESM dist/chunk-GIHY37DH.js    1.70 KB
+ESM dist/chunk-LK6WUBG7.js    38.71 KB
+ESM dist/chunk-LALSN5FV.js    48.33 KB
+ESM dist/layouts/band.js      196.00 B
+ESM dist/layouts/index.js     493.00 B
+ESM dist/examples.js          337.00 B
+ESM dist/validation/index.js  230.00 B
+ESM dist/index.js             2.11 KB
+ESM dist/layout.js            495.00 B
+ESM dist/registry.js          299.00 B
+ESM dist/chunk-UNV5K3AO.js    959.00 B
+ESM dist/types.js             30.00 B
+ESM dist/theme.js             1.37 KB
+ESM dist/chunk-HF6PLESJ.js    20.73 KB
+ESM dist/editor-core/index.js 1.79 KB
+ESM dist/editor/index.js      122.86 KB
+ESM dist/graph/index.js       298.00 B
+ESM dist/viewer/index.js      68.14 KB
+ESM dist/export/index.js      911.00 B
+ESM dist/chunk-EILTSCOU.js    9.41 KB
+ESM dist/chunk-QCCS656M.js    33.09 KB
+ESM dist/chunk-3N7YC3GS.js    36.23 KB
+ESM dist/chunk-HIRCZVXI.js    34.37 KB
+ESM dist/chunk-GSAEMTC2.js    395.64 KB
+ESM dist/chunk-HN2RGNDH.js    9.63 KB
+ESM dist/chunk-WD7BRA7G.js    6.26 KB
+ESM dist/chunk-BBMS4ALE.js    5.91 KB
+ESM dist/render/index.js      237.00 B
+ESM dist/chunk-S6PSHJSL.js    30.08 KB
+ESM dist/persistence/index.js 13.59 KB
+ESM dist/chunk-KDAWQGDC.js    32.94 KB
+ESM dist/chunk-TGRGDAF2.js    1.63 KB
+ESM dist/chunk-UHROM3FO.js    180.66 KB
+ESM dist/chunk-KKMUFXA6.js    1.32 KB
+ESM dist/chunk-6NELNSRC.js    421.91 KB
+ESM ⚡️ Build success in 58ms
+DTS Build start
+DTS ⚡️ Build success in 11359ms
+DTS dist/icons/index.d.ts       597.00 B
+DTS dist/editor/index.d.ts      2.74 KB
+DTS dist/layouts/band.d.ts      1.09 KB
+DTS dist/render/index.d.ts      2.03 KB
+DTS dist/validation/index.d.ts  927.00 B
+DTS dist/theme.d.ts             3.15 KB
+DTS dist/examples.d.ts          5.31 KB
+DTS dist/persistence/index.d.ts 3.41 KB
+DTS dist/showcase/index.d.ts    1.40 KB
+DTS dist/graph/index.d.ts       3.91 KB
+DTS dist/canvas/index.d.ts      2.29 KB
+DTS dist/export/index.d.ts      6.56 KB
+DTS dist/layouts/index.d.ts     1.35 KB
+DTS dist/viewer/index.d.ts      10.53 KB
+DTS dist/editor-core/index.d.ts 13.65 KB
+DTS dist/registry.d.ts          969.00 B
+DTS dist/types.d.ts             1.00 KB
+DTS dist/layout.d.ts            515.00 B
+DTS dist/index.d.ts             2.17 KB
+DTS dist/profiles-BU8Kb50T.d.ts 885.00 B
+DTS dist/layout-BhvxbOAw.d.ts   28.74 KB
+injected 'use client' → dist/icons/index.js
+injected 'use client' → dist/canvas/index.js
+injected 'use client' → dist/showcase/index.js
+CLI Building entry: {"standalone/viewer":"src/export/standalone.tsx"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tsup.config.ts
+CLI Target: es2022
+IIFE Build start
+IIFE dist/standalone/viewer.js 658.18 KB
+IIFE ⚡️ Build success in 70ms
+standalone viewer runtime built → dist/standalone/viewer.js
+
+> @aesthc/diagram-lib@0.3.0 build:css /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && node ./scripts/wrap-layer.mjs && node scripts/copy-fonts.mjs
+
+≈ tailwindcss v4.3.3
+
+Done in 60ms
+dist/styles.css fully wrapped in @layer diagram-lib
+Testing /var/folders/8t/s_sqr2_s3dsdk5_dk0jctb700000gn/T/aesthc-package-MSKZFq/aesthc-diagram-lib-0.3.0.tgz in an isolated consumer
+
+added 35 packages in 4s
+TAP version 13
+# Subtest: imports resolve inside the installed tarball, not the source workspace
+ok 1 - imports resolve inside the installed tarball, not the source workspace
+  ---
+  duration_ms: 0.757084
+  type: 'test'
+  ...
+# Subtest: root and registry expose the same registry implementation
+ok 2 - root and registry expose the same registry implementation
+  ---
+  duration_ms: 0.13275
+  type: 'test'
+  ...
+# Subtest: examples registered from their entrypoint are visible through root and registry
+ok 3 - examples registered from their entrypoint are visible through root and registry
+  ---
+  duration_ms: 0.551291
+  type: 'test'
+  ...
+# Subtest: registration and replacement work in both directions across entrypoints
+ok 4 - registration and replacement work in both directions across entrypoints
+  ---
+  duration_ms: 0.098417
+  type: 'test'
+  ...
+# Subtest: showcase renders a diagram registered by the consumer through the root entrypoint
+ok 5 - showcase renders a diagram registered by the consumer through the root entrypoint
+  ---
+  duration_ms: 46.621416
+  type: 'test'
+  ...
+# Subtest: every declared runtime and type export is present in the tarball
+ok 6 - every declared runtime and type export is present in the tarball
+  ---
+  duration_ms: 132.643917
+  type: 'test'
+  ...
+# Subtest: interactive public entrypoints retain their client directives
+ok 7 - interactive public entrypoints retain their client directives
+  ---
+  duration_ms: 0.758584
+  type: 'test'
+  ...
+# Subtest: package CSS resolves bundled Geist assets and preserves host font tokens
+ok 8 - package CSS resolves bundled Geist assets and preserves host font tokens
+  ---
+  duration_ms: 7.819458
+  type: 'test'
+  ...
+# Subtest: selected brand entrypoint and cloud examples render from the installed tarball
+ok 9 - selected brand entrypoint and cloud examples render from the installed tarball
+  ---
+  duration_ms: 4.488959
+  type: 'test'
+  ...
+# Subtest: installed architecture examples render localized service flows through public exports
+ok 10 - installed architecture examples render localized service flows through public exports
+  ---
+  duration_ms: 29.455959
+  type: 'test'
+  ...
+# Subtest: editor core, graph and canonical export work from the installed package
+ok 11 - editor core, graph and canonical export work from the installed package
+  ---
+  duration_ms: 10.347417
+  type: 'test'
+  ...
+# Subtest: editor entry and core extensions resolve from the installed package
+ok 12 - editor entry and core extensions resolve from the installed package
+  ---
+  duration_ms: 2.924667
+  type: 'test'
+  ...
+# Subtest: structured replacements require exhaustive mappings in the installed package
+ok 13 - structured replacements require exhaustive mappings in the installed package
+  ---
+  duration_ms: 2.951459
+  type: 'test'
+  ...
+# Subtest: canvas presentation contract: showGrid, fit, view and previewBounds
+ok 14 - canvas presentation contract: showGrid, fit, view and previewBounds
+  ---
+  duration_ms: 8.434875
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4163.019041
+All seven layouts work under the react-server condition
+Headless editor subpaths work under the react-server condition
+Published declarations resolve with NodeNext
+Published declarations resolve with Bundler
+
+> @aesthc/diagram-lib@0.3.0 site:build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> pnpm --dir site build && pnpm docs:build
+
+
+> @aesthc/diagram-lib-site@ build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/site
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../node_modules/.pnpm/zod@4.6.5/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5021 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/docs.html                            0.84 kB │ gzip:   0.34 kB
+dist/studio.html                          0.98 kB │ gzip:   0.43 kB
+dist/viewer.html                          1.04 kB │ gzip:   0.44 kB
+dist/playground.html                      2.38 kB │ gzip:   0.97 kB
+dist/index.html                           2.80 kB │ gzip:   1.07 kB
+dist/.vite/manifest.json                  5.57 kB │ gzip:   0.86 kB
+dist/assets/geist-sans-Bj2R_7yk.woff2    69.65 kB
+dist/assets/geist-mono-Dispecij.woff2    71.37 kB
+dist/assets/palette-ChFwdIkQ.css          0.71 kB │ gzip:   0.31 kB
+dist/assets/theme-tokens-RY4z-gi9.css     2.07 kB │ gzip:   0.49 kB
+dist/assets/studio-CKHLn-45.css           3.67 kB │ gzip:   1.21 kB
+dist/assets/primitives-DwdwpdGz.css       4.57 kB │ gzip:   1.34 kB
+dist/assets/index-DgKY2ez2.css            6.86 kB │ gzip:   1.90 kB
+dist/assets/design-system-BbFfr5yV.css    7.44 kB │ gzip:   2.09 kB
+dist/assets/viewer-sKQURxdt.css          10.24 kB │ gzip:   2.28 kB
+dist/assets/styles-DP6yiIIe.css          14.91 kB │ gzip:   3.29 kB
+dist/assets/docs-DVa0f4li.css            20.73 kB │ gzip:   4.55 kB
+dist/assets/playground-DHKCV5g1.css      25.99 kB │ gzip:   5.86 kB
+dist/assets/landing-DHYpBoUu.css         39.60 kB │ gzip:   8.44 kB
+dist/assets/theme-DajnGcmh.js             1.57 kB │ gzip:   0.63 kB
+dist/assets/playground-Bu3BYeak.js        8.55 kB │ gzip:   3.49 kB
+dist/assets/studio-oK23mkI8.js           19.96 kB │ gzip:   6.94 kB
+dist/assets/chunk-QCCS656M-tdO_e58l.js   23.17 kB │ gzip:   7.58 kB
+dist/assets/content-YUIvqsZn.js          39.14 kB │ gzip:  12.24 kB
+dist/assets/viewer-Bkrk0am9.js           41.42 kB │ gzip:  13.14 kB
+dist/assets/styles-ngnmSk9B.js           46.56 kB │ gzip:  15.55 kB
+dist/assets/chunk-UHROM3FO-Cl-sjcYJ.js  118.64 kB │ gzip:  16.41 kB
+dist/assets/landing-NIkFR5lU.js         205.88 kB │ gzip:  62.85 kB
+dist/assets/chunk-KDAWQGDC-BrgfmZyX.js  226.42 kB │ gzip:  71.35 kB
+dist/assets/index-BY1PTN8S.js           272.82 kB │ gzip:  38.10 kB
+dist/assets/chunk-3N7YC3GS-C-GZt32_.js  276.09 kB │ gzip:  39.49 kB
+dist/assets/docs-D4phaokw.js            474.77 kB │ gzip: 150.96 kB
+✓ built in 4.27s
+
+> @aesthc/diagram-lib@0.3.0 docs:build /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> tsx scripts/render-doc-previews.tsx && tsx --tsconfig site/tsconfig.json scripts/build-docs.mjs
+
+Built 22 static pages, Markdown, versioned docs, schemas and agent indexes
+
+> @aesthc/diagram-lib@0.3.0 check:budgets /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib
+> node scripts/check-budgets.mjs
+
+docs.html js: 238490 gzip bytes / 245760 budget
+docs.html css: 11574 gzip bytes / 12288 budget
+index.html js: 179028 gzip bytes / 179200 budget
+index.html css: 11730 gzip bytes / 12288 budget
+playground.html js: 181707 gzip bytes / 184320 budget
+playground.html css: 11992 gzip bytes / 12288 budget
+studio.html js: 179871 gzip bytes / 184320 budget
+studio.html css: 5200 gzip bytes / 12288 budget
+viewer.html js: 147976 gzip bytes / 179200 budget
+viewer.html css: 5164 gzip bytes / 12288 budget
+Package: 1000009 packed bytes; 4553238 unpacked bytes; 239 files

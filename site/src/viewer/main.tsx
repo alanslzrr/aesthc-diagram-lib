@@ -1,10 +1,17 @@
-import { useRef, useState } from 'react'
+import { ExportDialog } from '../components/ExportDialog'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createDocument, importDocument } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
-import { Comparison, DiagramViewer } from '@aesthc/diagram-lib/viewer'
+import { Comparison, DiagramViewer, type ViewerExportRequest } from '@aesthc/diagram-lib/viewer'
+import { MESSAGES } from '../lib/messages'
+import { savedLocale, saveLocale } from '../lib/locale'
+import { useThemePreference } from '../lib/theme'
 import '@aesthc/diagram-lib/viewer.css'
+import '../fonts.css'
 import '../design-system.css'
+import '../generated/palette.css'
+import '../theme-tokens.css'
 import './viewer.css'
 
 const initial = createDocument(
@@ -93,23 +100,116 @@ initialDocument.story = [
   { id: 'st3', viewId: 'v-worker', durationMs: 1000 },
 ]
 
+/** Host chrome tokens. The viewer component keeps its own document theme. */
+const HOST_TOKENS: Record<'light' | 'dark', CSSProperties> = {
+  light: {
+    '--adl-bg': '#ffffff',
+    '--adl-fg': '#0a0a0a',
+    '--adl-card': '#fafafa',
+    '--adl-border': '#eaeaea',
+    '--adl-muted': '#666666',
+    '--adl-cobalt': '#0070f3',
+  } as CSSProperties,
+  dark: {
+    '--adl-bg': '#000000',
+    '--adl-fg': '#ededed',
+    '--adl-card': '#0a0a0a',
+    '--adl-border': '#1f1f1f',
+    '--adl-muted': '#a1a1a1',
+    '--adl-cobalt': '#3291ff',
+  } as CSSProperties,
+}
+
 function ViewerApp() {
+  const [exportRequest, setExportRequest] = useState<ViewerExportRequest | null>(null)
+  const { theme: hostTheme } = useThemePreference()
   const [document, setDocument] = useState<DiagramDocument>(initialDocument)
+  // Host appearance is a presentation-only projection. Canonical JSON and
+  // export/query identity still use the untouched input document below.
+  const displayedDocument = useMemo(
+    () => ({
+      ...document,
+      presentation: {
+        ...document.presentation,
+        theme: { ...document.presentation.theme, mode: hostTheme },
+      },
+    }),
+    [document, hostTheme],
+  )
   const [afterDocument, setAfterDocument] = useState<DiagramDocument | null>(null)
-  const [locale, setLocale] = useState<Locale>('en')
+  const [locale, setLocale] = useState<Locale>(savedLocale)
   const [message, setMessage] = useState('')
   const file = useRef<HTMLInputElement>(null)
   const compareFile = useRef<HTMLInputElement>(null)
+  // One monotonically increasing read id per host: the newest read owns the
+  // result, and reset/replacement/unmount bump it so late reads are discarded.
+  const readSequence = useRef(0)
+  const mounted = useRef(true)
+  const documentRef = useRef(document)
+  documentRef.current = document
+  const afterRef = useRef(afterDocument)
+  afterRef.current = afterDocument
+
+  useEffect(() => {
+    window.document.documentElement.lang = locale
+    saveLocale(locale)
+  }, [locale])
+  useEffect(() => {
+    readSequence.current += 1
+  }, [document, afterDocument])
+  useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
+
+  async function importFile(upload: File, target: 'document' | 'comparison') {
+    const request = ++readSequence.current
+    const base = target === 'document' ? documentRef.current : afterRef.current
+    const baseId = base?.id ?? null
+    const baseRevision = base?.revision ?? null
+    if (upload.size > 1048576) {
+      setMessage(MESSAGES.importTooLarge[locale])
+      return
+    }
+    let text: string
+    try {
+      text = await upload.text()
+    } catch {
+      if (request === readSequence.current && mounted.current)
+        setMessage(MESSAGES.readFailed[locale])
+      return
+    }
+    if (request !== readSequence.current || !mounted.current) {
+      if (mounted.current) setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const current = target === 'document' ? documentRef.current : afterRef.current
+    if ((current?.id ?? null) !== baseId || (current?.revision ?? null) !== baseRevision) {
+      setMessage(MESSAGES.importStale[locale])
+      return
+    }
+    const result = importDocument(text, { id: crypto.randomUUID(), locale })
+    if (!result.ok) {
+      setMessage(result.diagnostics.map((d) => d.code).join(', '))
+      return
+    }
+    if (target === 'document') setDocument(result.value.document)
+    else setAfterDocument(result.value.document)
+    setMessage('')
+  }
+
   return (
-    <main className="viewer-shell">
+    <main className="viewer-shell" data-theme={hostTheme} style={HOST_TOKENS[hostTheme]}>
       <header className="viewer-header">
         <a href="./">aesthc / diagram-lib</a>
-        <h1>Semantic viewer</h1>
+        <h1>{MESSAGES.semanticViewer[locale]}</h1>
         <div className="viewer-actions">
           <label>
-            Language
+            {MESSAGES.language[locale]}
             <select
-              aria-label="Language"
+              aria-label={MESSAGES.language[locale]}
               value={locale}
               onChange={(e) => setLocale(e.target.value as Locale)}
             >
@@ -118,66 +218,53 @@ function ViewerApp() {
             </select>
           </label>
           <button type="button" onClick={() => file.current?.click()}>
-            Import JSON
+            {MESSAGES.importJson[locale]}
           </button>
           <input
             ref={file}
             hidden
             type="file"
             accept=".json,application/json"
-            onChange={async (e) => {
-              const upload = e.target.files?.[0]
-              e.target.value = ''
-              if (!upload) return
-              if (upload.size > 1048576) {
-                setMessage('limit.bytes')
-                return
-              }
-              const result = importDocument(await upload.text(), {
-                id: crypto.randomUUID(),
-                locale,
-              })
-              if (result.ok) {
-                setDocument(result.value.document)
-                setMessage('')
-              } else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+            onChange={(event) => {
+              const upload = event.target.files?.[0]
+              event.target.value = ''
+              if (upload) void importFile(upload, 'document')
             }}
           />
           <button type="button" onClick={() => compareFile.current?.click()}>
-            Compare with…
+            {MESSAGES.compareWith[locale]}
           </button>
           <input
             ref={compareFile}
             hidden
             type="file"
             accept=".json,application/json"
-            onChange={async (e) => {
-              const upload = e.target.files?.[0]
-              e.target.value = ''
-              if (!upload) return
-              if (upload.size > 1048576) {
-                setMessage('limit.bytes')
-                return
-              }
-              const result = importDocument(await upload.text(), {
-                id: crypto.randomUUID(),
-                locale,
-              })
-              if (result.ok) {
-                setAfterDocument(result.value.document)
-                setMessage('')
-              } else setMessage(result.diagnostics.map((d) => d.code).join(', '))
+            onChange={(event) => {
+              const upload = event.target.files?.[0]
+              event.target.value = ''
+              if (upload) void importFile(upload, 'comparison')
             }}
           />
           <button
             type="button"
             onClick={() => {
+              readSequence.current += 1
               setDocument(initialDocument)
               setAfterDocument(null)
               setMessage('')
             }}
           >
-            Reset
+            {MESSAGES.reset[locale]}
+          </button>
+          <button
+            type="button"
+            className="control"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              setExportRequest({ format: 'svg', quality: 'edit' })
+            }}
+          >
+            {locale === 'es' ? 'Exportar' : 'Export'}
           </button>
         </div>
       </header>
@@ -186,7 +273,26 @@ function ViewerApp() {
           {message}
         </p>
       )}
-      <DiagramViewer document={document} locale={locale} />
+      <DiagramViewer
+        document={displayedDocument}
+        locale={locale}
+        onExportRequest={setExportRequest}
+      />
+      {exportRequest && (
+        <ExportDialog
+          locale={locale}
+          open
+          onClose={() => setExportRequest(null)}
+          source={{
+            document,
+            selection: [],
+            theme: hostTheme,
+            query: exportRequest.query,
+          }}
+          initialChoice={exportRequest}
+        />
+      )}
+
       {afterDocument && <Comparison before={document} after={afterDocument} locale={locale} />}
     </main>
   )

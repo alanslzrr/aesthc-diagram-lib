@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { createCanvasTextMeasurer } from '../geometry/text'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { DiagramDocument, EntityRef, Locale, Viewport } from '../editor-core/types'
+import type {
+  DiagramDocument,
+  EntityRef,
+  Locale,
+  ResolveRendererRegistry,
+  Viewport,
+} from '../editor-core/types'
 import { resolveDocument } from '../editor-core/scene'
 import { findReach, findRoute, graphSnapshot } from '../graph'
 import { renderSvg } from '../render'
@@ -30,10 +37,19 @@ import {
   type ViewerQueryState,
 } from './query'
 
+export interface ViewerExportRequest {
+  format: 'svg' | 'card' | 'webm'
+  quality: 'edit' | 'publish'
+  query?: import('../export').CardQueryReceipt
+}
 export interface DiagramViewerProps {
   document: DiagramDocument
   locale?: Locale
   className?: string
+  /** Trusted per-instance custom node renderers; never loaded from the document. */
+  registry?: ResolveRendererRegistry
+  /** Host export UI override; no editor store is created. */
+  onExportRequest?: (request: ViewerExportRequest) => void
 }
 const ZOOM_MIN = 0.1
 const ZOOM_MAX = 4
@@ -41,13 +57,47 @@ const ZOOM_MAX = 4
 /** Read-only semantic viewer: finder, inspector, exact route/reach highlight,
  * receipt-bound export, lenses, minimap, finite story and presentation.
  * Never mutates the document or the store. */
-export function DiagramViewer({ document, locale = 'en', className }: DiagramViewerProps) {
+export function DiagramViewer({
+  document,
+  locale = 'en',
+  className,
+  registry,
+  onExportRequest,
+}: DiagramViewerProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
+  const measurer = useMemo(() => createCanvasTextMeasurer(), [])
+  const [fontGeneration, setFontGeneration] = useState(0)
+  useEffect(() => {
+    let active = true
+    if (typeof window !== 'undefined' && window.document.fonts) {
+      void Promise.all([
+        window.document.fonts.load('16px Geist'),
+        window.document.fonts.load('16px "Geist Mono"'),
+      ]).then(
+        () => {
+          if (active) {
+            measurer?.clear?.()
+            setFontGeneration((generation) => generation + 1)
+          }
+        },
+        () => {},
+      )
+    }
+    return () => {
+      active = false
+    }
+  }, [measurer])
   const graph = useMemo(() => graphSnapshot(document), [document])
   const scene = useMemo(
     () =>
-      resolveDocument(document, { quality: 'edit', requestId: 'viewer', skipDiagnostics: true }),
-    [document],
+      resolveDocument(document, {
+        quality: 'edit',
+        requestId: 'viewer',
+        measureText: measurer,
+        skipDiagnostics: true,
+        renderers: registry,
+      }),
+    [document, registry, measurer, fontGeneration],
   )
   const [selection, setSelection] = useState<EntityRef | null>(null)
   const [origin, setOrigin] = useState<string | null>(null)
@@ -66,10 +116,11 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
   const [storyFocus, setStoryFocus] = useState<{ nodes: Set<string>; edges: Set<string> } | null>(
     null,
   )
-  const [profileEnabled, setProfileEnabled] = useState(false)
+  const [profileShown, setProfileShown] = useState(true)
   const [publishIssue, setPublishIssue] = useState<string[] | null>(null)
   const [recording, setRecording] = useState(false)
   const [motionIssue, setMotionIssue] = useState<string | null>(null)
+  const [cardIssue, setCardIssue] = useState<string | null>(null)
   const recordAbort = useRef<AbortController | null>(null)
   const webm = useMemo(() => webmCapability(), [])
   const [reducedMotion, setReducedMotion] = useState(
@@ -147,14 +198,16 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
             highlight,
             dim: lensSet,
             exclude,
+            // The interactive surface owns a viewport-wide backdrop below the
+            // stage; the exported artifact keeps the document's own policy.
+            background: 'transparent',
+            grid: 'none',
           })
         : '',
     [document, scene, highlight, lensSet, exclude],
   )
-  const profileReport = useMemo(
-    () => validateDeploymentProfile(document, { enabled: profileEnabled }),
-    [document, profileEnabled],
-  )
+  // Activation is authored, never a viewer checkbox.
+  const profileReport = useMemo(() => validateDeploymentProfile(document), [document])
   const relationsEnabled = graph.edges.length > 0
   const summary = querySummary(query, graph, t)
   const edgeIds = queryEdgeIds(query)
@@ -293,8 +346,22 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     setDestination(null)
     setSelection(null)
   }
+  function queryReceipt() {
+    if (!query || stale) return undefined
+    return {
+      documentId: document.id,
+      revision: document.revision,
+      nodeIds: [...query.result.nodeIds],
+      edgeIds: [...query.result.edgeIds],
+      label: summary ?? '',
+    }
+  }
   function exportQuery() {
     if (!query || stale || !scene.ok) return
+    if (onExportRequest) {
+      onExportRequest({ format: 'svg', quality: 'edit', query: queryReceipt() })
+      return
+    }
     const artifact: ExportArtifact = {
       bytes: new TextEncoder().encode(
         exportQuerySvg(document, scene.value, query, {
@@ -319,7 +386,14 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
   }
   async function exportCardPng() {
     if (!query || stale || !scene.ok) return
+    if (onExportRequest) {
+      onExportRequest({ format: 'card', quality: 'edit', query: queryReceipt() })
+      return
+    }
+    setCardIssue(null)
     const artifact = await exportCard(document, {
+      theme: document.presentation.theme.mode,
+      registry,
       query: {
         documentId: document.id,
         revision: document.revision,
@@ -328,7 +402,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
         label: summary ?? '',
       },
     })
-    if (!artifact.ok) return
+    if (!artifact.ok) {
+      setCardIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
+      return
+    }
     downloadArtifact(artifact.value, 'card.png')
   }
   /** Stops an in-flight recording; the recorder releases tracks and URLs. */
@@ -336,6 +413,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     recordAbort.current?.abort()
   }
   async function exportWebm() {
+    if (onExportRequest) {
+      onExportRequest({ format: 'webm', quality: 'edit' })
+      return
+    }
     setMotionIssue(null)
     const controller = new AbortController()
     recordAbort.current = controller
@@ -343,6 +424,8 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     const result = await exportStoryWebm(document, {
       signal: controller.signal,
       reducedMotion,
+      theme: document.presentation.theme.mode,
+      renderers: registry,
     })
     recordAbort.current = null
     setRecording(false)
@@ -360,9 +443,13 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   async function exportPublish() {
+    if (onExportRequest) {
+      onExportRequest({ format: 'svg', quality: 'publish' })
+      return
+    }
     setPublishIssue(null)
     if (!scene.ok) return
-    const report = validateDeploymentProfile(document, { enabled: profileEnabled })
+    const report = validateDeploymentProfile(document)
     if (!report.ok) {
       setPublishIssue(report.diagnostics.map((diagnostic) => diagnostic.code))
       return
@@ -385,6 +472,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
       includeSource: false,
       metadata: 'minimal',
       fontPolicy: 'fallback',
+      renderers: registry,
     })
     if (!artifact.ok) {
       setPublishIssue(artifact.diagnostics.map((diagnostic) => diagnostic.code))
@@ -414,6 +502,34 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
     width: viewSize.width / camera.zoom,
     height: viewSize.height / camera.zoom,
   }
+  // Center the camera in the viewport: screen = origin + (world - camera) * zoom.
+  const stageTransform = `translate(${viewSize.width / 2 - camera.x * camera.zoom}px, ${viewSize.height / 2 - camera.y * camera.zoom}px) scale(${camera.zoom})`
+  const gridLayerId = useId().replaceAll(':', '')
+  const STAGE_OFFSET = 16
+  const viewportGrid = useMemo(() => {
+    const grid = document.presentation.grid
+    if (!grid.visible || !scene.ok) return null
+    const palette = document.presentation.theme[document.presentation.theme.mode]
+    const base = Number.isFinite(grid.size) && grid.size > 0 ? grid.size : 16
+    let step = base
+    let spacing = step * camera.zoom
+    while (spacing < 10 && step < base * 16) {
+      step *= 2
+      spacing = step * camera.zoom
+    }
+    // Match the stage's own offset from the host border box (see
+    // .adl-viewer-stage top/left) so dots keep world phase with the nodes.
+    const originX = STAGE_OFFSET + viewSize.width / 2 - camera.x * camera.zoom
+    const originY = STAGE_OFFSET + viewSize.height / 2 - camera.y * camera.zoom
+    const phaseX = ((originX % spacing) + spacing) % spacing
+    const phaseY = ((originY % spacing) + spacing) % spacing
+    return {
+      palette: palette.foreground,
+      spacing,
+      phaseX,
+      phaseY,
+    }
+  }, [camera, document.presentation.grid, document.presentation.theme, scene.ok, viewSize])
   const proxyMarkup = useMemo(() => {
     if (!collapse || !scene.ok) return ''
     const theme = document.presentation.theme[document.presentation.theme.mode]
@@ -501,13 +617,19 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           <label className="adl-viewer-profile-toggle">
             <input
               type="checkbox"
-              checked={profileEnabled}
-              onChange={(event) => setProfileEnabled(event.target.checked)}
-              aria-label={t('Deployment profile', 'Perfil de despliegue')}
+              checked={profileShown}
+              onChange={(event) => setProfileShown(event.target.checked)}
+              aria-label={t('Show deployment profile', 'Mostrar perfil de despliegue')}
             />
-            {t('Deployment profile', 'Perfil de despliegue')}
+            {t('Show deployment profile', 'Mostrar perfil de despliegue')}
           </label>
-          <button type="button" onClick={() => void exportPublish()}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              void exportPublish()
+            }}
+          >
             {t('Publish export', 'Exportar publicación')}
           </button>
         </div>
@@ -624,13 +746,59 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
             panTo(event)
           }}
         >
+          {viewportGrid && (
+            <svg
+              className="adl-viewer-backdrop"
+              aria-hidden="true"
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${viewSize.width} ${viewSize.height}`}
+            >
+              <defs>
+                <pattern
+                  id={`adl-viewer-grid-${gridLayerId}`}
+                  width={viewportGrid.spacing}
+                  height={viewportGrid.spacing}
+                  patternUnits="userSpaceOnUse"
+                  patternTransform={`translate(${viewportGrid.phaseX} ${viewportGrid.phaseY})`}
+                >
+                  <circle cx="1" cy="1" r="1" fill={viewportGrid.palette} fillOpacity="0.12" />
+                </pattern>
+                <radialGradient
+                  id={`adl-viewer-fade-${gridLayerId}`}
+                  gradientUnits="userSpaceOnUse"
+                  cx={viewSize.width / 2}
+                  cy={viewSize.height / 2}
+                  r={Math.max(viewSize.width, viewSize.height) * 0.72}
+                >
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="65%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                </radialGradient>
+                <mask id={`adl-viewer-mask-${gridLayerId}`}>
+                  <rect
+                    width={viewSize.width}
+                    height={viewSize.height}
+                    fill={`url(#adl-viewer-fade-${gridLayerId})`}
+                  />
+                </mask>
+              </defs>
+              <rect
+                data-viewer-grid="true"
+                width={viewSize.width}
+                height={viewSize.height}
+                fill={`url(#adl-viewer-grid-${gridLayerId})`}
+                mask={`url(#adl-viewer-mask-${gridLayerId})`}
+              />
+            </svg>
+          )}
           {scene.ok ? (
             <div
               className="adl-viewer-stage"
               style={{
                 width: scene.value.layout.width,
                 height: scene.value.layout.height,
-                transform: `translate(${camera.x - viewWorldSize.width / 2}px, ${camera.y - viewWorldSize.height / 2}px) scale(${camera.zoom})`,
+                transform: stageTransform,
                 transformOrigin: '0 0',
               }}
               dangerouslySetInnerHTML={{ __html: svg }}
@@ -643,6 +811,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           {scene.ok && collapse && (
             <div
               className="adl-viewer-overlay"
+              style={{ transform: stageTransform, transformOrigin: '0 0' }}
               dangerouslySetInnerHTML={{ __html: overlayMarkup }}
             />
           )}
@@ -713,7 +882,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           ) : (
             <button
               type="button"
-              onClick={() => void exportWebm()}
+              onClick={(event) => {
+                event.currentTarget.focus({ preventScroll: true })
+                void exportWebm()
+              }}
               disabled={!webm.supported || reducedMotion}
               title={
                 !webm.supported
@@ -781,7 +953,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           )}
           <button
             type="button"
-            onClick={exportQuery}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              exportQuery()
+            }}
             disabled={!query || stale || !scene.ok || !!storyFocus}
             aria-describedby={stale ? 'adl-viewer-stale' : undefined}
           >
@@ -789,7 +964,10 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           </button>
           <button
             type="button"
-            onClick={() => void exportCardPng()}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              void exportCardPng()
+            }}
             disabled={!query || stale || !scene.ok || !!storyFocus}
           >
             {t('Export card PNG', 'Exportar card PNG')}
@@ -804,6 +982,11 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
           {publishIssue.join(', ')}
         </p>
       )}
+      {cardIssue && (
+        <p className="adl-viewer-note" role="alert">
+          {cardIssue}
+        </p>
+      )}
       <Inspector
         document={document}
         graph={graph}
@@ -814,7 +997,7 @@ export function DiagramViewer({ document, locale = 'en', className }: DiagramVie
       <Evidence
         document={document}
         entity={selection}
-        profile={profileReport.ok ? profileReport.value : null}
+        profile={profileShown && profileReport.ok ? profileReport.value : null}
         onSelect={setSelection}
         t={t}
       />

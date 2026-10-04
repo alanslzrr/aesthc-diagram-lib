@@ -161,6 +161,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@heyo-sh/heyo-docs": "3.3.0",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^26.2.0",
@@ -203,8 +204,17 @@
       "esbuild",
       "@parcel/watcher"
     ],
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
     "overrides": {
-      "tsup>esbuild": "^0.28.1"
+      "tsup>esbuild": "^0.28.1",
+      "brace-expansion@<1.1.21": "1.1.21",
+      "brace-expansion@>=4.0.0 <5.0.12": "5.0.12",
+      "basic-ftp@<=6.2.0": "6.2.1",
+      "fast-uri@<3.1.8": "3.1.8"
     }
   },
   "main": "./dist/index.js",

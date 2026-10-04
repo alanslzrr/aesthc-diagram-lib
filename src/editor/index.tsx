@@ -47,8 +47,9 @@ import {
   anchorFromPoint,
 } from '../editor-core/scene'
 import { fitViewport, zoomAt, screenToWorld } from '../editor-core/viewport'
-import { serializeDocument } from '../editor-core/document'
+import { canonical } from '../editor-core/data'
 import { renderSceneMarkup } from '../render'
+import { baselineUpdate, patchBaseline, type BaselineFrame } from './baseline'
 import { createFragment, pasteFragment } from '../editor-core/clipboard'
 import type { DiagramFragment, RelationInput } from '../editor-core/types'
 import { createEditorStore } from '../editor-core/store'
@@ -58,21 +59,52 @@ import { pinchViewport } from '../geometry/pinch'
 import { nodeGeometry } from '../geometry/node'
 import { marqueeBounds, intersectsMarquee } from '../geometry/selection'
 import { createCanvasTextMeasurer } from '../geometry/text'
-import type { StoreOptions } from '../editor-core/types'
+import {
+  coercePanelTab,
+  panelTabId,
+  panelTabPanelId,
+  panelTabScope,
+  panelTabsFor,
+  type EditorPanelTab,
+} from './panel-tabs'
+import type { ResolveRendererRegistry, StoreOptions } from '../editor-core/types'
 
-const Context = createContext<{ store: EditorStore; locale: Locale } | null>(null)
+const Context = createContext<{
+  store: EditorStore
+  locale: Locale
+  /**
+   * View-only appearance override. Rendering follows this mode while the
+   * document keeps its own presentation in JSON; the inspector hides the
+   * document theme control because the host owns the effective appearance.
+   */
+  theme?: 'light' | 'dark'
+  /**
+   * Trusted, per-instance custom node renderers. Never loaded from document
+   * data; two editors can register the same typeKey differently.
+   */
+  registry?: ResolveRendererRegistry
+} | null>(null)
 /** Real font widths once Geist is loaded; conservative estimate otherwise. */
 const measureText = createCanvasTextMeasurer()
 export function EditorRoot({
   store,
   locale,
+  theme,
+  registry,
   children,
 }: {
   store: EditorStore
   locale: Locale
+  /** Effective view theme. Omit to follow the document's own presentation. */
+  theme?: 'light' | 'dark'
+  /** Trusted per-instance renderer registry. */
+  registry?: ResolveRendererRegistry
   children: ReactNode
 }) {
-  const value = useMemo(() => ({ store, locale }), [store, locale])
+  const value = useMemo(
+    () => ({ store, locale, theme, registry }),
+    [store, locale, theme, registry],
+  )
   return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export function useEditor() {
@@ -83,6 +115,11 @@ export function useEditor() {
 export function useEditorSnapshot() {
   const { store } = useEditor()
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+}
+/** Theme and renderer context for scene resolution outside EditorSurface. */
+function useEditorResolveContext() {
+  const { theme, registry } = useEditor()
+  return useMemo(() => ({ theme, renderers: registry }), [theme, registry])
 }
 /** Shallow equality for composite selector slices (selection/document pairs). */
 export const shallowEqual = <T,>(a: T, b: T): boolean => {
@@ -172,6 +209,7 @@ const NodeHitRect = memo(function NodeHitRect({
       height={height}
       rx={4}
       fill="transparent"
+      pointerEvents="all"
       stroke={selected ? stroke : 'none'}
       strokeWidth={2 / zoom}
       tabIndex={0}
@@ -227,6 +265,7 @@ const EdgeHitRect = memo(function EdgeHitRect({
       height={height}
       rx={6}
       fill="transparent"
+      pointerEvents="all"
       stroke={selected ? stroke : 'transparent'}
       style={{ cursor: 'pointer' }}
       tabIndex={0}
@@ -251,13 +290,25 @@ function dispatch(store: EditorStore, commands: EditorCommand[], label: string) 
     commands,
   })
 }
-function materialize(document: DiagramDocument) {
+function materialize(
+  document: DiagramDocument,
+  resolve?: { theme?: 'light' | 'dark'; renderers?: ResolveRendererRegistry },
+) {
+  if (
+    document.spec.type === 'graph' &&
+    document.scene.mode === 'manual' &&
+    !resolve?.renderers &&
+    nodesOf(document.spec).every((node) => document.scene.nodes[node.id])
+  )
+    return document.scene
   const result = resolveDocument(document, {
     quality: 'edit',
     requestId: 'gesture',
     measureText,
     skipValidation: true,
     skipDiagnostics: true,
+    theme: resolve?.theme,
+    renderers: resolve?.renderers,
   })
   if (!result.ok) return document.scene
   return {
@@ -280,16 +331,22 @@ function materialize(document: DiagramDocument) {
 export function EditorStatus() {
   const dirty = useEditorSelector((s) => s.dirty),
     t = useLabels()
+  const text = dirty
+    ? t('Unsaved changes', 'Cambios sin guardar')
+    : t('No pending changes', 'Sin cambios pendientes')
   return (
-    <span className="adl-editor-status" role="status">
-      {dirty
-        ? t('Unsaved changes', 'Cambios sin guardar')
-        : t('No pending changes', 'Sin cambios pendientes')}
+    <span className="adl-editor-status" role="status" aria-label={text}>
+      <span
+        className="adl-editor-status-dot"
+        aria-hidden="true"
+        data-dirty={dirty ? '' : undefined}
+      />
+      <span className="adl-editor-status-text">{text}</span>
     </span>
   )
 }
 export function EditorToolbar() {
-  const { store } = useEditor(),
+  const { store, registry } = useEditor(),
     snapshot = useEditorSelector(
       (s) => ({
         tool: s.tool,
@@ -302,57 +359,84 @@ export function EditorToolbar() {
       shallowEqual,
     ),
     t = useLabels()
+  const fit = () => {
+    const result = resolveDocument(store.getSnapshot().document, {
+      quality: 'edit',
+      requestId: 'toolbar-fit',
+      measureText,
+      skipValidation: true,
+      skipDiagnostics: true,
+      renderers: registry,
+    })
+    if (result.ok) {
+      const svg = document.querySelector<SVGSVGElement>('.adl-editor-surface > svg[role="group"]')
+      const rect = svg?.getBoundingClientRect()
+      if (rect && rect.width > 0 && rect.height > 0)
+        store.setViewport(fitViewport(result.value.worldBounds, rect, 24))
+    }
+  }
   return (
     <div
       className="adl-editor-toolbar"
       role="toolbar"
       aria-label={t('Editor tools', 'Herramientas de edición')}
     >
-      <button
-        type="button"
-        aria-pressed={snapshot.tool === 'select'}
-        onClick={() => store.setTool('select')}
-      >
-        {t('Select', 'Seleccionar')}
-      </button>
-      <button
-        type="button"
-        aria-pressed={snapshot.tool === 'hand'}
-        onClick={() => store.setTool('hand')}
-      >
-        {t('Pan', 'Desplazar')}
-      </button>
-      <button type="button" disabled={!snapshot.canUndo} onClick={() => store.undo()}>
-        {t('Undo', 'Deshacer')}
-      </button>
-      <button type="button" disabled={!snapshot.canRedo} onClick={() => store.redo()}>
-        {t('Redo', 'Rehacer')}
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          store.setViewport({
-            ...snapshot.viewport,
-            zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25),
-          })
-        }
-        aria-label={t('Zoom out', 'Alejar')}
-      >
-        −
-      </button>
-      <output aria-label={t('Zoom', 'Zoom')}>{Math.round(snapshot.viewport.zoom * 100)}%</output>
-      <button
-        type="button"
-        onClick={() =>
-          store.setViewport({
-            ...snapshot.viewport,
-            zoom: Math.min(4, snapshot.viewport.zoom * 1.25),
-          })
-        }
-        aria-label={t('Zoom in', 'Acercar')}
-      >
-        +
-      </button>
+      <div className="adl-editor-group" role="group" aria-label={t('Tools', 'Herramientas')}>
+        <button
+          type="button"
+          aria-pressed={snapshot.tool === 'select'}
+          onClick={() => store.setTool('select')}
+        >
+          {t('Select', 'Seleccionar')}
+        </button>
+        <button
+          type="button"
+          aria-pressed={snapshot.tool === 'hand'}
+          onClick={() => store.setTool('hand')}
+        >
+          {t('Pan', 'Desplazar')}
+        </button>
+      </div>
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div className="adl-editor-group" role="group" aria-label={t('History', 'Historial')}>
+        <button type="button" disabled={!snapshot.canUndo} onClick={() => store.undo()}>
+          {t('Undo', 'Deshacer')}
+        </button>
+        <button type="button" disabled={!snapshot.canRedo} onClick={() => store.redo()}>
+          {t('Redo', 'Rehacer')}
+        </button>
+      </div>
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div className="adl-editor-group" role="group" aria-label={t('Camera', 'Cámara')}>
+        <button
+          type="button"
+          onClick={() =>
+            store.setViewport({
+              ...snapshot.viewport,
+              zoom: Math.max(0.1, snapshot.viewport.zoom / 1.25),
+            })
+          }
+          aria-label={t('Zoom out', 'Alejar')}
+        >
+          −
+        </button>
+        <output aria-label={t('Zoom', 'Zoom')}>{Math.round(snapshot.viewport.zoom * 100)}%</output>
+        <button
+          type="button"
+          onClick={() =>
+            store.setViewport({
+              ...snapshot.viewport,
+              zoom: Math.min(4, snapshot.viewport.zoom * 1.25),
+            })
+          }
+          aria-label={t('Zoom in', 'Acercar')}
+        >
+          +
+        </button>
+        <button type="button" onClick={fit}>
+          {t('Fit diagram', 'Ajustar diagrama')}
+        </button>
+      </div>
       <EditorSelectionTools />
       <EditorRelayout />
       <EditorStatus />
@@ -411,6 +495,79 @@ function EditorRelayout() {
 // Keep the static SVG subtree out of React's innerHTML update path during gestures.
 const SceneMarkup = memo(function SceneMarkup({ markup }: { markup: string }) {
   return <g dangerouslySetInnerHTML={{ __html: markup }} />
+})
+
+/**
+ * Viewport-continuous dot grid for the editable surface. The pattern lives in
+ * world units inside the camera group and its phase follows the camera, so the
+ * grid covers every corner of the viewport at any pan, zoom or document size.
+ * Display density drops at extreme zoom-out without touching document snap.
+ */
+const ViewportGrid = memo(function ViewportGrid({
+  width,
+  height,
+  viewport,
+  cell,
+  color,
+}: {
+  width: number
+  height: number
+  viewport: { x: number; y: number; zoom: number }
+  cell: number
+  color: string
+}) {
+  const base = Number.isFinite(cell) && cell > 0 ? cell : 16
+  let step = base
+  let spacing = step * viewport.zoom
+  while (spacing < 12 && step < base * 16) {
+    step *= 2
+    spacing = step * viewport.zoom
+  }
+  const unique = useId().replaceAll(':', '')
+  const patternId = `adl-viewport-grid-${unique}`
+  const fadeId = `adl-viewport-grid-fade-${unique}`
+  const maskId = `adl-viewport-grid-mask-${unique}`
+  const x0 = -viewport.x / viewport.zoom
+  const y0 = -viewport.y / viewport.zoom
+  const w = width / viewport.zoom
+  const h = height / viewport.zoom
+  return (
+    <>
+      <defs>
+        {/* World-space pattern inside the camera group: the group transform
+         * already moves the dots with pan and zoom, so no extra phase. */}
+        <pattern id={patternId} width={step} height={step} patternUnits="userSpaceOnUse">
+          <circle cx={1} cy={1} r={1} fill={color} fillOpacity={0.12} />
+        </pattern>
+        {/* Attenuate only the decorative pattern at the viewport perimeter;
+         * the layer still covers every corner and keeps camera phase. */}
+        <radialGradient
+          id={fadeId}
+          gradientUnits="userSpaceOnUse"
+          cx={x0 + w / 2}
+          cy={y0 + h / 2}
+          r={Math.max(w, h) * 0.75}
+        >
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="62%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <mask id={maskId} maskUnits="userSpaceOnUse" x={x0} y={y0} width={w} height={h}>
+          <rect x={x0} y={y0} width={w} height={h} fill={`url(#${fadeId})`} />
+        </mask>
+      </defs>
+      <rect
+        data-editor-grid="true"
+        x={x0}
+        y={y0}
+        width={w}
+        height={h}
+        fill={`url(#${patternId})`}
+        mask={`url(#${maskId})`}
+        pointerEvents="none"
+      />
+    </>
+  )
 })
 
 const SceneHits = memo(function SceneHits({
@@ -493,23 +650,44 @@ const SceneHits = memo(function SceneHits({
 })
 
 const BaselineLayer = memo(function BaselineLayer({
-  markup,
+  frame,
   hidden,
   width,
   height,
   x,
   y,
   zoom,
+  gridVisible,
+  gridCell,
+  gridColor,
 }: {
-  markup: string
+  frame: BaselineFrame | null
   hidden: { nodes: string[]; edges: string[] } | null
   width: number
   height: number
   x: number
   y: number
   zoom: number
+  /** Decorative viewport grid; always below the confirmed geometry. */
+  gridVisible: boolean
+  gridCell: number
+  gridColor: string
 }) {
   const root = useRef<SVGSVGElement>(null)
+  const content = useRef<SVGGElement>(null)
+  const previous = useRef<BaselineFrame | null>(null)
+  useLayoutEffect(() => {
+    if (!content.current) return
+    if (!frame) {
+      content.current.replaceChildren()
+      previous.current = null
+      return
+    }
+    const update = baselineUpdate(previous.current, frame)
+    if (update.full || !patchBaseline(content.current, update.markup))
+      content.current.innerHTML = update.full ? update.markup : baselineUpdate(null, frame).markup
+    previous.current = frame
+  }, [frame])
   useLayoutEffect(() => {
     if (!hidden || !root.current) return
     const nodeIds = new Set(hidden.nodes),
@@ -529,7 +707,7 @@ const BaselineLayer = memo(function BaselineLayer({
     return () => {
       for (const element of elements) element.style.removeProperty('visibility')
     }
-  }, [hidden, markup])
+  }, [hidden, frame])
   return (
     <svg
       ref={root}
@@ -540,18 +718,53 @@ const BaselineLayer = memo(function BaselineLayer({
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none', willChange: 'transform' }}
     >
       <g transform={`translate(${x} ${y}) scale(${zoom})`}>
-        <SceneMarkup markup={markup} />
+        {gridVisible && (
+          <ViewportGrid
+            width={width}
+            height={height}
+            viewport={{ x, y, zoom }}
+            cell={gridCell}
+            color={gridColor}
+          />
+        )}
+        <g ref={content} />
       </g>
     </svg>
   )
 })
 
+/**
+ * Structured layouts have no free coordinates. Dragging still moves the node
+ * by editing the authored structure: band/lane assignment plus order, or the
+ * sequence/timeline order, and never converts the document to a graph.
+ */
+type StructuredKind = 'band' | 'lane' | 'order'
+interface StructuredGesture {
+  kind: StructuredKind
+  nodeId: string
+  placements: Array<{ id: string; cx: number; cy: number; x: number; width: number }>
+  containers: Array<{ id: string; y: number; h: number }>
+  signature: string
+}
+/** Move one item so it lands immediately before `before`, or at the end. */
+function moveWithinOrder<T extends { id: string }>(items: T[], id: string, before?: string): T[] {
+  const current = items.findIndex((item) => item.id === id)
+  if (current < 0) return items
+  const next = items.slice()
+  const [moved] = next.splice(current, 1)
+  const index = before === undefined ? -1 : next.findIndex((item) => item.id === before)
+  next.splice(index < 0 ? next.length : index, 0, moved)
+  return next
+}
 export function EditorSurface({
   ariaLabel,
   className,
+  autoFit = true,
 }: {
   ariaLabel?: string
   className?: string
+  /** Fit the camera on first measure. Restored sessions pass false to keep their camera. */
+  autoFit?: boolean
 }) {
   const { store } = useEditor(),
     snapshot = useEditorSnapshot(),
@@ -559,8 +772,41 @@ export function EditorSurface({
     instanceId = useId()
   const svgRef = useRef<SVGSVGElement>(null),
     [size, setSize] = useState({ width: 800, height: 600 })
+  const { theme: viewTheme, registry } = useEditor()
   const activeDoc = snapshot.draft.kind === 'gesture' ? snapshot.draft.preview : snapshot.document
-  const resolvePreview = useMemo(() => createPreviewResolver(), [store])
+  const effectiveTheme = viewTheme ?? activeDoc.presentation.theme.mode
+  const palette = activeDoc.presentation.theme[effectiveTheme]
+  const resolveContext = useMemo(
+    () => ({ theme: effectiveTheme, renderers: registry }),
+    [effectiveTheme, registry],
+  )
+  // Label pills are measured at resolve time. If Geist lands after the first
+  // paint, clear the measurer cache and re-resolve once, so cached fallback
+  // widths cannot survive the font load.
+  const [fontGeneration, setFontGeneration] = useState(0)
+  const fontsRefreshed = useRef(false)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return
+    const fonts = document.fonts
+    const refresh = () => {
+      if (fontsRefreshed.current) return
+      const ready = fonts.check('16px Geist') && fonts.check('16px "Geist Mono"')
+      if (!ready) return
+      fontsRefreshed.current = true
+      measureText?.clear?.()
+      setFontGeneration((value) => value + 1)
+    }
+    void Promise.allSettled([fonts.load('16px Geist'), fonts.load('16px "Geist Mono"')]).then(
+      refresh,
+    )
+    fonts.addEventListener('loadingdone', refresh)
+    return () => fonts.removeEventListener('loadingdone', refresh)
+  }, [])
+  const resolvePreview = useMemo(() => createPreviewResolver(), [store, fontGeneration])
+  // The committed scene is always resolved from the committed document. A
+  // revision-keyed reuse of an earlier preview was removed: a no-op gesture
+  // could leave a stale entry that a later edit consumed, painting old
+  // geometry and labels. Correctness takes precedence over the saved resolve.
   const committedResolved = useMemo(
     () =>
       resolveDocument(snapshot.document, {
@@ -569,8 +815,10 @@ export function EditorSurface({
         measureText,
         skipValidation: true,
         skipDiagnostics: true,
+        theme: effectiveTheme,
+        renderers: registry,
       }),
-    [snapshot.document, instanceId],
+    [snapshot.document, instanceId, effectiveTheme, registry, fontGeneration],
   )
   const resolved = useMemo(
     () =>
@@ -582,27 +830,44 @@ export function EditorSurface({
             measureText,
             skipValidation: true,
             skipDiagnostics: true,
+            theme: effectiveTheme,
+            renderers: registry,
           }),
-    [activeDoc, snapshot.document, committedResolved, instanceId, resolvePreview],
+    [
+      activeDoc,
+      snapshot.document,
+      committedResolved,
+      instanceId,
+      resolvePreview,
+      effectiveTheme,
+      registry,
+    ],
   )
   const [gestureEntities, setGestureEntities] = useState<{
     nodes: string[]
     edges: string[]
   } | null>(null)
-  const baseline = useMemo(
+  const baselineFrame = useMemo<BaselineFrame | null>(
     () =>
       committedResolved.ok
-        ? renderSceneMarkup(snapshot.document, committedResolved.value, { instanceId })
-        : '',
-    [snapshot.document, committedResolved, instanceId],
+        ? {
+            document: snapshot.document,
+            scene: committedResolved.value,
+            instanceId,
+            theme: effectiveTheme,
+            fontGeneration,
+          }
+        : null,
+    [snapshot.document, committedResolved, instanceId, effectiveTheme, fontGeneration],
   )
   const deltaMarkup = useMemo(() => {
     if (!gestureEntities || !resolved.ok) return null
     return renderSceneMarkup(activeDoc, resolved.value, {
       instanceId,
+      theme: effectiveTheme,
       only: { nodes: new Set(gestureEntities.nodes), edges: new Set(gestureEntities.edges) },
     })
-  }, [activeDoc, resolved, gestureEntities, instanceId])
+  }, [activeDoc, resolved, gestureEntities, instanceId, effectiveTheme])
   const gesture = useRef<{
     pointer: number
     start: Point
@@ -619,6 +884,7 @@ export function EditorSurface({
     }
     port?: { nodeId: string; portId: string; pointerWorld: Point }
     connect?: { sourceId: string }
+    structured?: StructuredGesture
   } | null>(null)
   const marquee = useRef<{
     pointer: number
@@ -672,6 +938,7 @@ export function EditorSurface({
   } | null>(null)
   const spacePan = useRef(false)
   const fitted = useRef(false)
+  const fittedViewport = useRef<typeof snapshot.viewport | null>(null)
   /** One gesture update per animation frame: pointermove can outrun paint. */
   const moveRaf = useRef(0)
   const pendingMove = useRef<Point | null>(null)
@@ -730,6 +997,96 @@ export function EditorSurface({
         source = current.scene.nodes[current.connect.sourceId]
       const anchor = source ? anchorPoint(source, { side: 'right', offset: 0.5 }) : { x: 0, y: 0 }
       setConnectLine({ x1: anchor.x, y1: anchor.y, x2: world.x, y2: world.y })
+      return
+    }
+    if (current.structured) {
+      const structured = current.structured
+      const world = screenToWorld(point, current.viewport)
+      const spec = snapshot.document.spec
+      const placed = (id: string) => structured.placements.find((entry) => entry.id === id)
+      let next: typeof spec | null = null
+      if (structured.kind === 'band' && spec.type === 'band') {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId)
+        if (dragged) {
+          const ranges = spec.bands.map((_band, index) => {
+            const members = structured.placements.filter((entry) => {
+              const node = spec.nodes.find((candidate) => candidate.id === entry.id)
+              return node?.band === index
+            })
+            if (!members.length) return { index, x0: Infinity, x1: -Infinity, cx: 0 }
+            const x0 = Math.min(...members.map((member) => member.x))
+            const x1 = Math.max(...members.map((member) => member.x + member.width))
+            return { index, x0, x1, cx: (x0 + x1) / 2 }
+          })
+          const target =
+            ranges.find((range) => world.x >= range.x0 && world.x <= range.x1) ??
+            ranges.reduce((best, range) =>
+              Math.abs(range.cx - world.x) < Math.abs(best.cx - world.x) ? range : best,
+            )
+          const siblings = spec.nodes.filter(
+            (node) => node.band === target.index && node.id !== dragged.id,
+          )
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cy ?? 0) > world.y)
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map((node) =>
+              node.id === dragged.id ? { ...dragged, band: target.index } : node,
+            ),
+          }
+        }
+      } else if (structured.kind === 'lane' && spec.type === 'swimlane') {
+        const dragged = spec.nodes.find((node) => node.id === structured.nodeId)
+        const lanes = structured.containers
+        if (dragged && lanes.length) {
+          const target =
+            lanes.find((lane) => world.y >= lane.y && world.y <= lane.y + lane.h) ??
+            lanes.reduce((best, lane) =>
+              Math.abs(lane.y + lane.h / 2 - world.y) < Math.abs(best.y + best.h / 2 - world.y)
+                ? lane
+                : best,
+            )
+          const siblings = spec.nodes.filter(
+            (node) => node.lane === target.id && node.id !== dragged.id,
+          )
+          const slot = siblings.findIndex((node) => (placed(node.id)?.cx ?? 0) > world.x)
+          next = {
+            ...spec,
+            nodes: moveWithinOrder(spec.nodes, dragged.id, siblings[slot]?.id).map((node) =>
+              node.id === dragged.id ? { ...dragged, lane: target.id } : node,
+            ),
+          }
+        }
+      } else if (structured.kind === 'order' && spec.type === 'sequence') {
+        const dragged = spec.participants.find(
+          (participant) => participant.id === structured.nodeId,
+        )
+        if (dragged) {
+          const others = spec.participants.filter((participant) => participant.id !== dragged.id)
+          const slot = others.findIndex(
+            (participant) => (placed(participant.id)?.cx ?? 0) > world.x,
+          )
+          next = {
+            ...spec,
+            participants: moveWithinOrder(spec.participants, dragged.id, others[slot]?.id),
+          }
+        }
+      } else if (structured.kind === 'order' && spec.type === 'timeline') {
+        const dragged = spec.events.find((event) => event.id === structured.nodeId)
+        if (dragged) {
+          const others = spec.events.filter((event) => event.id !== dragged.id)
+          const slot = others.findIndex((event) => (placed(event.id)?.cx ?? 0) > world.x)
+          next = { ...spec, events: moveWithinOrder(spec.events, dragged.id, others[slot]?.id) }
+        }
+      }
+      if (next) {
+        const signature = JSON.stringify(next)
+        if (signature !== structured.signature) {
+          structured.signature = signature
+          store.previewGesture([{ type: 'spec.replace', spec: next, references: 'reject' }], {
+            skipValidation: true,
+          })
+        }
+      }
       return
     }
     const sceneCommands: EditorCommand[] =
@@ -872,17 +1229,33 @@ export function EditorSurface({
       if (r.width > 0 && r.height > 0) {
         const measured = { width: r.width, height: r.height }
         setSize(measured)
-        if (!fitted.current) {
-          const current = resolveDocument(store.getSnapshot().document, {
-            quality: 'edit',
-            requestId: 'initial-fit',
-            measureText,
-            skipValidation: true,
-          })
-          if (current.ok) {
-            fitted.current = true
-            store.setViewport(fitViewport(current.value.worldBounds, measured, 24))
-          }
+        if (!autoFit) {
+          fitted.current = true
+          return
+        }
+        const current = resolveDocument(store.getSnapshot().document, {
+          quality: 'edit',
+          requestId: 'initial-fit',
+          measureText,
+          skipValidation: true,
+          theme: effectiveTheme,
+          renderers: registry,
+        })
+        if (!current.ok) return
+        const next = fitViewport(current.value.worldBounds, measured, 24)
+        // Re-fit while the camera is untouched, so a later layout change
+        // (stacked inspector, mobile reflow) keeps the diagram centered.
+        const latest = store.getSnapshot().viewport
+        const untouched =
+          !fitted.current ||
+          (fittedViewport.current !== null &&
+            latest.x === fittedViewport.current.x &&
+            latest.y === fittedViewport.current.y &&
+            latest.zoom === fittedViewport.current.zoom)
+        if (untouched) {
+          fitted.current = true
+          fittedViewport.current = next
+          store.setViewport(next)
         }
       }
     })
@@ -891,7 +1264,7 @@ export function EditorSurface({
       observer.disconnect()
       store.cancelGesture()
     }
-  }, [store])
+  }, [store, autoFit])
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
@@ -1067,13 +1440,16 @@ export function EditorSurface({
   return (
     <div className={`adl-editor-surface ${className ?? ''}`}>
       <BaselineLayer
-        markup={baseline}
+        frame={baselineFrame}
         hidden={gestureEntities}
         width={size.width}
         height={size.height}
         x={snapshot.viewport.x}
         y={snapshot.viewport.y}
         zoom={snapshot.viewport.zoom}
+        gridVisible={activeDoc.presentation.grid.visible}
+        gridCell={activeDoc.presentation.grid.size}
+        gridColor={palette.foreground}
       />
       <svg
         style={{ position: 'relative' }}
@@ -1136,7 +1512,7 @@ export function EditorSurface({
             getAdapter(snapshot.document.spec.type).capabilities.includes('move-free')
           ) {
             event.preventDefault()
-            const scene = materialize(snapshot.document),
+            const scene = materialize(snapshot.document, resolveContext),
               positions: Record<string, Point> = {}
             for (const ref of snapshot.selection)
               if (
@@ -1219,7 +1595,7 @@ export function EditorSurface({
             !connectSourceId
           ) {
             event.preventDefault()
-            svgRef.current?.focus()
+            svgRef.current?.focus({ preventScroll: true })
             marquee.current = {
               pointer: event.pointerId,
               start: local(event),
@@ -1232,7 +1608,7 @@ export function EditorSurface({
             return
           }
           event.preventDefault()
-          svgRef.current?.focus()
+          svgRef.current?.focus({ preventScroll: true })
           let resizeIds: string[] | undefined
           if (waypointEdge) {
             const route = snapshot.document.scene.routes[waypointEdge]
@@ -1253,7 +1629,7 @@ export function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               waypoint: {
                 edgeId: waypointEdge,
@@ -1282,7 +1658,7 @@ export function EditorSurface({
               start: startPoint,
               viewport: { ...snapshot.viewport },
               positions: {},
-              scene: materialize(snapshot.document),
+              scene: materialize(snapshot.document, resolveContext),
               pan: false,
               port: {
                 nodeId: portNodeId,
@@ -1304,7 +1680,7 @@ export function EditorSurface({
             )
               return
             const startPoint = local(event)
-            const scene = materialize(snapshot.document),
+            const scene = materialize(snapshot.document, resolveContext),
               source = scene.nodes[connectSourceId]
             const anchor = source
               ? anchorPoint(source, { side: 'right', offset: 0.5 })
@@ -1357,14 +1733,64 @@ export function EditorSurface({
                   ? [...snapshot.selection]
                   : [{ kind: 'node' as const, id }]
             store.setSelection(selection)
-            if (
-              !getAdapter(snapshot.document.spec.type).capabilities.includes('move-free') ||
-              isNodeLocked(snapshot.document, id)
-            )
+            if (isNodeLocked(snapshot.document, id)) return
+            const adapter = getAdapter(snapshot.document.spec.type)
+            if (!adapter.capabilities.includes('move-free')) {
+              const kind: StructuredKind | undefined =
+                snapshot.document.spec.type === 'band'
+                  ? 'band'
+                  : snapshot.document.spec.type === 'swimlane'
+                    ? 'lane'
+                    : snapshot.document.spec.type === 'sequence' ||
+                        snapshot.document.spec.type === 'timeline'
+                      ? 'order'
+                      : undefined
+              if (!kind) return
+              const placements = nodesOf(snapshot.document.spec).map((n) => {
+                const placed = resolved.ok ? resolved.value.layout.nodeById[n.id] : undefined
+                return {
+                  id: n.id,
+                  cx: placed?.cx ?? 0,
+                  cy: placed?.cy ?? 0,
+                  x: placed?.x ?? 0,
+                  width: placed?.w ?? 0,
+                }
+              })
+              if (
+                !store.beginGesture({
+                  id: globalThis.crypto.randomUUID(),
+                  label: t('Move node', 'Mover nodo'),
+                  expectedRevision: snapshot.document.revision,
+                }).ok
+              )
+                return
+              setGestureEntities({
+                nodes: nodesOf(snapshot.document.spec).map((node) => node.id),
+                edges: edgesOf(snapshot.document.spec).map((edge) => edge.id!),
+              })
+              gesture.current = {
+                pointer: event.pointerId,
+                start: local(event),
+                viewport: { ...snapshot.viewport },
+                positions: {},
+                scene: materialize(snapshot.document, resolveContext),
+                pan: false,
+                structured: {
+                  kind,
+                  nodeId: id,
+                  placements,
+                  containers: (resolved.ok ? (resolved.value.layout.containers ?? []) : []).map(
+                    (container) => ({ id: container.id, y: container.y, h: container.h }),
+                  ),
+                  signature: JSON.stringify(snapshot.document.spec),
+                },
+              }
+              event.currentTarget.setPointerCapture(event.pointerId)
               return
+            }
             if (resizeId) resizeIds = [id]
           }
-          const scene = materialize(snapshot.document),
+          const scene = materialize(snapshot.document, resolveContext),
             positions: Record<string, Point> = {}
           for (const ref of store.getSnapshot().selection)
             if (ref.kind === 'node' && scene.nodes[ref.id])
@@ -1443,7 +1869,7 @@ export function EditorSurface({
               edges={hitBaseline.edges}
               selection={snapshot.selection}
               zoom={snapshot.viewport.zoom}
-              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              color={palette.cobalt}
               connectionLabel={t('Connection', 'Conexión')}
               selectEdge={selectEdge}
               selectNode={selectNode}
@@ -1456,7 +1882,7 @@ export function EditorSurface({
               edges={authoredEdges.filter((edge) => gestureEntities.edges.includes(edge.id))}
               selection={snapshot.selection}
               zoom={snapshot.viewport.zoom}
-              color={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              color={palette.cobalt}
               connectionLabel={t('Connection', 'Conexión')}
               selectEdge={selectEdge}
               selectNode={selectNode}
@@ -1482,7 +1908,7 @@ export function EditorSurface({
                   ? `${t('Resize', 'Redimensionar')} ${selected[0].label}`
                   : t('Resize selection', 'Redimensionar selección')
               const apply = (direction: ResizeDirection, delta: Point, step: number) => {
-                const scene = materialize(store.getSnapshot().document)
+                const scene = materialize(store.getSnapshot().document, resolveContext)
                 const ids: string[] = resizeTarget
                   ? [resizeTarget]
                   : snapshot.selection.filter((r) => r.kind === 'node').map((r) => r.id)
@@ -1521,15 +1947,37 @@ export function EditorSurface({
                   resizeTarget ? 'Resize node' : 'Resize selection',
                 )
               }
+              // Touch-sized handle targets must never cover the node body at
+              // low zoom, or dragging the card turns into a resize gesture.
+              // Capping every half-size at a quarter of the group keeps the
+              // eight targets pairwise disjoint (adjacent centres are at least
+              // half an edge apart), so a point painted by one marker cannot
+              // be stolen by a later handle in DOM order. The painted marker
+              // derives from the same effective half-size (minus half of its
+              // stroke), so every visible pixel belongs to the matching
+              // handle's action instead of the canvas below. Under extreme
+              // zoom-out the policy is to shrink the marker with its target,
+              // never to paint an affordance outside its hit area.
+              const handleHalf = Math.min(
+                22 / snapshot.viewport.zoom,
+                group.width / 4,
+                group.height / 4,
+              )
+              const strokeHalf = 0.5 / snapshot.viewport.zoom
+              const markerHalf = Math.max(
+                0,
+                Math.min(5 / snapshot.viewport.zoom, handleHalf - strokeHalf),
+              )
               return RESIZE_HANDLES.map((handle) => (
                 <g key={`resize-group-${handle.direction}`}>
                   <rect
-                    x={group.x + group.width * handle.x - 5 / snapshot.viewport.zoom}
-                    y={group.y + group.height * handle.y - 5 / snapshot.viewport.zoom}
-                    width={10 / snapshot.viewport.zoom}
-                    height={10 / snapshot.viewport.zoom}
-                    fill={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].card}
-                    stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+                    data-resize-marker={handle.direction}
+                    x={group.x + group.width * handle.x - markerHalf}
+                    y={group.y + group.height * handle.y - markerHalf}
+                    width={markerHalf * 2}
+                    height={markerHalf * 2}
+                    fill={palette.card}
+                    stroke={palette.cobalt}
                     strokeWidth={1 / snapshot.viewport.zoom}
                     pointerEvents="none"
                   />
@@ -1538,11 +1986,12 @@ export function EditorSurface({
                       ? { 'data-resize-node': resizeTarget }
                       : { 'data-resize-selection': '' })}
                     data-resize-direction={handle.direction}
-                    x={group.x + group.width * handle.x - 22 / snapshot.viewport.zoom}
-                    y={group.y + group.height * handle.y - 22 / snapshot.viewport.zoom}
-                    width={44 / snapshot.viewport.zoom}
-                    height={44 / snapshot.viewport.zoom}
+                    x={group.x + group.width * handle.x - handleHalf}
+                    y={group.y + group.height * handle.y - handleHalf}
+                    width={handleHalf * 2}
+                    height={handleHalf * 2}
                     fill="transparent"
+                    pointerEvents="all"
                     style={{ cursor: handle.cursor }}
                     tabIndex={0}
                     role="button"
@@ -1583,7 +2032,6 @@ export function EditorSurface({
               }
               const source = anchorPoint(from, route.source)
               const target = anchorPoint(to, route.target)
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
               const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
               return (
                 <g>
@@ -1605,6 +2053,7 @@ export function EditorSurface({
                         cy={p.y}
                         r={Math.max(16, 22 / snapshot.viewport.zoom)}
                         fill="transparent"
+                        pointerEvents="all"
                         style={{ cursor: 'move' }}
                         tabIndex={0}
                         role="button"
@@ -1635,6 +2084,7 @@ export function EditorSurface({
                         cy={position.y}
                         r={Math.max(16, 22 / snapshot.viewport.zoom)}
                         fill="transparent"
+                        pointerEvents="all"
                         style={{ cursor: 'crosshair' }}
                         tabIndex={0}
                         role="button"
@@ -1662,8 +2112,23 @@ export function EditorSurface({
                   : undefined)
               const ports = authored?.ports ?? []
               if (!rect || !ports.length) return null
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
-              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              // Port targets share the node-relative budget with the resize
+              // handles: a fixed 44px target on a node that is smaller than
+              // that on screen would cover the whole card and steal corner
+              // handles. The painted dot shrinks with the target so it never
+              // extends past its own hit area.
+              const portTarget = Math.min(
+                Math.max(16, 22 / snapshot.viewport.zoom),
+                rect.width / 4,
+                rect.height / 4,
+              )
+              const portDot = Math.max(
+                0,
+                Math.min(
+                  Math.max(5, 5 / snapshot.viewport.zoom),
+                  portTarget - 0.75 / snapshot.viewport.zoom,
+                ),
+              )
               return (
                 <g>
                   {ports.map((port) => {
@@ -1673,7 +2138,7 @@ export function EditorSurface({
                         <circle
                           cx={position.x}
                           cy={position.y}
-                          r={dot(5)}
+                          r={portDot}
                           fill={palette.background}
                           stroke={palette.cobalt}
                           strokeWidth={1.5 / snapshot.viewport.zoom}
@@ -1684,8 +2149,9 @@ export function EditorSurface({
                           data-port-node={id}
                           cx={position.x}
                           cy={position.y}
-                          r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                          r={portTarget}
                           fill="transparent"
+                          pointerEvents="all"
                           style={{ cursor: 'crosshair' }}
                           tabIndex={0}
                           role="button"
@@ -1714,14 +2180,26 @@ export function EditorSurface({
                   : undefined)
               if (!authored || !rect) return null
               const anchor = anchorPoint(rect, { side: 'right', offset: 0.5 })
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
-              const dot = (radius: number) => Math.max(5, radius / snapshot.viewport.zoom)
+              // Same node-relative budget as ports and resize handles: the
+              // branch dot must not swallow the card or its corner handles.
+              const connectTarget = Math.min(
+                Math.max(16, 22 / snapshot.viewport.zoom),
+                rect.width / 4,
+                rect.height / 4,
+              )
+              const connectDot = Math.max(
+                0,
+                Math.min(
+                  Math.max(5, 5 / snapshot.viewport.zoom),
+                  connectTarget - 0.75 / snapshot.viewport.zoom,
+                ),
+              )
               return (
                 <g>
                   <circle
                     cx={anchor.x}
                     cy={anchor.y}
-                    r={dot(5)}
+                    r={connectDot}
                     fill={palette.background}
                     stroke={palette.branch}
                     strokeWidth={1.5 / snapshot.viewport.zoom}
@@ -1731,8 +2209,9 @@ export function EditorSurface({
                     data-connect-source={id}
                     cx={anchor.x}
                     cy={anchor.y}
-                    r={Math.max(16, 22 / snapshot.viewport.zoom)}
+                    r={connectTarget}
                     fill="transparent"
+                    pointerEvents="all"
                     style={{ cursor: 'crosshair' }}
                     tabIndex={0}
                     role="button"
@@ -1750,7 +2229,6 @@ export function EditorSurface({
             })()}
           {connectSource &&
             (() => {
-              const palette = activeDoc.presentation.theme[activeDoc.presentation.theme.mode]
               return (
                 <g pointerEvents="none">
                   {authoredNodes
@@ -1778,7 +2256,7 @@ export function EditorSurface({
               y1={connectLine.y1}
               x2={connectLine.x2}
               y2={connectLine.y2}
-              stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              stroke={palette.cobalt}
               strokeWidth={2 / snapshot.viewport.zoom}
               strokeDasharray="4 4"
               pointerEvents="none"
@@ -1791,24 +2269,15 @@ export function EditorSurface({
               y={selectionBox.y}
               width={selectionBox.width}
               height={selectionBox.height}
-              fill={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              fill={palette.cobalt}
               fillOpacity={0.08}
-              stroke={activeDoc.presentation.theme[activeDoc.presentation.theme.mode].cobalt}
+              stroke={palette.cobalt}
               strokeWidth={1 / snapshot.viewport.zoom}
               pointerEvents="none"
             />
           )}
         </g>
       </svg>
-      <button
-        className="adl-editor-fit"
-        type="button"
-        onClick={() => {
-          if (resolved.ok) store.setViewport(fitViewport(resolved.value.worldBounds, size, 24))
-        }}
-      >
-        {t('Fit diagram', 'Ajustar diagrama')}
-      </button>
       {!resolved.ok && <p role="alert">{resolved.diagnostics.map((d) => d.code).join(', ')}</p>}
       {connectSource && (
         <p role="status" className="adl-editor-connect-hint">
@@ -1822,12 +2291,13 @@ export function EditorSurface({
   )
 }
 export function EditorInspector() {
-  const { store } = useEditor(),
+  const { store, theme: viewTheme } = useEditor(),
     snapshot = useEditorSelector(
       (s) => ({ selection: s.selection, document: s.document }),
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const id = snapshot.selection.find((r) => r.kind === 'node')?.id,
     node = nodesOf(snapshot.document.spec).find((n) => n.id === id)
   const [label, setLabel] = useState(''),
@@ -1912,7 +2382,7 @@ export function EditorInspector() {
             <button
               type="button"
               onClick={() => {
-                const scene = materialize(snapshot.document)
+                const scene = materialize(snapshot.document, resolveContext)
                 dispatch(
                   store,
                   [
@@ -1936,24 +2406,26 @@ export function EditorInspector() {
       )}
       {node && free && <EditorNodeGeometry nodeId={node.id} />}
       <EditorStructuredInspector />
-      <EditorRelations />
+      <MemoEditorRelations />
       <EditorRoute />
       <h3>{t('Appearance', 'Apariencia')}</h3>
-      <label>
-        {t('Theme', 'Tema')}
-        <select
-          aria-label={t('Theme', 'Tema')}
-          value={snapshot.document.presentation.theme.mode}
-          onChange={(event) => {
-            const presentation = structuredClone(snapshot.document.presentation)
-            presentation.theme.mode = event.target.value as 'light' | 'dark'
-            dispatch(store, [{ type: 'presentation.set', presentation }], 'Change theme')
-          }}
-        >
-          <option value="light">{t('Light', 'Claro')}</option>
-          <option value="dark">{t('Dark', 'Oscuro')}</option>
-        </select>
-      </label>
+      {!viewTheme && (
+        <label>
+          {t('Theme', 'Tema')}
+          <select
+            aria-label={t('Theme', 'Tema')}
+            value={snapshot.document.presentation.theme.mode}
+            onChange={(event) => {
+              const presentation = structuredClone(snapshot.document.presentation)
+              presentation.theme.mode = event.target.value as 'light' | 'dark'
+              dispatch(store, [{ type: 'presentation.set', presentation }], 'Change theme')
+            }}
+          >
+            <option value="light">{t('Light', 'Claro')}</option>
+            <option value="dark">{t('Dark', 'Oscuro')}</option>
+          </select>
+        </label>
+      )}
       <label>
         <input
           type="checkbox"
@@ -1986,33 +2458,181 @@ export function EditorJsonPanel() {
   const { store } = useEditor(),
     snapshot = useEditorSelector((s) => ({ document: s.document, draft: s.draft }), shallowEqual),
     t = useLabels()
-  const serialized = useMemo(() => serializeDocument(snapshot.document), [snapshot.document])
-  const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized
+  // Commit-time failures are their own state: a valid buffer can still be
+  // refused (stale revision, permissions, history), and that must never be
+  // confused with a live parse diagnostic or discarded on the user's behalf.
+  const [commitDiagnostics, setCommitDiagnostics] = useState<readonly string[]>([])
+  const [serialized, setSerialized] = useState(() => ({
+    document: snapshot.document,
+    text: canonical(snapshot.document),
+  }))
+  useEffect(() => {
+    if (serialized.document === snapshot.document) return
+    // Store snapshots are already validated and frozen; canonical encoding
+    // must not repeat untrusted-input validation on each committed snapshot.
+    // Serialization is synchronous work, not interruptible React rendering.
+    // A deferred render can restart this validation for every pointer preview.
+    // Run once per committed document in its own task instead.
+    const timer = setTimeout(() => {
+      setSerialized({ document: snapshot.document, text: canonical(snapshot.document) })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [snapshot.document, serialized.document])
+  const text = snapshot.draft.kind === 'text' ? snapshot.draft.text : serialized.text
+  const draftKind = snapshot.draft.kind
+  useEffect(() => {
+    if (draftKind !== 'text') setCommitDiagnostics([])
+  }, [draftKind])
+  const applyDraft = () => {
+    const result = store.commitTextDraft()
+    setCommitDiagnostics(result.status === 'rejected' ? result.diagnostics.map((d) => d.code) : [])
+  }
+  const parseDiagnostics = snapshot.draft.kind === 'text' ? snapshot.draft.diagnostics : []
+  const parseCodes = parseDiagnostics.map((d) => d.code)
+  // A failed apply that repeats a parse diagnostic adds no information; the
+  // commit alert is reserved for failures the live draft does not explain.
+  const commitCodes = commitDiagnostics.filter((code) => !parseCodes.includes(code))
+  const stale = commitCodes.includes('revision.stale')
   return (
-    <details className="adl-editor-json">
-      <summary>{t('Document JSON', 'JSON del documento')}</summary>
+    <section className="adl-editor-json" aria-label={t('Document JSON', 'JSON del documento')}>
+      <h2 className="adl-editor-panel-title">{t('Document JSON', 'JSON del documento')}</h2>
       <textarea
         aria-label={t('Document JSON', 'JSON del documento')}
         value={text}
-        onChange={(event) => store.setTextDraft(event.target.value)}
+        aria-busy={serialized.document !== snapshot.document}
+        readOnly={snapshot.draft.kind !== 'text' && serialized.document !== snapshot.document}
+        onChange={(event) => {
+          setCommitDiagnostics([])
+          store.setTextDraft(event.target.value)
+        }}
         spellCheck={false}
       />
-      <div>
-        <button
-          type="button"
-          disabled={snapshot.draft.kind !== 'text'}
-          onClick={() => store.commitTextDraft()}
-        >
+      <div className="adl-editor-json-actions">
+        <button type="button" disabled={snapshot.draft.kind !== 'text'} onClick={applyDraft}>
           {t('Apply JSON', 'Aplicar JSON')}
         </button>
-        <button type="button" onClick={() => store.cancelTextDraft()}>
+        <button
+          type="button"
+          onClick={() => {
+            setCommitDiagnostics([])
+            store.cancelTextDraft()
+          }}
+        >
           {t('Discard draft', 'Descartar borrador')}
         </button>
       </div>
-      {snapshot.draft.kind === 'text' && snapshot.draft.diagnostics.length > 0 && (
-        <p role="alert">{snapshot.draft.diagnostics.map((d) => d.code).join(', ')}</p>
+      {parseDiagnostics.length > 0 && (
+        <p role="alert">{parseDiagnostics.map((d) => d.code).join(', ')}</p>
       )}
-    </details>
+      {commitCodes.length > 0 && (
+        <p role="alert" className="adl-editor-json-commit-alert">
+          {t('Draft not applied', 'Borrador no aplicado')}: {commitCodes.join(', ')}
+        </p>
+      )}
+      {stale && (
+        <p className="adl-editor-json-commit-hint">
+          {t(
+            'The document changed while this draft was open. Your text is preserved; discard the draft to start again from the current revision.',
+            'El documento cambió mientras este borrador estaba abierto. Tu texto se conserva; descarta el borrador para empezar de nuevo desde la revisión actual.',
+          )}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** Tabbed document panels: no collapsible summaries, explicit navigation. */
+export function EditorPanelTabs({ className }: { className?: string }) {
+  const snapshot = useEditorSelector((s) => ({ document: s.document }), shallowEqual),
+    t = useLabels()
+  const scope = panelTabScope(useId())
+  const [tab, setTab] = useState<EditorPanelTab>('outline')
+  const tabRefs = useRef<Partial<Record<EditorPanelTab, HTMLButtonElement | null>>>({})
+  const connections = edgesOf(snapshot.document.spec).length
+  const supported = panelTabsFor(snapshot.document.spec.type)
+  // The store can be swapped for a different diagram type while this component
+  // stays mounted (one session per example). The authored tab may stop being
+  // supported, so render from the coerced tab and normalize local state.
+  const activeTab = coercePanelTab(tab, supported)
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab)
+  }, [activeTab, tab])
+  const tabs = [
+    { id: 'outline' as EditorPanelTab, label: t('Outline', 'Estructura') },
+    { id: 'json' as EditorPanelTab, label: t('JSON', 'JSON') },
+    ...(supported.includes('connections')
+      ? [
+          {
+            id: 'connections' as EditorPanelTab,
+            label: `${t('Connections', 'Conexiones')} (${connections})`,
+          },
+        ]
+      : []),
+  ]
+  const move = (direction: 1 | -1) => {
+    const index = supported.indexOf(activeTab)
+    const next = supported[(index + direction + supported.length) % supported.length]
+    setTab(next)
+    // Component-local refs: never resolve a tab through the document, which
+    // would steal focus from another mounted editor.
+    tabRefs.current[next]?.focus()
+  }
+  return (
+    <section
+      className={`adl-editor-panels ${className ?? ''}`}
+      aria-label={t('Document panels', 'Paneles del documento')}
+    >
+      <div
+        className="adl-editor-tabs"
+        role="tablist"
+        aria-label={t('Document panels', 'Paneles del documento')}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowRight') {
+            event.preventDefault()
+            move(1)
+          } else if (event.key === 'ArrowLeft') {
+            event.preventDefault()
+            move(-1)
+          }
+        }}
+      >
+        {tabs.map((entry) => (
+          <button
+            key={entry.id}
+            ref={(element) => {
+              tabRefs.current[entry.id] = element
+            }}
+            type="button"
+            role="tab"
+            id={panelTabId(scope, entry.id)}
+            aria-selected={activeTab === entry.id}
+            aria-controls={panelTabPanelId(scope, entry.id)}
+            tabIndex={activeTab === entry.id ? 0 : -1}
+            onClick={() => setTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="adl-editor-tabpanel"
+        role="tabpanel"
+        id={panelTabPanelId(scope, activeTab)}
+        aria-labelledby={panelTabId(scope, activeTab)}
+      >
+        <div hidden={activeTab !== 'outline'}>
+          <EditorOutline />
+        </div>
+        <div hidden={activeTab !== 'json'}>
+          <EditorJsonPanel />
+        </div>
+        {supported.includes('connections') && (
+          <div hidden={activeTab !== 'connections'}>
+            <MemoEditorRelations />
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -2023,6 +2643,7 @@ export function EditorSelectionTools() {
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const fragment = useRef<DiagramFragment | null>(null),
     [hasCopy, setHasCopy] = useState(false),
     [clipboardBusy, setClipboardBusy] = useState(false),
@@ -2107,142 +2728,272 @@ export function EditorSelectionTools() {
     }
   }
   const nodeIds = snapshot.selection.filter((r) => r.kind === 'node').map((r) => r.id)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== 'Escape') return
+      } else if (menuRef.current?.contains(event.target as Node)) return
+      setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [menuOpen])
+  const arrange = () => {
+    const current = store.getSnapshot().document
+    const scene = materialize(current, resolveContext)
+    const positions = arrangeRects(
+      nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
+      arrangement,
+    )
+    const result = dispatch(
+      store,
+      [
+        { type: 'scene.set', scene },
+        { type: 'nodes.move', positions },
+      ],
+      'Arrange selection',
+    )
+    setError(result.diagnostics.map((d) => d.code).join(', '))
+  }
+  const group = () => {
+    const groups = structuredClone(snapshot.document.scene.groups)
+    groups.forEach((g) => {
+      g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id))
+    })
+    dispatch(
+      store,
+      [
+        { type: 'scene.set', scene: { ...structuredClone(snapshot.document.scene), groups } },
+        {
+          type: 'group.upsert',
+          group: {
+            id: crypto.randomUUID(),
+            label: t('Group', 'Grupo'),
+            kind: 'visual',
+            nodeIds,
+            locked: false,
+          },
+        },
+      ],
+      'Group selection',
+    )
+  }
+  const ungroup = () => {
+    const scene = structuredClone(snapshot.document.scene)
+    const removed = new Set(
+      scene.groups.filter((g) => g.nodeIds.some((id) => nodeIds.includes(id))).map((g) => g.id),
+    )
+    scene.groups = scene.groups.filter((g) => !removed.has(g.id))
+    scene.groups.forEach((g) => {
+      if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup
+    })
+    dispatch(store, [{ type: 'scene.set', scene }], 'Ungroup selection')
+  }
+  const groupDisabled =
+    nodeIds.length < 2 || !free || nodeIds.some((id) => isNodeLocked(snapshot.document, id))
+  const ungroupDisabled =
+    !nodeIds.length ||
+    !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
   return (
     <>
-      <select
-        aria-label={t('Arrangement', 'Alineación y distribución')}
-        value={arrangement}
-        onChange={(event) => setArrangement(event.target.value as Arrangement)}
+      <span className="adl-editor-separator" aria-hidden="true" />
+      <div
+        className="adl-editor-group"
+        role="group"
+        aria-label={t('Selection actions', 'Acciones de selección')}
       >
-        {(
-          [
-            ['left', t('Align left', 'Alinear izquierda')],
-            ['right', t('Align right', 'Alinear derecha')],
-            ['top', t('Align top', 'Alinear arriba')],
-            ['bottom', t('Align bottom', 'Alinear abajo')],
-            ['center-x', t('Center horizontally', 'Centrar horizontalmente')],
-            ['center-y', t('Center vertically', 'Centrar verticalmente')],
-            ['horizontal', t('Distribute horizontally', 'Distribuir horizontalmente')],
-            ['vertical', t('Distribute vertically', 'Distribuir verticalmente')],
-          ] as const
-        ).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={
-          !free ||
-          nodeIds.length < (arrangement === 'horizontal' || arrangement === 'vertical' ? 3 : 2) ||
-          nodeIds.some((id) => isNodeLocked(snapshot.document, id))
-        }
-        onClick={() => {
-          const current = store.getSnapshot().document
-          const scene = materialize(current)
-          const positions = arrangeRects(
-            nodeIds.map((id) => ({ id, ...scene.nodes[id] })),
-            arrangement,
-          )
-          const result = dispatch(
-            store,
-            [
-              { type: 'scene.set', scene },
-              { type: 'nodes.move', positions },
-            ],
-            'Arrange selection',
-          )
-          setError(result.diagnostics.map((d) => d.code).join(', '))
-        }}
-      >
-        {t('Arrange selection', 'Organizar selección')}
-      </button>
-      <button type="button" disabled={!snapshot.selection.length} onClick={() => copy()}>
-        {t('Copy', 'Copiar')}
-      </button>
-      <button type="button" disabled={!hasCopy || !free} onClick={() => paste()}>
-        {t('Paste', 'Pegar')}
-      </button>
-      <button
-        type="button"
-        disabled={clipboardBusy || !snapshot.selection.length}
-        onClick={() => void systemClipboard('copy')}
-      >
-        {t('Copy to clipboard', 'Copiar al portapapeles')}
-      </button>
-      <button
-        type="button"
-        disabled={clipboardBusy || !free}
-        onClick={() => void systemClipboard('paste')}
-      >
-        {t('Paste from clipboard', 'Pegar del portapapeles')}
-      </button>
-      <button
-        type="button"
-        disabled={!snapshot.selection.length || !free}
-        onClick={() => {
-          const result = copy()
-          if (result.ok) paste(result.value)
-        }}
-      >
-        {t('Duplicate', 'Duplicar')}
-      </button>
-      <button
-        type="button"
-        disabled={nodeIds.length < 2 || !free}
-        onClick={() => {
-          const groups = structuredClone(snapshot.document.scene.groups)
-          groups.forEach((g) => {
-            g.nodeIds = g.nodeIds.filter((id) => !nodeIds.includes(id))
-          })
-          dispatch(
-            store,
-            [
-              { type: 'scene.set', scene: { ...structuredClone(snapshot.document.scene), groups } },
-              {
-                type: 'group.upsert',
-                group: {
-                  id: crypto.randomUUID(),
-                  label: t('Group', 'Grupo'),
-                  kind: 'visual',
-                  nodeIds,
-                  locked: false,
-                },
-              },
-            ],
-            'Group selection',
-          )
-        }}
-      >
-        {t('Group', 'Agrupar')}
-      </button>
-      <button
-        type="button"
-        disabled={
-          !nodeIds.length ||
-          !snapshot.document.scene.groups.some((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
-        }
-        onClick={() => {
-          const scene = structuredClone(snapshot.document.scene)
-          const removed = new Set(
-            scene.groups
-              .filter((g) => g.nodeIds.some((id) => nodeIds.includes(id)))
-              .map((g) => g.id),
-          )
-          scene.groups = scene.groups.filter((g) => !removed.has(g.id))
-          scene.groups.forEach((g) => {
-            if (g.parentGroup && removed.has(g.parentGroup)) delete g.parentGroup
-          })
-          dispatch(store, [{ type: 'scene.set', scene }], 'Ungroup selection')
-        }}
-      >
-        {t('Ungroup', 'Desagrupar')}
-      </button>
+        <button type="button" disabled={!snapshot.selection.length} onClick={() => copy()}>
+          {t('Copy', 'Copiar')}
+        </button>
+        <button type="button" disabled={!hasCopy || !free} onClick={() => paste()}>
+          {t('Paste', 'Pegar')}
+        </button>
+        <button
+          type="button"
+          disabled={!snapshot.selection.length || !free}
+          onClick={() => {
+            const result = copy()
+            if (result.ok) paste(result.value)
+          }}
+        >
+          {t('Duplicate', 'Duplicar')}
+        </button>
+        <div className="adl-editor-menu" data-open={menuOpen ? '' : undefined} ref={menuRef}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {t('More actions', 'Más acciones')}
+          </button>
+          {menuOpen && (
+            <div className="adl-editor-menu-list">
+              <div role="menu" aria-label={t('More actions', 'Más acciones')}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={clipboardBusy || !snapshot.selection.length}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void systemClipboard('copy')
+                  }}
+                >
+                  {t('Copy to clipboard', 'Copiar al portapapeles')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={clipboardBusy || !free}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void systemClipboard('paste')
+                  }}
+                >
+                  {t('Paste from clipboard', 'Pegar del portapapeles')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={groupDisabled}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    group()
+                  }}
+                >
+                  {t('Group', 'Agrupar')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={ungroupDisabled}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    ungroup()
+                  }}
+                >
+                  {t('Ungroup', 'Desagrupar')}
+                </button>
+              </div>
+              <div className="adl-editor-menu-section">
+                <label className="adl-editor-menu-field">
+                  {t('Arrangement', 'Alineación y distribución')}
+                  <select
+                    aria-label={t('Arrangement', 'Alineación y distribución')}
+                    value={arrangement}
+                    onChange={(event) => setArrangement(event.target.value as Arrangement)}
+                  >
+                    {(
+                      [
+                        ['left', t('Align left', 'Alinear izquierda')],
+                        ['right', t('Align right', 'Alinear derecha')],
+                        ['top', t('Align top', 'Alinear arriba')],
+                        ['bottom', t('Align bottom', 'Alinear abajo')],
+                        ['center-x', t('Center horizontally', 'Centrar horizontalmente')],
+                        ['center-y', t('Center vertically', 'Centrar verticalmente')],
+                        ['horizontal', t('Distribute horizontally', 'Distribuir horizontalmente')],
+                        ['vertical', t('Distribute vertically', 'Distribuir verticalmente')],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="adl-editor-menu-action"
+                  disabled={
+                    !free ||
+                    nodeIds.length <
+                      (arrangement === 'horizontal' || arrangement === 'vertical' ? 3 : 2) ||
+                    nodeIds.some((id) => isNodeLocked(snapshot.document, id))
+                  }
+                  onClick={() => {
+                    setMenuOpen(false)
+                    arrange()
+                  }}
+                >
+                  {t('Arrange selection', 'Organizar selección')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       {error && <span role="alert">{error}</span>}
     </>
   )
 }
+/**
+ * Small modal abstraction over the native `<dialog>`: `showModal` traps focus,
+ * Escape is routed through `onClose` so React state stays in sync, and focus
+ * is explicitly returned to the opener once the dialog closes. It stays
+ * mounted while closed so native focus restoration always has a target.
+ */
+function EditorDialog({
+  open,
+  titleId,
+  onClose,
+  children,
+}: {
+  open: boolean
+  titleId: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (open && !dialog.open) {
+      openerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
+      dialog.showModal()
+      dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus()
+    } else if (!open && dialog.open) {
+      dialog.close()
+    }
+  }, [open])
+  useEffect(
+    () => () => {
+      const dialog = dialogRef.current
+      if (dialog?.open) dialog.close()
+    },
+    [],
+  )
+  return (
+    <dialog
+      ref={dialogRef}
+      className="adl-editor-dialog"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      onClose={() => {
+        const opener = openerRef.current
+        openerRef.current = null
+        if (opener?.isConnected) opener.focus()
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      {children}
+    </dialog>
+  )
+}
+
 export function EditorStructuredInspector() {
   const { store } = useEditor(),
     snapshot = useEditorSelector(
@@ -2254,6 +3005,10 @@ export function EditorStructuredInspector() {
     ref = snapshot.selection.find((r) => r.kind === 'node'),
     node = ref ? nodesOf(snapshot.document.spec).find((n) => n.id === ref.id) : undefined
   const [error, setError] = useState('')
+  const [pendingLaneId, setPendingLaneId] = useState<string | null>(null)
+  const [laneAction, setLaneAction] = useState<'move' | 'delete' | null>(null)
+  const [laneDestination, setLaneDestination] = useState('')
+  const laneDialogTitleId = useId()
   if (!node) return null
   const commitNode = (next: NodeInput['node'], label: string) => {
     const result = getAdapter(type).replaceNode(snapshot.document.spec, {
@@ -2412,6 +3167,7 @@ export function EditorStructuredInspector() {
     const swimNode = node as DiagramNode & { lane: string }
     const laneId = swimNode.lane
     const lanes = spec.lanes
+    const laneNodes = nodesOf(spec) as Array<DiagramNode & { lane: string }>
     const replaceLanes = (
       nextLanes: SwimlaneLane[],
       assignment: (
@@ -2420,19 +3176,73 @@ export function EditorStructuredInspector() {
         swimNode: DiagramNode & { lane: string },
       ) => string,
       label: string,
+      removeNodeIds: string[] = [],
     ) => {
-      const nodes = nodesOf(spec) as Array<DiagramNode & { lane: string }>
+      const removed = new Set(removeNodeIds)
       const assignments: Record<string, string> = {}
-      for (const n of nodes) assignments[n.id] = assignment(n.lane, n.id, n)
+      for (const n of laneNodes)
+        if (!removed.has(n.id)) assignments[n.id] = assignment(n.lane, n.id, n)
       const result = getAdapter('swimlane').editStructure(spec, {
         type: 'lanes.replace',
         lanes: nextLanes,
         assignments,
-        removeNodeIds: [],
+        removeNodeIds,
       })
-      if (result.ok)
-        dispatch(store, [{ type: 'spec.replace', spec: result.value, references: 'reject' }], label)
-      else setError(result.diagnostics.map((d) => d.code).join(', '))
+      if (!result.ok) {
+        setError(result.diagnostics.map((d) => d.code).join(', '))
+        return
+      }
+      const commit = dispatch(
+        store,
+        [
+          {
+            type: 'spec.replace',
+            spec: result.value,
+            references: removeNodeIds.length ? 'prune-references' : 'reject',
+          },
+        ],
+        label,
+      )
+      if (commit.status === 'rejected') setError(commit.diagnostics.map((d) => d.code).join(', '))
+    }
+    const laneMembers = (id: string) => laneNodes.filter((candidate) => candidate.lane === id)
+    const pendingLane = pendingLaneId
+      ? lanes.find((candidate) => candidate.id === pendingLaneId)
+      : undefined
+    const pendingMembers = pendingLane ? laneMembers(pendingLane.id) : []
+    const pendingMemberIds = new Set(pendingMembers.map((member) => member.id))
+    const pendingConnections = edgesOf(spec).filter(
+      (edge) => pendingMemberIds.has(edge.from) || pendingMemberIds.has(edge.to),
+    )
+    const destinationLanes = pendingLane
+      ? lanes.filter((candidate) => candidate.id !== pendingLane.id)
+      : []
+    const closeLaneDialog = () => {
+      setPendingLaneId(null)
+      setLaneAction(null)
+      setLaneDestination('')
+    }
+    const openLaneDialog = (id: string) => {
+      setPendingLaneId(id)
+      setLaneAction(null)
+      setLaneDestination(lanes.find((candidate) => candidate.id !== id)?.id ?? '')
+    }
+    const confirmLaneRemoval = () => {
+      if (!pendingLane || !laneAction) return
+      const nextLanes = lanes.filter((candidate) => candidate.id !== pendingLane.id)
+      if (laneAction === 'move') {
+        if (!destinationLanes.some((candidate) => candidate.id === laneDestination)) return
+        replaceLanes(
+          nextLanes,
+          (source) => (source === pendingLane.id ? laneDestination : source),
+          'Move lane members',
+        )
+      } else {
+        replaceLanes(nextLanes, (source) => source, 'Delete lane and members', [
+          ...pendingMemberIds,
+        ])
+      }
+      closeLaneDialog()
     }
     return (
       <section aria-label={t('Swimlane lanes', 'Carriles')}>
@@ -2454,26 +3264,33 @@ export function EditorStructuredInspector() {
           </select>
         </label>
         <ol>
-          {lanes.map((lane) => (
-            <li key={lane.id}>
-              <span className="adl-editor-mono">{lane.label}</span>
-              <button
-                type="button"
-                disabled={lanes.length <= 1}
-                aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
-                onClick={() => {
-                  const first = lanes.find((candidate) => candidate.id !== lane.id)!
-                  replaceLanes(
-                    lanes.filter((candidate) => candidate.id !== lane.id),
-                    (source) => (source === lane.id ? first.id : source),
-                    'Remove lane',
-                  )
-                }}
-              >
-                ×
-              </button>
-            </li>
-          ))}
+          {lanes.map((lane) => {
+            const members = laneMembers(lane.id)
+            return (
+              <li key={lane.id}>
+                <span className="adl-editor-mono">{lane.label}</span>
+                <button
+                  type="button"
+                  disabled={lanes.length <= 1}
+                  aria-label={`${t('Remove lane', 'Quitar carril')}: ${lane.label}`}
+                  onClick={(event) => {
+                    // An empty lane is a pure structural edit. An occupied lane
+                    // must never silently reassign or drop its members.
+                    event.currentTarget.focus()
+                    if (members.length === 0)
+                      replaceLanes(
+                        lanes.filter((candidate) => candidate.id !== lane.id),
+                        (source) => source,
+                        'Remove lane',
+                      )
+                    else openLaneDialog(lane.id)
+                  }}
+                >
+                  ×
+                </button>
+              </li>
+            )
+          })}
         </ol>
         <button
           type="button"
@@ -2491,6 +3308,93 @@ export function EditorStructuredInspector() {
           {t('Add lane', 'Añadir carril')}
         </button>
         {error && <p role="alert">{error}</p>}
+        <EditorDialog
+          open={pendingLane !== undefined}
+          titleId={laneDialogTitleId}
+          onClose={closeLaneDialog}
+        >
+          {pendingLane && (
+            <>
+              <h2 id={laneDialogTitleId}>
+                {t('Remove lane', 'Quitar carril')}: {pendingLane.label}
+              </h2>
+              <p className="adl-editor-dialog-count">
+                {t('Members affected', 'Miembros afectados')}: {pendingMembers.length}
+              </p>
+              <fieldset>
+                <legend>
+                  {t('What happens to the members?', '¿Qué ocurre con los miembros?')}
+                </legend>
+                <label className="adl-editor-dialog-choice">
+                  <input
+                    type="radio"
+                    name={`${laneDialogTitleId}-action`}
+                    value="move"
+                    checked={laneAction === 'move'}
+                    onChange={() => setLaneAction('move')}
+                  />
+                  {t('Move them to another lane', 'Moverlos a otro carril')}
+                </label>
+                {laneAction === 'move' && (
+                  <label>
+                    {t('Destination lane', 'Carril de destino')}
+                    <select
+                      aria-label={t('Destination lane', 'Carril de destino')}
+                      value={laneDestination}
+                      onChange={(event) => setLaneDestination(event.target.value)}
+                    >
+                      {destinationLanes.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="adl-editor-dialog-choice">
+                  <input
+                    type="radio"
+                    name={`${laneDialogTitleId}-action`}
+                    value="delete"
+                    checked={laneAction === 'delete'}
+                    onChange={() => setLaneAction('delete')}
+                  />
+                  {t('Delete the members with the lane', 'Eliminar los miembros con el carril')}
+                </label>
+                {laneAction === 'delete' && (
+                  <p className="adl-editor-dialog-consequence">
+                    {pendingConnections.length
+                      ? t(
+                          `Deleting the members also removes ${pendingConnections.length} connection${
+                            pendingConnections.length === 1 ? '' : 's'
+                          } that reference them.`,
+                          `Eliminar los miembros también quita ${
+                            pendingConnections.length
+                          } conexión${
+                            pendingConnections.length === 1 ? '' : 'es'
+                          } que los referencia${pendingConnections.length === 1 ? '' : 'n'}.`,
+                        )
+                      : t('The members have no connections.', 'Los miembros no tienen conexiones.')}
+                  </p>
+                )}
+              </fieldset>
+              <div className="adl-editor-dialog-actions">
+                <button type="button" data-dialog-initial-focus onClick={closeLaneDialog}>
+                  {t('Cancel', 'Cancelar')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!laneAction || (laneAction === 'move' && !laneDestination)}
+                  onClick={confirmLaneRemoval}
+                >
+                  {laneAction === 'delete'
+                    ? t('Delete lane and members', 'Eliminar carril y miembros')
+                    : t('Move members and remove lane', 'Mover miembros y quitar carril')}
+                </button>
+              </div>
+            </>
+          )}
+        </EditorDialog>
       </section>
     )
   }
@@ -2582,7 +3486,11 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
       shallowEqual,
     ),
     t = useLabels()
-  const scene = useMemo(() => materialize(snapshot.document), [snapshot.document])
+  const resolveContext = useEditorResolveContext()
+  const scene = useMemo(
+    () => materialize(snapshot.document, resolveContext),
+    [snapshot.document, resolveContext],
+  )
   const placement = scene.nodes[nodeId]
   const [values, setValues] = useState({ x: '0', y: '0', width: '240', height: '64' }),
     [error, setError] = useState('')
@@ -2600,7 +3508,7 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        const scene = materialize(snapshot.document),
+        const scene = materialize(snapshot.document, resolveContext),
           result = dispatch(
             store,
             [
@@ -2653,18 +3561,15 @@ export function EditorNodeGeometry({ nodeId }: { nodeId: string }) {
 }
 export function EditorRelations() {
   const { store } = useEditor(),
-    snapshot = useEditorSelector(
-      (s) => ({ document: s.document, selection: s.selection }),
-      shallowEqual,
-    ),
+    spec = useEditorSelector((s) => s.document.spec),
     t = useLabels()
-  const nodes = nodesOf(snapshot.document.spec),
+  const nodes = nodesOf(spec),
     [from, setFrom] = useState(''),
     [to, setTo] = useState(''),
     [label, setLabel] = useState(''),
     [error, setError] = useState('')
-  if (snapshot.document.spec.type === 'timeline') return null
-  const adapter = getAdapter(snapshot.document.spec.type)
+  if (spec.type === 'timeline') return null
+  const adapter = getAdapter(spec.type)
   const source = nodes.some((n) => n.id === from) ? from : (nodes[0]?.id ?? ''),
     target = nodes.some((n) => n.id === to) ? to : (nodes[1]?.id ?? source)
   return (
@@ -2673,8 +3578,8 @@ export function EditorRelations() {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          const result = adapter.insertRelation(snapshot.document.spec, {
-            diagramType: snapshot.document.spec.type,
+          const result = adapter.insertRelation(spec, {
+            diagramType: spec.type,
             relation: {
               id: crypto.randomUUID(),
               from: source,
@@ -2730,32 +3635,39 @@ export function EditorRelations() {
           {t('Connect', 'Conectar')}
         </button>
       </form>
-      <details>
-        <summary>
-          {t('Existing connections', 'Conexiones existentes')} (
-          {edgesOf(snapshot.document.spec).length})
-        </summary>
-        {edgesOf(snapshot.document.spec).map((e) => (
-          <div className="adl-editor-relation" key={e.id}>
-            <span>{e.label || `${e.from} → ${e.to}`}</span>
-            <button
-              type="button"
-              aria-label={t(`Delete connection ${e.id}`, `Eliminar conexión ${e.id}`)}
-              onClick={() => {
-                const result = adapter.removeRelations(snapshot.document.spec, [e.id!])
-                if (result.ok)
-                  dispatch(
-                    store,
-                    [{ type: 'spec.replace', spec: result.value, references: 'prune-references' }],
-                    'Delete connection',
-                  )
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </details>
+      <div className="adl-editor-relations">
+        <h4>
+          {t('Existing connections', 'Conexiones existentes')} ({edgesOf(spec).length})
+        </h4>
+        <ul className="adl-editor-relation-list">
+          {edgesOf(spec).map((e) => (
+            <li className="adl-editor-relation" key={e.id}>
+              <span>{e.label || `${e.from} → ${e.to}`}</span>
+              <button
+                type="button"
+                aria-label={t(`Delete connection ${e.id}`, `Eliminar conexión ${e.id}`)}
+                onClick={() => {
+                  const result = adapter.removeRelations(spec, [e.id!])
+                  if (result.ok)
+                    dispatch(
+                      store,
+                      [
+                        {
+                          type: 'spec.replace',
+                          spec: result.value,
+                          references: 'prune-references',
+                        },
+                      ],
+                      'Delete connection',
+                    )
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       {error && <p role="alert">{error}</p>}
     </section>
   )
@@ -2768,6 +3680,7 @@ export function EditorRoute() {
       shallowEqual,
     ),
     t = useLabels()
+  const resolveContext = useEditorResolveContext()
   const ref = snapshot.selection.find((r) => r.kind === 'edge'),
     edge = ref ? edgesOf(snapshot.document.spec).find((e) => e.id === ref.id) : undefined
   const [error, setError] = useState('')
@@ -2777,7 +3690,7 @@ export function EditorRoute() {
   const manual: Extract<RoutePlacement, { mode: 'manual' }> | undefined =
     route?.mode === 'manual' ? route : undefined
   const setRoute = (next: RoutePlacement, label: string) => {
-    const scene = materialize(snapshot.document)
+    const scene = materialize(snapshot.document, resolveContext)
     const commit = dispatch(
       store,
       [
@@ -2793,6 +3706,8 @@ export function EditorRoute() {
       quality: 'edit',
       requestId: 'route-manual',
       skipValidation: true,
+      theme: resolveContext.theme,
+      renderers: resolveContext.renderers,
     })
     if (!result.ok) {
       setError(result.diagnostics.map((d) => d.code).join(', '))
@@ -2899,11 +3814,11 @@ export function useEditorStore(options: StoreOptions): EditorStore {
 export function EditorOutline({ className }: { className?: string }) {
   const { store } = useEditor(),
     snapshot = useEditorSelector(
-      (s) => ({ selection: s.selection, document: s.document }),
+      (s) => ({ selection: s.selection, spec: s.document.spec, groups: s.document.scene.groups }),
       shallowEqual,
     ),
     t = useLabels()
-  const nodes = nodesOf(snapshot.document.spec)
+  const nodes = nodesOf(snapshot.spec)
   const labels = new Map(nodes.map((n) => [n.id, n.label]))
   const sections = [
     {
@@ -2914,7 +3829,7 @@ export function EditorOutline({ className }: { className?: string }) {
     {
       label: t('Connections', 'Conexiones'),
       kind: 'edge' as const,
-      entities: edgesOf(snapshot.document.spec).map((e) => ({
+      entities: edgesOf(snapshot.spec).map((e) => ({
         id: e.id!,
         label: `${labels.get(e.from)} → ${labels.get(e.to)}${e.label ? `: ${e.label}` : ''}`,
       })),
@@ -2922,12 +3837,15 @@ export function EditorOutline({ className }: { className?: string }) {
     {
       label: t('Groups', 'Grupos'),
       kind: 'group' as const,
-      entities: snapshot.document.scene.groups.map((g) => ({ id: g.id, label: g.label })),
+      entities: snapshot.groups.map((g) => ({ id: g.id, label: g.label })),
     },
   ]
   return (
-    <details className={`adl-editor-outline ${className ?? ''}`}>
-      <summary>{t('Diagram outline', 'Estructura del diagrama')}</summary>
+    <section
+      className={`adl-editor-outline ${className ?? ''}`}
+      aria-label={t('Diagram outline', 'Estructura del diagrama')}
+    >
+      <h2 className="adl-editor-panel-title">{t('Diagram outline', 'Estructura del diagrama')}</h2>
       <section role="region" aria-label={t('Diagram outline', 'Estructura del diagrama')}>
         {sections.map((section) => (
           <div key={section.kind}>
@@ -2963,6 +3881,8 @@ export function EditorOutline({ className }: { className?: string }) {
           </div>
         ))}
       </section>
-    </details>
+    </section>
   )
 }
+
+const MemoEditorRelations = memo(EditorRelations)

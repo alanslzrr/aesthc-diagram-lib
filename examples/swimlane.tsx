@@ -6,7 +6,7 @@ import '@aesthc/diagram-lib/styles.css'
 
 const spec = {
   "type": "swimlane",
-  "caption": "Support handoff",
+  "caption": "Support lane",
   "legend": {
     "main": "Main path",
     "branch": "Alternative"
@@ -15,10 +15,6 @@ const spec = {
     {
       "id": "support",
       "label": "Support"
-    },
-    {
-      "id": "engineering",
-      "label": "Engineering"
     }
   ],
   "nodes": [
@@ -27,21 +23,9 @@ const spec = {
       "label": "Request",
       "description": "Receive a request.",
       "lane": "support"
-    },
-    {
-      "id": "b",
-      "label": "Response",
-      "description": "Return a response.",
-      "lane": "engineering"
     }
   ],
-  "edges": [
-    {
-      "id": "handoff",
-      "from": "a",
-      "to": "b"
-    }
-  ]
+  "edges": []
 } satisfies DiagramSpec
 
 export function Diagram() {

@@ -1,0 +1,22 @@
+[WebServer] (node:56746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:56747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 8 tests using 1 worker
+
+(node:56771) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/8] [webkit] › tests/e2e/export-dialog.e2e.ts:24:1 › Playground exports fresh JSON, SVG and PNG from the current document
+[2/8] [webkit] › tests/e2e/export-dialog.e2e.ts:38:1 › selection scope is disabled without a selection and never falls back to the document
+[3/8] [webkit] › tests/e2e/export-dialog.e2e.ts:61:1 › raster formats are gated by an actual encoder probe, never by a declared mime type
+[4/8] [webkit] › tests/e2e/export-dialog.e2e.ts:99:1 › JPEG cannot be transparent and the dialog says so instead of changing the request
+[5/8] [webkit] › tests/e2e/export-dialog.e2e.ts:114:1 › source inclusion is opt-in, disclosed and leaves JSON as the canonical document
+[6/8] [webkit] › tests/e2e/export-dialog.e2e.ts:134:1 › an in-flight export reports progress and cancellations keep the last valid state
+[7/8] [webkit] › tests/e2e/export-dialog.e2e.ts:165:1 › the card export keeps its declared 1200x630 surface
+[8/8] [webkit] › tests/e2e/export-dialog.e2e.ts:185:1 › HTML export reuses the public standalone runtime instead of a parallel renderer
+  8 passed (11.9s)

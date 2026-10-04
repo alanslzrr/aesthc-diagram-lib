@@ -16,18 +16,69 @@ test('landing links reach adoption tools and editors mount only on demand', asyn
   await expect(page.locator('#example-band')).toBeInViewport()
 })
 
-test('native disclosure handles rapid toggle and Escape', async ({ page }) => {
+const visibleHrefs = (page: import('@playwright/test').Page, selector: string) =>
+  page.evaluate(
+    (selector) => [
+      ...new Set(
+        [...document.querySelectorAll<HTMLAnchorElement>(selector)]
+          .filter((anchor) => anchor.offsetParent !== null)
+          .map((anchor) => anchor.getAttribute('href') as string),
+      ),
+    ],
+    selector,
+  )
+
+for (const locale of ['en', 'es'] as const) {
+  for (const route of ['/', '/?only=example-band', '/?only=example-flowchart'] as const) {
+    test(`${route} (${locale}) keeps every visible internal anchor resolvable`, async ({
+      page,
+    }) => {
+      // One navigation per case: the locale is persisted before the first load
+      // so the traversal never needs a reload, which was timing out on WebKit.
+      await page.addInitScript((value) => localStorage.setItem('adl-locale', value), locale)
+      await page.goto(route)
+      await page.evaluate(() => document.fonts.ready)
+      for (const href of await visibleHrefs(page, 'a[href^="#"]')) {
+        const id = decodeURIComponent(href.slice(1))
+        expect(
+          await page.evaluate((id) => document.getElementById(id) !== null, id),
+          `${route} (${locale}) ${href} has no target`,
+        ).toBe(true)
+      }
+      const switches = await visibleHrefs(page, 'a[href^="?only="]')
+      if (!route.includes('only=')) {
+        // Full mode renders every layout, so each route switch names a card.
+        for (const href of switches) {
+          const target = new URL(href, page.url()).searchParams.get('only') as string
+          await expect(
+            page.locator(`[data-diagram-panel="${target}"]`),
+            `${route} (${locale}) ${href} has no card`,
+          ).toBeVisible()
+        }
+        return
+      }
+      for (const href of switches) {
+        const target = new URL(href, page.url()).searchParams.get('only') as string
+        await page.goto(href)
+        await expect(page).toHaveURL(new RegExp(`only=${target}`))
+        await expect(page.locator(`#${target}`)).toBeVisible()
+      }
+      await page
+        .getByRole('link', { name: /Back to all diagrams|Volver a todos los diagramas/ })
+        .click()
+      await expect(page.locator('.layout-gallery')).toBeVisible()
+    })
+  }
+}
+
+test('capabilities are a static section with no disclosure pattern', async ({ page }) => {
   await page.goto('/')
-  const trigger = page.getByText(/Capabilities · v/)
-  await trigger.click()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await trigger.press('Escape')
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-  await trigger.click()
-  await trigger.click()
-  await trigger.click()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-  await expect(trigger.locator('..')).toHaveAttribute('open', '')
+  const section = page.locator('#capabilities')
+  await expect(section).toBeVisible()
+  await expect(section).toContainText('Capabilities · v')
+  await expect(section.locator('summary')).toHaveCount(0)
+  await expect(section.locator('[aria-expanded]')).toHaveCount(0)
+  await expect(section.locator('dt')).toHaveCount(6)
 })
 
 test('landing presentation preserves both locales and themes at narrow and desktop widths', async ({

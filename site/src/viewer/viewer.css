@@ -1,8 +1,48 @@
+/* Host shell for the semantic viewer. The library owns its own surface;
+ * the site provides the shared host tokens, fonts and control language. */
+body {
+  margin: 0;
+}
 .viewer-shell {
+  --adl-bg: #ffffff;
+  --adl-fg: #0a0a0a;
+  --adl-card: #fafafa;
+  --adl-border: #eaeaea;
+  --adl-muted: #666666;
+  --adl-cobalt: #0070f3;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #e9eef4;
+  background: var(--adl-bg);
+  color: var(--adl-fg);
+  font-family: Geist, system-ui, sans-serif;
+}
+.viewer-shell:has(.adl-viewer[data-theme='dark']) {
+  --adl-bg: #000000;
+  --adl-fg: #ededed;
+  --adl-card: #0a0a0a;
+  --adl-border: #1f1f1f;
+  --adl-muted: #a1a1a1;
+  --adl-cobalt: #3291ff;
+}
+/* The package declares its own defaults on `.adl-viewer`; the host overrides
+ * them on the same element with explicit theme values so canvas, controls and
+ * text all follow. Consumers without this host keep the package defaults. */
+.viewer-shell .adl-viewer {
+  --adl-bg: #ffffff;
+  --adl-fg: #0a0a0a;
+  --adl-card: #fafafa;
+  --adl-border: #eaeaea;
+  --adl-muted: #666666;
+  --adl-cobalt: #0060df;
+}
+.viewer-shell:has(.adl-viewer[data-theme='dark']) .adl-viewer {
+  --adl-bg: #000000;
+  --adl-fg: #ededed;
+  --adl-card: #0a0a0a;
+  --adl-border: #1f1f1f;
+  --adl-muted: #a1a1a1;
+  --adl-cobalt: #3291ff;
 }
 .viewer-header {
   display: flex;
@@ -10,46 +50,129 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  padding: 14px 20px;
-  border-bottom: 1px solid #aebdcd;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--adl-border);
 }
 .viewer-header a {
-  color: #0c6191;
+  color: var(--adl-muted);
   text-decoration: none;
+  font-size: 13px;
+  transition: color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.viewer-header a:hover {
+  color: var(--adl-fg);
 }
 .viewer-header h1 {
   margin: 0;
-  font-family:
-    Geist Sans,
-    Geist,
-    system-ui,
-    sans-serif;
-  font-size: 17px;
-  font-weight: 600;
+  font-family: Geist, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.02em;
 }
 .viewer-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 .viewer-actions label {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  color: #536273;
+  color: var(--adl-muted);
+  font-size: 12px;
 }
 .viewer-actions button,
 .viewer-actions select {
   font: inherit;
-  padding: 6px 10px;
-  background: #f9fbfd;
-  border: 1px solid #aebdcd;
+  font-size: 13px;
+  min-height: 32px;
+  padding: 4px 10px;
+  background: var(--adl-card);
+  border: 1px solid var(--adl-border);
   border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.viewer-actions button:hover:not(:disabled),
+.viewer-actions select:hover {
+  border-color: var(--adl-cobalt);
+}
+.viewer-actions button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.viewer-shell select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23536273' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  padding-right: 28px;
+}
+.viewer-shell:has(.adl-viewer[data-theme='dark']) select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a8a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.viewer-shell input[type='checkbox'] {
+  accent-color: var(--adl-cobalt);
+  width: 14px;
+  height: 14px;
 }
 .viewer-message {
   margin: 12px 20px 0;
   padding: 8px 12px;
-  background: #f9fbfd;
-  border: 1px solid #aebdcd;
+  background: var(--adl-card);
+  border: 1px solid var(--adl-border);
   border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Shared exports must not depend on the mutable editor's stylesheet. */
+.viewer-shell .export-dialog {
+  --adl-muted: var(--muted-foreground);
+  --adl-fg: var(--foreground);
+  padding: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--ui-radius-panel);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: Geist, system-ui, sans-serif;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  color-scheme: inherit;
+}
+.viewer-shell .export-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.viewer-shell .export-dialog :is(button, select) {
+  appearance: none;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--ui-radius-control);
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.viewer-shell .export-dialog select {
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23888' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.viewer-shell .export-dialog :disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.viewer-shell .export-dialog :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.viewer-shell .export-dialog input {
+  accent-color: var(--cobalt);
 }

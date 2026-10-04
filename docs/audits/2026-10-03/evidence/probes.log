@@ -1,0 +1,17 @@
+nested document valid true
+nested security group {"ok":true,"value":{"enabled":true,"facts":{"nodes":1,"regions":1,"crossRegionEdges":0},"diagnostics":[{"code":"profile.region-conflict","path":"/","message":"profile.region-conflict","severity":"error","supportedFixes":[],"subject":{"kind":"group","id":"sg"}}]},"diagnostics":[]}
+custom HTML true {
+  documentId: 'audit',
+  revision: 0,
+  mimeType: 'text/html',
+  bytes: 886300,
+  canonical: true,
+  sourceIncluded: false,
+  metadata: 'minimal',
+  verified: false,
+  runtimeBytes: 677308,
+  fontBytes: 141020
+}
+renderer throw validate THREW trusted renderer failed
+renderer throw measure THREW trusted renderer failed
+renderer throw renderSvg THREW trusted renderer failed

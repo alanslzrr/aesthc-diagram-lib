@@ -12,12 +12,14 @@ const bandSpec = {
   edges: [{ id: 'in-out', from: 'in', to: 'out' }],
 }
 
+// Explicit import: Apply JSON only edits the current document identity/type.
 async function importSpec(page: import('@playwright/test').Page, spec: unknown) {
   await page.goto('/studio.html')
-  await page.getByText('Document JSON', { exact: true }).click()
-  const json = page.getByRole('textbox', { name: 'Document JSON' })
-  await json.fill(JSON.stringify(spec))
-  await page.getByRole('button', { name: 'Apply JSON' }).click()
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'spec.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(spec)),
+  })
   await page.getByRole('button', { name: 'Inbox', exact: true }).waitFor()
 }
 
@@ -34,7 +36,7 @@ test('T53.2 cancel keeps the document, draft and saved copy untouched', async ({
   await expect(notice).toBeHidden()
   await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()
   await page.getByText('Saved copies', { exact: true }).click()
-  const savedCopies = page.locator('details.studio-copies')
+  const savedCopies = page.locator('.studio-copies')
   await expect(savedCopies.getByText('Order intake', { exact: false })).toBeVisible()
 })
 
@@ -55,9 +57,29 @@ test('T53.2 accepting opens a new graph document without overwriting the origina
   await page.getByRole('button', { name: 'Save locally', exact: true }).click()
   await expect(page.getByText('Saved on this device.', { exact: false })).toBeVisible()
   await page.getByText('Saved copies', { exact: true }).click()
-  const copies = page.locator('details.studio-copies')
+  const copies = page.locator('.studio-copies')
   await expect(copies.locator('li')).toHaveCount(2)
   await copies.getByRole('button', { name: 'Open', exact: true }).first().click()
   await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Dispatch', exact: true })).toBeVisible()
+})
+
+test('stale conversion confirmation keeps the intervening edit and history', async ({ page }) => {
+  await importSpec(page, bandSpec)
+  await page.getByRole('button', { name: 'Convert to graph', exact: true }).click()
+  const notice = page.getByRole('alert').filter({ hasText: 'will not transfer' })
+  await expect(notice).toBeVisible()
+  // The notice is nonmodal: an inspector edit happens before confirmation.
+  await page.getByRole('button', { name: 'Inbox', exact: true }).click()
+  await page.getByLabel('Label', { exact: true }).fill('Changed label')
+  await page.getByRole('button', { name: 'Apply label', exact: true }).click()
+  await expect(notice).toBeHidden()
+  await expect(
+    page.getByText('The document changed after this conversion was prepared', { exact: false }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Changed label', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Inbox', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
 })

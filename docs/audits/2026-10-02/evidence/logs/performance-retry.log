@@ -1,0 +1,39 @@
+[WebServer] (node:61977) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:61978) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:61985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+target box {"x":512.6849975585938,"y":591.2408447265625,"width":18.79559326171875,"height":7.51824951171875} zoom 13%
+frame p95 16.7ms over 674 frames; long tasks >100ms: 1 (of 2 long tasks); frame deltas >100ms: 2 (reference yes)
+environment {"platform":"MacIntel","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36","hardwareConcurrency":14,"deviceMemory":16}
+  ✘  1 [performance] › tests/e2e/editor-performance.e2e.ts:80:1 › drag frame p95 and long-task budget stay under the reference budgets (16.2s)
+
+
+  1) [performance] › tests/e2e/editor-performance.e2e.ts:80:1 › drag frame p95 and long-task budget stay under the reference budgets 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      263 |     expect(p95).toBeLessThanOrEqual(33.3)
+      264 |     // 6.6: "Interacción drag bloqueada por long task | ninguna >100ms | ninguna >100ms tras carga".
+    > 265 |     expect(longTasksOver100.length).toBe(0)
+          |                                     ^
+      266 |   }
+      267 | })
+      268 |
+        at /Users/alansalazar/development-projects/personal-proyects/aesthc-diagram-lib/tests/e2e/editor-performance.e2e.ts:265:37
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/aesthc-audit-20261002/perf-retry-artifacts/editor-performance.e2e.ts--cd66e-under-the-reference-budgets-performance/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/aesthc-audit-20261002/perf-retry-artifacts/editor-performance.e2e.ts--cd66e-under-the-reference-budgets-performance/error-context.md
+
+  1 failed
+    [performance] › tests/e2e/editor-performance.e2e.ts:80:1 › drag frame p95 and long-task budget stay under the reference budgets 

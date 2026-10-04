@@ -1,6 +1,6 @@
 'use client'
 export { DiagramViewer } from './DiagramViewer'
-export type { DiagramViewerProps } from './DiagramViewer'
+export type { DiagramViewerProps, ViewerExportRequest } from './DiagramViewer'
 export { Finder } from './Finder'
 export type { FinderProps } from './Finder'
 export { Comparison } from './Comparison'

@@ -93,6 +93,11 @@ export interface DiagramGroup {
   nodeIds: string[]
   parentGroup?: string
   locked: boolean
+  /**
+   * Explicit group visibility. Missing is not implicitly private while the
+   * deployment profile is active; security groups must declare `private`.
+   */
+  visibility?: 'public' | 'private'
 }
 export interface DiagramScene {
   mode: 'auto' | 'manual' | 'hybrid'
@@ -326,6 +331,11 @@ export interface ResolveContext {
   quality: 'edit' | 'publish'
   requestId: string
   signal?: AbortSignal
+  /**
+   * Effective render theme. Custom node renderers must receive the same theme
+   * as standard geometry; defaults to the document presentation mode.
+   */
+  theme?: 'light' | 'dark'
   /** Trusted custom node renderers. Without them, nodes declaring a `renderer`
    * payload are reported as `renderer.unsupported` and published as a
    * placeholder, never as an ordinary node. */

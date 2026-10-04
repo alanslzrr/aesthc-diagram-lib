@@ -7,6 +7,8 @@ import {
 } from '../src/editor-core'
 import type { DiagramDocument, TrustedVerifier } from '../src/editor-core'
 import { validateDocument } from '../src/editor-core'
+import { EVIDENCE_RANGE_CONTRACT } from '../src/editor-core/evidence'
+import { exportDocument } from '../src/export'
 
 function evidenceDocument(evidence: Record<string, unknown>): DiagramDocument {
   const made = createDocument(
@@ -43,15 +45,14 @@ function profileDocument(): DiagramDocument {
       type: 'graph',
       caption: 'Profile seed',
       legend: { main: 'Main', branch: 'Branch' },
-      nodes: [
-        { id: 'a', label: 'A', description: '' },
-        { id: 'b', label: 'B', description: '' },
-        { id: 'c', label: 'C', description: '' },
-        { id: 'd', label: 'D', description: '' },
-      ],
+      nodes: ['a', 'b', 'c', 'd', 'e'].map((id) => ({
+        id,
+        label: id.toUpperCase(),
+        description: '',
+      })),
       edges: [
         { id: 'ab', from: 'a', to: 'b' },
-        { id: 'bc', from: 'b', to: 'c' },
+        { id: 'bd', from: 'b', to: 'd' },
         { id: 'cd', from: 'c', to: 'd' },
       ],
     },
@@ -59,16 +60,65 @@ function profileDocument(): DiagramDocument {
   )
   if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
   const document = made.value
+  document.metadata.engineeringProfile = 'deployment-ownership'
   document.metadata.nodes = {
-    a: { roles: [], tags: ['region:eu'], owner: 'team-a' },
-    b: { roles: [], tags: ['region:us'], visibility: 'public' },
-    c: { roles: [], tags: ['region:us'], owner: 'team-c' },
-    d: { roles: [], tags: ['region:eu', 'region:us'], owner: 'team-d' },
+    a: { roles: [], tags: [], owner: 'team-a' },
+    b: { roles: ['external'], tags: [] },
+    c: { roles: ['database'], tags: [], owner: 'team-c', visibility: 'private' },
+    d: { roles: ['storage'], tags: [], owner: 'team-d', visibility: 'public' },
+    e: { roles: [], tags: [] },
   }
   document.metadata.edges = {
-    bc: { roles: [], tags: [] },
+    ab: { roles: [], tags: [] },
+    bd: { roles: [], tags: [] },
     cd: { roles: [], tags: [], crossing: 'vpn' },
   }
+  document.scene.groups = [
+    { id: 'eu', label: 'EU', kind: 'region', nodeIds: [], locked: false },
+    { id: 'us', label: 'US', kind: 'region', nodeIds: ['d'], locked: false },
+    // eu2 is nested inside eu, so b inherits two region ancestors.
+    {
+      id: 'eu2',
+      label: 'EU secondary',
+      kind: 'region',
+      nodeIds: [],
+      parentGroup: 'eu',
+      locked: false,
+    },
+    {
+      id: 'nested',
+      label: 'Nested team',
+      kind: 'system',
+      nodeIds: ['b'],
+      parentGroup: 'eu2',
+      locked: false,
+    },
+    {
+      id: 'sg-ok',
+      label: 'Private SG',
+      kind: 'security-group',
+      nodeIds: ['c'],
+      parentGroup: 'eu',
+      visibility: 'private',
+      locked: false,
+    },
+    {
+      id: 'sg-public',
+      label: 'Public SG',
+      kind: 'security-group',
+      nodeIds: ['a'],
+      parentGroup: 'eu',
+      visibility: 'public',
+      locked: false,
+    },
+    {
+      id: 'sg-orphan',
+      label: 'Orphan SG',
+      kind: 'security-group',
+      nodeIds: ['e'],
+      locked: false,
+    },
+  ]
   return document
 }
 
@@ -97,10 +147,14 @@ describe('E23 declared evidence versus verification', () => {
     expect(http.diagnostics.some((d) => d.code === 'url.scheme')).toBe(true)
     // The module itself never fetches; only the injected verifier may.
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    const verifier: TrustedVerifier = { verify: async () => 'match' }
+    const verifier: TrustedVerifier = {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => 'match',
+    }
     const receipts = await verifyEvidence(evidenceDocument(validEvidence), verifier)
     if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
     expect(receipts.value[0].status).toBe('verified')
+    expect(receipts.value[0].scope).toBe('range')
     expect(fetchSpy).not.toHaveBeenCalled()
     fetchSpy.mockRestore()
   })
@@ -108,17 +162,21 @@ describe('E23 declared evidence versus verification', () => {
   it('T50.2 verification requires a complete match: mismatch, errors and unavailable never verify', async () => {
     const document = evidenceDocument(validEvidence)
     const cases: Array<[TrustedVerifier, string]> = [
-      [{ verify: async () => 'match' }, 'verified'],
-      [{ verify: async () => 'mismatch' }, 'mismatch'],
-      [{ verify: async () => 'unavailable' }, 'unavailable'],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'match' }, 'verified'],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'mismatch' }, 'mismatch'],
+      [{ contract: EVIDENCE_RANGE_CONTRACT, verify: async () => 'unavailable' }, 'unavailable'],
       [
         {
+          contract: EVIDENCE_RANGE_CONTRACT,
           verify: async () => {
             throw new Error('boom')
           },
         },
         'unavailable',
       ],
+      // A legacy verifier that never observed the declared range can only
+      // establish file identity: it is truthfully reported as declared.
+      [{ verify: async () => 'match' }, 'declared'],
     ]
     for (const [verifier, expected] of cases) {
       const receipts = await verifyEvidence(document, verifier)
@@ -134,34 +192,235 @@ describe('E23 declared evidence versus verification', () => {
   })
 })
 
-describe('E23 deployment profile is opt-in and fails by exact facts', () => {
-  it('T51.1 enabled reports owner, region, public and crossing facts precisely', () => {
+describe('F26 range-aware evidence verification contract', () => {
+  it('a legacy verifier receives the range but a file-only match is never verified', async () => {
+    const seen: Array<{
+      repository: string
+      commit: string
+      path: string
+      range: { startLine: number; endLine: number }
+      blobSha?: string
+    }> = []
+    const receipts = await verifyEvidence(evidenceDocument(validEvidence), {
+      verify: async (reference) => {
+        seen.push(reference)
+        return 'match'
+      },
+    })
+    if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({
+      repository: validEvidence.repository,
+      commit: validEvidence.commit,
+      path: validEvidence.path,
+      range: { startLine: 10, endLine: 20 },
+    })
+    expect(receipts.value[0]).toMatchObject({
+      status: 'declared',
+      scope: 'file',
+      detail: 'verifier:file-only',
+    })
+    expect(receipts.value[0].status).not.toBe('verified')
+  })
+
+  it('different requested ranges reach the verifier and out-of-file ranges stay non-verified', async () => {
+    const seen: Array<{ startLine: number; endLine: number }> = []
+    const document = evidenceDocument(validEvidence)
+    document.metadata.nodes.a.evidence = [
+      validEvidence,
+      { ...validEvidence, id: 'ev-2', startLine: 999999, endLine: 1000000 },
+    ] as never
+    const receipts = await verifyEvidence(document, {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async (reference) => {
+        seen.push({ startLine: reference.range.startLine, endLine: reference.range.endLine })
+        // The verifier owns the file: lines 10-20 exist, 999999+ do not.
+        return reference.range.startLine === 10 ? 'match' : 'mismatch'
+      },
+    })
+    if (!receipts.ok) throw Error(JSON.stringify(receipts.diagnostics))
+    expect(seen).toEqual([
+      { startLine: 10, endLine: 20 },
+      { startLine: 999999, endLine: 1000000 },
+    ])
+    expect(receipts.value.map((receipt) => [receipt.id, receipt.status])).toEqual([
+      ['ev-1', 'verified'],
+      ['ev-2', 'mismatch'],
+    ])
+    expect(receipts.value.every((receipt) => receipt.status === 'verified')).toBe(false)
+  })
+
+  it('passes the declared blob SHA and never verifies a mismatching or failing verifier', async () => {
+    const declared = { ...validEvidence, blobSha: 'a'.repeat(40) }
+    const seen: Array<string | undefined> = []
+    const matched = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async (reference) => {
+        seen.push(reference.blobSha)
+        return reference.blobSha === declared.blobSha ? 'match' : 'mismatch'
+      },
+    })
+    if (!matched.ok) throw Error(JSON.stringify(matched.diagnostics))
+    expect(seen).toEqual([declared.blobSha])
+    expect(matched.value[0]).toMatchObject({ status: 'verified', scope: 'range' })
+    const mismatched = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => 'mismatch',
+    })
+    if (!mismatched.ok) throw Error(JSON.stringify(mismatched.diagnostics))
+    expect(mismatched.value[0].status).toBe('mismatch')
+    const failed = await verifyEvidence(evidenceDocument(declared), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => {
+        throw new Error('boom')
+      },
+    })
+    if (!failed.ok) throw Error(JSON.stringify(failed.diagnostics))
+    expect(failed.value[0]).toMatchObject({ status: 'unavailable', detail: 'verifier:error' })
+  })
+
+  it('keeps rejecting short commits before any verifier runs', async () => {
+    let calls = 0
+    const result = await verifyEvidence(evidenceDocument({ ...validEvidence, commit: '0123456' }), {
+      contract: EVIDENCE_RANGE_CONTRACT,
+      verify: async () => {
+        calls += 1
+        return 'match'
+      },
+    })
+    expect(result.ok).toBe(false)
+    expect(calls).toBe(0)
+  })
+})
+
+describe('E23 deployment profile is authored and fails by exact facts', () => {
+  it('T51.1 activation is authored and reported rules match the declared metadata', () => {
     const document = profileDocument()
-    const report = validateDeploymentProfile(document, { enabled: true })
+    const report = validateDeploymentProfile(document)
     if (!report.ok) throw Error(JSON.stringify(report.diagnostics))
     expect(report.value.enabled).toBe(true)
-    expect(report.value.facts).toEqual({ nodes: 4, regions: 2, crossRegionEdges: 2 })
+    expect(report.value.facts).toEqual({ nodes: 5, regions: 3, crossRegionEdges: 3 })
     const codes = report.value.diagnostics.map((diagnostic) => diagnostic.code)
+    // e has no owner and no region; b inherits two region ancestors; private
+    // roles need explicit visibility and the two named groups fail their
+    // visibility or region-consistency rules.
     expect(codes.filter((code) => code === 'profile.owner-missing')).toHaveLength(1)
-    expect(codes).toContain('profile.region-conflict')
-    expect(codes).toContain('profile.public-entity')
-    // bc crosses regions and declares the crossing: only ab is missing it.
+    expect(codes.filter((code) => code === 'profile.region-conflict')).toHaveLength(3)
+    expect(codes.filter((code) => code === 'profile.public-entity')).toHaveLength(3)
     const crossings = report.value.diagnostics.filter(
       (diagnostic) => diagnostic.code === 'profile.crossing-missing',
     )
-    expect(crossings).toHaveLength(1)
+    expect(crossings).toHaveLength(2)
     expect(crossings[0].subject).toEqual({ kind: 'edge', id: 'ab' })
+    // b is external: owner exempt, region still enforced through the nested
+    // system group whose region ancestor is eu.
     const owners = report.value.diagnostics.filter(
       (diagnostic) => diagnostic.code === 'profile.owner-missing',
     )
-    expect(owners.map((diagnostic) => diagnostic.subject?.id)).toEqual(['b'])
+    expect(owners.map((diagnostic) => diagnostic.subject?.id)).toEqual(['e'])
+    const subjects = report.value.diagnostics.map((diagnostic) =>
+      diagnostic.subject
+        ? `${diagnostic.code}:${diagnostic.subject.kind}:${diagnostic.subject.id}`
+        : '',
+    )
+    expect(subjects).toContain('profile.public-entity:group:sg-public')
+    expect(subjects).toContain('profile.public-entity:group:sg-orphan')
+    expect(subjects).toContain('profile.public-entity:node:d')
+    expect(subjects).toContain('profile.region-conflict:group:sg-orphan')
   })
 
-  it('T51.1 disabled imposes no rule and discovers no infrastructure', () => {
-    const report = validateDeploymentProfile(profileDocument())
-    if (!report.ok) throw Error(JSON.stringify(report.diagnostics))
-    expect(report.value.enabled).toBe(false)
-    expect(report.value.diagnostics).toEqual([])
-    expect(report.value.facts).toEqual({ nodes: 0, regions: 0, crossRegionEdges: 0 })
+  it('T51.1 an authored profile cannot be disabled through options or removed in portable metadata', () => {
+    const document = profileDocument()
+    const forged = validateDeploymentProfile(document, { enabled: false })
+    if (!forged.ok) throw Error(JSON.stringify(forged.diagnostics))
+    expect(forged.value.enabled).toBe(true)
+    delete document.metadata.engineeringProfile
+    const inactive = validateDeploymentProfile(document)
+    if (!inactive.ok) throw Error(JSON.stringify(inactive.diagnostics))
+    expect(inactive.value.enabled).toBe(false)
+    expect(inactive.value.diagnostics).toEqual([])
+    expect(inactive.value.facts).toEqual({ nodes: 0, regions: 0, crossRegionEdges: 0 })
   })
+
+  it('T51.1 canonical publish blocks on profile diagnostics while edit export stays available', async () => {
+    const document = profileDocument()
+    const publish = await exportDocument(document, {
+      format: 'svg',
+      scope: { type: 'document' },
+      theme: 'light',
+      quality: 'publish',
+      background: 'theme',
+      scale: 1,
+      includeSource: false,
+      metadata: 'minimal',
+      fontPolicy: 'fallback',
+    })
+    expect(publish.ok).toBe(false)
+    if (!publish.ok)
+      expect(
+        publish.diagnostics.some((diagnostic) => diagnostic.code === 'profile.owner-missing'),
+      ).toBe(true)
+  })
+})
+
+it('accepts a security group whose members live in descendant containers', async () => {
+  const made = createDocument(
+    {
+      type: 'graph',
+      caption: 'Nested security group',
+      legend: { main: 'Main', branch: 'Branch' },
+      nodes: [{ id: 'n', label: 'Nested node', description: '' }],
+      edges: [],
+    },
+    { id: 'nested-profile', locale: 'en' },
+  )
+  if (!made.ok) throw Error(JSON.stringify(made.diagnostics))
+  const document = made.value
+  document.metadata.engineeringProfile = 'deployment-ownership'
+  document.metadata.nodes = { n: { roles: [], tags: [], owner: 'team-n' } }
+  document.scene.groups = [
+    { id: 'eu', label: 'EU', kind: 'region', nodeIds: [], locked: false },
+    {
+      id: 'sg',
+      label: 'Private SG',
+      kind: 'security-group',
+      nodeIds: [],
+      parentGroup: 'eu',
+      visibility: 'private',
+      locked: false,
+    },
+    {
+      id: 'system',
+      label: 'System',
+      kind: 'system',
+      nodeIds: [],
+      parentGroup: 'sg',
+      locked: false,
+    },
+    {
+      id: 'subsystem',
+      label: 'Subsystem',
+      kind: 'system',
+      nodeIds: ['n'],
+      parentGroup: 'system',
+      locked: false,
+    },
+  ]
+  const report = validateDeploymentProfile(document)
+  if (!report.ok) throw Error(JSON.stringify(report.diagnostics))
+  // Effective membership is inherited through parentGroup: the empty security
+  // group still resolves to eu and must not be reported as a conflict.
+  expect(report.value.diagnostics).toEqual([])
+  const published = await exportDocument(document, {
+    format: 'svg',
+    scope: { type: 'document' },
+    theme: 'light',
+    quality: 'publish',
+    background: 'theme',
+    scale: 1,
+    includeSource: false,
+    metadata: 'minimal',
+    fontPolicy: 'fallback',
+  })
+  expect(published.ok).toBe(true)
 })
