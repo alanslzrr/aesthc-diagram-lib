@@ -709,12 +709,10 @@ test.describe('retina representative gallery acceptance', () => {
             expect(result.scroll).toBe(false)
             expect(result.pageOverflow).toBe(false)
             if (width === 1280 && ['er', 'sequence', 'swimlane'].includes(type))
-              await test
-                .info()
-                .attach(`${type}-${locale}-${theme}-dpr2`, {
-                  body: await stage.screenshot(),
-                  contentType: 'image/png',
-                })
+              await test.info().attach(`${type}-${locale}-${theme}-dpr2`, {
+                body: await stage.screenshot(),
+                contentType: 'image/png',
+              })
           }
         }
       })
