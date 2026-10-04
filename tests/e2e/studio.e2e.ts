@@ -622,6 +622,7 @@ test('Studio resizes a whole selection from one anchored handle in a single undo
   isMobile,
 }) => {
   test.skip(isMobile, 'Mouse drag gesture; keyboard multi-resize is also covered here')
+  await page.setViewportSize({ width: 1280, height: 1000 })
   await page.goto('/studio.html')
   const api = page.getByRole('button', { name: 'Order API', exact: true })
   const database = page.getByRole('button', { name: 'Orders', exact: true })

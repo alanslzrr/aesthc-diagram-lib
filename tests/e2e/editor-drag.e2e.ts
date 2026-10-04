@@ -19,7 +19,16 @@ function nodeGroup(page: Page, id: string): Locator {
   return page.locator(`.adl-editor-surface > svg[role="group"] [data-hit-node="${id}"]`).first()
 }
 
+test.beforeEach(async ({ page, isMobile }) => {
+  if (!isMobile) await page.setViewportSize({ width: 1280, height: 1000 })
+})
+
 async function dragFromTo(page: Page, from: { x: number; y: number }, dx: number, dy: number) {
+  const viewport = page.viewportSize()!
+  expect(from.y + dy, 'drag destination must stay in the visible viewport').toBeLessThan(
+    viewport.height,
+  )
+  expect(from.x + dx).toBeLessThan(viewport.width)
   await page.mouse.move(from.x, from.y)
   await page.mouse.down()
   await page.mouse.move(from.x + dx, from.y + dy, { steps: 10 })

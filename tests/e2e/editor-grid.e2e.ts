@@ -174,6 +174,7 @@ test('grid covers the viewport in every corner and reacts to pan and resize', as
   // The pattern lives in world space inside the camera group, so it must not
   // carry a second phase transform.
   expect(initial.offset).toBeNull()
+  await page.getByRole('button', { name: 'Pan', exact: true }).click()
   const surface = page.locator('.adl-editor-surface')
   await surface.scrollIntoViewIfNeeded()
   const scrollBefore = await page.evaluate(() => window.scrollY)
@@ -185,7 +186,6 @@ test('grid covers the viewport in every corner and reacts to pan and resize', as
   const node = page.locator('.adl-editor-surface [data-hit-node]').first()
   const nodeBefore = (await node.boundingBox())!
   const drag = { x: 5, y: 3 }
-  await page.getByRole('button', { name: 'Pan', exact: true }).click()
   await page.mouse.move(surfaceBefore.x + 12, surfaceBefore.y + 12)
   await page.mouse.down()
   await page.mouse.move(surfaceBefore.x + 12 + drag.x, surfaceBefore.y + 12 + drag.y, { steps: 3 })
