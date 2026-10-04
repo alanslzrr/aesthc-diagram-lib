@@ -25,7 +25,7 @@ import {
 import { EXAMPLE_DIAGRAMS } from '@aesthc/diagram-lib/examples'
 
 import { GITHUB_URL, STRINGS, SECTIONS, type Locale, type SectionEntry } from '../content'
-import { ExportDialog } from '../components/ExportDialog'
+import { ExportDialog } from '../components/EditorExportDialog'
 import { saveLocale, savedLocale } from '../lib/locale'
 import { writeHandoff } from '../lib/handoff'
 import { clearSessionDraft, readSessionDraft, writeSessionDraft } from '../lib/session-draft'

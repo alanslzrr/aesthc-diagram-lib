@@ -1,8 +1,9 @@
+import { ExportDialog } from '../components/ExportDialog'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createDocument, importDocument } from '@aesthc/diagram-lib/editor-core'
 import type { DiagramDocument, Locale } from '@aesthc/diagram-lib/editor-core'
-import { Comparison, DiagramViewer } from '@aesthc/diagram-lib/viewer'
+import { Comparison, DiagramViewer, type ViewerExportRequest } from '@aesthc/diagram-lib/viewer'
 import { MESSAGES } from '../lib/messages'
 import { savedLocale, saveLocale } from '../lib/locale'
 import { useThemePreference } from '../lib/theme'
@@ -120,6 +121,7 @@ const HOST_TOKENS: Record<'light' | 'dark', CSSProperties> = {
 }
 
 function ViewerApp() {
+  const [exportRequest, setExportRequest] = useState<ViewerExportRequest | null>(null)
   const { theme: hostTheme } = useThemePreference()
   const [document, setDocument] = useState<DiagramDocument>(initialDocument)
   const [afterDocument, setAfterDocument] = useState<DiagramDocument | null>(null)
@@ -249,7 +251,29 @@ function ViewerApp() {
           {message}
         </p>
       )}
-      <DiagramViewer document={document} locale={locale} />
+      <DiagramViewer document={document} locale={locale} onExportRequest={setExportRequest} />
+      <button
+        type="button"
+        className="control"
+        onClick={() => setExportRequest({ format: 'svg', quality: 'edit' })}
+      >
+        {locale === 'es' ? 'Exportar' : 'Export'}
+      </button>
+      {exportRequest && (
+        <ExportDialog
+          locale={locale}
+          open
+          onClose={() => setExportRequest(null)}
+          source={{
+            document,
+            selection: [],
+            theme: hostTheme,
+            query: exportRequest.query,
+          }}
+          initialChoice={exportRequest}
+        />
+      )}
+
       {afterDocument && <Comparison before={document} after={afterDocument} locale={locale} />}
     </main>
   )

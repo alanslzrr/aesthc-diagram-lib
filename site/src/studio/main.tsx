@@ -27,7 +27,7 @@ import {
   encodeShareDocument,
 } from '@aesthc/diagram-lib/persistence'
 import type { AutosaveState, StoredDocument, StoredEntry } from '@aesthc/diagram-lib/persistence'
-import { ExportDialog } from '../components/ExportDialog'
+import { ExportDialog } from '../components/EditorExportDialog'
 import { clearHandoff, readHandoff } from '../lib/handoff'
 import { MESSAGES } from '../lib/messages'
 import { savedLocale, saveLocale } from '../lib/locale'
