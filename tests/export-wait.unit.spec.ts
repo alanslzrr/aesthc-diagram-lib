@@ -69,7 +69,9 @@ it('cancels font readiness and removes the isolated font declaration', async () 
   vi.stubGlobal('document', {
     head: { appendChild: vi.fn() },
     createElement: (tag: string) =>
-      tag === 'style' ? { textContent: '', remove } : { getContext: () => null },
+      tag === 'style'
+        ? { textContent: '', remove }
+        : { getContext: () => ({ measureText: () => ({ width: 8 }) }) },
     fonts: { load: () => new Promise(() => {}) },
   })
   const controller = new AbortController()
