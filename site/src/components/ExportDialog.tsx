@@ -1,8 +1,12 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { Locale } from '@aesthc/diagram-lib/editor-core'
+import type {
+  DiagramDocument,
+  EntityRef,
+  ResolveRendererRegistry,
+  Locale,
+} from '@aesthc/diagram-lib/editor-core'
 import { resolveDocument } from '@aesthc/diagram-lib/editor-core'
-import { shallowEqual, useEditor, useEditorSelector } from '@aesthc/diagram-lib/editor'
-import { CARD_HEIGHT, CARD_WIDTH } from '@aesthc/diagram-lib/export'
+import { CARD_HEIGHT, CARD_WIDTH, type CardQueryReceipt } from '@aesthc/diagram-lib/export'
 import {
   DEFAULT_EXPORT_CHOICE,
   EXPORT_CHOICE_FORMATS,
@@ -103,7 +107,16 @@ function useReducedMotion(): boolean {
   }, [])
   return reduced
 }
+export interface ExportSource {
+  document: DiagramDocument
+  selection: readonly EntityRef[]
+  theme: 'light' | 'dark'
+  registry?: ResolveRendererRegistry
+  query?: CardQueryReceipt
+}
 export interface ExportDialogProps {
+  source: ExportSource
+  initialChoice?: Partial<ExportChoice>
   locale: Locale
   /** `dialog` renders a modal; `inline` renders the same service in place. */
   variant?: 'dialog' | 'inline'
@@ -126,15 +139,11 @@ export function ExportDialog({
   onClose,
   filenameBase,
   appearance,
+  source,
+  initialChoice,
 }: ExportDialogProps) {
   const t = (en: string, es: string) => (locale === 'es' ? es : en)
-  const snapshot = useEditorSelector(
-    (state) => ({ document: state.document, selection: state.selection }),
-    shallowEqual,
-  )
-  const { document, selection } = snapshot
-  // The instance registry used for display must reach every visual export.
-  const { theme: viewTheme, registry } = useEditor()
+  const { document, selection, registry, theme: viewTheme, query } = source
   const reducedMotion = useReducedMotion()
   const [capabilities, setCapabilities] = useState<SharedCapabilities | null>(null)
   useEffect(() => {
@@ -150,12 +159,23 @@ export function ExportDialog({
     () => exportFacts(document, selection, capabilities, reducedMotion),
     [document, selection, capabilities, reducedMotion],
   )
-  const [choice, setChoice] = useState<ExportChoice>(DEFAULT_EXPORT_CHOICE)
+  const [choice, setChoice] = useState<ExportChoice>(() =>
+    normalizeChoice({ ...DEFAULT_EXPORT_CHOICE, ...initialChoice }),
+  )
+  useEffect(() => {
+    if (open) setChoice(normalizeChoice({ ...DEFAULT_EXPORT_CHOICE, ...initialChoice }))
+  }, [open, initialChoice])
   const [busy, setBusy] = useState(false)
   const [phase, setPhase] = useState<ExportPhase | null>(null)
   const [error, setError] = useState<string[] | null>(null)
   const [receipt, setReceipt] = useState<ExportReceipt | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => {
+    // A recording/export belongs to the captured source, never its replacement.
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [document, registry, query])
   const dialogRef = useRef<HTMLDialogElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   const titleId = useId()
@@ -189,10 +209,14 @@ export function ExportDialog({
   const restoreFocus = () => {
     const opener = openerRef.current
     openerRef.current = null
-    if (opener?.isConnected) opener.focus()
+    if (opener?.isConnected) opener.focus({ preventScroll: true })
   }
   async function run() {
     if (busy) return
+    if (!querySupported) {
+      setError(['export.query-format'])
+      return
+    }
     setError(null)
     setReceipt(null)
     const controller = new AbortController()
@@ -208,6 +232,7 @@ export function ExportDialog({
         reducedMotion,
         appearance: appearance ?? viewTheme,
         renderers: registry,
+        query,
         onPhase: (next) => {
           if (!controller.signal.aborted) setPhase(next)
         },
@@ -227,6 +252,7 @@ export function ExportDialog({
   function cancel() {
     abortRef.current?.abort()
   }
+  const querySupported = !query || choice.format === 'svg' || choice.format === 'card'
   const activeGate = formatGate(choice.format, facts)
   const selectionGate = scopeGate(choice.format, facts)
   const layoutRequest = useMemo(
@@ -329,7 +355,7 @@ export function ExportDialog({
             <option
               key={format}
               value={format}
-              disabled={!gate.available}
+              disabled={!gate.available || (!!query && format !== 'svg' && format !== 'card')}
               data-export-gate={gate.available ? 'ok' : gate.reason}
             >
               {FORMAT_LABEL[format][locale]}
@@ -342,6 +368,14 @@ export function ExportDialog({
   )
   const optionFields = (
     <>
+      {query && (
+        <p role="status">
+          {t(
+            'Query highlights are bound to the current document revision. SVG and card preserve these exact IDs.',
+            'Los resaltados están vinculados a la revisión actual. SVG y tarjeta conservan los IDs exactos.',
+          )}
+        </p>
+      )}
       <fieldset className="export-scope" disabled={busy}>
         <legend>{t('Scope', 'Alcance')}</legend>
         <label>
