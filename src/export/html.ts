@@ -1,3 +1,9 @@
+import {
+  prepareExportFonts,
+  type PortableFontOptions,
+  type TypographyReceipt,
+  type ExportFontContext,
+} from './fonts'
 import type { DiagramDocument, ResolveRendererRegistry, Result } from '../editor-core/types'
 import { canonical, failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
@@ -47,6 +53,7 @@ export interface ExportHtmlArtifact {
     verified: false
     runtimeBytes: number
     fontBytes: number
+    typography?: TypographyReceipt
   }
 }
 function base64(bytes: Uint8Array) {
@@ -134,6 +141,13 @@ export function exportDocumentHtml(
   input: DiagramDocument,
   options: ExportHtmlOptions,
 ): Result<ExportHtmlArtifact> {
+  return renderHtml(input, options)
+}
+function renderHtml(
+  input: DiagramDocument,
+  options: ExportHtmlOptions,
+  context?: ExportFontContext,
+): Result<ExportHtmlArtifact> {
   const checked = validateDocument(input)
   if (!checked.ok) return checked
   const document = checked.value
@@ -142,7 +156,7 @@ export function exportDocumentHtml(
     quality: 'edit',
     requestId: 'html',
     theme,
-    measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    measureText: context?.measureText ?? createCanvasTextMeasurer() ?? estimateTextWidth,
     renderers: options.registry,
   })
   if (!resolved.ok) return resolved
@@ -232,9 +246,9 @@ export function exportDocumentHtml(
     `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${scriptHash}'; img-src data:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">`,
     `<title>${escapeXml(options.title ?? document.spec.caption)}</title>`,
     `<!-- ${escapeXml(fontNotices.join(' '))} -->`,
-    `<style>${fontCss(options.fonts)}${options.css}body{margin:0}main{padding:16px}.aesthc-static svg{display:block;max-width:none;height:auto}#aesthc-standalone{min-height:100vh}</style>`,
+    `<style>${context ? context.css : fontCss(options.fonts)}${options.css}body{margin:0}main{padding:16px}.aesthc-static svg{display:block;max-width:none;height:auto}#aesthc-standalone{min-height:100vh}</style>`,
     '</head>',
-    '<body>',
+    `<body data-font-measurement="${context?.typography.measurement ?? 'legacy'}">`,
     `<main id="aesthc-fallback" data-theme="${theme}">`,
     `<div class="aesthc-static">${svg}</div>`,
     entityList,
@@ -265,4 +279,24 @@ export function exportDocumentHtml(
       fontBytes: options.fonts.sans.byteLength + options.fonts.mono.byteLength,
     },
   })
+}
+
+/** Exact-font HTML preparation. The synchronous helper remains a legacy measurement path. */
+export async function exportDocumentHtmlAsync(
+  input: DiagramDocument,
+  options: ExportHtmlOptions & PortableFontOptions,
+): Promise<Result<ExportHtmlArtifact>> {
+  const prepared = await prepareExportFonts({
+    ...options,
+    fontPolicy: options.fontPolicy ?? 'required',
+  })
+  if (!prepared.ok) return prepared
+  try {
+    const result = renderHtml(input, options, prepared.value)
+    if (!result.ok) return result
+    result.value.receipt.typography = prepared.value.typography
+    return success(result.value, prepared.diagnostics)
+  } finally {
+    prepared.value.dispose()
+  }
 }

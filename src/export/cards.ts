@@ -1,4 +1,15 @@
-import type { DiagramDocument, ResolveRendererRegistry, Result } from '../editor-core/types'
+import {
+  prepareExportFonts,
+  type PortableFontOptions,
+  type TypographyReceipt,
+  type ExportFontContext,
+} from './fonts'
+import type {
+  Diagnostic,
+  DiagramDocument,
+  ResolveRendererRegistry,
+  Result,
+} from '../editor-core/types'
 import { failure, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
 import { resolveDocument } from '../editor-core/scene'
@@ -40,7 +51,8 @@ export interface CardArtifact {
     canonical: boolean
     sourceIncluded: false
     verified: false
-    diagnostics: []
+    diagnostics: Diagnostic[]
+    typography?: TypographyReceipt
   }
 }
 export interface ValidatedQuery {
@@ -72,6 +84,13 @@ export function cardSvg(
   input: DiagramDocument,
   options: CardSvgOptions = {},
 ): Result<{ svg: string; canonical: boolean }> {
+  return renderCard(input, options)
+}
+function renderCard(
+  input: DiagramDocument,
+  options: CardSvgOptions,
+  context?: ExportFontContext,
+): Result<{ svg: string; canonical: boolean }> {
   const checked = validateDocument(input)
   if (!checked.ok) return checked
   const document = checked.value
@@ -83,7 +102,7 @@ export function cardSvg(
     quality: 'edit',
     requestId: 'card',
     theme,
-    measureText: createCanvasTextMeasurer() ?? estimateTextWidth,
+    measureText: context?.measureText ?? createCanvasTextMeasurer() ?? estimateTextWidth,
     renderers: options.registry,
   })
   if (!resolved.ok) return resolved
@@ -122,19 +141,47 @@ export function cardSvg(
     : ''
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escapeXml(document.spec.caption)}">` +
-    `<title>${escapeXml(document.spec.caption)}</title>${highlightStyle}` +
+    `<title>${escapeXml(document.spec.caption)}</title>${context?.css ? `<style>${context.css}</style>` : ''}${highlightStyle}` +
     `<rect width="100%" height="100%" fill="${palette.background}"/>${caption}` +
     `<g transform="translate(${tx} ${ty}) scale(${scale})"><g transform="translate(${resolved.value.origin.x} ${resolved.value.origin.y})">${markup}</g></g>` +
     `</svg>`
   return success({ svg, canonical: !query.value })
 }
+export async function exportCardSvg(
+  input: DiagramDocument,
+  options: CardSvgOptions & PortableFontOptions = {},
+): Promise<
+  Result<{
+    svg: string
+    canonical: boolean
+    typography: TypographyReceipt
+    diagnostics: Diagnostic[]
+  }>
+> {
+  const prepared = await prepareExportFonts(options)
+  if (!prepared.ok) return prepared
+  try {
+    const result = renderCard(input, options, prepared.value)
+    if (!result.ok) return result
+    return success(
+      {
+        ...result.value,
+        typography: prepared.value.typography,
+        diagnostics: prepared.value.diagnostics,
+      },
+      prepared.diagnostics,
+    )
+  } finally {
+    prepared.value.dispose()
+  }
+}
 /** Raster card at the fixed 1200x630 size. Rasterization failures keep their
  * precise code; no fallback renames one format as another. */
 export async function exportCard(
   input: DiagramDocument,
-  options: CardSvgOptions & { signal?: AbortSignal } = {},
+  options: CardSvgOptions & PortableFontOptions = {},
 ): Promise<Result<CardArtifact>> {
-  const svg = cardSvg(input, options)
+  const svg = await exportCardSvg(input, options)
   if (!svg.ok) return svg
   const bytes = await rasterizeSvg(
     svg.value.svg,
@@ -158,7 +205,8 @@ export async function exportCard(
       canonical: svg.value.canonical,
       sourceIncluded: false,
       verified: false,
-      diagnostics: [],
+      diagnostics: svg.value.diagnostics,
+      typography: svg.value.typography,
     },
   })
 }

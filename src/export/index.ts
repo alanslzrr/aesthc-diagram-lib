@@ -1,4 +1,4 @@
-import { waitForExport } from './wait'
+import { prepareExportFonts, type TypographyReceipt } from './fonts'
 import type { Diagnostic, DiagramDocument, EntityRef, Result } from '../editor-core/types'
 import { canonical, failure, issue, success } from '../editor-core/data'
 import { validateDocument } from '../editor-core/validation'
@@ -8,9 +8,7 @@ import { getAdapter } from '../editor-core/adapters'
 import { pruneReferences } from '../editor-core/commands'
 import { resolveDocument } from '../editor-core/scene'
 import { renderSvg, escapeXml } from '../render'
-import { createCanvasTextMeasurer, createEmbeddedFontTextMeasurer } from '../geometry/text'
 import { rasterizeSvg } from './raster'
-import fontNotices from '../assets/fonts/notices.json'
 
 export type ExportFormat = 'json' | 'svg' | 'png' | 'jpeg' | 'webp'
 export interface ExportOptions {
@@ -43,20 +41,8 @@ export interface ExportArtifact {
     sourceIncluded: boolean
     verified: boolean
     diagnostics: Diagnostic[]
+    typography?: TypographyReceipt
   }
-}
-function base64(bytes: Uint8Array) {
-  let raw = ''
-  for (const byte of bytes) raw += String.fromCharCode(byte)
-  return btoa(raw)
-}
-function fontCss(fonts: NonNullable<ExportOptions['fonts']>): Result<string> {
-  for (const bytes of [fonts.sans, fonts.mono])
-    if (bytes.length > 512 * 1024 || String.fromCharCode(...bytes.slice(0, 4)) !== 'wOF2')
-      return failure('export.font-invalid')
-  return success(
-    `/* ${escapeXml(fontNotices.join('\n'))} */@font-face{font-family:Geist;src:url(data:font/woff2;base64,${base64(fonts.sans)}) format("woff2")}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${base64(fonts.mono)}) format("woff2")}`,
-  )
 }
 export async function exportDocument(
   input: DiagramDocument,
@@ -126,49 +112,29 @@ export async function exportDocument(
     doc.spec = removed.value
     pruneReferences(doc)
   }
+  let typography: TypographyReceipt | undefined
   let bytes: Uint8Array, mimeType: string, width: number | undefined, height: number | undefined
   if (options.format === 'json') {
     bytes = new TextEncoder().encode(serializeDocument(doc))
     mimeType = 'application/json'
   } else {
-    let fonts = ''
-    let measurer: ReturnType<typeof createEmbeddedFontTextMeasurer> | undefined
-    if (options.fonts) {
-      const result = fontCss(options.fonts)
-      if (!result.ok) return result
-      fonts = result.value
-      measurer = createEmbeddedFontTextMeasurer(options.fonts.sans, options.fonts.mono)
-      if (measurer) {
-        let embeddedReady: boolean
-        try {
-          embeddedReady = await waitForExport(measurer.ready(), options.signal)
-        } catch (error) {
-          measurer.dispose()
-          return failure(
-            error instanceof Error && error.message === 'operation.aborted'
-              ? 'operation.aborted'
-              : 'export.timeout',
-          )
-        }
-        if (!embeddedReady) {
-          measurer.dispose()
-          measurer = undefined
-          if (options.fontPolicy === 'required') return failure('export.font-missing')
-          diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
-        }
-      }
-    } else if (options.fontPolicy === 'fallback')
-      diagnostics.push({ ...issue('export.font-fallback'), severity: 'warning' })
-    else return failure('export.font-missing')
+    const prepared = await prepareExportFonts({
+      ...options,
+      fontPolicy: options.fontPolicy ?? 'required',
+    })
+    if (!prepared.ok) return prepared
+    const context = prepared.value
+    typography = context.typography
+    diagnostics.push(...context.diagnostics)
     const resolved = resolveDocument(doc, {
       quality: options.quality,
       requestId: 'export',
       signal: options.signal,
       theme: options.theme,
-      measureText: measurer?.measure ?? createCanvasTextMeasurer(),
+      measureText: context.measureText,
       renderers: options.renderers,
     })
-    measurer?.dispose()
+    context.dispose()
     if (!resolved.ok) return resolved
     diagnostics.push(...resolved.diagnostics)
     // A portable artifact never falls back to a placeholder for a custom
@@ -199,7 +165,7 @@ export async function exportDocument(
       instanceId: 'export',
       theme: options.theme,
       background: options.background,
-      fontCss: fonts,
+      fontCss: context.css,
     })
     if (options.includeSource) {
       const data = canonical(original)
@@ -237,6 +203,7 @@ export async function exportDocument(
         sourceIncluded: options.format === 'json' || options.includeSource,
         verified: false,
         diagnostics,
+        ...(typography ? { typography } : {}),
       },
     },
     diagnostics,
@@ -287,11 +254,20 @@ export async function copyArtifact(artifact: ExportArtifact): Promise<Result<voi
     return failure('clipboard.denied')
   }
 }
-export { exportDocumentHtml } from './html'
+export { exportDocumentHtml, exportDocumentHtmlAsync } from './html'
 export type { ExportHtmlArtifact, ExportHtmlOptions } from './html'
-export { CARD_HEIGHT, CARD_WIDTH, cardSvg, exportCard, validateCardQuery } from './cards'
+export {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  cardSvg,
+  exportCardSvg,
+  exportCard,
+  validateCardQuery,
+} from './cards'
 export type { CardArtifact, CardQueryReceipt, CardSvgOptions, ValidatedQuery } from './cards'
 export { probeExportCapabilities, supportedFormats } from './capabilities'
 export type { ProbedExportCapabilities } from './capabilities'
 export { exportStoryWebm, webmCapability } from './motion'
 export type { MotionArtifact, MotionOptions } from './motion'
+
+export type { PortableFontOptions, TypographyReceipt } from './fonts'
