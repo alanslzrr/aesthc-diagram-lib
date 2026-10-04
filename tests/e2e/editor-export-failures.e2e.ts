@@ -139,7 +139,6 @@ test('T39.2 exports keep notes, links and extensions out of the SVG and JSON car
   expect(parsed.text).not.toContain('com.example')
   expect(parsed.links).toBe(0)
   // Source inclusion is an explicit opt-in; the default vector export omits it.
-  await page.getByText('More export options', { exact: true }).click()
   await expect(
     page.getByRole('checkbox', { name: 'Include source JSON', exact: true }),
   ).not.toBeChecked()

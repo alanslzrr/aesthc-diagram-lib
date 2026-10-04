@@ -100,7 +100,6 @@ test('T36.2 publish export measures long labels with embedded fonts without clip
       .locator('.adl-editor-surface')
       .getByRole('button', { name: 'Kafka event gateway consumption pipeline', exact: true }),
   ).toBeVisible()
-  await page.getByText('More export options', { exact: true }).click()
   await page.getByLabel('Export quality').selectOption('publish')
   await page.getByLabel('Font handling').selectOption('required')
   await page.getByLabel('Export format').selectOption('svg')
@@ -125,7 +124,6 @@ test('T36.2 missing font metrics surface an actionable error and never a false s
   await page.goto('/studio.html')
   await applyFixture(page, longLabelDocument(['A', 'B']))
   await expect(page.getByRole('button', { name: 'A', exact: true })).toBeVisible()
-  await page.getByText('More export options', { exact: true }).click()
   await page.getByLabel('Export quality').selectOption('publish')
   let downloaded = false
   page.once('download', () => {
