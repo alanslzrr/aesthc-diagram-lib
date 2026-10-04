@@ -661,3 +661,62 @@ test('editor grid is one masked viewport layer and the document grid stays out',
     .evaluate((element) => Boolean(element.getAttribute('mask')))
   expect(masked).toBe(true)
 })
+
+test.describe('retina representative gallery acceptance', () => {
+  test.use({ deviceScaleFactor: 2 })
+  for (const locale of ['en', 'es'] as const)
+    for (const theme of ['light', 'dark'] as const) {
+      test(`DPR2 preserves full relationships and typography in ${locale}/${theme}`, async ({
+        page,
+      }) => {
+        await page.addInitScript((locale) => localStorage.setItem('adl-locale', locale), locale)
+        await page.goto('/')
+        await setTheme(page, theme)
+        await page.evaluate(() => document.fonts.ready)
+        for (const width of [390, 768, 1280, 1718]) {
+          await page.setViewportSize({ width, height: 1000 })
+          for (const type of TYPES) {
+            const stage = page.locator(
+              `[data-diagram-panel="example-${type}"] .layout-gallery-stage`,
+            )
+            const result = await stage.evaluate((element) => {
+              const bounds = element.getBoundingClientRect()
+              const labels = [...element.querySelectorAll<SVGGraphicsElement>('[data-node-label]')]
+              const sizes = labels.map((label) => {
+                const matrix = label.getScreenCTM()!
+                return parseFloat(getComputedStyle(label).fontSize) * Math.hypot(matrix.a, matrix.b)
+              })
+              const escaped = [
+                ...element.querySelectorAll('[data-node-id], [data-edge-id]'),
+              ].filter((node) => {
+                const rect = node.getBoundingClientRect()
+                return (
+                  rect.left < bounds.left - 1 ||
+                  rect.right > bounds.right + 1 ||
+                  rect.top < bounds.top - 1 ||
+                  rect.bottom > bounds.bottom + 1
+                )
+              }).length
+              return {
+                minimum: Math.min(...sizes),
+                escaped,
+                scroll: element.scrollWidth > element.clientWidth,
+                pageOverflow: document.documentElement.scrollWidth > innerWidth,
+              }
+            })
+            expect(result.minimum, `${type}/${width}`).toBeGreaterThanOrEqual(11)
+            expect(result.escaped, `${type}/${width}`).toBe(0)
+            expect(result.scroll).toBe(false)
+            expect(result.pageOverflow).toBe(false)
+            if (width === 1280 && ['er', 'sequence', 'swimlane'].includes(type))
+              await test
+                .info()
+                .attach(`${type}-${locale}-${theme}-dpr2`, {
+                  body: await stage.screenshot(),
+                  contentType: 'image/png',
+                })
+          }
+        }
+      })
+    }
+})
