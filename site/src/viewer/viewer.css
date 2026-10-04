@@ -142,7 +142,7 @@ body {
   font-family: Geist, system-ui, sans-serif;
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  color-scheme: light dark;
+  color-scheme: inherit;
 }
 .viewer-shell .export-dialog::backdrop {
   background: rgb(0 0 0 / 55%);
