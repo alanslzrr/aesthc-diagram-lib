@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 
 // Exercise packaged modules in a real browser without source aliases or a production harness.
@@ -171,4 +172,77 @@ test('abort during delayed font loading releases registrations and never produce
   expect(result.ok).toBe(false)
   expect(result.codes).toContain('operation.aborted')
   expect(result.leaked).toBe(0)
+})
+
+test('exact-font standalone fallback and hydrated Viewer have identical node geometry offline', async ({
+  page,
+  browser,
+}) => {
+  const html = await page.evaluate(async () => {
+    const base = location.origin + '/__portable/dist'
+    const api = await import(base + '/export/index.js'),
+      core = await import(base + '/editor-core/index.js')
+    const made = core.createDocument(
+      {
+        type: 'graph',
+        caption: 'Exact offline geometry',
+        legend: { main: 'Main', branch: 'Branch' },
+        nodes: [
+          {
+            id: 'long',
+            label: 'Confirmación de pago y entrega',
+            description: 'Exact embedded Geist measurement',
+          },
+          { id: 'api', label: 'API', description: '' },
+        ],
+        edges: [{ id: 'edge', from: 'long', to: 'api', label: 'payment.succeeded' }],
+      },
+      { id: 'offline-font', locale: 'es' },
+    )
+    const fonts = {
+      sans: new Uint8Array(await (await fetch(base + '/fonts/geist-sans.woff2')).arrayBuffer()),
+      mono: new Uint8Array(await (await fetch(base + '/fonts/geist-mono.woff2')).arrayBuffer()),
+    }
+    const result = await api.exportDocumentHtmlAsync(made.value, {
+      fonts,
+      fontPolicy: 'required',
+      runtime: await (await fetch(base + '/standalone/viewer.js')).text(),
+      css: await (await fetch(base + '/viewer.css')).text(),
+    })
+    if (!result.ok) throw Error(JSON.stringify(result.diagnostics))
+    return result.value.html
+  })
+  const file = resolve(mkdtempSync(resolve(tmpdir(), 'adl-exact-font-')), 'diagram.html')
+  writeFileSync(file, html)
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (/^https?:/.test(request.url())) requests.push(request.url())
+  })
+  await page.goto(`file://${file}`)
+  await expect(page.locator('.adl-viewer')).toBeVisible()
+  const runtime = await page
+    .locator('.adl-viewer [data-node-surface="true"]')
+    .evaluateAll((elements) =>
+      elements.map((element) =>
+        ['x', 'y', 'width', 'height'].map((key) => Number(element.getAttribute(key))),
+      ),
+    )
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  try {
+    const staticPage = await context.newPage()
+    await staticPage.goto(`file://${file}`)
+    await expect(staticPage.locator('#aesthc-fallback')).toBeVisible()
+    const fallback = await staticPage
+      .locator('.aesthc-static [data-node-surface="true"]')
+      .evaluateAll((elements) =>
+        elements.map((element) =>
+          ['x', 'y', 'width', 'height'].map((key) => Number(element.getAttribute(key))),
+        ),
+      )
+    expect(runtime.length).toBe(2)
+    expect(runtime).toEqual(fallback)
+    expect(requests).toEqual([])
+  } finally {
+    await context.close()
+  }
 })
