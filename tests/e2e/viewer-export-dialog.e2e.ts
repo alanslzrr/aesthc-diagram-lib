@@ -30,3 +30,24 @@ test('Viewer publish routes into the shared dialog with publish policy selected'
   await expect(page.getByRole('dialog', { name: 'Export document' })).toBeVisible()
   await expect(page.getByLabel('Export quality', { exact: true })).toHaveValue('publish')
 })
+
+test('shared Viewer dialog has styled controls without loading editor CSS', async ({ page }) => {
+  await page.goto('/viewer.html')
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  const styles = await dialog.evaluate((element) => {
+    const select = element.querySelector('select')!
+    const control = getComputedStyle(select),
+      frame = getComputedStyle(element)
+    return {
+      radius: control.borderRadius,
+      appearance: control.appearance,
+      padding: frame.padding,
+      border: frame.borderTopWidth,
+    }
+  })
+  expect(styles.appearance).toBe('none')
+  expect(parseFloat(styles.radius)).toBeGreaterThanOrEqual(4)
+  expect(styles.padding).toBe('24px')
+  expect(styles.border).toBe('1px')
+})
