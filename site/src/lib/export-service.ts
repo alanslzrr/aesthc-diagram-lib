@@ -7,7 +7,7 @@ import {
   downloadArtifact,
   exportCard,
   exportDocument,
-  exportDocumentHtml,
+  exportDocumentHtmlAsync,
   exportStoryWebm,
   probeExportCapabilities,
   webmCapability,
@@ -138,6 +138,7 @@ export interface ExportContext {
   appearance?: 'light' | 'dark'
   /** Trusted per-instance renderers for custom nodes; never serialized. */
   renderers?: ResolveRendererRegistry
+  query?: import('@aesthc/diagram-lib/export').CardQueryReceipt
   onPhase?: (phase: ExportPhase) => void
 }
 function failure(codes: string[]): ExportResult {
@@ -156,6 +157,8 @@ export async function performExport(
   const codes = choiceIssues(choice, selection.length)
   if (codes.length) return failure(codes)
   if (signal.aborted) return failure(['operation.aborted'])
+  if (context.query && choice.format !== 'svg' && choice.format !== 'card')
+    return failure(['export.query-format'])
   const filename = safeFilename(filenameBase, choice.format)
   const theme = context.appearance ?? document.presentation.theme.mode
   const scope: ExportScope = choice.scope
@@ -190,6 +193,7 @@ export async function performExport(
       includeSource: choice.includeSource,
       metadata: choice.metadata,
       fonts,
+      query: context.query,
       fontPolicy: choice.fontPolicy,
       renderers: context.renderers,
       signal,
@@ -241,10 +245,12 @@ export async function performExport(
       return failure([signal.aborted ? 'operation.aborted' : 'html.runtime'])
     }
     if (signal.aborted) return failure(['operation.aborted'])
-    const result = exportDocumentHtml(document, {
+    const result = await exportDocumentHtmlAsync(document, {
       runtime,
       css,
       fonts,
+      signal,
+      fontPolicy: choice.fontPolicy,
       theme,
       title: document.spec.caption,
       includeSource: choice.includeSource,
@@ -252,6 +258,7 @@ export async function performExport(
       registry: context.renderers,
     })
     if (!result.ok) return failure(result.diagnostics.map((diagnostic) => diagnostic.code))
+    if (signal.aborted) return failure(['operation.aborted'])
     onPhase?.('encoding')
     downloadBlob(new Blob([result.value.html], { type: result.value.receipt.mimeType }), filename)
     return {
@@ -263,14 +270,31 @@ export async function performExport(
         bytes: result.value.receipt.bytes,
         canonical: result.value.receipt.canonical,
         sourceIncluded: result.value.receipt.sourceIncluded,
-        warnings: [],
+        warnings: result.diagnostics
+          .filter((diagnostic) => diagnostic.severity === 'warning')
+          .map((diagnostic) => diagnostic.code),
       },
     }
+  }
+  onPhase?.('fonts')
+  let fonts: { sans: Uint8Array; mono: Uint8Array } | undefined
+  try {
+    const [sans, mono] = await Promise.all([
+      fetchBytes(sansUrl, signal),
+      fetchBytes(monoUrl, signal),
+    ])
+    fonts = { sans, mono }
+  } catch {
+    if (signal.aborted) return failure(['operation.aborted'])
+    if (choice.fontPolicy === 'required') return failure(['export.font-missing'])
   }
   if (choice.format === 'card') {
     onPhase?.('rendering')
     const result = await exportCard(document, {
       theme,
+      fonts,
+      fontPolicy: choice.fontPolicy,
+      query: context.query,
       signal,
       registry: context.renderers,
     })
@@ -290,13 +314,17 @@ export async function performExport(
         height: CARD_HEIGHT,
         canonical: result.value.receipt.canonical,
         sourceIncluded: false,
-        warnings: [],
+        warnings: result.value.receipt.diagnostics
+          .filter((diagnostic) => diagnostic.severity === 'warning')
+          .map((diagnostic) => diagnostic.code),
       },
     }
   }
   onPhase?.('rendering')
   const result = await exportStoryWebm(document, {
     signal,
+    fonts,
+    fontPolicy: choice.fontPolicy,
     reducedMotion: context.reducedMotion,
     theme,
     renderers: context.renderers,
@@ -317,7 +345,9 @@ export async function performExport(
       height: receipt.height,
       canonical: false,
       sourceIncluded: false,
-      warnings: [],
+      warnings: result.value.receipt.diagnostics
+        .filter((diagnostic) => diagnostic.severity === 'warning')
+        .map((diagnostic) => diagnostic.code),
     },
   }
 }

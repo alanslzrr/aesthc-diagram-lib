@@ -90,7 +90,7 @@ export function supportsMetadata(format: ExportChoiceFormat): boolean {
 /** The canonical pipeline accepts an explicit policy; HTML always embeds the
  * bundled faces and fails honestly when they cannot be fetched. */
 export function supportsFontPolicy(format: ExportChoiceFormat): boolean {
-  return supportsScale(format)
+  return format !== 'json'
 }
 export function formatGate(format: ExportChoiceFormat, facts: ExportFacts): ExportGate {
   switch (format) {
