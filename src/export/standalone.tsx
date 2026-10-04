@@ -1,3 +1,4 @@
+import { waitForExport } from './wait'
 import { Component, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { importDocument } from '../editor-core'
@@ -114,7 +115,7 @@ class ViewerBoundary extends Component<
   }
 }
 
-function boot() {
+async function boot() {
   const data = document.getElementById('aesthc-document')
   const target = document.getElementById('aesthc-standalone')
   const fallback = document.getElementById('aesthc-fallback')
@@ -143,6 +144,21 @@ function boot() {
     failStartup(imported.diagnostics.map((diagnostic) => diagnostic.code).join(', '))
     return
   }
+  // Keep static content visible until the exact embedded faces are available.
+  if (document.body.dataset.fontMeasurement !== 'fallback') {
+    try {
+      const faces = await waitForExport(
+        Promise.all([document.fonts.load('16px Geist'), document.fonts.load('16px "Geist Mono"')]),
+      )
+      if (faces.some((loaded) => loaded.length === 0)) {
+        failStartup('export.font-missing')
+        return
+      }
+    } catch {
+      failStartup('export.font-missing')
+      return
+    }
+  }
   // All runtime data is validated; the handoff can proceed.
   if (fallback) fallback.hidden = true
   target.hidden = false
@@ -161,5 +177,6 @@ function boot() {
     </ViewerBoundary>,
   )
 }
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot)
-else boot()
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', () => void boot())
+else void boot()
