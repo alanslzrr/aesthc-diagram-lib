@@ -23,6 +23,20 @@ function GalleryCard({ entry, locale }: { entry: SectionEntry; locale: Locale })
     height: layout.height,
   }
   const caption = 'caption' in spec ? spec.caption : entry.title[locale]
+  const representative: Record<string, Record<Locale, string>> = {
+    sequence: {
+      en: 'Client and API exchange a GET request and a 200 response along two lifelines.',
+      es: 'Cliente y API intercambian una petición GET y una respuesta 200 sobre dos líneas de vida.',
+    },
+    er: {
+      en: 'Users and orders show primary keys, a foreign key and a one-to-many relationship.',
+      es: 'Usuarios y pedidos muestran claves primarias, una clave foránea y una relación uno a muchos.',
+    },
+    swimlane: {
+      en: 'Support hands a triaged issue to Engineering across two labeled lanes.',
+      es: 'Soporte entrega una incidencia clasificada a Ingeniería entre dos carriles etiquetados.',
+    },
+  }
   return (
     <li id={entry.key} data-diagram-panel={entry.key} className="layout-gallery-card">
       <div className="layout-gallery-stage diagram-backdrop" inert>
@@ -49,7 +63,7 @@ function GalleryCard({ entry, locale }: { entry: SectionEntry; locale: Locale })
           <h3>{entry.title[locale]}</h3>
           <span>{entry.type}</span>
         </div>
-        <p>{entry.description[locale]}</p>
+        <p>{representative[entry.type]?.[locale] ?? entry.description[locale]}</p>
         <div className="layout-gallery-actions">
           <a href={`${BASE}playground.html?only=${entry.key}`}>
             {STRINGS.openPlayground[locale]} ↗
